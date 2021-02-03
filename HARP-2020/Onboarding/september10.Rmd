@@ -1,0 +1,297 @@
+---
+title: "September 10% Metric"
+author: "Kyle Lowe"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(dataRetrieval)
+library(scales)
+library(IHA)
+library(zoo)
+```
+
+## What is September 10%?
+The September 10% (Sep 10) metric analyzes the 10 percentile flow for the month of September. Since September and August are most often the months with the lowest amount of flow in Virginia, Sep 10 is most often used in conjunction with August low flow (ALF) to monitor shifts in drought time. Delayed droughts will lower Sep 10 values, and raise ALF values. Sep 10 can also be used to monitor consistanc of and long term changes in base flow. A Sep 10 from a recent year that is significantly lower than the median from previous decades could signal a reduction in base flow because of overpumping of groundwater/ increase in impervious surfaces.
+
+
+```{r function creation, echo=FALSE}
+Sep_10 <- function(siteNumbers, startDate,endDate) {
+  rawData <- readNWISdv(siteNumbers, '00060', startDate, endDate)
+  Date <- rawData$Date
+  rawData$Month <- format(as.Date(Date, format = '%d/%m/%Y'), '%m')
+  rawData <- addWaterYear(rawData)
+  sep_10 <- c()
+  year <- rawData$waterYear[1]
+  while (year <= 2019) {
+    year <- toString(year)
+    sep <- rawData[(rawData$waterYear == year) & (rawData$Month == "09"),]
+    value <- sep$X_00060_00003
+    value <- sort(value, decreasing = FALSE)
+    value <- value[3]
+    sep_10 <- append(sep_10, value)
+    year <- strtoi(year) + 1
+  }
+  return(sep_10)
+}
+ALF <- function(siteNumbers, startDate,endDate) {
+  rawData <- readNWISdv(siteNumbers, '00060', startDate, endDate)
+  Date <- rawData$Date
+  rawData$Month <- format(as.Date(Date, format = '%d/%m/%Y'), '%m')
+  rawData <- addWaterYear(rawData)
+  aug_min <- c()
+  year <- rawData$waterYear[1]
+  while (year <= 2019) {
+    year <- toString(year)
+    aug <- rawData[(rawData$waterYear == year) & (rawData$Month == "08"),]
+    value <- min(aug$X_00060_00003)
+    aug_min <- append(aug_min, value)
+    year <- strtoi(year) + 1
+  }
+  return(aug_min)
+}
+```
+
+
+## Holston River near Damascas, VA
+### Gage ID: *03473000*
+
+```{r, echo=FALSE}
+holstonSep_10 <- Sep_10('03473000', '1999-10-01', '2019-09-30')
+ggplot(data.frame(holstonSep_10), aes(x = "", y = holstonSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+holstonAug_min <- ALF('03473000', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = holstonSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = holstonAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+```
+
+## South River near Waynesboro, VA
+### Gage ID: *01626000*
+
+```{r, echo=FALSE}
+southSep_10 <- Sep_10('01626000', '1999-10-01', '2019-09-30')
+ggplot(data.frame(southSep_10), aes(x = "", y = southSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+southAug_min <- ALF('01626000', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = southSep_10, color ="Sep 10%")) +
+  geom_line(aes(y = southAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+```
+
+## Blackwater River near Dendron, VA
+### Gage ID: *02047500*
+
+```{r, echo=FALSE}
+blackwaterSep_10 <- Sep_10('02047500', '1999-10-01', '2019-09-30')
+ggplot(data.frame(blackwaterSep_10), aes(x = "", y = blackwaterSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+blackwaterAug_min <- ALF('02047500', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = blackwaterSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = blackwaterAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+```
+
+## Appomattox River near Mattoax, VA
+### Gage ID: *02040000*
+
+```{r, echo=FALSE}
+appomattoxSep_10 <- Sep_10('02040000', '1999-10-01', '2019-09-30')
+ggplot(data.frame(appomattoxSep_10), aes(x = "", y = appomattoxSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+appomattoxAug_min <- ALF('02040000', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = appomattoxSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = appomattoxAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+```
+
+## Potomac River near Washington, DC
+### Gage ID: *01646502*
+
+```{r, echo=FALSE}
+potomacSep_10 <- Sep_10('01646502', '1999-10-01', '2019-09-30')
+ggplot(data.frame(potomacSep_10), aes(x = "", y = potomacSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+potomacAug_min <- ALF('01646502', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = potomacSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = potomacAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+```
+
+## Comparison Between Sites
+```{r, echo=FALSE}
+tableSep <- cbind(appomattoxSep_10, blackwaterSep_10, holstonSep_10, southSep_10)
+tableSep <- data.frame(tableSep)
+tableSep <- stack(tableSep)
+length.data <- 1:20
+tableSep$River <- c(rep("Appomattox River", length(length.data)), rep("Blackwater River", length(length.data)), rep("Holston River", length(length.data)), rep("South River", length(length.data)))
+ggplot(NULL, aes(x = tableSep$River, y = tableSep$values)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Past 20 Years For All Sites', x = 'River', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold')) +
+    coord_cartesian(ylim=c(0, 300))
+```
+
+## Analysis
+It is interesting to see what years had delayed droughts looking at when the September 10% and August Low Flow values diverge from one another on the graphs. Also how spread out the box plots are helps to understand what rivers have more consistent low flows throughout the years.
+
+### Complete Code for Reference
+```
+Sep_10 <- function(siteNumbers, startDate,endDate) {
+  rawData <- readNWISdv(siteNumbers, '00060', startDate, endDate)
+  Date <- rawData$Date
+  rawData$Month <- format(as.Date(Date, format = '%d/%m/%Y'), '%m')
+  rawData <- addWaterYear(rawData)
+  sep_10 <- c()
+  year <- rawData$waterYear[1]
+  while (year <= 2019) {
+    year <- toString(year)
+    sep <- rawData[(rawData$waterYear == year) & (rawData$Month == "09"),]
+    value <- sep$X_00060_00003
+    value <- sort(value, decreasing = FALSE)
+    value <- value[3]
+    sep_10 <- append(sep_10, value)
+    year <- strtoi(year) + 1
+  }
+  return(sep_10)
+}
+
+ALF <- function(siteNumbers, startDate,endDate) {
+  rawData <- readNWISdv(siteNumbers, '00060', startDate, endDate)
+  Date <- rawData$Date
+  rawData$Month <- format(as.Date(Date, format = '%d/%m/%Y'), '%m')
+  rawData <- addWaterYear(rawData)
+  aug_min <- c()
+  year <- rawData$waterYear[1]
+  while (year <= 2019) {
+    year <- toString(year)
+    aug <- rawData[(rawData$waterYear == year) & (rawData$Month == "08"),]
+    value <- min(aug$X_00060_00003)
+    aug_min <- append(aug_min, value)
+    year <- strtoi(year) + 1
+  }
+  return(aug_min)
+}
+
+holstonSep_10 <- Sep_10('03473000', '1999-10-01', '2019-09-30')
+ggplot(data.frame(holstonSep_10), aes(x = "", y = holstonSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+holstonAug_min <- ALF('03473000', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = holstonSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = holstonAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+southSep_10 <- Sep_10('01626000', '1999-10-01', '2019-09-30')
+ggplot(data.frame(southSep_10), aes(x = "", y = southSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+southAug_min <- ALF('01626000', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = southSep_10, color ="Sep 10%")) +
+  geom_line(aes(y = southAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+blackwaterSep_10 <- Sep_10('02047500', '1999-10-01', '2019-09-30')
+ggplot(data.frame(blackwaterSep_10), aes(x = "", y = blackwaterSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+blackwaterAug_min <- ALF('02047500', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = blackwaterSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = blackwaterAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+  
+appomattoxSep_10 <- Sep_10('02040000', '1999-10-01', '2019-09-30')
+ggplot(data.frame(appomattoxSep_10), aes(x = "", y = appomattoxSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+appomattoxAug_min <- ALF('02040000', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = appomattoxSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = appomattoxAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+  
+potomacSep_10 <- Sep_10('01646502', '1999-10-01', '2019-09-30')
+ggplot(data.frame(potomacSep_10), aes(x = "", y = potomacSep_10)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Last 20 Water Years', x = 'Sep 10%', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+potomacAug_min <- ALF('01646502', '1999-10-01', '2019-09-30')
+ggplot(NULL, aes(x = c(2000:2019))) +
+  geom_line(aes(y = potomacSep_10, color = "Sep 10%")) +
+  geom_line(aes(y = potomacAug_min, color = "ALF")) +
+  theme_bw() +
+  labs(title = 'September 10% vs August Low Flow', x = 'Water Year', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold'))
+
+tableSep <- cbind(appomattoxSep_10, blackwaterSep_10, holstonSep_10, southSep_10)
+tableSep <- data.frame(tableSep)
+tableSep <- stack(tableSep)
+length.data <- 1:20
+tableSep$River <- c(rep("Appomattox River", length(length.data)), rep("Blackwater River", length(length.data)), rep("Holston River", length(length.data)), rep("South River", length(length.data)))
+ggplot(NULL, aes(x = tableSep$River, y = tableSep$values)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = 'September 10% Over Past 20 Years For All Sites', x = 'River', y =  'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold')) +
+    coord_cartesian(ylim=c(0, 300))
+```

@@ -1,0 +1,313 @@
+---
+title: "Comparison of 90-day low flow metric across five Virginia rivers"
+author: "Sarah Loomis"
+date: "6/10/2020"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(zoo)
+library(IHA)
+library(dataRetrieval)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The 90-day low flow metric is the 90 consecutive days in the water year that have the lowest overall stream discharge in cubic feet per second.  This most often happens around the August-October time period, when rainfall is less frequent.  This metric is important to understand for the study of water availability, allocation, and influence on habitats and species in the area.
+
+Summarized below are the 90-day low flows over the last 20 water years for 5 river systems across Virginia, as measured by gages:
+
+Site #01626000 - South River near Waynesboro, VA     
+Site #02047500 - Blackwater River near Dendron, VA     
+Site #01646502 - Potomac River near Washington, D.C.    
+Site #02040000 - Appomattox River near Mattoax, VA     
+Site #03475000 - Holston River near Meadowview, VA    
+
+The following is a map of the sites around Virginia and D.C.  See Appendix A for code to create an interactive map of the sites from which this image was taken.
+
+```{r}
+knitr::include_graphics("C:\\Users\\sarah\\OneDrive - Virginia Tech\\Summer 2020\\HARP\\Week 3\\Gage Sites VA.png")
+```
+
+A summary of non-graph related code used is located at the end of the document (Appendix A).  
+
+\pagebreak
+
+```{r, include = FALSE}
+site_id1 <- '01626000' # South River
+site_id2 <- '02047500' # Blackwater River
+site_id3 <- '01646502' # Potomac River
+site_id4 <- '02040000' # Appomattox River
+site_id5 <- '03475000' # Holston River
+pCode <- '00060'
+startDate <- '2000-10-01'
+endDate <- '2019-09-30'
+
+rawDailyQ1 <- readNWISdv(site_id1, pCode, startDate, endDate)
+rawDailyQ2 <- readNWISdv(site_id2, pCode, startDate, endDate)
+rawDailyQ3 <- readNWISdv(site_id3, pCode, startDate, endDate)
+rawDailyQ4 <- readNWISdv(site_id4, pCode, startDate, endDate)
+rawDailyQ5 <- readNWISdv(site_id5, pCode, startDate, endDate)
+# load in data
+
+dates <- rawDailyQ1$Date
+# assign dates to their own vector
+years <- c('01','02','03','04','05','06','07','08','09','10','11',
+           '12','13','14','15','16','17','18','19')
+years <- as.factor(years)
+
+rawDailyQ1 <- as.zoo(rawDailyQ1$X_00060_00003)
+rawDailyQ2 <- as.zoo(rawDailyQ2$X_00060_00003)
+rawDailyQ3 <- as.zoo(rawDailyQ3$X_00060_00003)
+rawDailyQ4 <- as.zoo(rawDailyQ4$X_00060_00003)
+rawDailyQ5 <- as.zoo(rawDailyQ5$X_00060_00003)
+# reassign data of flows to be zoo objects
+
+data1 <- zoo(x = rawDailyQ1, order.by = dates)
+data2 <- zoo(x = rawDailyQ2, order.by = dates)
+data3 <- zoo(x = rawDailyQ3, order.by = dates)
+data4 <- zoo(x = rawDailyQ4, order.by = dates)
+data5 <- zoo(x = rawDailyQ5, order.by = dates)
+# order the raw data by dates
+
+final1 <- group2(data1, year = c("water"), mimic.tnc = T)
+final2 <- group2(data2, year = c("water"), mimic.tnc = T)
+final3 <- group2(data3, year = c("water"), mimic.tnc = T)
+final4 <- group2(data4, year = c("water"), mimic.tnc = T)
+final5 <- group2(data5, year = c("water"), mimic.tnc = T)
+# use group2 function from IHA package to measure the magnitude of monthly water conditions
+
+minSR <- min(final1$`90 Day Min`)
+minBR <- min(final2$`90 Day Min`)
+minPR <- min(final3$`90 Day Min`)
+minAR <- min(final4$`90 Day Min`)
+minHR <- min(final5$`90 Day Min`)
+# minimum of the 90-day min data for each river
+maxSR <- max(final1$`90 Day Min`)
+maxBR <- max(final2$`90 Day Min`)
+maxPR <- max(final3$`90 Day Min`)
+maxAR <- max(final4$`90 Day Min`)
+maxHR <- max(final5$`90 Day Min`)
+# maximum of the 90-day min data for each river
+aveSR <- ave(final1$`90 Day Min`)
+aveBR <- ave(final2$`90 Day Min`)
+avePR <- ave(final3$`90 Day Min`)
+aveAR <- ave(final4$`90 Day Min`)
+aveHR <- ave(final5$`90 Day Min`)
+# average of the 90-day min data for each river
+sdSR <- sd(final1$`90 Day Min`) * 100 / aveSR[1]
+sdBR <- sd(final2$`90 Day Min`) * 100 / aveBR[1]
+sdPR <- sd(final3$`90 Day Min`) * 100 / avePR[1]
+sdAR <- sd(final4$`90 Day Min`) * 100 / aveAR[1]
+sdHR <- sd(final5$`90 Day Min`) * 100 / aveHR[1]
+# standard deviation of the 90-day min data for each river as a percentage
+# to calculate: use standard deviation function, multiply by 100, and divide by average
+
+river <- c(rep(1, times = nrow(final1)), rep(2, times = nrow(final2)), 
+           rep(4, times = nrow(final4)), rep(5, times = nrow(final5)))
+r <- rbind(final1, final2, final4, final5)
+r <- cbind(r, river)
+r$river <- as.factor(r$river)
+
+potomac <- c(rep(0, times = nrow(final3)))
+p <- cbind(final3, potomac)
+p$potomac <- as.factor(p$potomac)
+
+# categorize each river's data as its own
+# the Potomac river is separated out because of its much higher data points for the sake of easy graph reading
+```
+
+# Statistical Summary
+
+### Statistics of each river's 90-day low flow over 20 years:
+
+This data refers to the statistics of specifically 90-day low flow.  That is, the Min column refers to the minimum 90-day low flow value within the 20 year span, and so on.
+
+River     |Min (cfs)|Max (cfs) |Avg (cfs)|St. Dev. (% of the mean)|Drainage Area (sq. mi)|Zero Flow Days|
+----------|---------|----------|---------|------------------------|------------------------|--------------|
+South     | 19.14   | 91.18    | 45      | 41.65%                 | 127                    | 0            |
+Blackwater| 0       | 297.72   | 75.8    | 113.33%                | 290                    | 499          |
+Potomac   | 1877.44 | 12,133.3 | 4389    | 49.13%                 | 11,560                 | 0            |
+Appomat.  | 26.11   | 733.68   | 176     | 92.18%                 | 725                    | 0            |
+Holston   | 64.86   | 296.19   | 118     | 51.91%                 | 206                    | 0            |
+
+The Blackwater river has the most variability in its 90-day low flow measurements over the last 20 water years, which is notable given its smaller drainage area.  It also has lots of zero flow days, which could also be an explanation for the large standard deviation in the data or be evident of gage behavior in marshier areas that do not always have standing water.
+
+The Potomac river, despite having the largest drainage area by far, has the second lowest percentage in variability, making its low flows more stable and similar across the years when compared to the Blackwater river.
+
+
+\pagebreak
+
+# Graphs
+
+### The following are boxplots detailing the span of 90-day low flows over 20 years for four of the five rivers being studied.
+
+```{r}
+ggplot(r, aes(x = river, y = `90 Day Min`)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = c(0,300)) +
+  theme_bw() +
+  scale_x_discrete(limits = c("1", "2", "4", "5"),
+                   labels = c("South River", "Blackwater River", 
+                              "Appomattox River", "Holston River")) +
+  labs(title = "90-Day low flow comparison",
+       x = "Virginia River",
+       y = "Stream Discharge (cfs)")
+```
+
+\pagebreak
+
+### The following is a line plot of the 90-day low flows within the 20 year span for four of the fiver rivers being studied.
+
+```{r}
+ggplot(NULL, aes(x = years)) +
+  geom_line(aes(y = final1$`90 Day Min`, color = 'South River'), group = 1) + 
+  geom_line(aes(y = final2$`90 Day Min`, color = 'Blackwater River'), group = 2) +
+  geom_line(aes(y = final4$`90 Day Min`, color = 'Appomattox River'), group = 3) +
+  geom_line(aes(y = final5$`90 Day Min`, color = 'Holston River'), group = 4) +
+  theme_bw() + 
+  labs(title = "90 day low flows, 2001-2019 water years",
+       x = "Water Year (abbreviated)",
+       y = "Stream Discharge (cfs)")
+```
+
+\pagebreak
+
+### The following is a boxplot detailing the span of 90-day low flows over 20 years for the Potomac River.
+
+```{r}
+ggplot(p, aes(x = potomac, y = `90 Day Min`)) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0,7000)) +
+  theme_bw() +
+  scale_x_discrete(limits = c("0"),
+                   labels = c("Potomac River")) +
+  labs(title = "Potomac River 90-Day low flow",
+       x = "Virginia River",
+       y = "Stream Discharge (cfs)")
+```
+
+\pagebreak
+
+### The following is a line plot of the 90-day low flows from the 2001-2019 water years for the Potomac River.
+
+```{r}
+ggplot(NULL, aes(x = years)) +
+  geom_line(aes(y = final3$`90 Day Min`, color = 'Potomac River'), group = 1) + 
+  theme_bw() + 
+  labs(title = "90 day low flows, 2001-2019 water years",
+       x = "Water Year (abbreviated)",
+       y = "Stream Discharge (cfs)")
+```
+
+\pagebreak
+
+# Appendix A: non-graph code
+
+```{r}
+site_id1 <- '01626000' # South River
+site_id2 <- '02047500' # Blackwater River
+site_id3 <- '01646502' # Potomac River
+site_id4 <- '02040000' # Appomattox River
+site_id5 <- '03475000' # Holston River
+pCode <- '00060'
+startDate <- '2000-10-01'
+endDate <- '2019-09-30'
+
+rawDailyQ1 <- readNWISdv(site_id1, pCode, startDate, endDate)
+rawDailyQ2 <- readNWISdv(site_id2, pCode, startDate, endDate)
+rawDailyQ3 <- readNWISdv(site_id3, pCode, startDate, endDate)
+rawDailyQ4 <- readNWISdv(site_id4, pCode, startDate, endDate)
+rawDailyQ5 <- readNWISdv(site_id5, pCode, startDate, endDate)
+# load in data
+
+#imap <- leaflet() %>%
+  #addTiles() %>%
+  #setView(lng = -79.6569, lat = 37.4316, zoom = 7) %>%
+  #addMarkers(lng = -77.12750000, lat = 38.94972222,
+             #popup = "Site #01646502 - Potomac River") %>%
+  #addMarkers(lng = -78.90833333, lat = 38.05750000,
+             #popup = "Site #01626000 - South River") %>%
+  #addMarkers(lng = -76.87500000, lat = 37.02500000,
+             #popup = "Site #02047500 - Blackwater River") %>%
+  #addMarkers(lng = -77.85916667, lat = 37.42138889,
+             #popup = "Site #02040000 - Appomattox River") %>%
+  #addMarkers(lng = -81.81888889, lat = 36.71305556,
+             #popup = "Site #03475000 - Holston River")
+#imap
+
+# makes interactive map of sites - does not load into rmarkdown so commented out
+
+dates <- rawDailyQ1$Date
+# assign dates to their own vector
+years <- c('01','02','03','04','05','06','07','08','09','10','11',
+           '12','13','14','15','16','17','18','19')
+years <- as.factor(years)
+
+rawDailyQ1 <- as.zoo(rawDailyQ1$X_00060_00003)
+rawDailyQ2 <- as.zoo(rawDailyQ2$X_00060_00003)
+rawDailyQ3 <- as.zoo(rawDailyQ3$X_00060_00003)
+rawDailyQ4 <- as.zoo(rawDailyQ4$X_00060_00003)
+rawDailyQ5 <- as.zoo(rawDailyQ5$X_00060_00003)
+# reassign data of flows to be zoo objects
+
+data1 <- zoo(x = rawDailyQ1, order.by = dates)
+data2 <- zoo(x = rawDailyQ2, order.by = dates)
+data3 <- zoo(x = rawDailyQ3, order.by = dates)
+data4 <- zoo(x = rawDailyQ4, order.by = dates)
+data5 <- zoo(x = rawDailyQ5, order.by = dates)
+# order the raw data by dates
+
+final1 <- group2(data1, year = c("water"), mimic.tnc = T)
+final2 <- group2(data2, year = c("water"), mimic.tnc = T)
+final3 <- group2(data3, year = c("water"), mimic.tnc = T)
+final4 <- group2(data4, year = c("water"), mimic.tnc = T)
+final5 <- group2(data5, year = c("water"), mimic.tnc = T)
+# use group2 function from IHA package to measure the magnitude of monthly water conditions
+
+minSR <- min(final1$`90 Day Min`)
+minBR <- min(final2$`90 Day Min`)
+minPR <- min(final3$`90 Day Min`)
+minAR <- min(final4$`90 Day Min`)
+minHR <- min(final5$`90 Day Min`)
+# minimum of the 90-day min data for each river
+maxSR <- max(final1$`90 Day Min`)
+maxBR <- max(final2$`90 Day Min`)
+maxPR <- max(final3$`90 Day Min`)
+maxAR <- max(final4$`90 Day Min`)
+maxHR <- max(final5$`90 Day Min`)
+# maximum of the 90-day min data for each river
+aveSR <- ave(final1$`90 Day Min`)
+aveBR <- ave(final2$`90 Day Min`)
+avePR <- ave(final3$`90 Day Min`)
+aveAR <- ave(final4$`90 Day Min`)
+aveHR <- ave(final5$`90 Day Min`)
+# average of the 90-day min data for each river
+sdSR <- sd(final1$`90 Day Min`) * 100 / aveSR[1]
+sdBR <- sd(final2$`90 Day Min`) * 100 / aveBR[1]
+sdPR <- sd(final3$`90 Day Min`) * 100 / avePR[1]
+sdAR <- sd(final4$`90 Day Min`) * 100 / aveAR[1]
+sdHR <- sd(final5$`90 Day Min`) * 100 / aveHR[1]
+# standard deviation of the 90-day min data for each river as a percentage
+# to calculate: use standard deviation function, multiply by 100, and divide by average
+
+river <- c(rep(1, times = nrow(final1)), rep(2, times = nrow(final2)), 
+           rep(4, times = nrow(final4)), rep(5, times = nrow(final5)))
+r <- rbind(final1, final2, final4, final5)
+r <- cbind(r, river)
+r$river <- as.factor(r$river)
+
+potomac <- c(rep(0, times = nrow(final3)))
+p <- cbind(final3, potomac)
+p$potomac <- as.factor(p$potomac)
+
+# categorize each river's data as its own
+# the Potomac river is separated out because of its much higher data points for 
+# the sake of easy graph reading
+```

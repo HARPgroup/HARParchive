@@ -1,0 +1,133 @@
+---
+title: "August Low Flow"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dataRetrieval)
+library(ggplot2)
+```
+
+## Introduction
+
+August Low Flow values are calculated by first finding the minimum August flow for each year over a historical time period and then the median of these minimums is calculated. A boxplot illustrating the August minimum flows over the time period (2000-2019) was plotted for each of the following sites and the calculated August low flow values for each site are depicted in a table after the plots.
+
+Site 02040000: Appomattox River
+
+Site 02047500: Blackwater River
+
+Site 01626000: South River
+
+Site 01646502: Potomac River
+
+Site 03473000: Holston River
+
+*****        
+
+        
+
+
+The following function was used to find the minimum flow values for each August over the time period for all of the above sites.
+```{r function creation}
+ALF_mins <- function(site_id,start_date,end_date) {
+  # first calculate min flow of each august year then find median
+  #import data
+  flow <- readNWISdv(site_id,'00060',start_date,end_date)
+  # add the month and water year column
+  date <- flow$Date
+  month <- format(as.Date(date,format = '%d-%m-%Y'), '%m')
+  month <- as.numeric(month)
+  flow$month <- month
+  flow <- addWaterYear(flow)
+  #initialize mins_ap vector
+  aug_mins <- c()
+  w_year <- flow$waterYear[1]
+  # Now evaluate
+  while (w_year <= 2019) {
+    w_year <- toString(w_year)
+    aug <- flow[(flow$waterYear == w_year) & (flow$month == 8), ]
+    min_val <- min(aug$X_00060_00003)
+    aug_mins <- append(aug_mins, min_val)
+    w_year <- strtoi(w_year) + 1
+  }
+  median_min <- median(aug_mins)
+  return(aug_mins)
+}
+```
+\pagebreak
+
+## Site 02040000: Appomattox River
+
+```{r appomattox}
+start_date <- '1999-10-01'
+end_date <- '2019-09-30'
+
+mins_ap <- ALF_mins('02040000',start_date,end_date)
+median_ap <- median(mins_ap)
+ggplot(data.frame(mins_ap), aes(x = "", y = mins_ap)) + geom_boxplot() + theme_bw() +
+  labs(y='Discharge [cfs]', x='August Low Flows',
+       title= 'Appomattox River August Low Flows from 2000 - 2019') 
+
+```
+\pagebreak
+
+## Site 02047500: Blackwater River
+```{r blackwater river}
+mins_bl <- ALF_mins('02047500',start_date,end_date)
+median_bl <- median(mins_bl)
+ggplot(data.frame(mins_bl), aes(x = "", y = mins_bl)) + geom_boxplot() + theme_bw() +
+  labs(y='Discharge [cfs]', x='August Low Flows',
+       title= 'Blackwater River August Low Flows from 2000 - 2019') 
+
+```
+\pagebreak
+
+## Site 01626000: South River
+```{r south river}
+mins_so <- ALF_mins('01626000',start_date,end_date)
+median_so <- median(mins_so)
+ggplot(data.frame(mins_so), aes(x = "", y = mins_so)) + geom_boxplot() + theme_bw() +
+  labs(y='Discharge [cfs]', x='August Low Flows',
+       title= 'South River August Low Flows from 2000 - 2019')
+
+```
+\pagebreak
+
+## Site 01646502: Potomac River
+```{r potomac river}
+mins_pt <- ALF_mins('01646502',start_date,end_date)
+median_pt <- median(mins_pt)
+ggplot(data.frame(mins_pt), aes(x = "", y = mins_pt)) + geom_boxplot() + theme_bw() +
+  labs(y='Discharge [cfs]', x='August Low Flows',
+       title= 'Potomac River August Low Flows from 2000 - 2019')
+
+```
+\pagebreak
+
+## Site 03473000: Holston River
+```{r holston river}
+mins_hl <- ALF_mins('03473000',start_date,end_date)
+median_hl <- median(mins_hl)
+ggplot(data.frame(mins_hl), aes(x = "", y = mins_hl)) + geom_boxplot() + theme_bw() +
+  labs(y='Discharge [cfs]', x='August Low Flows',
+       title= 'Holston River August Low Flows from 2000 - 2019')
+
+```
+\pagebreak
+
+# August Low Flow Values
+
+ Location         | August Low Flow Value [cfs]
+ -----------------|---------------------------------
+ Appomattox River | `r median_ap`
+ Blackwater River | `r median_bl`
+ South River      | `r median_so`
+ Potomac River    | `r median_pt`
+ Holston River    | `r median_hl`
+
+
+
+

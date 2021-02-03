@@ -1,0 +1,630 @@
+---
+title: "Comparison of USGS Watergage Data from Potomac River, VA & Snake River, WY"
+author: "Nathaniel Abrahams"
+date: "5/28/2020"
+output: pdf_document
+---
+
+
+<style type="text/css">
+
+h1.title {
+  font-size: 39px;
+  color: DarkBlue;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: Black;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: Black;
+  text-align: center;
+}
+</style>
+
+```{r include=FALSE}
+library(reshape2)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+## USGS Water Gages Studied
+
+  * USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC 
+  
+  * USGS 13010065 SNAKE RIVER AB JACKSON LAKE AT FLAGG RANCH WY 
+  
+  *
+
+
+\newpage
+
+## Potomac River, VA (2001)
+
+
+```{r, echo=FALSE}
+library(dataRetrieval)
+
+site_id <- '01646502'
+startDate <- '2000-10-01'
+endDate <- '2001-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+area.sq.miles <- siteinfo$drain_area_va
+normalizedDailyQ = rawDailyQ$X_00060_00003/(area.sq.miles)
+
+plot(rawDailyQ$Date, normalizedDailyQ,
+     xlab = 'Date (2001 Water Year)',
+     ylab = 'Stream Discharge (cfs/sq. mile)',
+     main = 'USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC',   
+     col = 'darkblue',
+     type = 'l',
+     cex.axis = 0.75,
+     cex.main = 1)
+
+fig.align = 'center'
+
+```
+ 
+
+
+ Statistcal Value |  Discharge (cfs)                 |Discharge (cfs/sq. mile) (Normalized)
+ --------------- | --------------------------------- |---------------------------
+  mean           | `r mean(rawDailyQ$X_00060_00003)` |`r mean(normalizedDailyQ)`
+  maximum        | `r max(rawDailyQ$X_00060_00003)`  |`r max(normalizedDailyQ)`
+  minimum        | `r min(rawDailyQ$X_00060_00003)`  |`r min(normalizedDailyQ)`
+
+                                                                                   
+
+<br>
+
+## Potomac River, VA (2019)
+
+
+```{r, echo=FALSE}
+library(dataRetrieval)
+
+site_id <- '01646502'
+startDate <- '2018-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+area.sq.miles <- siteinfo$drain_area_va
+normalizedDailyQ = rawDailyQ$X_00060_00003/(area.sq.miles)
+
+plot(rawDailyQ$Date, normalizedDailyQ,
+     xlab = 'Date (2019 Water Year)',
+     ylab = 'Stream Discharge (cfs/sq. mile)',
+     main = 'USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC',   
+     col = 'darkblue',
+     type = 'l',
+     cex.axis = 0.75,
+     cex.main = 1)
+```
+ 
+
+
+  Statistcal Value |  Discharge (cfs)                 |Discharge (cfs/sq. mile) (Normalized)
+ --------------- | --------------------------------- |---------------------------
+  mean           | `r mean(rawDailyQ$X_00060_00003)` |`r mean(normalizedDailyQ)`
+  maximum        | `r max(rawDailyQ$X_00060_00003)`  |`r max(normalizedDailyQ)`
+  minimum        | `r min(rawDailyQ$X_00060_00003)`  |`r min(normalizedDailyQ)`
+
+
+                                                                                                   
+                       
+<br>
+
+## Snake River, WY (2019)
+
+
+```{r, echo=FALSE}
+library(dataRetrieval)
+
+site_id <- '13010065'
+startDate <- '2018-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+area.sq.miles <- siteinfo$drain_area_va
+normalizedDailyQ = rawDailyQ$X_00060_00003/(area.sq.miles)
+
+plot(rawDailyQ$Date, normalizedDailyQ,
+     xlab = 'Date (2019 Water Year)',
+     ylab = 'Stream Discharge (cfs/sq. mile)',
+     main = 'USGS 13010065 SNAKE RIVER AB JACKSON LAKE AT FLAGG RANCH WY',   
+     col = 'darkblue',
+     type = 'l',
+     cex.axis = 0.75,
+     cex.main = 1)
+```
+ 
+   Statistcal Value |  Discharge (cfs)                 |Discharge (cfs/sq. mile) (Normalized)
+ --------------- | --------------------------------- |---------------------------
+  mean           | `r mean(rawDailyQ$X_00060_00003)` |`r mean(normalizedDailyQ)`
+  maximum        | `r max(rawDailyQ$X_00060_00003)`  |`r max(normalizedDailyQ)`
+  minimum        | `r min(rawDailyQ$X_00060_00003)`  |`r min(normalizedDailyQ)`
+
+<br>
+
+## Comparison Plot of Potomac River, VA (2019) & Snake River, WY (2019)
+
+```{r, echo=FALSE}
+
+site_id1<- '01646502'
+site_id2 <- '13010065'
+startDate <- '2018-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo1 <- readNWISsite(site_id1)
+siteinfo2 <- readNWISsite(site_id2)
+
+rawDailyQ1 <- readNWISdv(site_id1, pCode, startDate, endDate)
+rawDailyQ2 <- readNWISdv(site_id2, pCode, startDate, endDate)
+
+area.sq.miles1 <- siteinfo1$drain_area_va
+area.sq.miles2 <- siteinfo2$drain_area_va
+
+normalizedDailyQ1 = rawDailyQ1$X_00060_00003/(area.sq.miles1)
+normalizedDailyQ2 = rawDailyQ2$X_00060_00003/(area.sq.miles2)
+
+plot(rawDailyQ$Date,normalizedDailyQ1, 
+     xlab = 'Date (2019 Water Year)',
+     ylab = 'Stream Discharge (cfs/sq. mile)',
+     main = 'Potomac River, VA & Snake River, WY Discharge (Normalized over Drainage Area)',
+     col = 'darkblue',
+     type = 'l',
+     cex.axis = 0.7,
+     cex.main = 0.9,)
+
+lines(rawDailyQ$Date,normalizedDailyQ2,type = 'l', col = 'red')
+
+legend('topright', 
+       legend = c('USGS 01646502 - Potomac River, VA','USGS 13010065 - Snake River, WY'), 
+       col= c('darkblue', 'red'),
+       lty = 1:1,
+       lwd = 2,
+       cex = 0.53)
+
+```
+
+## Comparison Plot of Potomac River, VA (2019) & Snake River, WY (2019) (ggplot2)
+
+
+```{r,echo=FALSE}
+library(tidyverse)
+site_id <- '01646502'
+startDate <- '2018-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+
+date<- rawDailyQ$Date
+PotomacRiverVA <-normalizedDailyQ1
+SnakeRiverWY <-normalizedDailyQ2
+nq <- data.frame(PotomacRiverVA,SnakeRiverWY)
+Q <- data.frame(date, nq)
+
+library(ggplot2)
+ggplot(Q, 
+       aes(x=date, y=PotomacRiverVA)) +
+       geom_line(color='darkblue')+
+       labs(title='USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC',
+       x='Date (2019 Water Year)', 
+       y='Discharge (cfs/sq. mile)' )+
+       theme(
+        plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+     scale_y_log10()
+
+```
+
+```{r,echo=FALSE}
+
+library(tidyverse)
+site_id <- '13010065'
+startDate <- '2018-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+
+date<- rawDailyQ$Date
+PotomacRiverVA <-normalizedDailyQ1
+SnakeRiverWY <-normalizedDailyQ2
+nq <- data.frame(PotomacRiverVA,SnakeRiverWY)
+Q <- data.frame(date, nq)
+
+library(ggplot2)
+ggplot(Q, 
+       aes(x=date, y=SnakeRiverWY)) +
+       geom_line(color='darkblue')+
+       labs(title='USGS 13010065 SNAKE RIVER AB JACKSON LAKE AT FLAGG RANCH WY',
+       x='Date (2019 Water Year)',
+       y='Discharge (cfs/sq. mile)' )+
+       theme(
+        plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+     scale_y_log10()
+
+```
+
+```{r,echo=FALSE}
+
+library("reshape2")
+library(tidyverse)
+
+site_id <- '01646502'
+startDate <- '2018-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+
+Q <- melt(Q, id.vars="date")
+
+
+ ggplot(data=Q, aes(x= date , y = value, group = variable, colour =    
+        variable)) +
+        labs(title = "Comparison of Potomac River, VA & Snake River, WY Discharge 
+        (Normalized over Area)", x = "Date (2019 Water Year)", 
+        y = "Discharge (depth/year)",          
+        color = "River Segment\n") +
+        scale_color_manual(labels = c("USGS 01646502 - Potomac", "USGS 13010065 - Snake"),            
+                           values = c("darkblue", "red"))+
+        geom_line() + theme(
+        plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))      
+
+```
+
+
+
+
+```{r,echo=FALSE}
+
+#boxplot Potomac outliers out (regular years, no if else structure)
+library(tidyverse)
+
+site_id <- '01646502'
+startDate <- '2000-01-01'
+endDate <- '2019-12-31'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+Date = rawDailyQ$Date
+Year = format(as.Date(Date, format = "%d/%m/%Y"),"%Y")
+rawDailyQ <- data.frame(rawDailyQ, Year)
+
+ggplot(rawDailyQ, 
+  aes(x=Year, y = X_00060_00003))+
+  geom_boxplot(outlier.shape = NA)+
+  labs(title= 'USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC')+
+  ylab('Discharge (cfs)')+ 
+  xlab('Year')+
+  geom_point(color='red', 
+             stat = 'summary',
+             fun = 'mean')+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+  coord_cartesian(ylim=c(0, 75000))
+```
+  
+           
+```{r, echo=FALSE}
+
+library(tidyverse)
+
+site_id <- '01646502'
+startDate <- '2000-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+Date <- rawDailyQ$Date
+
+Year<-format(as.Date(Date, format = "%d/%m/%Y"),"%Y")
+
+Month<-format(as.Date(Date, format = "%d/%m/%Y"),"%m")
+Day<-format(as.Date(Date, format = "%d/%m/%Y"),"%d")
+
+Month <- as.numeric(Month)
+Day <- as.numeric(Day)
+Year<- as.numeric(Year)
+
+WaterYear<-Year
+
+
+for (i in 1:6939) {
+  if (Month[i] >= 10 ){
+    WaterYear[i]<- WaterYear[i]+1
+    }
+}
+
+ggplot(rawDailyQ, 
+  aes(x=factor(WaterYear), y = X_00060_00003))+
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(color='red', 
+             stat = 'summary',
+             fun = 'mean')+
+  labs(title= 'USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC')+
+  ylab('Discharge (cfs)')+ 
+  xlab('Water Year')+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+  coord_cartesian(ylim=c(0, 70000))
+
+```
+
+
+```{r, echo=FALSE}
+
+library(tidyverse)
+
+site_id <- '13010065'
+startDate <- '2000-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+Date <- rawDailyQ$Date
+
+Year<-format(as.Date(Date, format = "%d/%m/%Y"),"%Y")
+
+Month<-format(as.Date(Date, format = "%d/%m/%Y"),"%m")
+Day<-format(as.Date(Date, format = "%d/%m/%Y"),"%d")
+
+Month <- as.numeric(Month)
+Day <- as.numeric(Day)
+Year<- as.numeric(Year)
+
+WaterYear<-Year
+
+
+for (i in 1:6939) {
+  if (Month[i] >= 10 ){
+    WaterYear[i]<- WaterYear[i]+1
+    }
+}
+
+ggplot(rawDailyQ, 
+  aes(x=factor(WaterYear), y = X_00060_00003))+
+  geom_boxplot(outlier.shape = NA)+
+  labs(title= 'USGS 13010065 SNAKE RIVER AB JACKSON LAKE AT FLAGG RANCH WY')+
+  ylab('Discharge (cfs)')+ 
+  xlab('Water Year')+
+  geom_point(color='red', 
+             stat = 'summary',
+             fun = 'mean')+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+  coord_cartesian(ylim=c(0, 2100))
+```
+
+```{r,echo=FALSE}
+
+library(tidyverse)
+
+site_id <- '01646502'
+startDate <- '2009-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+Date <- rawDailyQ$Date
+
+Year<-format(as.Date(Date, format = "%d/%m/%Y"),"%Y")
+Month<-format(as.Date(Date, format = "%d/%m/%Y"),"%m")
+Day<-format(as.Date(Date, format = "%d/%m/%Y"),"%d")
+
+Month <- as.numeric(Month)
+Day <- as.numeric(Day)
+Year<- as.numeric(Year)
+
+WaterYear<-Year
+
+
+for (i in 1:length(Month)) {
+  if (Month[i] >= 10 ){
+    WaterYear[i]<- WaterYear[i]+1
+  }
+}
+
+rawDailyQ <- data.frame(rawDailyQ, WaterYear, Month)
+rawDailyQsummer <- filter(rawDailyQ, Month %in% c(6:8))
+
+ggplot(rawDailyQsummer, 
+  aes(x=factor(WaterYear), y = X_00060_00003))+
+  geom_boxplot(outlier.shape = NA)+
+  labs(title= 'USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC')+
+  ylab('Discharge (cfs)')+ 
+  xlab('Summer Months (June-August)')+
+  geom_point(color='red', 
+             stat = 'summary',
+             fun = 'mean')+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+  coord_cartesian(ylim=c(0, 55000))
+```
+
+
+
+```{r,echo=FALSE}
+
+
+library(tidyverse)
+site_id <- '01646502'
+startDate <- '2009-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+siteinfo <- readNWISsite(site_id)
+rawDailyQ <- readNWISdv(site_id, pCode, startDate, endDate)
+Date <- rawDailyQ$Date
+
+#rawDailyQ <- addWaterYear(rawDailyQ)
+
+Year<-format(as.Date(Date, format = "%d/%m/%Y"),"%Y")
+Month<-format(as.Date(Date, format = "%d/%m/%Y"),"%m")
+Day<-format(as.Date(Date, format = "%d/%m/%Y"),"%d")
+
+Month <- as.numeric(Month)
+Day <- as.numeric(Day)
+Year<- as.numeric(Year)
+
+WaterYear<-Year
+
+
+for (i in 1:length(Month)) {
+  if (Month[i] >= 10 ){
+    WaterYear[i]<- WaterYear[i]+1
+  }
+}
+
+rawDailyQ <- data.frame(rawDailyQ, WaterYear, Month)
+rawDailyQwinter <- filter(rawDailyQ, Month %in% c(12,1,2))
+
+ggplot(rawDailyQwinter, 
+  aes(x=factor(WaterYear), y = X_00060_00003))+
+  geom_boxplot(outlier.shape = NA)+
+  labs(title= 'USGS 01646502 POTOMAC RIVER (ADJUSTED) NEAR WASH, DC')+
+  ylab('Discharge (cfs)')+ 
+  xlab('Winter Months (December-February)')+
+  geom_point(color='red', 
+             stat = 'summary',
+             fun = 'mean')+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))+
+  coord_cartesian(ylim=c(0, 75000))
+```
+
+
+```{r, echo=FALSE,results='hide',fig.keep='all'}
+
+
+library(dataRetrieval)
+library(tidyverse)
+
+#startDate <- '2017-4-14'
+#endDate <- '2019-09-30'
+
+parameterCd	 <- '00060'
+siteNumbers <- '13010065'
+
+stat <- readNWISstat(
+  siteNumbers,
+  parameterCd,
+  startDate = "",
+  endDate = "",
+  convertType = TRUE,
+  statReportType = "daily",
+  statType = "mean"
+)
+
+
+ggplot(stat, 
+  aes(x=factor(month_nu), y = mean_va))+
+  geom_boxplot(outlier.shape = NA)+
+  labs(title= 'USGS 13010065 SNAKE RIVER, Mean Daily Discharge (1984-2019), Grouped by Month ')+
+  ylab('Mean Daily Discharge (cfs)')+ 
+  xlab('Month')+
+  geom_point(color='red', 
+             stat = 'summary',
+             fun = 'mean')+
+  theme_bw()+
+  theme(plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))+
+  coord_cartesian(ylim=c(0, 4600))
+
+```
+
+
+```{r, echo=FALSE}
+
+#San Diego GroundWater
+
+library(dataRetrieval)
+library(tidyverse)
+
+# startDate <- '2009-10-01'
+# endDate <- '2019-09-30'
+
+pCode <-'00060'
+siteNumbers <- '323808117060402'
+
+
+gw<-readNWISgwl(
+  siteNumbers,
+  startDate = "",
+  endDate = "",
+  convertType = TRUE,
+  tz = "UTC")
+
+ggplot(gw, 
+  aes(x=lev_dt, y=lev_va))+
+  geom_point()+
+  geom_line()+
+  geom_smooth(method = 'lm', formula= y~x)+
+  labs(title='USGS 323808117060402 018S002W05J002S, San Diego County, CA', x= 'Date', y= "Groundwater Level Below Land Surface (ft)")+
+  scale_y_continuous(trans = "reverse")+
+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))
+```
+
+```{r, echo=FALSE}
+
+#San Diego GroundWater
+
+library(dataRetrieval)
+library(tidyverse)
+
+startDate <- '2017-4-14'
+# endDate <- '2019-09-30'
+pCode <-'00060'
+siteNumbers <- '393749079190301'
+
+
+gw<-readNWISgwl(
+  siteNumbers,
+  startDate = "",
+  endDate = "",
+  convertType = TRUE,
+  tz = "UTC")
+
+date <- gw$lev_dt
+gw <- mutate(gw, year = format(as.Date(date, format = "%d/%m/%Y"),"%Y"))
+gw <- filter(gw, year >= 2017)
+
+
+ggplot(gw, 
+  aes(x=lev_dt, y=lev_va))+
+  geom_point()+
+  geom_line()+
+  geom_smooth(method = 'lm', formula= y~x)+
+  labs(title='UUSGS 393749079190301, Garret County, MD', x= 'Date', y= "Groundwater Level Below Land Surface (ft)")+
+  scale_y_continuous(trans = "reverse")+
+
+  theme_bw()+
+  theme(plot.title = element_text(size = 12, face = "bold",  hjust = 0.5))
+```
+
+
+
+

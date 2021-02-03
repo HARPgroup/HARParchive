@@ -1,0 +1,15 @@
+"","USGS Gage","Model","Pct. Error"
+"Min. 1 Day Min",1.48,0.671,54.7
+"Med. 1 Day Min",20,18.8,6
+"Min. 3 Day Min",1.73,0.751,56.6
+"Med. 3 Day Min",20.7,19.5,5.8
+"Min. 7 Day Min",3.17,1.18,62.8
+"Med. 7 Day Min",24.3,23.1,4.94
+"Min. 30 Day Min",11.2,4.84,56.8
+"Med. 30 Day Min",41.7,39.9,4.32
+"Min. 90 Day Min",21.4,23.8,-11.2
+"Med. 90 Day Min",130,98.1,24.5
+"7Q10",8.68,4.68,46.1
+"Year of 90-Day Low Flow",2002,2002,0
+"Drought Year Mean",134.311150684932,157.515836072435,-17.3
+"Mean Baseflow",233,236,-1.29

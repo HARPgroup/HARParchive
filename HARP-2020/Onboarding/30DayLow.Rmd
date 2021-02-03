@@ -1,0 +1,273 @@
+---
+title: "30-Day Low Flow Metric"
+author: "Alex Lowe"
+date: "6/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What is the 30-Day Low Flow?
+
+The 30-Day Low Flow metric is the average of the lowest 30 consecutive days of flow rate collected during a certain time period. The time period can be seasonal, yearly, and longer.
+
+The 30-Day Low Flow is a low flow metric used to quantify changes in the magnitude, frequency, timing, rate-of-change and duration of drought flows. Because it consists of 30-days worth of data, it is used specifically for monthly flows.
+
+This metric can also be used to create more metrics, such as the 30Q2, 30Q10, and more. The 30Q2 is the lowest expected 30 day average flow over a 2 year period. Similarly, the 30Q10 is the lowest expected 30 day average flow over a 10 year period.
+
+Yearly 30-Day low flow values can be calculated in R by using the group2() function in the IHA package. Below is a sample of code that generates a table which includes 30-Day Low Flow values of a USGS site's gage data
+
+```
+datesp <- rawDailyp$Date
+zoorawDailyp <- zoo(x=rawDailyp$X_00060_00003, order.by = datesp)
+tablep <- group2(zoorawDailyp, year=c('water'),mimic.tnc=T)                              
+```
+
+### Blackwater River in Dendron, VA
+#### Site ID: 02047500
+```{r echo=FALSE, message=FALSE}
+library(zoo)
+library(IHA)
+library(ggplot2)
+library(dataRetrieval)
+
+#Dendron, VA
+site_idva <- '02047500'
+pCode <- '00060'
+startDate = '1999-10-01'
+endDate = '2019-09-30'
+
+siteinfova <- readNWISsite(site_idva)
+rawDailyva2 <- readNWISdv(site_idva,pCode,startDate,endDate)
+
+datesva <- rawDailyva2$Date
+zoorawDailyva2 <- zoo(x=rawDailyva2$X_00060_00003, order.by = datesva)
+tableva <- group2(zoorawDailyva2, year=c('water'),mimic.tnc = T)
+ggplot(NULL, aes(x=tableva$year, tableva$`30 Day Min`))+
+  geom_line()+
+  theme_bw()+
+  labs( title = '30-Day Low Flows by year in Dendron, VA', x = 'Year', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))
+```
+
+### Potomac River near Washington, DC
+#### Site ID: 01646502
+```{r echo=FALSE}
+library(zoo)
+library(IHA)
+library(ggplot2)
+library(dataRetrieval)
+
+
+pCode <- '00060'
+#Potomac, VA
+site_idp <- '01646502'
+startDate = '1999-10-01'
+endDate = '2019-09-30'
+
+siteinfop <- readNWISsite(site_idp)
+rawDailyp <- readNWISdv(site_idp,pCode,startDate,endDate)
+
+datesp <- rawDailyp$Date
+zoorawDailyp <- zoo(x=rawDailyp$X_00060_00003, order.by = datesp)
+tablep <- group2(zoorawDailyp, year=c('water'),mimic.tnc=T)
+ggplot(NULL, aes(x=tablep$year, tablep$`30 Day Min`))+
+  geom_line()+
+  theme_bw()+
+  labs( title = '30-Day Low Flows by year on the Potomac', x = 'Year', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))
+```
+
+### Holston River in Damascus, VA
+#### Site ID: 03473000
+```{r echo=FALSE}
+library(zoo)
+library(IHA)
+library(ggplot2)
+library(dataRetrieval)
+
+pCode <- '00060'
+#Holston, VA
+site_idh <- '03473000'
+startDate = '1999-10-01'
+endDate = '2019-09-30'
+
+siteinfoh <- readNWISsite(site_idh)
+rawDailyh <- readNWISdv(site_idh,pCode,startDate,endDate)
+
+datesh <- rawDailyh$Date
+zoorawDailyh <- zoo(x=rawDailyh$X_00060_00003, order.by = datesh)
+tableh <- group2(zoorawDailyh, year=c('water'),mimic.tnc=T)
+ggplot(NULL, aes(x=tableh$year, tableh$`30 Day Min`))+
+  geom_line()+
+  theme_bw()+
+  labs( title = '30-Day Low Flows by year on the Holston River', x = 'Year', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))
+```
+
+### South River near Waynesboro, VA
+#### Site ID: 01626000
+```{r echo=FALSE}
+library(zoo)
+library(IHA)
+library(ggplot2)
+library(dataRetrieval)
+
+pCode <- '00060'
+#Sarah
+site_ids <- '01626000'
+startDate = '1999-10-01'
+endDate = '2019-09-30'
+
+siteinfos <- readNWISsite(site_ids)
+rawDailys <- readNWISdv(site_ids,pCode,startDate,endDate)
+
+datess <- rawDailys$Date
+zoorawDailys <- zoo(x=rawDailys$X_00060_00003, order.by = datess)
+tables <- group2(zoorawDailys, year=c('water'),mimic.tnc=T)
+ggplot(NULL, aes(x=tables$year, tables$`30 Day Min`))+
+  geom_line()+
+  theme_bw()+
+  labs( title = '30-Day Low Flows by year on the South River', x = 'Year', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))
+```
+
+### Appomatox River in Mattoax, VA
+#### Site ID: 02040000
+```{r echo=FALSE}
+library(zoo)
+library(IHA)
+library(ggplot2)
+library(dataRetrieval)
+
+pCode <- '00060'
+#Miriam
+site_idm <- '02040000'
+startDate = '1999-10-01'
+endDate = '2019-09-30'
+
+siteinfom <- readNWISsite(site_idm)
+rawDailym <- readNWISdv(site_idm,pCode,startDate,endDate)
+
+datesm <- rawDailym$Date
+zoorawDailym <- zoo(x=rawDailym$X_00060_00003, order.by = datesm)
+tablem <- group2(zoorawDailym, year=c('water'),mimic.tnc=T)
+ggplot(NULL, aes(x=tablem$year, tablem$`30 Day Min`))+
+  geom_line()+
+  theme_bw()+
+  labs( title = '30-Day Low Flows by year on the Appomattox River', x = 'Year', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))
+```
+
+### Comarison Plots
+The Potomac River was left out of the comparison plots because its low flow values were much larger than the other rivers
+```{r echo=FALSE, message=FALSE}
+library(readr)
+library(ggplot2)
+library(IHA)
+library(dataRetrieval)
+library(dplyr)
+library(scales)
+library(zoo)
+
+#Dendron, VA
+site_idva <- '02047500'
+pCode <- '00060'
+#Potomac, VA
+site_idp <- '01646502'
+#Holston, VA
+site_idh <- '03473000'
+#Sarah
+site_ids <- '01626000'
+#Miriam
+site_idm <- '02040000'
+
+#Start Date and End Date
+startDate = '1999-10-01'
+endDate = '2019-09-30'
+
+#Extracting and reading gage data for each site
+siteinfova <- readNWISsite(site_idva)
+siteinfop <- readNWISsite(site_idp)
+siteinfoh <- readNWISsite(site_idh)
+siteinfos <- readNWISsite(site_ids)
+siteinfom <- readNWISsite(site_idm)
+
+rawDailyva2 <- readNWISdv(site_idva,pCode,startDate,endDate)
+rawDailyp <- readNWISdv(site_idp,pCode,startDate,endDate)
+rawDailyh <- readNWISdv(site_idh,pCode,startDate,endDate)
+rawDailys <- readNWISdv(site_ids,pCode,startDate,endDate)
+rawDailym <- readNWISdv(site_idm,pCode,startDate,endDate)
+
+#Alex (dendron)
+datesva <- rawDailyva2$Date
+zoorawDailyva2 <- zoo(x=rawDailyva2$X_00060_00003, order.by = datesva)
+tableva <- group2(zoorawDailyva2, year=c('water'),mimic.tnc = T)
+
+#Natty (Potomac)
+datesp <- rawDailyp$Date
+zoorawDailyp <- zoo(x=rawDailyp$X_00060_00003, order.by = datesp)
+tablep <- group2(zoorawDailyp, year=c('water'),mimic.tnc=T)
+
+#Kyle (Holtsten)
+datesh <- rawDailyh$Date
+zoorawDailyh <- zoo(x=rawDailyh$X_00060_00003, order.by = datesh)
+tableh <- group2(zoorawDailyh, year=c('water'),mimic.tnc=T)
+
+#Sarah
+datess <- rawDailys$Date
+zoorawDailys <- zoo(x=rawDailys$X_00060_00003, order.by = datess)
+tables <- group2(zoorawDailys, year=c('water'),mimic.tnc=T)
+
+#Miriam
+datesm <- rawDailym$Date
+zoorawDailym <- zoo(x=rawDailym$X_00060_00003, order.by = datesm)
+tablem <- group2(zoorawDailym, year=c('water'),mimic.tnc=T)
+
+#Comparison Line Graph (Excluded the Potomac because it was so big)
+ggplot(NULL, aes(x=tables$year))+
+  geom_line(aes(y=tableva$`30 Day Min`, color='Blackwater River'))+
+  geom_line(aes(y=tablem$`30 Day Min`, color='Appomatox River'))+
+  geom_line(aes(y=tableh$`30 Day Min`, color='Holston River'))+
+  geom_line(aes(y=tables$`30 Day Min`, color='South River'))+
+  theme_bw()+
+  labs( title = 'Comparison Plot of 30-Day Low Flows by year', x = 'Year', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))
+
+#Comparison Box Plot
+tableT <- rbind(tableva,tableh,tables,tablem)
+length.data <- 1:20
+tableT$River <- c(rep('Blackwater River', length(length.data)), rep('Holston River', length(length.data)), rep('South River', length(length.data)), rep('Appomatox River', length(length.data)))
+tableT$River <- factor(tableT$River, levels=c('Blackwater River','Holston River','South River','Appomatox River'))
+ggplot(NULL, aes(x=tableT$River, y=tableT$`30 Day Min`))+
+  geom_boxplot(outlier.shape=NA)+
+  geom_point(color='red',stat='summary',fun='mean')+
+  theme_bw()+
+  labs( title = '30-Day Low Flows between Locations from past 20 Water Years', x = 'Location', y = 'Discharge (cfs)') +
+  theme(plot.title = element_text(face = 'bold',hjust = 0.5))+
+  coord_cartesian(ylim=c(0,225))
+```
+
+
+## 30Q2
+30Q2 is a metric that describes the lowest 30-day average flow likely to occur over a 2 year period.
+
+30Q2 is computed by taking the 30-day flow average for a period of time, usually at least 20 years. The annual minimums of these averages are fit to a log-Pearson III distribution curve. The distribution is then analyzed for an adjusted probability to find the flow representative of 0.5 probability.
+
+30Q2 can be calculated in R by using the PearsonDS package. Below is a sample of code that generates a 30Q2 value using the 30-Day minimum table created in the above sample.
+
+```
+tablep30Q <- as.vector(as.matrix(tablep['30 Day Min']))
+tablep30Q <- log(tablep30Q)
+parsp30 <- PearsonDS:::pearsonIIIfitML(tablep30Q)
+p30Q2 <- exp(qpearsonIII(0.5, params = parsp30$par))                                     
+```
+
+Location | 30Q2 based on the last 20 water years (cfs)
+-------- | ----
+Potomac River | 2448.3
+Holston River | 115.48
+South River | 31.941
+Appomatox River | 77.655

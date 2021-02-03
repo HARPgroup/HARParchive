@@ -1,0 +1,421 @@
+---
+title: "7Q10"
+author: "Nathaniel Abrahams"
+date: "6/10/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE}
+
+#Initialization/IHA Notes
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(IHA)
+library(stringr)
+library(zoo)
+library(dataRetrieval)
+library(PearsonDS)
+
+
+#IHA practice information (different group functions)
+
+## magnitude of monthly water conditions
+# monthly.median <- data.frame(group1(flow, year=c("water"), FUN = median))
+
+## timing of annual extreme water conditions
+# data3 <- data.frame(group3(flow, year=c("water"), mimic.tnc = F))
+
+## frequency and duration of high and low pulses
+# data4 <- data.frame(group4(flow, year=c("water"), thresholds = NULL))
+
+## rate and frequency pf water condtition changes
+# data5 <- data.frame(group5(flow, year=c("water")))
+
+#measure the magnitude of monthly water condition and include 12 parameters.
+```
+
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE}
+
+startDate <- '2008-10-01'
+endDate <- '2019-09-30'
+pCode <-'00060'
+
+ site_id.1 <- '01646502' #Potomac River, Washington D.C. - Natty
+ site_id.2 <- '02047500' #Blackwater River, Dendron - Alex
+ site_id.3 <- '01626000' #South River, Waynesboro - Sarah
+ site_id.4 <- '02040000' #Appomattox River, Mattoax - Miriam
+ site_id.5 <- '03473000' #Holston River, Damascus - Kyle
+
+```
+
+
+# Potomac River
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE}
+
+siteinfo <- readNWISsite(site_id.1)
+
+rawDailyQ <- readNWISdv(site_id.1, pCode, startDate, endDate)
+
+
+
+flow <- zoo(rawDailyQ$X_00060_00003,  order.by = rawDailyQ$Date)
+
+p <- 1/10
+
+
+#measure the magnitude of monthly water condition and include 12 parameters
+
+data2 <- data.frame(group2(flow, year=c("water"), mimic.tnc = T))
+x7daymin <- data2$X7.Day.Min
+year <- (data2$year)
+
+
+#Pearson Distribution 
+
+#7Q10 calculations
+
+
+x7daymin[x7daymin< 0] <- NA
+
+log7daymin <- log(x7daymin)
+
+log7daymin <- na.omit(log7daymin)
+
+pars <- PearsonDS:::pearsonIIIfitML(log7daymin)
+x7Q10.1 <- exp(qpearsonIII(p, params = pars$par))
+
+
+#Orgization/Manipulation
+
+lowflow <- data.frame(year, x7daymin)
+allflows <- data.frame(flow)
+allflows <- mutate(allflows, log(flow))
+
+
+#Plots/Visualization
+
+#Overall Flows Non-Exceedance Probability Plot
+
+ggplot(allflows, aes(flow))+
+  stat_ecdf(geom = 'point')+
+  labs(y='Non-Exceedance Probability', x = 'Flow (cfs)', title= 'Potomac River (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 13,  hjust = 0.5))
+
+  
+
+#7-day Min Annual Flows Non-Exceedance Probability Plot
+ggplot(lowflow, aes(x7daymin))+
+  stat_ecdf(geom = 'point')+
+  labs(y = 'Non-Exceedance Probability', x ='Flow (cfs)', title= 'Potomac River Annual 7-Day Minimum Flows (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))
+
+```
+
+
+# Blackwater River
+
+
+``` {r,echo=FALSE, warning=FALSE, message=FALSE}
+
+
+siteinfo <- readNWISsite(site_id.2)
+rawDailyQ <- readNWISdv(site_id.2, pCode, startDate, endDate)
+dates <- rawDailyQ$Date
+flow <-rawDailyQ$X_00060_00003
+flow <- zoo(flow,  order.by = dates)
+
+p <- 1/10
+
+
+#measure the magnitude of monthly water condition and include 12 parameters
+
+data2 <- data.frame(group2(flow, year=c("water"), mimic.tnc = T))
+x7daymin <- data2$X7.Day.Min
+year <- (data2$year)
+
+
+#Pearson Distribution 
+
+#7Q10 calculations
+
+
+x7daymin[x7daymin< 0] <- NA
+log7daymin <- log(x7daymin)
+log7daymin<-na.omit(log7daymin)
+
+pars <- PearsonDS:::pearsonIIIfitML(log7daymin)
+x7Q10.2 <- exp(qpearsonIII(p, params = pars$par))
+
+
+#Orgization/Manipulation
+
+lowflow <- data.frame(year, x7daymin)
+allflows <- data.frame(flow)
+allflows <- mutate(allflows, log(flow))
+
+
+#Plots/Visualization
+
+#Overall Flows Non-Exceedance Probability Plot
+
+ggplot(allflows, aes(flow))+
+  stat_ecdf(geom = 'point')+
+  labs(y='Non-Exceedance Probability', x='Flow (cfs)', title= 'Blackwater River (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 13,  hjust = 0.5))
+
+  
+
+#7-day Min Annual Flows Non-Exceedance Probability Plot
+ggplot(lowflow, aes(x7daymin))+
+  stat_ecdf(geom = 'point')+
+  labs(y = 'Non-Exceedance Probability', x ='Flow (cfs)', title= 'Blackwater River Annual 7-Day Minimum Flows (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))
+
+
+```
+
+
+
+# South River
+
+```{r, echo=FALSE}
+
+
+siteinfo <- readNWISsite(site_id.3)
+rawDailyQ <- readNWISdv(site_id.3, pCode, startDate, endDate)
+dates <- rawDailyQ$Date
+flow <-rawDailyQ$X_00060_00003
+flow <- zoo(flow,  order.by = dates)
+
+p <- 1/10
+
+
+#measure the magnitude of monthly water condition and include 12 parameters
+
+data2 <- data.frame(group2(flow, year=c("water"), mimic.tnc = T))
+x7daymin <- data2$X7.Day.Min
+year <- (data2$year)
+
+
+#Pearson Distribution 
+
+#7Q10 calculations
+
+x7daymin[x7daymin< 0] <- NA
+log7daymin <- log(x7daymin)
+log7daymin<-na.omit(log7daymin)
+
+pars <- PearsonDS:::pearsonIIIfitML(log7daymin)
+x7Q10.3 <- exp(qpearsonIII(p, params = pars$par))
+
+
+#Orgization/Manipulation
+
+lowflow <- data.frame(year, x7daymin)
+allflows <- data.frame(flow)
+allflows <- mutate(allflows, log(flow))
+
+
+#Plots/Visualization
+
+#Overall Flows Non-Exceedance Probability Plot
+
+ggplot(allflows, aes(flow))+
+  stat_ecdf(geom = 'point')+
+  labs(y='Non-Exceedance Probability', x='Flow (cfs)', title= 'South River (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 13,  hjust = 0.5))
+
+  
+
+#7-day Min Annual Flows Non-Exceedance Probability Plot
+ggplot(lowflow, aes(x7daymin))+
+  stat_ecdf(geom = 'point')+
+  labs(y = 'Non-Exceedance Probability', x ='Flow (cfs)', title= 'Potomac River Annual 7-Day Minimum Flows (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))
+
+
+```
+
+
+
+
+
+# Appomatox River
+
+```{r, echo=FALSE}
+
+
+siteinfo <- readNWISsite(site_id.4)
+rawDailyQ <- readNWISdv(site_id.4, pCode, startDate, endDate)
+dates <- rawDailyQ$Date
+flow <-rawDailyQ$X_00060_00003
+flow <- zoo(flow,  order.by = dates)
+
+p <- 1/10
+
+
+#measure the magnitude of monthly water condition and include 12 parameters
+
+data2 <- data.frame(group2(flow, year=c("water"), mimic.tnc = T))
+x7daymin <- data2$X7.Day.Min
+year <- (data2$year)
+
+
+#Pearson Distribution 
+
+#7Q10 calculations
+
+x7daymin[x7daymin< 0] <- NA
+log7daymin <- log(x7daymin)
+log7daymin<-na.omit(log7daymin)
+
+pars <- PearsonDS:::pearsonIIIfitML(log7daymin)
+x7Q10.4 <- exp(qpearsonIII(p, params = pars$par))
+
+
+#Orgization/Manipulation
+
+lowflow <- data.frame(year, x7daymin)
+allflows <- data.frame(flow)
+allflows <- mutate(allflows, log(flow))
+
+
+#Plots/Visualization
+
+#Overall Flows Non-Exceedance Probability Plot
+
+ggplot(allflows, aes(flow))+
+  stat_ecdf(geom = 'point')+
+  labs(y='Non-Exceedance Probability', x='Flow (cfs)', title= 'Appomattox River (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 13,  hjust = 0.5))
+
+  
+
+#7-day Min Annual Flows Non-Exceedance Probability Plot
+ggplot(lowflow, aes(x7daymin))+
+  stat_ecdf(geom = 'point')+
+  labs(y = 'Non-Exceedance Probability', x ='Flow (cfs)', title= 'Appomattox River Annual 7-Day Minimum Flows (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))
+
+
+```
+
+
+
+# Holston River
+
+```{r, echo=FALSE}
+
+
+siteinfo <- readNWISsite(site_id.5)
+rawDailyQ <- readNWISdv(site_id.5, pCode, startDate, endDate)
+dates <- rawDailyQ$Date
+flow <-rawDailyQ$X_00060_00003
+flow <- zoo(flow,  order.by = dates)
+
+p <- 1/10
+
+
+#measure the magnitude of monthly water condition and include 12 parameters
+
+data2 <- data.frame(group2(flow, year=c("water"), mimic.tnc = T))
+x7daymin <- data2$X7.Day.Min
+year <- (data2$year)
+
+
+#Pearson Distribution 
+
+#7Q10 calculations
+
+x7daymin[x7daymin< 0] <- NA
+log7daymin <- log(x7daymin)
+log7daymin<-na.omit(log7daymin)
+
+pars <- PearsonDS:::pearsonIIIfitML(log7daymin)
+x7Q10.5 <- exp(qpearsonIII(p, params = pars$par))
+
+
+#Orgization/Manipulation
+
+lowflow <- data.frame(year, x7daymin)
+allflows <- data.frame(flow)
+allflows <- mutate(allflows, log(flow))
+
+
+#Plots/Visualization
+
+#Overall Flows Non-Exceedance Probability Plot
+
+ggplot(allflows, aes(flow))+
+  stat_ecdf(geom = 'point')+
+  labs(y='Non-Exceedance Probability', x='Flow (cfs)', title= 'Holston River (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 13,  hjust = 0.5))
+
+  
+
+#7-day Min Annual Flows Non-Exceedance Probability Plot
+ggplot(lowflow, aes(x7daymin))+
+  stat_ecdf(geom = 'point')+
+  labs(y = 'Non-Exceedance Probability', x ='Flow (cfs)', title= 'Holston River Annual 7-Day Minimum Flows (2009-2019 Water Year)')+
+  coord_flip()+
+  scale_y_reverse()+
+  scale_x_log10()+
+  theme(
+    plot.title = element_text(size = 10, face = "bold",  hjust = 0.5))
+
+```
+
+
+
+|        USGS Gage        |   7Q10 (cfs),  Water Years: 2009-2019     |
+|------------------------ | ---------------------------- |
+|    Potomac River        |        `r x7Q10.1`           |
+|    Blackwater River     |         `r x7Q10.2`          |
+|    South River          |         `r x7Q10.3`          |
+|    Appomattox River     |          `r x7Q10.4`         |
+|    Holston River        |          `r x7Q10.5`         |
+|                         |
+
+
