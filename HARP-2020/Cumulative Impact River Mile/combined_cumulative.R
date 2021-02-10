@@ -3,6 +3,8 @@
 ## Watershed Cumulative impacts graph 
 # low flow metrics/ critical periods version
 
+# Update 2-10-2021: Things that need to be done: Functionalize data manipulation, store plots as variables
+
 library(ggplot2)
 library(stringr)
 library(plotly)
@@ -134,7 +136,7 @@ runid1 <- 11 # inputs for the two runids to compare
 runid2 <- 18
 riv_seg <- 'PS3_5990_6161' 
 
-#### function returns graphs for given runid and main stream channel including river segment
+#### function returns data for given runid and main stream channel including river segment
 # returns df of riversegments and their associated info
 flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
   
@@ -325,22 +327,28 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
 }
 
 
-#### Comparative Graph between runids
-
-
+## Comparative graph data between runids
 dat1 <- flow_and_intake(AllSegList, riv_seg, runid1,flow_metric)
 
 dat2 <- flow_and_intake(AllSegList, riv_seg, runid2,flow_metric)
 
-flow2 <- dat2$flow
-metric2 <- dat2$metric
-intake2 <- dat2$intake
-cintake2 <- dat2$cintake
-pointsource2 <- dat2$pointsource
-pct <- (dat1$cintake/dat1$flow)*100
-pct2 <- (dat2$cintake/dat2$flow)*100
+###function that combines two different runid dataframes from flow_and_intake into one dataframe
+flow_and_intake_combined <- function(dat1, dat2){
+  flow2 <- dat2$flow
+  metric2 <- dat2$metric
+  intake2 <- dat2$intake
+  cintake2 <- dat2$cintake
+  pointsource2 <- dat2$pointsource
+  pct <- (dat1$cintake/dat1$flow)*100
+  pct2 <- (dat2$cintake/dat2$flow)*100
 
-totaldat <- data.frame(cbind(dat1, flow2,intake2, cintake2, pointsource2, metric2, pct, pct2))
+  totaldat <- data.frame(cbind(dat1, flow2,intake2, cintake2, pointsource2, metric2, pct, pct2))
+
+return(totaldat)
+}
+
+#testing function
+totaldat <- flow_and_intake_combined(dat1, dat2)
 
 ################################################################ For graphing pulling different segment chnages
 #try separating by when first word changes #this was not the ideal move
@@ -354,24 +362,30 @@ totaldat <- data.frame(cbind(dat1, flow2,intake2, cintake2, pointsource2, metric
 #   }
 #   i <-i+1
 # }
-########So now try separating by percent flow change
-riv_changes <- c()
-for (i in 1:(length(totaldat$flow)-1)){
-  val1 <- totaldat$flow[i]
-  val2 <- totaldat$flow[i+1]
-  pct_change <- val2/val1 *100
-  if (pct_change >= 140 | pct_change <= 60) {
-    riv_changes <- append(riv_changes,i+1)
+########Function that flags river segments when certain percentage of flow exists
+rivseg_flow_change <- function(totaldat, pct_change_in_flow){
+  riv_changes <- c()
+  for (i in 1:(length(totaldat$flow)-1)){
+    val1 <- totaldat$flow[i]
+    val2 <- totaldat$flow[i+1]
+    pct_change <- val2/val1 *100
+    if (pct_change >= 100+pct_change_in_flow | pct_change <= 100-pct_change_in_flow) {
+      riv_changes <- append(riv_changes,i+1)
+    }
   }
-}
-#then pull full name/info, by pulling row for each value in df
-# add for loop to iterate through each value of
-changes_df <- data.frame()
-for (val in riv_changes) {
-  change <- totaldat[val,]
-  changes_df <- rbind(changes_df,change)
+  #then pull full name/info, by pulling row for each value in df
+  # add for loop to iterate through each value of
+  changes_df <- data.frame()
+  for (val in riv_changes) {
+    change <- totaldat[val,]
+    changes_df <- rbind(changes_df,change)
+  }
+  
+  return(changes_df)
 }
 
+#test function
+changes_df <- rivseg_flow_change(totaldat, 40)
 
 ################################################################ Runid11 vs Runid18 Flow & Intake Comparison
 ggplot(totaldat, aes(x = mile)) +
@@ -393,8 +407,7 @@ ggplot(totaldat, aes(x = mile)) +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
 
-################################################################ Intake as a Percentage of Flow (line graph, bar graph)
-
+################################################################ Intake as a Percentage of Flow (line graph)
 ggplot(totaldat, aes(x = mile)) +
   geom_line(aes(x = mile, y = pct, colour = 'runid11')) +
   geom_point(aes(x = mile, y = pct, colour = 'runid11')) +
@@ -405,6 +418,7 @@ ggplot(totaldat, aes(x = mile)) +
   xlab('River Mile [mi]') +
   ylab('Percentage (%)')
 
+################################################################ Intake as a Percentage of Flow (bar graphs)
 df11 <- data.frame(
   pcttype = rep(c('pct1'), each = 17),
   xaxis <- c(1:17),
