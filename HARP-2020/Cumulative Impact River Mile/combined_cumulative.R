@@ -129,12 +129,14 @@ AllSegList <- c('OR5_7980_8200', 'OR2_8020_8130', 'OR2_8070_8120', 'OR4_8120_789
 #########################################################################################
 
 #'PS3_5990_6161'
+#'OR2_7900_7740'
 # runid <- 11
 # Inputs
 flow_metric <-'7q10' # input flow metric vahydro name as a string
 runid1 <- 11 # inputs for the two runids to compare
 runid2 <- 18
 riv_seg <- 'PS3_5990_6161' 
+
 
 #### function returns data for given runid and main stream channel including river segment
 # returns df of riversegments and their associated info
@@ -420,16 +422,16 @@ ggplot(totaldat, aes(x = mile)) +
 
 ################################################################ Intake as a Percentage of Flow (bar graphs)
 df11 <- data.frame(
-  pcttype = rep(c('pct1'), each = 17),
-  xaxis <- c(1:17),
-  vals <- c(pct)
+  pcttype = rep(c('pct1'), each = nrow(totaldat)),
+  xaxis <- c(1:nrow(totaldat)),
+  vals <- c(totaldat$pct)
 )
 colnames(df11) <- c('pcttype', 'xaxis', 'vals')
 
 df18 <- data.frame(
-  pcttype = rep(c('pct2'), each = 17),
-  xaxis <- c(1:17),
-  vals <- c(pct2)
+  pcttype = rep(c('pct2'), each = nrow(totaldat)),
+  xaxis <- c(1:nrow(totaldat)),
+  vals <- c(totaldat$pct2)
 )
 colnames(df18) <- c('pcttype', 'xaxis', 'vals')
 
@@ -560,16 +562,16 @@ ggplot(totaldat, aes(x = mile)) +
 ###########################################################################
 #Flow & bar graph cumulative intake
 
-seglist = as.factor(c(1:17))
-y_prim <- c(0,13000)
-y_sec <- c(0,3000)
+seglist = as.factor(c(1:nrow(totaldat)))
+y_prim <- c(0,max(totaldat$flow) + 500)#c(0,13000) question for sarah: why this limit and why have intake depend on this value?
+y_sec <- c(0,max(totaldat$cintake2) + 500)#c(0,3000) question for sarah: why this limi and why have intake depend on this value
 a <- max(y_sec) / max(y_prim)
 
-totaldat11 = data.frame(cbind(totaldat$flow, totaldat$cintake / a, seglist))
-totaldat18 = data.frame(cbind(totaldat$flow2, totaldat$cintake2 / a, seglist))
+totaldat11 = data.frame(cbind(totaldat$flow, totaldat$cintake / a, totaldat$cintake, seglist))
+totaldat18 = data.frame(cbind(totaldat$flow2, totaldat$cintake2 / a, totaldat$cintake2, seglist))
 
 ggplot(totaldat11, aes(x = seglist)) +
-  geom_col(aes(y = V2), size = 1, color = "blue", fill = 'lightblue') +
+  geom_col(aes(y = V3), size = 1, color = "blue", fill = 'lightblue') +
   geom_point(aes(y = V1, colour = 'Flow'), size = 2.0) +
   geom_line(aes(y = V1, colour = 'Flow'), size = 1.25) +
   labs(colour = 'Legend') +
@@ -582,7 +584,7 @@ ggplot(totaldat11, aes(x = seglist)) +
   theme_bw() 
 
 ggplot(totaldat18, aes(x = seglist)) +
-  geom_col(aes(y = V2), size = 1, color = "blue", fill = 'lightblue') +
+  geom_col(aes(y = V3), size = 1, color = "blue", fill = 'lightblue') +
   geom_point(aes(y = V1, colour = 'Flow'), size = 2.0) +
   geom_line(aes(y = V1, colour = 'Flow'), size = 1.25) +
   labs(colour = 'Legend') +
