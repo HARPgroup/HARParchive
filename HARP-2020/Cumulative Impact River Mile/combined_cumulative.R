@@ -1,6 +1,6 @@
 #Compiled from multiple variation of cumulative impact codes on 9-30-2020
 
-## Watershed Cumulative impacts graph 
+## Watershed Cumulative impacts graph
 # low flow metrics/ critical periods version
 
 # Update 2-10-2021: Things that need to be done: Functionalize data manipulation, store plots as variables
@@ -135,31 +135,31 @@ AllSegList <- c('OR5_7980_8200', 'OR2_8020_8130', 'OR2_8070_8120', 'OR4_8120_789
 flow_metric <-'7q10' # input flow metric vahydro name as a string
 runid1 <- 11 # inputs for the two runids to compare
 runid2 <- 18
-riv_seg <- 'PS3_5990_6161' 
+riv_seg <- 'PS3_5990_6161'
 
 
 #### function returns data for given runid and main stream channel including river segment
 # returns df of riversegments and their associated info
 flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
-  
+
   upstream <- data.frame((fn_ALL.upstream(riv_seg, AllSegList)))
   upstream <- upstream[nrow(upstream):1,]
   upstream <- data.frame(upstream)
   names(upstream)[names(upstream) == colnames(upstream)[1]] <- "riv_seg"
-  
+
   upstream <- as.character(upstream[[1,1]])
-  
+
   if(upstream == 'NA'){
     riv_seg <- riv_seg
   }else {
     riv_seg <- upstream
   }
-  
+
   downstream <- data.frame(fn_ALL.downstream(riv_seg, AllSegList))
   names(downstream)[names(downstream) == colnames(downstream)[1]] <- "riv_seg"
   riv_seg <- as.data.frame(riv_seg)
   river <- rbind(riv_seg, downstream)
-  
+
   i <- 1
   segment <- c()
   area <- c()
@@ -169,22 +169,22 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
   length <-c()
   area_tot <- 0
   metric <- c()
-  name <- c() 
+  name <- c()
   pointsource <- c()
-  
+
   while (i <= nrow(river)) {
     riv_seg <- as.character(river[i, 1])
     segment <- append(segment, riv_seg)
     #Getting pid of river segment courtesy of Daniel's function (step 1)
     pid <- get.overall.vahydro.prop(riv_seg, site = site, token = token)
-    
+
     #Getting names for each riv seg
     inputs <- list(
       hydrocode = paste0('vahydrosw_wshed_', riv_seg))
     feature <- getFeature(inputs, token, site)
     riv_seg_name <- as.character(feature$name)
     name <- append(name, riv_seg_name)
-    
+
     #getting runid info
     inputs <- list(
       varkey = 'om_model_scenario',
@@ -194,7 +194,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     )
     prop <- getProperty(inputs, site)
     run_pid <- as.character(prop$pid)
-    
+
     #get segment withdrawal
     inputs <- list(
       varkey = 'om_class_Constant',
@@ -205,7 +205,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     prop <- getProperty(inputs, site)
     wd_mgd <- prop$propvalue
     intake <- append(intake, wd_mgd)
-    
+
     #getting cumulative withdrawal
     inputs <- list(
       varkey = 'om_class_Constant',
@@ -216,7 +216,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     prop <- getProperty(inputs, site)
     wd_cumulative_mgd <- prop$propvalue
     cintake <- append(cintake, wd_cumulative_mgd)
-    
+
     #getting cumulative point source
     inputs <- list(
       varkey = 'om_class_Constant',
@@ -227,7 +227,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     prop <- getProperty(inputs, site)
     ps_cumulative_mgd <- prop$propvalue
     pointsource <- append(pointsource, ps_cumulative_mgd)
-    
+
     #Getting flow metric
     if (flow_metric == '7q10') {
       inputs <- list(
@@ -247,7 +247,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     prop <- getProperty(inputs, site)
     metric_val <- prop$propvalue
     metric <- append(metric, metric_val)
-    
+
     #Trying to get river channel info
     inputs <- list(
       varkey = 'om_model_scenario',
@@ -257,7 +257,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     )
     prop <- getProperty(inputs, site)
     riv_pid <- prop$pid
-    
+
     #Now get overall flow
     inputs <- list(
       varkey = 'om_class_Constant',
@@ -268,7 +268,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     prop <- getProperty(inputs, site)
     streamflow <- prop$propvalue
     flow <- append(flow, streamflow)
-    
+
     #Now combine find the links
     inputs <- list(
       varkey = 'om_class_Constant',
@@ -279,7 +279,7 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     prop <- getProperty(inputs, site)
     len <- prop$propvalue
     length <- append(length, len)
-    
+
     #get drainage area vector and total from riv seg instead of runfile, not used rn
     inputs <- list(
       varkey = 'om_class_Constant',
@@ -291,11 +291,11 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     drainage_area <- prop$propvalue
     area <- append(area, drainage_area)
     area_tot <- area_tot + drainage_area
-    
-    
+
+
     i <- i + 1
   }
-  
+
   segment <- data.frame(river)
   area <- data.frame(area)
   flow <- data.frame(flow)
@@ -306,12 +306,12 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
   cintake <- data.frame(cintake) * 1.547
   pointsource <- data.frame(pointsource)
   river_data <- cbind(segment, name, area, intake, cintake, pointsource, flow, length, metric)
-  
+
   i <- 1
   while (i <= nrow(river_data)) {
-    
+
     river_length <- c()
-    
+
     # Loop creates vector of current segment and upstream segment lengths
     for (n in 1:i) {
       n_length <- as.numeric(river_data$length[n])
@@ -319,12 +319,12 @@ flow_and_intake <- function(AllSegList, riv_seg, runid, flow_metric) {
     }
     # Makes length column to total length to segment from start of river
     river_data$mile[i] <- sum(river_length)
-    
+
     i <- i + 1
   }
   #Trying to reverse mile info for river mile
   river_data$mile <- rev(river_data$mile)
-  
+
   return(river_data)
 }
 
@@ -382,7 +382,7 @@ rivseg_flow_change <- function(totaldat, pct_change_in_flow){
     change <- totaldat[val,]
     changes_df <- rbind(changes_df,change)
   }
-  
+
   return(changes_df)
 }
 
@@ -404,7 +404,7 @@ ggplot(totaldat, aes(x = mile)) +
   xlab('River Mile [mi]') +
   scale_y_continuous(
     name = expression('Flow  [cfs]'),
-    sec.axis = sec_axis(~ ./ 1.547, name = 'Flow  [mgd]')) + 
+    sec.axis = sec_axis(~ ./ 1.547, name = 'Flow  [mgd]')) +
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
@@ -458,7 +458,7 @@ ggplot(totaldat, aes(x = mile)) +
   xlab('River Mile [mi]') +
   scale_y_continuous(
     name = expression('Flow  [cfs]'),
-    sec.axis = sec_axis(~ ./ 1.547, name = 'Flow  [mgd]')) + 
+    sec.axis = sec_axis(~ ./ 1.547, name = 'Flow  [mgd]')) +
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
@@ -473,7 +473,7 @@ ggplot(totaldat, aes(x = mile)) +
   ggtitle(paste0('Comparison of ', flow_metric, ' as a Percentage of Average Flow')) +
   xlab('River Mile [mi]') +
   scale_y_continuous(
-    name = expression('Percentage')) + 
+    name = expression('Percentage')) +
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
@@ -551,10 +551,10 @@ ggplot(totaldat, aes(x = mile)) +
   labs(colour = 'Legend') +
   ggtitle(paste0('Comparison of Flow')) +
   xlab('River Mile [mi]') +
-  ylab(paste0('Flow [cfs]')) + 
+  ylab(paste0('Flow [cfs]')) +
   geom_vline(data=changes_df,(aes(xintercept = changes_df$mile)),linetype=8) + theme_bw() +
-  geom_text(data= changes_df, aes(x=changes_df$mile, label=paste(changes_df$name), 
-                                  y=(max(totaldat$flow)/2)), colour="blue", angle=90, 
+  geom_text(data= changes_df, aes(x=changes_df$mile, label=paste(changes_df$name),
+                                  y=(max(totaldat$flow)/2)), colour="blue", angle=90,
             vjust=-1, text=element_text(size=3))
 
 ############################################################################
@@ -580,8 +580,8 @@ ggplot(totaldat11, aes(x = seglist)) +
   ylab('Flow (cfs)') +
   scale_x_reverse() +
   scale_y_continuous(limits = y_prim,
-                     sec.axis = sec_axis(~.*a, name = 'Intake Withdrawal (mgd)')) + 
-  theme_bw() 
+                     sec.axis = sec_axis(~.*a, name = 'Intake Withdrawal (mgd)')) +
+  theme_bw()
 
 ggplot(totaldat18, aes(x = seglist)) +
   geom_col(aes(y = V3), size = 1, color = "blue", fill = 'lightblue') +
@@ -593,7 +593,7 @@ ggplot(totaldat18, aes(x = seglist)) +
   ylab('Flow (cfs)') +
   scale_x_reverse() +
   scale_y_continuous(limits = y_prim,
-                     sec.axis = sec_axis(~.*a, name = 'Intake Withdrawal (mgd)')) + 
+                     sec.axis = sec_axis(~.*a, name = 'Intake Withdrawal (mgd)')) +
   theme_bw()
 
 ################################################################### Flow & bar graph cumulative intake as a percentage of flow
@@ -615,8 +615,8 @@ ggplot(totaldat11pct, aes(x = seglist)) +
   ylab('Flow (cfs)') +
   scale_x_reverse() +
   scale_y_continuous(limits = y_prim,
-                     sec.axis = sec_axis(~.*b, name = 'Intake as a percentage of flow (%)')) + 
-  theme_bw() 
+                     sec.axis = sec_axis(~.*b, name = 'Intake as a percentage of flow (%)')) +
+  theme_bw()
 
 ggplot(totaldat18pct, aes(x = seglist)) +
   geom_col(aes(y = V2), size = 1, color = "blue", fill = 'lightblue') +
@@ -628,7 +628,7 @@ ggplot(totaldat18pct, aes(x = seglist)) +
   ylab('Flow (cfs)') +
   scale_x_reverse() +
   scale_y_continuous(limits = y_prim,
-                     sec.axis = sec_axis(~.*b, name = 'Intake as a percentage of flow (%)')) + 
+                     sec.axis = sec_axis(~.*b, name = 'Intake as a percentage of flow (%)')) +
   theme_bw()
 
 ################################################################### Log???
@@ -648,8 +648,8 @@ ggplot(totaldat11, aes(x = seglist)) +
   xlab('Segment List (1 = headwater)') +
   ylab('Flow (cfs)') +
   scale_x_reverse() +
-  scale_y_log10(sec.axis = sec_axis(~., name = 'Intake Withdrawal (mgd)')) + 
-  theme_bw() 
+  scale_y_log10(sec.axis = sec_axis(~., name = 'Intake Withdrawal (mgd)')) +
+  theme_bw()
 
 ggplot(totaldat18, aes(x = seglist)) +
   geom_col(aes(y = V2), size = 1, color = "blue", fill = 'lightblue') +
@@ -660,7 +660,7 @@ ggplot(totaldat18, aes(x = seglist)) +
   xlab('Segment List (1 = headwater)') +
   ylab('Flow (cfs)') +
   scale_x_reverse() +
-  scale_y_log10(sec.axis = sec_axis(~., name = 'Intake Withdrawal (mgd)')) + 
+  scale_y_log10(sec.axis = sec_axis(~., name = 'Intake Withdrawal (mgd)')) +
   theme_bw()
 
 ###########################################################################
@@ -676,10 +676,10 @@ p<-ggplot(totaldat, aes(x = mile)) +
   labs(colour = 'Legend') +
   ggtitle(paste0('Comparison of Flow')) +
   xlab('River Mile [mi]') +
-  ylab(paste0('Flow [cfs]')) 
+  ylab(paste0('Flow [cfs]'))
 # geom_vline(data=changes_df,(aes(xintercept = changes_df$mile)),linetype=8) + theme_bw() +
-# geom_text(data= changes_df, aes(x=changes_df$mile, label=paste(changes_df$name), 
-# y=max(flow)/2), colour="blue", angle=90, vjust=-1, 
+# geom_text(data= changes_df, aes(x=changes_df$mile, label=paste(changes_df$name),
+# y=max(flow)/2), colour="blue", angle=90, vjust=-1,
 # text=element_text(size=3))
 library(plotly)
 ggplotly(p, tooltip = c("text"))
@@ -711,7 +711,42 @@ ggplot(totaldat, aes(x=mile))+
   xlab('River Mile [mi]') +
   scale_y_continuous(
     name = expression('Flow  [mgd]'),
-    sec.axis = sec_axis(~ .* 1.547, name = 'Flow  [cfs]')) + 
+    sec.axis = sec_axis(~ .* 1.547, name = 'Flow  [cfs]')) +
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
+
+
+## Line and bar graph chart comparing two different runids
+
+# Data frame manipulation
+data_runid_diff <- totaldat
+data_runid_diff$run_pc <- (abs(data_runid_diff$flow - data_runid_diff$flow2)/data_runid_diff$flow)*100
+# Must make seg list numbered for x axis, could be used in table companion
+seglist = as.factor(c(1:nrow(data_runid_diff)))
+data_runid_diff <- data.frame(cbind(seglist, data_runid_diff$flow, data_runid_diff$flow2, data_runid_diff$run_pc))
+# Pre setting y axes max
+if (max(data_runid_diff$V2 >= data_runid_diff$V3)) {
+  y_prim <- c(0,max(data_runid_diff$V2) + 100)
+} else {
+  y_prim <- c(0, max(data_runid_diff$V3) + 100)
+}
+y_sec <-  c(min(data_runid_diff$V4) - 2, max(data_runid_diff$V4) + 2)
+
+coeff <- max(y_sec) / max(y_prim)
+data_runid_diff$run_pc_graph <- data_runid_diff$V4/coeff
+# Graph
+ggplot(data_runid_diff, aes(x = seglist)) +
+  geom_col(aes(y = run_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
+  geom_point(aes(y = V2, colour = paste0('runid_',runid1)), size = 2.0) +
+  geom_line(aes(y = V2, colour = paste0('runid_',runid1)), size = 1.25) +
+  geom_point(aes(y = V3, colour = paste0('runid_',runid2)), size = 2.0) +
+  geom_line(aes(y = V3, colour = paste0('runid_',runid2)), size = 1.25) +
+  labs(colour = 'Legend') +
+  ggtitle(paste0('Comparison of Flow for ', runid1, ' and ', runid2)) +
+  xlab('Segment List (1 = headwater)') +
+  ylab('Flow (cfs)') +
+  scale_x_reverse() +
+  scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+                     sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
+  theme_bw()
