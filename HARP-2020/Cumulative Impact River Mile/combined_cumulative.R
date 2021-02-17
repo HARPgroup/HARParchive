@@ -536,7 +536,7 @@ ggplot(totaldat, aes(x = mile)) +
   geom_line(aes(y = (intake2/metric2)*100, colour = 'runid18' )) +
   geom_line(aes(y = 100, colour = '100 %')) +
   labs(colour = 'Legend') +
-  scale_x_reverse() + 
+  scale_x_reverse() +
   ggtitle(paste0('Comparison of ', flow_metric, ' and Intake')) +
   xlab('River Mile [mi]') +
   ylab(paste0('Intake as percentage of ', flow_metric)) +
@@ -735,9 +735,13 @@ ggplot(totaldat, aes(x=mile))+
 # Data frame manipulation
 data_runid_diff <- totaldat
 data_runid_diff$run_pc <- (abs(data_runid_diff$flow - data_runid_diff$flow2)/data_runid_diff$flow)*100
+data_runid_diff$metric_pc <- (abs(data_runid_diff$metric - data_runid_diff$metric2)/data_runid_diff$metric)*100
 # Must make seg list numbered for x axis, could be used in table companion
 seglist = as.factor(c(1:nrow(data_runid_diff)))
-data_runid_diff <- data.frame(cbind(seglist, data_runid_diff$flow, data_runid_diff$flow2, data_runid_diff$run_pc))
+data_runid_diff <- data.frame(cbind(seglist, data_runid_diff$flow, data_runid_diff$flow2, data_runid_diff$run_pc, data_runid_diff$metric, data_runid_diff$metric2, data_runid_diff$metric_pc))
+data_runid_diff <- cbind(data_runid_diff, "name" = totaldat$name)
+
+# Now lets graph using mean baseflow
 # Pre setting y axes max
 if (max(data_runid_diff$V2 >= data_runid_diff$V3)) {
   y_prim <- c(0,max(data_runid_diff$V2) + 100)
@@ -756,10 +760,43 @@ ggplot(data_runid_diff, aes(x = seglist)) +
   geom_point(aes(y = V3, colour = paste0('runid_',runid2)), size = 2.0) +
   geom_line(aes(y = V3, colour = paste0('runid_',runid2)), size = 1.25) +
   labs(colour = 'Legend') +
-  ggtitle(paste0('Comparison of Flow for ', runid1, ' and ', runid2)) +
+  ggtitle(paste0('Comparison of Mean Annual Flow for ', runid1, ' and ', runid2)) +
   xlab('Segment List (1 = headwater)') +
   ylab('Flow (cfs)') +
-  scale_x_reverse() +
   scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
-                     sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
-  theme_bw()
+                     sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+  geom_vline(data = data_runid_diff, (aes(xintercept = seglist)),linetype=8) +
+  theme_bw() +
+  geom_text(data = data_runid_diff, aes(x = seglist, label = paste(name),
+                                        y=(max(V2)/2)), colour="black", angle=90,
+            vjust=-0.4, text=element_text(size=3))
+
+# Now lets graph using inputed metric (ex: 7q10)
+# Pre setting y axes max
+if (max(data_runid_diff$V5 >= data_runid_diff$V6)) {
+  y_prim <- c(0,max(data_runid_diff$V5) + 100)
+} else {
+  y_prim <- c(0, max(data_runid_diff$V6) + 100)
+}
+y_sec <-  c(min(data_runid_diff$V7) - 2, max(data_runid_diff$V7) + 2)
+
+coeff <- max(y_sec) / max(y_prim)
+data_runid_diff$run_pc_graph <- data_runid_diff$V7/coeff
+# Graph
+ggplot(data_runid_diff, aes(x = seglist)) +
+  geom_col(aes(y = run_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
+  geom_point(aes(y = V5, colour = paste0('runid_',runid1)), size = 2.0) +
+  geom_line(aes(y = V5, colour = paste0('runid_',runid1)), size = 1.25) +
+  geom_point(aes(y = V6, colour = paste0('runid_',runid2)), size = 2.0) +
+  geom_line(aes(y = V6, colour = paste0('runid_',runid2)), size = 1.25) +
+  labs(colour = 'Legend') +
+  ggtitle(paste0('Comparison of ', flow_metric,' Flow for ', runid1, ' and ', runid2)) +
+  xlab('Segment List (1 = headwater)') +
+  ylab('Flow (cfs)') +
+  scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+                     sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+  geom_vline(data = data_runid_diff, (aes(xintercept = seglist)),linetype=8) +
+  theme_bw() +
+  geom_text(data = data_runid_diff, aes(x = seglist, label = paste(name),
+                                        y=(max(V5)/2)), colour="black", angle=90,
+            vjust=-0.4, text=element_text(size=3))
