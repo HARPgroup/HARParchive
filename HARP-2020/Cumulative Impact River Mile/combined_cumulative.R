@@ -405,6 +405,7 @@ ggplot(totaldat, aes(x = mile)) +
   scale_y_continuous(
     name = expression('Flow  [cfs]'),
     sec.axis = sec_axis(~ ./ 1.547, name = 'Flow  [mgd]')) +
+  scale_x_reverse() +
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
@@ -417,6 +418,7 @@ ggplot(totaldat, aes(x = mile)) +
   geom_point(aes(x = mile, y = pct2, colour = 'runid18')) +
   labs(colour = 'Legend') +
   ggtitle(paste0('Cumulative Intake as a Percentage of Flow (Runid 11 vs Runid18)')) +
+  scale_x_reverse()+
   xlab('River Mile [mi]') +
   ylab('Percentage (%)')
 
@@ -459,6 +461,7 @@ ggplot(totaldat, aes(x = mile)) +
   scale_y_continuous(
     name = expression('Flow  [cfs]'),
     sec.axis = sec_axis(~ ./ 1.547, name = 'Flow  [mgd]')) +
+  scale_x_reverse()+
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
@@ -474,6 +477,7 @@ ggplot(totaldat, aes(x = mile)) +
   xlab('River Mile [mi]') +
   scale_y_continuous(
     name = expression('Percentage')) +
+  scale_x_reverse()+
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
@@ -492,11 +496,12 @@ ggplot(totaldat, aes(x = mile)) +
   ggtitle(paste0('Comparison of ', flow_metric, ' and Flow')) +
   xlab('River Mile [mi]') +
   ylab('Flow in cfs') +
+  scale_x_reverse() +
   theme_bw() +
   theme(axis.title.y.right = element_text(margin = margin(t = 0, r = 0, b = 0, l = 10))) +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
 
-################################################################### Try plotting intake and lowflow on same plot
+################################################################### Try plotting intake and metric on same plot
 # runid 1
 ggplot(totaldat, aes(x = mile)) +
   geom_point(aes(y = metric, colour = 'runid11 flow')) +
@@ -504,9 +509,11 @@ ggplot(totaldat, aes(x = mile)) +
   geom_point(aes(y = intake, colour = 'runid11 intake')) +
   geom_line(aes(y = intake, colour = 'runid11 intake')) +
   labs(colour = 'Legend') +
+  scale_x_reverse() +
   ggtitle(paste0('Comparison of ', flow_metric, ' and Intake')) +
   xlab('River Mile [mi]') +
-  ylab('Flow or Intake [cfs]')
+  ylab('Flow or Intake [cfs]')+
+  theme_bw()
 
 # runid 2
 ggplot(totaldat, aes(x = mile)) +
@@ -515,9 +522,11 @@ ggplot(totaldat, aes(x = mile)) +
   geom_point(aes(y = intake2, colour = 'runid18 intake' )) +
   geom_line(aes(y = intake2, colour = 'runid18 intake' )) +
   labs(colour = 'Legend') +
+  scale_x_reverse() +
   ggtitle(paste0('Comparison of ', flow_metric, ' and Intake')) +
   xlab('River Mile [mi]') +
-  ylab('Flow or Intake [cfs]')
+  ylab('Flow or Intake [cfs]') +
+  theme_bw()
 
 ################################################################### Try plotting intake as % of lowflow
 ggplot(totaldat, aes(x = mile)) +
@@ -527,9 +536,11 @@ ggplot(totaldat, aes(x = mile)) +
   geom_line(aes(y = (intake2/metric2)*100, colour = 'runid18' )) +
   geom_line(aes(y = 100, colour = '100 %')) +
   labs(colour = 'Legend') +
+  scale_x_reverse() +
   ggtitle(paste0('Comparison of ', flow_metric, ' and Intake')) +
   xlab('River Mile [mi]') +
-  ylab(paste0('Intake as percentage of ', flow_metric))
+  ylab(paste0('Intake as percentage of ', flow_metric)) +
+  theme_bw()
 
 ################################################################### Intake as a percentage of just flow :)
 ggplot(totaldat, aes(x = mile)) +
@@ -538,6 +549,7 @@ ggplot(totaldat, aes(x = mile)) +
   geom_point(aes(y = (intake2/flow2)*100, colour = 'runid18' )) +
   geom_line(aes(y = (intake2/flow2)*100, colour = 'runid18' )) +
   labs(colour = 'Legend') +
+  scale_x_reverse() +
   ggtitle('Segement Intake as a Percentage of Flow') +
   xlab('River Mile [mi]') +
   ylab('Percentage [%]') + theme_bw() +
@@ -556,7 +568,8 @@ ggplot(totaldat, aes(x = mile)) +
   geom_vline(data=changes_df,(aes(xintercept = changes_df$mile)),linetype=8) + theme_bw() +
   geom_text(data= changes_df, aes(x=changes_df$mile, label=paste(changes_df$name),
                                   y=(max(totaldat$flow)/2)), colour="blue", angle=90,
-            vjust=-1, text=element_text(size=3))
+                                  vjust=-1, text=element_text(size=3)) +
+  scale_x_reverse()
 
 ############################################################################
 #Flow and bar chart combined
@@ -730,6 +743,7 @@ seglist = as.factor(c(1:nrow(data_runid_diff)))
 data_runid_diff <- data.frame(cbind(seglist, data_runid_diff$flow, data_runid_diff$flow2, data_runid_diff$run_pc, data_runid_diff$metric, data_runid_diff$metric2, data_runid_diff$metric_pc))
 data_runid_diff <- cbind(data_runid_diff, "name" = totaldat$name)
 
+# Now lets graph using mean baseflow
 # Pre setting y axes max
 if (max(data_runid_diff$V2 >= data_runid_diff$V3)) {
   y_prim <- c(0,max(data_runid_diff$V2) + 100)
@@ -760,6 +774,7 @@ ggplot(data_runid_diff, aes(x = seglist)) +
   geom_line(aes(y = V3, colour = paste0('runid_',runid2)), size = 1.25) +
   labs(colour = 'Legend') +
   ggtitle(paste0('Comparison of Mean Annual Flow for ', runid1, ' and ', runid2)) +
+
   xlab('Segment List (1 = headwater)') +
   ylab('Flow (cfs)') +
   scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
@@ -832,3 +847,43 @@ ggplot(data_runid_diff, aes(x = seglist)) +
                      sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
   theme_bw()
 
+=======
+  xlab('Segment List (1 = headwater)') +
+  ylab('Flow (cfs)') +
+  scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+                     sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+  geom_vline(data = data_runid_diff, (aes(xintercept = seglist)),linetype=8) +
+  theme_bw() +
+  geom_text(data = data_runid_diff, aes(x = seglist, label = paste(name),
+                                        y=(max(V2)/2)), colour="black", angle=90,
+            vjust=-0.4, text=element_text(size=3))
+
+# Now lets graph using inputed metric (ex: 7q10)
+# Pre setting y axes max
+if (max(data_runid_diff$V5 >= data_runid_diff$V6)) {
+  y_prim <- c(0,max(data_runid_diff$V5) + 100)
+} else {
+  y_prim <- c(0, max(data_runid_diff$V6) + 100)
+}
+y_sec <-  c(min(data_runid_diff$V7) - 2, max(data_runid_diff$V7) + 2)
+
+coeff <- max(y_sec) / max(y_prim)
+data_runid_diff$run_pc_graph <- data_runid_diff$V7/coeff
+# Graph
+ggplot(data_runid_diff, aes(x = seglist)) +
+  geom_col(aes(y = run_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
+  geom_point(aes(y = V5, colour = paste0('runid_',runid1)), size = 2.0) +
+  geom_line(aes(y = V5, colour = paste0('runid_',runid1)), size = 1.25) +
+  geom_point(aes(y = V6, colour = paste0('runid_',runid2)), size = 2.0) +
+  geom_line(aes(y = V6, colour = paste0('runid_',runid2)), size = 1.25) +
+  labs(colour = 'Legend') +
+  ggtitle(paste0('Comparison of ', flow_metric,' Flow for ', runid1, ' and ', runid2)) +
+  xlab('Segment List (1 = headwater)') +
+  ylab('Flow (cfs)') +
+  scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+                     sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+  geom_vline(data = data_runid_diff, (aes(xintercept = seglist)),linetype=8) +
+  theme_bw() +
+  geom_text(data = data_runid_diff, aes(x = seglist, label = paste(name),
+                                        y=(max(V5)/2)), colour="black", angle=90,
+            vjust=-0.4, text=element_text(size=3))
