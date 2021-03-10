@@ -209,8 +209,8 @@ CIA_data <- function(riv_seg, runid1, runid2, flow_metric){
   }
   
   # Calculating Percent change values for mean annual flow and inputed metric flow
-  cia_data$Qout_pc <- (abs(cia_data$Qout_1 - cia_data$Qout_2)/cia_data$Qout_1)*100
-  cia_data$metric_pc <- (abs(cia_data$Metric_1 - cia_data$Metric_2)/cia_data$Metric_1)*100
+  cia_data$Qout_pc <- ((cia_data$Qout_2 - cia_data$Qout_1)/cia_data$Qout_1)*100
+  cia_data$metric_pc <- ((cia_data$Metric_2 - cia_data$Metric_1)/cia_data$Metric_1)*100
   
   # Must make seg list numbered for x axis on graphs with bars, could be used in table companion
   cia_data$seglist = as.numeric(c(1:nrow(cia_data)))
@@ -429,3 +429,29 @@ p6 <- ggplot(cia_data, aes(x = rmile)) +
           theme(panel.grid = element_blank(), text = element_text(size=15))+
           scale_x_reverse()
 
+###################################################### Base R plot
+par(mar = c(5, 5, 8, 5)) #ADJUST PLOTTING MARGINS TO ACCOMMODATE RSEG NAMES
+plot(cia_data$seglist, cia_data$Qout_1, type = "l", col = "green", xlab = "", ylab = "", las=1,cex.axis=0.8,ylim=c(0,y_prim[2])) #CREATE FIRST PLOT (ON PRIMARY Y-AXIS)
+lines(cia_data$seglist, cia_data$Qout_2, type = "l", col = "blue")  #ADD ADDITIONAL PLOTTING DATAPOINTS
+abline(v=1:length(cia_data$propname), col="azure2") #ADD VERTICAL GRID LINES FOR EACH RSEG
+text(x = cia_data$seglist,y = y_prim[2]+(0.06*y_prim[2]),labels=cia_data$propname,xpd = NA, srt = 45, offset = -0.2, pos = 4,cex=0.7) #ADD RSEG NAMES ABOVE PLOT
+par(new = TRUE) #ADD SECOND PLOT (ON SECONDARY Y-AXIS)                                                
+plot(cia_data$seglist, cia_data$Qout_pc, type = "h", col = "red",axes = FALSE, xlab = "Segment List (1 = headwater)", ylab = "Flow (cfs)",ylim=c(-15,15)) #NOTE: SWITCH BETWEEN type = "h" (FOR 'histogram' LIKE VERTICAL LINES) and "l" (FOR LINES)
+axis(side = 4, las=1,cex.axis=0.8) # ADD SECOND AXIS
+mtext("Percent Difference in Flow between runids", side = 4, line = 3) #ADD SECOND AXIS LABEL     
+abline(h=0, col="grey", lty=2) #ADD HORIZONTAL DOTTED LINE AT Y=0
+legend("topleft", c("Qout_1", "Qout_2", "Qout_pc"),col = c("green", "blue", "red"), lty = c(1,1,1), bg='white') #ADD LEGEND
+
+###################################################### Base R plot with river mile
+par(mar = c(5, 5, 8, 5)) #ADJUST PLOTTING MARGINS TO ACCOMMODATE RSEG NAMES
+plot(cia_data$seglist, cia_data$Qout_1, type = "l", col = "green", xaxt = 'n', xlab = "", ylab = "", las=1,ylim=c(0,y_prim[2])) #CREATE FIRST PLOT (ON PRIMARY Y-AXIS)
+lines(cia_data$seglist, cia_data$Qout_2, type = "l", col = "blue")  #ADD ADDITIONAL PLOTTING DATAPOINTS
+abline(v=1:length(cia_data$propname), col="azure2") #ADD VERTICAL GRID LINES FOR EACH RSEG
+text(x = cia_data$seglist,y = y_prim[2]+(0.06*y_prim[2]),labels=cia_data$propname,xpd = NA, srt = 45, offset = -0.2, pos = 4,cex=0.7) #ADD RSEG NAMES ABOVE PLOT
+par(new = TRUE) #ADD SECOND PLOT (ON SECONDARY Y-AXIS)                                                
+plot(cia_data$seglist, cia_data$Qout_pc, type = "h", col = "red",axes = FALSE, xlab = "River Mile", ylab = "Flow (cfs)",ylim=c(-15,15)) #NOTE: SWITCH BETWEEN type = "h" (FOR 'histogram' LIKE VERTICAL LINES) and "l" (FOR LINES)
+axis(side = 4, las=1,cex.axis=0.8) # ADD SECOND AXIS
+mtext("Percent Difference in Flow between runids", side = 4, line = 3) #ADD SECOND AXIS LABEL     
+abline(h=0, col="grey", lty=2) #ADD HORIZONTAL DOTTED LINE AT Y=0
+legend("topleft", c("Qout_1", "Qout_2", "Qout_pc"),col = c("green", "blue", "red"), lty = c(1,1,1), bg='white', y.intersp = 0.2) #ADD LEGEND
+axis(side = 1, at = c(1:nrow(cia_data)), labels = as.character(round(cia_data$rmile, 0)))
