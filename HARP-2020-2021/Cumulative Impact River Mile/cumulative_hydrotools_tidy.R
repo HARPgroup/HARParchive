@@ -18,7 +18,7 @@ source(paste(basepath,'config.R',sep='/'))
 flow_metric <-'7q10' # input flow metric vahydro name as a string
 runid1 <- 11 # inputs for the two runids to compare
 runid2 <- 18
-riv_seg <- 'PS3_5990_6161' #'OR2_7900_7740'
+riv_seg <- 'OR2_7900_7740' #'PS3_5990_6161' #'OR2_7900_7740'
 
 CIA_data <- function(riv_seg, runid1, runid2, flow_metric){
   
@@ -229,23 +229,31 @@ CIA_data <- function(riv_seg, runid1, runid2, flow_metric){
   
   # Pre setting y axes max (Do Not Need If No More ggplot)
   if (max(cia_data$Metric_1 >= cia_data$Metric_2)) {
-    y_prim <- c(0,max(cia_data$Metric_1) + 100)
+    y_prim2 <- c(0,max(cia_data$Metric_1) + 100)
   } else {
-    y_prim <- c(0, max(cia_data$Metric_2) + 100)
+    y_prim2 <- c(0, max(cia_data$Metric_2) + 100)
   }
-  y_sec <-  c(min(cia_data$metric_pc) - 2, max(cia_data$metric_pc) + 2)
+  y_sec2 <-  c(min(cia_data$metric_pc) - 2, max(cia_data$metric_pc) + 2)
   
-  coeff <- max(y_sec) / max(y_prim)
-  cia_data$metric_pc_graph <- cia_data$metric_pc/coeff
+  coeff2 <- max(y_sec2) / max(y_prim2)
+  cia_data$metric_pc_graph <- cia_data$metric_pc/coeff2
   
   
   
-  return(cia_data)
+  return(list(cia_data,
+              y_prim,
+              y_prim2,
+              coeff,
+              coeff2))
 }
 
 #testing function
-cia_data <- CIA_data(riv_seg = riv_seg, runid1 = runid1, runid2 = runid2, flow_metric = flow_metric)
-
+cdat <- CIA_data(riv_seg = riv_seg, runid1 = runid1, runid2 = runid2, flow_metric = flow_metric)
+cia_data <- cdat[[1]]
+y_prim <- cdat[[2]]
+y_prim2 <- cdat[[3]]
+coeff <- cdat[[4]]
+coeff2 <- cdat[[5]]
 
 
 #calculating flow changes (Do Not Need if using equally spaced graph)
@@ -365,8 +373,8 @@ p4 <- ggplot(cia_data, aes(x = seglist)) +
           ggtitle(paste0('Comparison of ', flow_metric,' Flow for ', runid1, ' and ', runid2)) +
           xlab('Segment List (1 = headwater)') +
           ylab('Flow (cfs)') +
-          scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
-                             sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+          scale_y_continuous(name = "Flow (cfs)", limits = y_prim2,
+                             sec.axis = sec_axis(~.*coeff2, name = 'Percent Difference in Flow between runids')) +
           geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8, colour = "grey") +
           theme_light() +
           geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
