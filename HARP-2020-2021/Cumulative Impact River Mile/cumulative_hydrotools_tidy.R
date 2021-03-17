@@ -282,160 +282,161 @@ rivseg_flow_change <- function(cia_data, pct_change_in_flow){
 changes_df <- rivseg_flow_change(cia_data = cia_data, 40)
 
 
+CIA_plots <- function(cia_data){
 # Pre setting y axes max
-if (max(cia_data$Qout_1 >= cia_data$Qout_2)) {
-   y_prim <- c(0,max(cia_data$Qout_1) + 100)
-} else {
-  y_prim <- c(0, max(cia_data$Qout_2) + 100)
-}
-
-y_sec <-  c(min(cia_data$Qout_pc) - 2, max(cia_data$Qout_pc) + 2)
-coeff <- max(y_sec) / max(y_prim)
-  
-################################################################################# Graph
-p1 <- ggplot(cia_data, aes(x = seglist)) +
-          geom_col(aes(y = Qout_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
-          geom_point(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 2.0) +
-          geom_line(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 1.25) +
-          geom_point(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 2.0) +
-          geom_line(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 1.25) +
-          labs(colour = 'Legend') +
-          ggtitle(paste0('Comparison of Mean Annual Flow for ', runid1, ' and ', runid2)) +
-          xlab('Segment List (1 = headwater)') +
-          ylab('Flow (cfs)') +
-          scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
-                             sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
-          geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8) +
-          theme_bw() +
-          geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
-                                         y=(max(Qout_1)/2)), colour="black", angle=90,
-                                         vjust=-0.4, size=3)
-  
-  
-############################################################# Graph with logarithmic flow, no percentages
-p2 <- ggplot(cia_data, aes(x = seglist)) +
-          geom_point(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 2.0) +
-          geom_line(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 1.25) +
-          geom_point(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 2.0) +
-          geom_line(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 1.25) +
-          labs(colour = 'Legend') +
-          ggtitle(paste0('Comparison of Flow for ', runid1, ' and ', runid2)) +
-          xlab('Segment List (1 = headwater)') +
-          ylab('Flow (cfs)') +
-          scale_y_log10() +
-          theme_bw()
-  
-  
-################################################### Graph with flow, percentages as a line
-p3 <- ggplot(cia_data, aes(x = seglist)) +
-          geom_point(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 1.5) +
-          geom_line(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 0.75) +
-          geom_point(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 2.0) +
-          geom_line(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 1.25) +
-          geom_point(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 2.0) +
-          geom_line(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 1.25) +
-          labs(colour = 'Legend') +
-          ggtitle(paste0('Comparison of Flow for ', runid1, ' and ', runid2)) +
-          xlab('Segment List (1 = headwater)') +
-          ylab('Flow (cfs)') +
-          scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
-                             sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
-          theme_bw()+
-          xlab('Segment List (1 = headwater)') +
-          ylab('Flow (cfs)') +
-          scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
-                             sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
-          geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8) +
-          theme_bw() +
-          geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
-                                         y=(max(Qout_1)/2)), colour="black", angle=90,
-                    vjust=-0.4, size=3)
-  
-
-# Pre setting y axes max (Do Not Need If No More ggplot)
-if (max(cia_data$Metric_1 >= cia_data$Metric_2)) {
-  y_prim <- c(0,max(cia_data$Metric_1) + 100)
-} else {
-  y_prim <- c(0, max(cia_data$Metric_2) + 100)
-}
-
-y_sec <-  c(min(cia_data$metric_pc) - 2, max(cia_data$metric_pc) + 2)
-coeff <- max(y_sec) / max(y_prim)
-
-###################################################### Bar Graph
-p4 <- ggplot(cia_data, aes(x = seglist)) +
-          geom_col(aes(y = metric_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
-          geom_point(aes(y = Metric_1, colour = paste0('runid_',runid1)), size = 2.0) +
-          geom_line(aes(y = Metric_1, colour = paste0('runid_',runid1)), size = 1.25) +
-          geom_point(aes(y = Metric_2, colour = paste0('runid_',runid2)), size = 2.0) +
-          geom_line(aes(y = Metric_2, colour = paste0('runid_',runid2)), size = 1.25) +
-          labs(colour = 'Legend') +
-          ggtitle(paste0('Comparison of ', flow_metric,' Flow for ', runid1, ' and ', runid2)) +
-          xlab('Segment List (1 = headwater)') +
-          ylab('Flow (cfs)') +
-          scale_y_continuous(name = "Flow (cfs)", limits = y_prim2,
-                             sec.axis = sec_axis(~.*coeff2, name = 'Percent Difference in Flow between runids')) +
-          geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8, colour = "grey") +
-          theme_light() +
-          geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
-                                         y=(max(Metric_1)/2)), colour="black", angle=90,
-                    vjust=-0.4, size=3)
-  
-###################################################### River Mile with markers
-p5 <- ggplot(cia_data, aes(x = rmile)) +
-          geom_point(aes(y = Qout_1, colour = 'runid11' )) +
-          geom_line(aes(y = Qout_1, colour = 'runid11' )) +
-          geom_point(aes(y = Qout_2, colour = 'runid18' )) +
-          geom_line(aes(y = Qout_2, colour = 'runid18' )) +
-          labs(colour = 'Legend') +
-          ggtitle(paste0('Comparison of Flow')) +
-          xlab('River Mile [mi]') +
-          ylab(paste0('Flow [cfs]')) +
-          geom_vline(data=changes_df,(aes(xintercept = changes_df$rmile)),linetype=8, colour = "grey") + 
-          theme_bw() +
-          geom_text(data= changes_df, aes(x=changes_df$rmile, label=paste(changes_df$propname),
-                                          y=(max(cia_data$Qout_1)/2)), colour="grey", angle=90,
-                                          vjust=-0.4, size=4) +
-          theme(panel.grid = element_blank())+
-          scale_x_reverse()
-  
-
-# Pre setting y axes max
-if (max(cia_data$Qout_1 >= cia_data$Qout_2)) {
-  y_prim <- c(0,max(cia_data$Qout_1) + 100)
-} else {
-  y_prim <- c(0, max(cia_data$Qout_2) + 100)
-}
-
-y_sec <-  c(min(cia_data$Qout_pc) - 2, max(cia_data$Qout_pc) + 2)
-coeff <- max(y_sec) / max(y_prim)
-
-###################################################### River Mile with flow and percent change
-p6 <- ggplot(cia_data, aes(x = rmile)) +
-          geom_point(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 1.5) +
-          geom_line(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 0.75) +
-          geom_point(aes(y = Qout_1, colour = 'runid11' )) +
-          geom_line(aes(y = Qout_1, colour = 'runid11' )) +
-          geom_point(aes(y = Qout_2, colour = 'runid18' )) +
-          geom_line(aes(y = Qout_2, colour = 'runid18' )) +
-          labs(colour = 'Legend') +
-          ggtitle(paste0('Comparison of Flow')) +
-          xlab('River Mile [mi]') +
-          ylab(paste0('Flow [cfs]')) +
-          scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
-                             sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
-          theme_bw()+
-          xlab('River Mile [Mi]') +
-          ylab('Flow [cfs]') +
-          scale_y_continuous(name = "Flow [cfs]", limits = y_prim,
-                             sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
-          geom_vline(data=changes_df,(aes(xintercept = changes_df$rmile)),linetype=8, colour = "grey") + 
-          theme_bw() +
-          geom_text(data= changes_df, aes(x=changes_df$rmile, label=paste(changes_df$propname),
-                                          y=(max(cia_data$Qout_1)/2)), colour="grey", angle=90,
-                    vjust=-0.4, size=4) +
-          theme(panel.grid = element_blank(), text = element_text(size=15))+
-          scale_x_reverse()
+# if (max(cia_data$Qout_1 >= cia_data$Qout_2)) {
+#    y_prim <- c(0,max(cia_data$Qout_1) + 100)
+# } else {
+#   y_prim <- c(0, max(cia_data$Qout_2) + 100)
+# }
+# 
+# y_sec <-  c(min(cia_data$Qout_pc) - 2, max(cia_data$Qout_pc) + 2)
+# coeff <- max(y_sec) / max(y_prim)
+#   
+# ################################################################################# Graph
+# p1 <- ggplot(cia_data, aes(x = seglist)) +
+#           geom_col(aes(y = Qout_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
+#           geom_point(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 2.0) +
+#           geom_line(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 1.25) +
+#           geom_point(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 2.0) +
+#           geom_line(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 1.25) +
+#           labs(colour = 'Legend') +
+#           ggtitle(paste0('Comparison of Mean Annual Flow for ', runid1, ' and ', runid2)) +
+#           xlab('Segment List (1 = headwater)') +
+#           ylab('Flow (cfs)') +
+#           scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+#                              sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+#           geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8) +
+#           theme_bw() +
+#           geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
+#                                          y=(max(Qout_1)/2)), colour="black", angle=90,
+#                                          vjust=-0.4, size=3)
+#   
+#   
+# ############################################################# Graph with logarithmic flow, no percentages
+# p2 <- ggplot(cia_data, aes(x = seglist)) +
+#           geom_point(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 2.0) +
+#           geom_line(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 1.25) +
+#           geom_point(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 2.0) +
+#           geom_line(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 1.25) +
+#           labs(colour = 'Legend') +
+#           ggtitle(paste0('Comparison of Flow for ', runid1, ' and ', runid2)) +
+#           xlab('Segment List (1 = headwater)') +
+#           ylab('Flow (cfs)') +
+#           scale_y_log10() +
+#           theme_bw()
+#   
+#   
+# ################################################### Graph with flow, percentages as a line
+# p3 <- ggplot(cia_data, aes(x = seglist)) +
+#           geom_point(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 1.5) +
+#           geom_line(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 0.75) +
+#           geom_point(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 2.0) +
+#           geom_line(aes(y = Qout_1, colour = paste0('runid_',runid1)), size = 1.25) +
+#           geom_point(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 2.0) +
+#           geom_line(aes(y = Qout_2, colour = paste0('runid_',runid2)), size = 1.25) +
+#           labs(colour = 'Legend') +
+#           ggtitle(paste0('Comparison of Flow for ', runid1, ' and ', runid2)) +
+#           xlab('Segment List (1 = headwater)') +
+#           ylab('Flow (cfs)') +
+#           scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+#                              sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
+#           theme_bw()+
+#           xlab('Segment List (1 = headwater)') +
+#           ylab('Flow (cfs)') +
+#           scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+#                              sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+#           geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8) +
+#           theme_bw() +
+#           geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
+#                                          y=(max(Qout_1)/2)), colour="black", angle=90,
+#                     vjust=-0.4, size=3)
+#   
+# 
+#  Pre setting y axes max (Do Not Need If No More ggplot)
+# if (max(cia_data$Metric_1 >= cia_data$Metric_2)) {
+#   y_prim <- c(0,max(cia_data$Metric_1) + 100)
+# } else {
+#   y_prim <- c(0, max(cia_data$Metric_2) + 100)
+# }
+# 
+# y_sec <-  c(min(cia_data$metric_pc) - 2, max(cia_data$metric_pc) + 2)
+# coeff <- max(y_sec) / max(y_prim)
+# 
+# ###################################################### Bar Graph
+# p4 <- ggplot(cia_data, aes(x = seglist)) +
+#           geom_col(aes(y = metric_pc_graph), size = 1, color = "blue", fill = 'lightblue') +
+#           geom_point(aes(y = Metric_1, colour = paste0('runid_',runid1)), size = 2.0) +
+#           geom_line(aes(y = Metric_1, colour = paste0('runid_',runid1)), size = 1.25) +
+#           geom_point(aes(y = Metric_2, colour = paste0('runid_',runid2)), size = 2.0) +
+#           geom_line(aes(y = Metric_2, colour = paste0('runid_',runid2)), size = 1.25) +
+#           labs(colour = 'Legend') +
+#           ggtitle(paste0('Comparison of ', flow_metric,' Flow for ', runid1, ' and ', runid2)) +
+#           xlab('Segment List (1 = headwater)') +
+#           ylab('Flow (cfs)') +
+#           scale_y_continuous(name = "Flow (cfs)", limits = y_prim2,
+#                              sec.axis = sec_axis(~.*coeff2, name = 'Percent Difference in Flow between runids')) +
+#           geom_vline(data = cia_data, (aes(xintercept = seglist)),linetype=8, colour = "grey") +
+#           theme_light() +
+#           geom_text(data = cia_data, aes(x = seglist, label = paste(propname),
+#                                          y=(max(Metric_1)/2)), colour="black", angle=90,
+#                     vjust=-0.4, size=3)
+#   
+# ###################################################### River Mile with markers
+# p5 <- ggplot(cia_data, aes(x = rmile)) +
+#           geom_point(aes(y = Qout_1, colour = 'runid11' )) +
+#           geom_line(aes(y = Qout_1, colour = 'runid11' )) +
+#           geom_point(aes(y = Qout_2, colour = 'runid18' )) +
+#           geom_line(aes(y = Qout_2, colour = 'runid18' )) +
+#           labs(colour = 'Legend') +
+#           ggtitle(paste0('Comparison of Flow')) +
+#           xlab('River Mile [mi]') +
+#           ylab(paste0('Flow [cfs]')) +
+#           geom_vline(data=changes_df,(aes(xintercept = changes_df$rmile)),linetype=8, colour = "grey") + 
+#           theme_bw() +
+#           geom_text(data= changes_df, aes(x=changes_df$rmile, label=paste(changes_df$propname),
+#                                           y=(max(cia_data$Qout_1)/2)), colour="grey", angle=90,
+#                                           vjust=-0.4, size=4) +
+#           theme(panel.grid = element_blank())+
+#           scale_x_reverse()
+#   
+# 
+# # Pre setting y axes max
+# if (max(cia_data$Qout_1 >= cia_data$Qout_2)) {
+#   y_prim <- c(0,max(cia_data$Qout_1) + 100)
+# } else {
+#   y_prim <- c(0, max(cia_data$Qout_2) + 100)
+# }
+# 
+# y_sec <-  c(min(cia_data$Qout_pc) - 2, max(cia_data$Qout_pc) + 2)
+# coeff <- max(y_sec) / max(y_prim)
+# 
+# ###################################################### River Mile with flow and percent change
+# p6 <- ggplot(cia_data, aes(x = rmile)) +
+#           geom_point(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 1.5) +
+#           geom_line(aes(y = Qout_pc_graph, colour = paste0('% difference')), size = 0.75) +
+#           geom_point(aes(y = Qout_1, colour = 'runid11' )) +
+#           geom_line(aes(y = Qout_1, colour = 'runid11' )) +
+#           geom_point(aes(y = Qout_2, colour = 'runid18' )) +
+#           geom_line(aes(y = Qout_2, colour = 'runid18' )) +
+#           labs(colour = 'Legend') +
+#           ggtitle(paste0('Comparison of Flow')) +
+#           xlab('River Mile [mi]') +
+#           ylab(paste0('Flow [cfs]')) +
+#           scale_y_continuous(name = "Flow (cfs)", limits = y_prim,
+#                              sec.axis = sec_axis(~.*coeff, name = 'Percent Diff in Flow between runids (%)')) +
+#           theme_bw()+
+#           xlab('River Mile [Mi]') +
+#           ylab('Flow [cfs]') +
+#           scale_y_continuous(name = "Flow [cfs]", limits = y_prim,
+#                              sec.axis = sec_axis(~.*coeff, name = 'Percent Difference in Flow between runids')) +
+#           geom_vline(data=changes_df,(aes(xintercept = changes_df$rmile)),linetype=8, colour = "grey") + 
+#           theme_bw() +
+#           geom_text(data= changes_df, aes(x=changes_df$rmile, label=paste(changes_df$propname),
+#                                           y=(max(cia_data$Qout_1)/2)), colour="grey", angle=90,
+#                     vjust=-0.4, size=4) +
+#           theme(panel.grid = element_blank(), text = element_text(size=15))+
+#           scale_x_reverse()
 
 ###################################################### Base R plot
 par(mar = c(5, 5, 8, 5)) #ADJUST PLOTTING MARGINS TO ACCOMMODATE RSEG NAMES
@@ -449,6 +450,7 @@ axis(side = 4, las=1,cex.axis=0.8) # ADD SECOND AXIS
 mtext("Percent Difference in Flow between runids", side = 4, line = 3) #ADD SECOND AXIS LABEL     
 abline(h=0, col="grey", lty=2) #ADD HORIZONTAL DOTTED LINE AT Y=0
 legend("topleft", c("Qout_1", "Qout_2", "Qout_pc"),col = c("green", "blue", "red"), lty = c(1,1,1), bg='white') #ADD LEGEND
+p7 <- recordPlot()
 
 ###################################################### Base R plot with river mile
 par(mar = c(5, 5, 8, 5)) #ADJUST PLOTTING MARGINS TO ACCOMMODATE RSEG NAMES
@@ -461,5 +463,16 @@ plot(cia_data$seglist, cia_data$Qout_pc, type = "h", col = "red",axes = FALSE, x
 axis(side = 4, las=1,cex.axis=0.8) # ADD SECOND AXIS
 mtext("Percent Difference in Flow between runids", side = 4, line = 3) #ADD SECOND AXIS LABEL     
 abline(h=0, col="grey", lty=2) #ADD HORIZONTAL DOTTED LINE AT Y=0
-legend("topleft", c("Qout_1", "Qout_2", "Qout_pc"),col = c("green", "blue", "red"), lty = c(1,1,1), bg='white', y.intersp = 0.2) #ADD LEGEND
+legend("topleft", c("Qout_1", "Qout_2", "Qout_pc"),col = c("green", "blue", "red"), lty = c(1,1,1), bg='white') #ADD LEGEND
 axis(side = 1, at = c(1:nrow(cia_data)), labels = as.character(round(cia_data$rmile, 0)))
+p8 <- recordPlot()
+
+return(list(p7,
+            p8))
+
+}
+
+# Testing Plotting Function
+cia_plots <- CIA_plots(cia_data = cia_data)
+plot1 <- cia_plots[[1]]
+plot2 <- cia_plots[[2]]
