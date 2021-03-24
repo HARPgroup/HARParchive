@@ -18,7 +18,7 @@ source(paste(basepath,'config.R',sep='/'))
 flow_metric <-'7q10' # input flow metric vahydro name as a string
 runid1 <- 11 # inputs for the two runids to compare
 runid2 <- 18
-riv_seg <- 'PS5_4380_4370' #'PS3_5990_6161' #'OR2_7900_7740' #'PS3_6161_6280' #'PS5_4380_4370' #'OR7_8470_8490'
+riv_seg <- 'PS5_4380_4370' #'PS3_5990_6161' #'OR2_7900_7740' #'PS3_6161_6280' #'PS5_4380_4370'
 
 #All Segs List
 AllSegList <- c('OR5_7980_8200', 'OR2_8020_8130', 'OR2_8070_8120', 'OR4_8120_7890',
@@ -136,16 +136,7 @@ CIA_data <- function(riv_seg, runid1, runid2, flow_metric, AllSegList){
   downstream <- data.frame(fn_ALL.downstream(riv_seg, AllSegList))
   names(downstream)[names(downstream) == colnames(downstream)[1]] <- "riv_seg"
   riv_seg <- as.data.frame(riv_seg)
-  
-  # Calculates Upstream River Segments
-  upstream <- data.frame((fn_ALL.upstream(riv_seg, AllSegList)))
-  names(upstream)[names(upstream) == colnames(upstream)[1]] <- "riv_seg"
-  
-  if(upstream == 'NA'){
-    river <- rbind(riv_seg, downstream)
-  }else {
-    river <- rbind(upstream,riv_seg, downstream)
-  }
+  river <- rbind(riv_seg, downstream)
   
   #setting up dataframe for om_vahydro_metric_grid
   df <- data.frame(
@@ -176,194 +167,102 @@ CIA_data <- function(riv_seg, runid1, runid2, flow_metric, AllSegList){
   #deleting sub_length column bc all values are not in length
   cia_data$sub_length <- NULL
   
-  # #Adding length segments together to form river mile (distance from headwater) column
-  # i <- 1
-  # while (i <= nrow(cia_data)) {
-  #   
-  #   river_length <- c()
-  #   
-  #   # Loop creates vector of current segment and upstream segment lengths
-  #   for (n in 1:i) {
-  #     n_length <- as.numeric(cia_data$length[n])
-  #     river_length <- c(river_length, n_length)
-  #   }
-  #   # Makes length column to total length to segment from start of river
-  #   cia_data$mile[i] <- sum(river_length)
-  #   
-  #   i <- i + 1
-  # }
-  # 
-  # # Creating a river mile column
-  # for (i in 1:(length(cia_data$mile))){
-  #   if(i == 1){
-  #     cia_data$rmile[i] <- cia_data$mile[length(cia_data$mile)]
-  #   }
-  #   else{
-  #     cia_data$rmile[i] <- cia_data$mile[length(cia_data$mile)] - cia_data$mile[i-1]
-  #   }
-  # }
-  # 
-  # # Calculating Percent change values for mean annual flow and inputed metric flow
-  # cia_data$Qout_pc <- ((cia_data$Qout_2 - cia_data$Qout_1)/cia_data$Qout_1)*100
-  # cia_data$metric_pc <- ((cia_data$Metric_2 - cia_data$Metric_1)/cia_data$Metric_1)*100
-  # 
-  # # Must make seg list numbered for x axis on graphs with bars, could be used in table companion
-  # cia_data$seglist = as.numeric(c(1:nrow(cia_data)))
-  # 
-  # # Now lets graph using mean baseflow
-  # # Pre setting y axes max
-  # if (max(cia_data$Qout_1 >= cia_data$Qout_2)) {
-  #   y_prim <- c(0,max(cia_data$Qout_1) + 100)
-  # } else {
-  #   y_prim <- c(0, max(cia_data$Qout_2) + 100)
-  # }
-  # y_sec <-  c(min(cia_data$Qout_pc) - 2, max(cia_data$Qout_pc) + 2)
-  # 
-  # coeff <- max(y_sec) / max(y_prim)
-  # cia_data$Qout_pc_graph <- cia_data$Qout_pc/coeff
-  # 
-  # # Pre setting y axes max (Do Not Need If No More ggplot)
-  # if (max(cia_data$Metric_1 >= cia_data$Metric_2)) {
-  #   y_prim2 <- c(0,max(cia_data$Metric_1) + 100)
-  # } else {
-  #   y_prim2 <- c(0, max(cia_data$Metric_2) + 100)
-  # }
-  # y_sec2 <-  c(min(cia_data$metric_pc) - 2, max(cia_data$metric_pc) + 2)
-  # 
-  # coeff2 <- max(y_sec2) / max(y_prim2)
-  # cia_data$metric_pc_graph <- cia_data$metric_pc/coeff2
+  #Adding length segments together to form river mile (distance from headwater) column
+  i <- 1
+  while (i <= nrow(cia_data)) {
+    
+    river_length <- c()
+    
+    # Loop creates vector of current segment and upstream segment lengths
+    for (n in 1:i) {
+      n_length <- as.numeric(cia_data$length[n])
+      river_length <- c(river_length, n_length)
+    }
+    # Makes length column to total length to segment from start of river
+    cia_data$mile[i] <- sum(river_length)
+    
+    i <- i + 1
+  }
+  
+  # Creating a river mile column
+  for (i in 1:(length(cia_data$mile))){
+    if(i == 1){
+      cia_data$rmile[i] <- cia_data$mile[length(cia_data$mile)]
+    }
+    else{
+      cia_data$rmile[i] <- cia_data$mile[length(cia_data$mile)] - cia_data$mile[i-1]
+    }
+  }
+  
+  # Calculating Percent change values for mean annual flow and inputed metric flow
+  cia_data$Qout_pc <- ((cia_data$Qout_2 - cia_data$Qout_1)/cia_data$Qout_1)*100
+  cia_data$metric_pc <- ((cia_data$Metric_2 - cia_data$Metric_1)/cia_data$Metric_1)*100
+  
+  # Must make seg list numbered for x axis on graphs with bars, could be used in table companion
+  cia_data$seglist = as.numeric(c(1:nrow(cia_data)))
+  
+  # Now lets graph using mean baseflow
+  # Pre setting y axes max
+  if (max(cia_data$Qout_1 >= cia_data$Qout_2)) {
+    y_prim <- c(0,max(cia_data$Qout_1) + 100)
+  } else {
+    y_prim <- c(0, max(cia_data$Qout_2) + 100)
+  }
+  y_sec <-  c(min(cia_data$Qout_pc) - 2, max(cia_data$Qout_pc) + 2)
+  
+  coeff <- max(y_sec) / max(y_prim)
+  cia_data$Qout_pc_graph <- cia_data$Qout_pc/coeff
+  
+  # Pre setting y axes max (Do Not Need If No More ggplot)
+  if (max(cia_data$Metric_1 >= cia_data$Metric_2)) {
+    y_prim2 <- c(0,max(cia_data$Metric_1) + 100)
+  } else {
+    y_prim2 <- c(0, max(cia_data$Metric_2) + 100)
+  }
+  y_sec2 <-  c(min(cia_data$metric_pc) - 2, max(cia_data$metric_pc) + 2)
+  
+  coeff2 <- max(y_sec2) / max(y_prim2)
+  cia_data$metric_pc_graph <- cia_data$metric_pc/coeff2
   
   
   
-  #return(list(cia_data,
-   #           y_prim,
-    #          y_prim2,
-     #         coeff,
-      #        coeff2))
-  
-  return(cia_data)
+  return(list(cia_data,
+              y_prim,
+              y_prim2,
+              coeff,
+              coeff2))
 }
-
-#running function to get river data
-cdat <- CIA_data(riv_seg = riv_seg, runid1 = runid1, runid2 = runid2, flow_metric = flow_metric, AllSegList = AllSegList)
 
 # Calculates Upstream River Segments
 upstream <- data.frame((fn_ALL.upstream(riv_seg, AllSegList)))
 names(upstream)[names(upstream) == colnames(upstream)[1]] <- "riv_seg"
 
 # While loop that runs the function for every upstream segment
-a <- 1
+i <- 1
 cia_data <- data.frame()
 p <- ggplot(NULL)
-while(a <= nrow(upstream)){
+while(i <= nrow(upstream)){
   if(upstream == 'NA'){
     riv_seg <- riv_seg
-  }else{
-    riv_seg <- upstream[a,]
+  }else {
+    riv_seg <- upstream[i,]
   }
-  #only runs code if river segment is headwater
-  if(fn_ALL.upstream(riv_seg,AllSegList) == 'NA'){
-    #determines all downstream segments
-    downstream <- data.frame(fn_ALL.downstream(riv_seg, AllSegList))
-    names(downstream)[names(downstream) == colnames(downstream)[1]] <- "riv_seg"
-    riv_seg <- as.data.frame(riv_seg)
-    #creates dataframe of river segment and all downstream segments
-    river <- rbind(riv_seg, downstream)
-    names(river)[names(river) == colnames(river)[1]] <- "rivseg"
-    
-    #pulls river data from river segments that match headwater and its downstream segs
-    cia_data_loop <- sqldf("SELECT * FROM river join cdat
-                      WHERE rivseg like riverseg")
-    
-      #Adding length segments together to form river mile (distance from headwater) column
-      i <- 1
-      while (i <= nrow(cia_data_loop)) {
-        
-        river_length <- c()
-        
-        # Loop creates vector of current segment and upstream segment lengths
-        for (n in 1:i) {
-          n_length <- as.numeric(cia_data_loop$length[n])
-          river_length <- c(river_length, n_length)
-        }
-        # Makes length column to total length to segment from start of river
-        cia_data_loop$mile[i] <- sum(river_length)
-        
-        i <- i + 1
-      }
-    
-      # Creating a river mile column
-      for (i in 1:(length(cia_data_loop$mile))){
-        if(i == 1){
-          cia_data_loop$rmile[i] <- cia_data_loop$mile[length(cia_data_loop$mile)]
-        }
-        else{
-          cia_data_loop$rmile[i] <- cia_data_loop$mile[length(cia_data_loop$mile)] - cia_data_loop$mile[i-1]
-        }
-      }
-    
-      # Calculating Percent change values for mean annual flow and inputed metric flow
-      cia_data_loop$Qout_pc <- ((cia_data_loop$Qout_2 - cia_data_loop$Qout_1)/cia_data_loop$Qout_1)*100
-      cia_data_loop$metric_pc <- ((cia_data_loop$Metric_2 - cia_data_loop$Metric_1)/cia_data_loop$Metric_1)*100
-      
-      # Must make seg list numbered for x axis on graphs with bars, could be used in table companion
-      cia_data_loop$seglist = as.numeric(c(1:nrow(cia_data_loop)))
-      
-      # Now lets graph using mean baseflow
-      # Pre setting y axes max
-      if (max(cia_data_loop$Qout_1 >= cia_data_loop$Qout_2)) {
-        y_prim <- c(0,max(cia_data_loop$Qout_1) + 100)
-      } else {
-        y_prim <- c(0, max(cia_data_loop$Qout_2) + 100)
-      }
-      y_sec <-  c(min(cia_data_loop$Qout_pc) - 2, max(cia_data_loop$Qout_pc) + 2)
-      
-      coeff <- max(y_sec) / max(y_prim)
-      cia_data_loop$Qout_pc_graph <- cia_data_loop$Qout_pc/coeff
-      
-      # Pre setting y axes max (Do Not Need If No More ggplot)
-      if (max(cia_data_loop$Metric_1 >= cia_data_loop$Metric_2)) {
-        y_prim2 <- c(0,max(cia_data_loop$Metric_1) + 100)
-      } else {
-        y_prim2 <- c(0, max(cia_data_loop$Metric_2) + 100)
-      }
-      y_sec2 <-  c(min(cia_data_loop$metric_pc) - 2, max(cia_data_loop$metric_pc) + 2)
-      
-      coeff2 <- max(y_sec2) / max(y_prim2)
-      cia_data_loop$metric_pc_graph <- cia_data_loop$metric_pc/coeff2
-    
-    #combine current data frame with new data frame
-    cia_data <- rbind(cia_data_loop, cia_data)
-    
-    #plot graph
-    p <- p +
-        geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_1, colour=paste0('runid_',runid1))) +
-        geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2, colour=paste0('runid_',runid2))) +
-        theme_bw()+
-        xlab('River Mile [Mi]') +
-        ylab('Flow [cfs]') +
-        labs(colour = 'Legend') +
-        geom_vline(data = cia_data_loop, (aes(xintercept = rmile)),linetype=8, colour = "grey") +
-        geom_text(data = cia_data_loop, aes(x = rmile, label = paste(propname),
-                                            y=(max(Qout_1)/2)), colour="grey", angle=90,
-                                            vjust=-0.4, size=3)
-      
-    }
   
-  a <- a + 1
+  cdattest <- CIA_data(riv_seg = riv_seg, runid1 = runid1, runid2 = runid2, flow_metric = flow_metric, AllSegList = AllSegList)
+  cdat <- cdattest[[1]]
+  y_prim <- cdattest[[2]]
+  y_prim2 <- cdattest[[3]]
+  coeff <- cdattest[[4]]
+  coeff2 <- cdattest[[5]]
+  cia_data <- rbind(cdat, cia_data)
+  
+  p <- p +
+      geom_line(data = cdat, aes(x = rmile, y = Qout_1))
+  
+  i <- i + 1
 }
 
-p <- p + scale_x_reverse()
-
-##############################################################################testing grouping by river segment
-test <- cia_data[!duplicated(cia_data$riv_seg),]
-test <- test[order(test$rmile, decreasing = TRUE),]
-test$seglist <- 1:nrow(test)
-
-p <- p +
-  geom_point(data=test, )
-
-##############################################################################trying to import our most up to date function (does not work as of 3/24/2021)
+##############################################################################trying to import our most up to date function
 par(mar = c(5, 5, 8, 5)) #ADJUST PLOTTING MARGINS TO ACCOMMODATE RSEG NAMES
 plot(cia_data$seglist, cia_data$Qout_1, type = "l", col = "green", xaxt = 'n', xlab = "", ylab = "", las=1,ylim=c(0,y_prim[2])) #CREATE FIRST PLOT (ON PRIMARY Y-AXIS)
 lines(cia_data$seglist, cia_data$Qout_2, type = "l", col = "blue")  #ADD ADDITIONAL PLOTTING DATAPOINTS
