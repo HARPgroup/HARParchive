@@ -248,12 +248,12 @@ while(i <= nrow(upstream)){
     riv_seg <- upstream[i,]
   }
   
-  cdatlmao <- CIA_data(riv_seg = riv_seg, runid1 = runid1, runid2 = runid2, flow_metric = flow_metric, AllSegList = AllSegList)
-  cdat <- cdatlmao[[1]]
-  y_prim <- cdatlmao[[2]]
-  y_prim2 <- cdatlmao[[3]]
-  coeff <- cdatlmao[[4]]
-  coeff2 <- cdatlmao[[5]]
+  cdattest <- CIA_data(riv_seg = riv_seg, runid1 = runid1, runid2 = runid2, flow_metric = flow_metric, AllSegList = AllSegList)
+  cdat <- cdattest[[1]]
+  y_prim <- cdattest[[2]]
+  y_prim2 <- cdattest[[3]]
+  coeff <- cdattest[[4]]
+  coeff2 <- cdattest[[5]]
   cia_data <- rbind(cdat, cia_data)
   
   p <- p +
