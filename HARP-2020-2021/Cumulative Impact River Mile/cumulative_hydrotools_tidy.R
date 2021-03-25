@@ -476,3 +476,14 @@ return(list(p7,
 cia_plots <- CIA_plots(cia_data = cia_data)
 plot1 <- cia_plots[[1]]
 plot2 <- cia_plots[[2]]
+
+
+###################################################################
+# MAP #############################################################
+###################################################################
+source(paste(github_location,"/HARParchive/HARP-2020-2021/Cumulative Impact River Mile/CIA_maps.R",sep = '/'))
+map_layers <- load_MapLayers(site = site) #WARNING - DO NOT ATTEMPT TO OUTPUT map_layers DIRECTLY TO YOUR CONSOLE, ITS A LIST OF MANY LARGE MAPPING LAYERS
+cia_map <- CIA_maps(cia_data = cia_data, map_layers = map_layers)
+ggsave(paste0(export_path,riv_seg,"_cia_map.png",sep = ""), width=5.5, height=5)
+
+
