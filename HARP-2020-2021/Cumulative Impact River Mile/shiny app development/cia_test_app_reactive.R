@@ -4,19 +4,20 @@ library(plotly)
 library(hydrotools)
 library(leaflet)
 library(DT)
+library(kableExtra)
 
 #PS3_5990_6161
 #OR2_7900_7740
 
-#l30_Qout
-#7q10
-
-
+#RUN THIS BEFORE CLICKLING "RUN APP"
 site <- "http://deq2.bse.vt.edu/d.dh"
-
 basepath <-'/var/www/R'
-
 source(paste(basepath,'config.R',sep='/'))
+source(paste(github_location,"/HARParchive/HARP-2020-2021/Cumulative Impact River Mile/CIA_maps.R",sep = '/'))
+
+
+
+
 ui <- 
   fluidPage(
     dashboardPage(
@@ -31,13 +32,16 @@ ui <-
         fluidRow(
           tabItems(
             tabItem("runidcompare",
-                    box(plotlyOutput("plot", height=550), width=6, height=600, background='blue'),
+                    box(plotlyOutput("plot", height=680), width=6, height=700, background='blue'),
+                    submitButton("Update Run Conditions"),
                     box(textInput("riv_seg",value = 'OR2_7900_7740',label='Segment ID'), width =3),
                     box(numericInput("runid1", value = 11,label='Runid #1'), width =3 ),
                     box(textInput("flow_metric", value = "7q10", label="Flow Metric"), width=3),
                     box(numericInput("runid2",value = 18,label='Runid #2'), width =3),
                     box(leafletOutput("map1"), height = "100%"),
                     box(DT :: dataTableOutput("table"), width = 10)
+                    # box(imageOutput("map"))
+                    
             )
           )
         )
@@ -48,9 +52,19 @@ ui <-
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
+
+  
   mydata <- reactive({
+    
+    # input$action
+    # isolate(input$runid1)
+    #  isolate(input$runid2) 
+    #  isolate(input$riv_seg)
+    #  isolate(input$flow_metric)
   
   CIA_data <- function(riv_seg, runid1, runid2, flow_metric){
+    
+    
     
     #All Segs List
     AllSegList <- c('OR5_7980_8200', 'OR2_8020_8130', 'OR2_8070_8120', 'OR4_8120_7890',
@@ -234,6 +248,7 @@ server <- function(input, output) {
     
   }
   
+
   cia_data <- CIA_data(riv_seg = input$riv_seg, runid1 = input$runid1, runid2 = input$runid2, flow_metric = input$flow_metric)
   
   })
@@ -280,9 +295,22 @@ server <- function(input, output) {
                                                                        "Qbaseline2","wd_mgd1","wd_mgd2","ps_mgd1","ps_mgd2"), options = list("pageLength" = 25))
   })
   
+  # output$map <- renderImage(
+  #   
+  #   cia_list <-  mydata(),
+  #   cia_df<- data.frame(cia_list),
+  #   
+  #   map_layers <- load_MapLayers(site = "http://deq2.bse.vt.edu/d.dh"), #WARNING - DO NOT ATTEMPT TO OUTPUT map_layers DIRECTLY TO YOUR CONSOLE, ITS A LIST OF MANY LARGE MAPPING LAYERS
+  #   cia_map <- CIA_maps(cia_data = cia_df, map_layers = map_layers),
+  #   ggsave(paste0(export_path,riv_seg,"_cia_map.png",sep = ""), width=5.5, height=5)
+
+    
+  
+  
  
+
+
 }
-
-
+  
 # Run the application
 shinyApp(ui = ui, server = server)
