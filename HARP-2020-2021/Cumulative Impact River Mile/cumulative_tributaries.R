@@ -1,5 +1,5 @@
 ###### Testing to see if I can get all upstream segments
-## Last Updated 3/17/2020
+## Last Updated 3/31/2020
 library(ggplot2)
 library(stringr)
 library(plotly)
@@ -255,6 +255,7 @@ names(upstream)[names(upstream) == colnames(upstream)[1]] <- "riv_seg"
 a <- 1
 cia_data <- data.frame()
 p <- ggplot(NULL)
+p1 <- ggplot(NULL)
 while(a <= nrow(upstream)){
   if(upstream == 'NA'){
     riv_seg <- riv_seg
@@ -337,17 +338,28 @@ while(a <= nrow(upstream)){
     
     #plot graph
     p <- p +
-        geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_1, colour=paste0('runid_',runid1))) +
-        geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2, colour=paste0('runid_',runid2))) +
-        theme_bw()+
-        xlab('River Mile [Mi]') +
-        ylab('Flow [cfs]') +
-        labs(colour = 'Legend') +
-        geom_vline(data = cia_data_loop, (aes(xintercept = rmile)),linetype=8, colour = "grey") +
-        geom_text(data = cia_data_loop, aes(x = rmile, label = paste(propname),
-                                            y=(max(Qout_1)/2)), colour="grey", angle=90,
-                                            vjust=-0.4, size=3)
-      
+      geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_1, colour = Qout_pc, size = Qout_pc)) +
+      #geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2)) + 
+      scale_color_gradient2(low = "Red", high = "Blue", mid = "Green", midpoint = 0, name = "Percent Change") +
+      theme_bw() +
+      ggtitle(paste0("Percent Change in Mean Annual Flow between runid", runid1, " and runid", runid2)) +
+      xlab('River Mile [Mi]') +
+      ylab('Flow [cfs]')
+      #labs(size = 'Percent Change') +
+      #geom_vline(data = cia_data_loop, (aes(xintercept = rmile)),linetype=8, colour = "grey") +
+      #geom_text(data = cia_data_loop, aes(x = rmile, label = paste(propname),
+      #                                    y=(max(Qout_1)/2)), colour="grey", angle=90,
+      #          vjust=-0.4, size=3)
+    
+    p1 <- p1 +
+      geom_line(data = cia_data_loop, aes(x = rmile, y = Metric_1, colour = metric_pc, size = metric_pc)) +
+      #geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2)) + 
+      scale_color_gradient2(low = "Red", high = "Blue", mid = "Green", midpoint = 0, name = "Percent Change") +
+      theme_bw() +
+      ggtitle(paste0("Percent Change in ", flow_metric, " Flow between runid", runid1, " and runid", runid2)) +
+      xlab('River Mile [Mi]') +
+      ylab('Flow [cfs]') +
+      scale_x_reverse()
     }
   
   a <- a + 1
@@ -361,7 +373,14 @@ test <- test[order(test$rmile, decreasing = TRUE),]
 test$seglist <- 1:nrow(test)
 
 p <- p +
-  geom_point(data=test, )
+  geom_point(data = cia_data_loop, aes(x = rmile, y = Qout_1, size = Qout_pc)) +
+  geom_text(data = test, aes(x = rmile, y = Qout_1, label = seglist, vjust = 1.0)) + 
+  scale_size_continuous(range = c(3, 0.2), name = "Percent Change")
+
+p1 <- p1 +
+  geom_point(data = cia_data_loop, aes(x = rmile, y = Metric_1, size = metric_pc)) +
+  geom_text(data = test, aes(x = rmile, y = Metric_1, label = seglist, vjust = 1.0)) + 
+  scale_size_continuous(range = c(3, 0.2), name = "Percent Change")
 
 ##############################################################################trying to import our most up to date function (does not work as of 3/24/2021)
 par(mar = c(5, 5, 8, 5)) #ADJUST PLOTTING MARGINS TO ACCOMMODATE RSEG NAMES
