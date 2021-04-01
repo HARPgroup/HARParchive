@@ -12,7 +12,8 @@ load_MapLayers <- function(site){
   library(sqldf)
   library(kableExtra)
   library(viridis) #magma
-  library(wicket) #wkt_centroid() 
+  #library(wicket) #wkt_centroid() (package was removed from CRAN on 1/27/21)
+  library(wellknown) #Replaces the wicket package for wkt_centroid()
   library(cowplot) #plot static legend
   library(magick) #plot static legend
   library(ggrepel) #needed for geom_text_repel()
