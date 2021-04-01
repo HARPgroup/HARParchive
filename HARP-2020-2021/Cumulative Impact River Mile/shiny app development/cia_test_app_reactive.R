@@ -39,8 +39,8 @@ ui <-
                     box(textInput("flow_metric", value = "7q10", label="Flow Metric"), width=3),
                     box(numericInput("runid2",value = 18,label='Runid #2'), width =3),
                     box(leafletOutput("map1"), height = "100%"),
-                    box(DT :: dataTableOutput("table"), width = 10)
-                    # box(imageOutput("map"))
+                    box(DT :: dataTableOutput("table"), width = 10),
+                    #box(imageOutput("map"))
                     
             )
           )
@@ -296,18 +296,20 @@ server <- function(input, output) {
   })
   
   # output$map <- renderImage(
-  #   
+  #    
   #   cia_list <-  mydata(),
-  #   cia_df<- data.frame(cia_list),
+  #   cia_df <- data.frame(cia_list),
   #   
-  #   map_layers <- load_MapLayers(site = "http://deq2.bse.vt.edu/d.dh"), #WARNING - DO NOT ATTEMPT TO OUTPUT map_layers DIRECTLY TO YOUR CONSOLE, ITS A LIST OF MANY LARGE MAPPING LAYERS
-  #   cia_map <- CIA_maps(cia_data = cia_df, map_layers = map_layers),
-  #   ggsave(paste0(export_path,riv_seg,"_cia_map.png",sep = ""), width=5.5, height=5)
-
-    
+  #   export_path <- "C:/Users/nabra/Documents",
+  #   
+  #    map_layers <- load_MapLayers(site = "http://deq2.bse.vt.edu/d.dh"), #WARNING - DO NOT ATTEMPT TO OUTPUT map_layers DIRECTLY TO YOUR CONSOLE, ITS A LIST OF MANY LARGE MAPPING LAYERS
+  #    cia_map <- CIA_maps(cia_data = cia_data, map_layers = map_layers),
+  #    ggsave(paste0(export_path,riv_seg,"_cia_map.png",sep = ""), width=5.5, height=5)
+  # 
+  #   
   
   
- 
+ #test 
 
 
 }
