@@ -4,6 +4,7 @@ library(ggplot2)
 library(stringr)
 library(plotly)
 library(sqldf)
+library(rapportools)
 library('hydrotools')
 
 site <- "http://deq2.bse.vt.edu/d.dh"  #Specify the site of interest, either d.bet OR d.dh

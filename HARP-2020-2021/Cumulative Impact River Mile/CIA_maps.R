@@ -315,7 +315,8 @@ CIA_maps <- function(cia_data,map_layers){
                         panel.background = element_blank(),
                         panel.border = element_blank())
     
-    deqlogo <- draw_image(paste(folder,'tables_maps/HiResDEQLogo.tif',sep=''),scale = 0.175, height = 1,  x = -.384, y = 0.32)
+    deqlogo <- draw_image(paste(github_location,'/HARParchive/GIS_layers/HiResDEQLogo.tif',sep=''),scale = 0.175, height = 1,  x = -.384, y = 0.32)
+    
     ######################################################################################################
 
     #SUBSET THE CIA RSEGS OF INTEREST
