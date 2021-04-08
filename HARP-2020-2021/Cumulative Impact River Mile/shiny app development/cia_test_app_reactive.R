@@ -13,8 +13,9 @@ library(kableExtra)
 site <- "http://deq2.bse.vt.edu/d.dh"
 basepath <-'/var/www/R'
 source(paste(basepath,'config.R',sep='/'))
-source(paste(github_location,"/HARParchive/HARP-2020-2021/Cumulative Impact River Mile/CIA_maps.R",sep = '/'))
+#source(paste(github_location,"/HARParchive/HARP-2020-2021/Cumulative Impact River Mile/CIA_maps_shiny.R",sep = '/'))
 
+map_layers <- load_MapLayers(site = "http://deq2.bse.vt.edu/d.dh")
 
 
 
@@ -38,9 +39,8 @@ ui <-
                     box(numericInput("runid1", value = 11,label='Runid #1'), width =3 ),
                     box(textInput("flow_metric", value = "7q10", label="Flow Metric"), width=3),
                     box(numericInput("runid2",value = 18,label='Runid #2'), width =3),
-                    box(leafletOutput("map1"), height = "100%"),
-                    box(DT :: dataTableOutput("table"), width = 10),
-                    #box(imageOutput("map"))
+                    box(plotOutput("map")),
+                    box(DT :: dataTableOutput("table"), width = 10)
                     
             )
           )
@@ -227,6 +227,9 @@ server <- function(input, output) {
     #selecting the values that are positive
     cia_data$length <- da_data$da
     
+    # Must make seg list numbered for x axis on graphs with bars, could be used in table companion
+    cia_data$seglist = as.numeric(c(1:nrow(cia_data)))
+    
     #Adding length segments together to form river mile column
     i <- 1
     while (i <= nrow(cia_data)) {
@@ -251,7 +254,26 @@ server <- function(input, output) {
 
   cia_data <- CIA_data(riv_seg = input$riv_seg, runid1 = input$runid1, runid2 = input$runid2, flow_metric = input$flow_metric)
   
+
   })
+  
+  output$map <- renderPlot({
+    
+    
+    source(paste(github_location,"/HARParchive/HARP-2020-2021/Cumulative Impact River Mile/CIA_maps.R",sep = '/'))
+    
+    cia_list <-  mydata()
+    cia_df<- data.frame(cia_list)
+    
+    export_path <- "C:/Users/nabra/Documents"
+    cia_map<- CIA_maps(cia_df, map_layers = map_layers)
+    
+    plot(cia_map$plot_env$plot)
+    
+    # ggsave(paste0(export_path,riv_seg,"_cia_map.png",sep = ""), width=5.5, height=5)
+    
+    
+  } )
   
   output$plot <- renderPlotly({
     
@@ -261,7 +283,7 @@ server <- function(input, output) {
     library(ggplot2)
     library(plotly)
     
-       p<-ggplot(cia_df, aes(x = mile)) +
+      p<-ggplot(cia_df, aes(x = mile)) +
       geom_point(aes(y = flow1, colour = paste0('Runid',input$runid1), text=propname)) +
       geom_line(aes(y = flow1, colour = paste0('Runid',input$runid1))) +
       geom_point(aes(y = flow2, colour = paste0('Runid',input$runid2), text= propname)) +
@@ -295,22 +317,8 @@ server <- function(input, output) {
                                                                        "Qbaseline2","wd_mgd1","wd_mgd2","ps_mgd1","ps_mgd2"), options = list("pageLength" = 25))
   })
   
-  # output$map <- renderImage(
-  #    
-  #   cia_list <-  mydata(),
-  #   cia_df <- data.frame(cia_list),
-  #   
-  #   export_path <- "C:/Users/nabra/Documents",
-  #   
-  #    map_layers <- load_MapLayers(site = "http://deq2.bse.vt.edu/d.dh"), #WARNING - DO NOT ATTEMPT TO OUTPUT map_layers DIRECTLY TO YOUR CONSOLE, ITS A LIST OF MANY LARGE MAPPING LAYERS
-  #    cia_map <- CIA_maps(cia_data = cia_data, map_layers = map_layers),
-  #    ggsave(paste0(export_path,riv_seg,"_cia_map.png",sep = ""), width=5.5, height=5)
-  # 
-  #   
-  
-  
- #test 
 
+ #test 
 
 }
   
