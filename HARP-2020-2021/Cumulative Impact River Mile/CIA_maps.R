@@ -2,7 +2,7 @@
 ###################################################################################################### 
 # LOAD MAP LAYERS
 ######################################################################################################
-load_MapLayers <- function(site){
+load_MapLayers <- function(site,localpath = tempdir()){
   library(ggplot2)
   library(rgeos)
   library(ggsn)
@@ -20,32 +20,104 @@ load_MapLayers <- function(site){
   library(ggmap) #used for get_stamenmap, get_map
   
 #DOWNLOAD STATES AND MINOR BASIN LAYERS DIRECT FROM GITHUB
-print(paste("DOWNLOADING STATES AND MINOR BASIN LAYERS DIRECT FROM GITHUB...",sep=""))
-STATES <- read.table(file = 'https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/STATES.tsv', sep = '\t', header = TRUE)
-MinorBasins.csv <- read.table(file = 'https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/MinorBasins.csv', sep = ',', header = TRUE)
+print(paste("DOWNLOADING STATES AND MINOR BASIN LAYERS DIRECT FROM GITHUB...",sep=""))  
 
+if(!exists("STATES")) {  
+  STATES_item <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/STATES.tsv"
+  STATES_filename <- "STATES.tsv"
+  #file downloaded into local directory, as long as file exists it will not be re-downloaded
+  if (file.exists(paste(localpath, STATES_filename, sep = '/')) == FALSE) {
+    print(paste("__DOWNLOADING STATES LAYER", sep = ''))
+    destfile <- paste(localpath,STATES_filename,sep="\\")
+    download.file(STATES_item, destfile = destfile, method = "libcurl")
+  } else {
+    print(paste("__STATES LAYER PREVIOUSLY DOWNLOADED", sep = ''))
+  }
+  #read csv from local directory
+  print(paste("__LOADING STATES LAYER...", sep = ''))
+  STATES <- read.csv(file=paste(localpath,STATES_filename,sep="\\"), header=TRUE, sep="\t")
+  print(paste("__COMPLETE!", sep = ''))
+}  
+  
+if(!exists("MinorBasins.csv")) {  
+  MinorBasins.csv_item <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/MinorBasins.csv"
+  MinorBasins.csv_filename <- "MinorBasins.csv.tsv"
+  #file downloaded into local directory, as long as file exists it will not be re-downloaded
+  if (file.exists(paste(localpath, MinorBasins.csv_filename, sep = '/')) == FALSE) {
+    print(paste("__DOWNLOADING MinorBasins.csv LAYER", sep = ''))
+    destfile <- paste(localpath,MinorBasins.csv_filename,sep="\\")
+    download.file(MinorBasins.csv_item, destfile = destfile, method = "libcurl")
+  } else {
+    print(paste("__MinorBasins.csv LAYER PREVIOUSLY DOWNLOADED", sep = ''))
+  }
+  #read csv from local directory
+  print(paste("__LOADING MinorBasins.csv LAYER...", sep = ''))
+  MinorBasins.csv <- read.csv(file=paste(localpath,MinorBasins.csv_filename,sep="\\"), header=TRUE, sep=",")
+  print(paste("__COMPLETE!", sep = ''))  
+}
+    
 #DOWNLOAD RSEG LAYER DIRECT FROM VAHYDRO
+if(!exists("RSeg.csv")) {  
 print(paste("DOWNLOADING RSEG LAYER DIRECT FROM VAHYDRO...",sep=""))
-localpath <- tempdir()
-filename <- paste("vahydro_riversegs_export.csv",sep="")
-destfile <- paste(localpath,filename,sep="\\")
-download.file(paste(site,"/vahydro_riversegs_export",sep=""), destfile = destfile, method = "libcurl")
-RSeg.csv <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep=",")
-
+  RSeg.csv_item <- paste(site,"/vahydro_riversegs_export",sep="")
+  RSeg.csv_filename <- "RSeg.csv"
+  #file downloaded into local directory, as long as file exists it will not be re-downloaded
+  if (file.exists(paste(localpath, RSeg.csv_filename, sep = '/')) == FALSE) {
+    print(paste("__DOWNLOADING RSeg.csv LAYER", sep = ''))
+    destfile <- paste(localpath,RSeg.csv_filename,sep="\\")
+    download.file(RSeg.csv_item, destfile = destfile, method = "libcurl")
+  } else {
+    print(paste("__RSeg.csv LAYER PREVIOUSLY DOWNLOADED", sep = ''))
+  }
+  #read csv from local directory
+  print(paste("__LOADING RSeg.csv LAYER...", sep = ''))
+  RSeg.csv <- read.csv(file=paste(localpath,RSeg.csv_filename,sep="\\"), header=TRUE, sep=",")
+  print(paste("__COMPLETE!", sep = ''))  
+}
+  
 #DOWNLOAD MAJORRIVERS LAYER DIRECT FROM GITHUB
+if(!exists("MajorRivers.csv")) {  
 print(paste("DOWNLOADING MAJORRIVERS LAYER DIRECT FROM GITHUB...",sep=""))
-MajorRivers.csv <- read.table(file = 'https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/MajorRivers.csv', sep = ',', header = TRUE)
-
+  MajorRivers.csv_item <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/MajorRivers.csv"
+  MajorRivers.csv_filename <- "MajorRivers.csv"
+  #file downloaded into local directory, as long as file exists it will not be re-downloaded
+  if (file.exists(paste(localpath, MajorRivers.csv_filename, sep = '/')) == FALSE) {
+    print(paste("__DOWNLOADING MajorRivers.csv LAYER", sep = ''))
+    destfile <- paste(localpath,MajorRivers.csv_filename,sep="\\")
+    download.file(MajorRivers.csv_item, destfile = destfile, method = "libcurl")
+  } else {
+    print(paste("__MajorRivers.csv LAYER PREVIOUSLY DOWNLOADED", sep = ''))
+  }
+  #read csv from local directory
+  print(paste("__LOADING MajorRivers.csv LAYER...", sep = ''))
+  MajorRivers.csv <- read.csv(file=paste(localpath,MajorRivers.csv_filename,sep="\\"), header=TRUE, sep=",")
+  print(paste("__COMPLETE!", sep = ''))  
+}
+  
 #DOWNLOAD FIPS LAYER DIRECT FROM VAHYDRO
+if(!exists("fips.csv")) {  
 print(paste("DOWNLOADING FIPS LAYER DIRECT FROM VAHYDRO...",sep=""))
-fips_filename <- paste("vahydro_usafips_export.csv",sep="")
-fips_destfile <- paste(localpath,fips_filename,sep="\\")
-download.file(paste(site,"/usafips_centroid_export",sep=""), destfile = fips_destfile, method = "libcurl")
-fips.csv <- read.csv(file=paste(localpath , fips_filename,sep="\\"), header=TRUE, sep=",")
-
+  fips.csv_item <- paste(site,"/usafips_centroid_export",sep="")
+  fips.csv_filename <- "fips.csv"
+  #file downloaded into local directory, as long as file exists it will not be re-downloaded
+  if (file.exists(paste(localpath, fips.csv_filename, sep = '/')) == FALSE) {
+    print(paste("__DOWNLOADING fips.csv LAYER", sep = ''))
+    destfile <- paste(localpath,fips.csv_filename,sep="\\")
+    download.file(fips.csv_item, destfile = destfile, method = "libcurl")
+  } else {
+    print(paste("__fips.csv LAYER PREVIOUSLY DOWNLOADED", sep = ''))
+  }
+  #read csv from local directory
+  print(paste("__LOADING fips.csv LAYER...", sep = ''))
+  fips.csv <- read.csv(file=paste(localpath,fips.csv_filename,sep="\\"), header=TRUE, sep=",")
+  print(paste("__COMPLETE!", sep = '')) 
+}
+  
 #DOWNLOAD RESERVOIR LAYER FROM LOCAL REPO
-print(paste("DOWNLOADING RESERVOIR LAYER FROM LOCAL REPO...",sep=""))
+if(!exists("WBDF")) { 
+print(paste("__LOADING RESERVOIR LAYER FROM LOCAL REPO...",sep=""))
 WBDF <- read.table(file=paste(github_location,"HARPArchive/GIS_layers","WBDF.csv",sep="/"), header=TRUE, sep=",")
+}
 
 #LOAD ANY ADDITIONL MAPPING FUNCTIONS
 source(paste(vahydro_location,"R/wsp/wsp2020/FoundationDataset/geo_summaries/mb.extent.R",sep = '/'))
@@ -81,7 +153,36 @@ CIA_maps <- function(cia_data,map_layers){
                     )
     minorbasin <- as.character(mb_code)
     print(paste("PROCESSING: ",minorbasin,sep=""))
-  
+    
+    minorbasin.df <- data.frame(minorbasin)
+    mb_name <-sqldf(paste('SELECT 
+                          CASE
+                            WHEN minorbasin == "BS" Then "Big Sandy"
+                            WHEN minorbasin == "EL" Then "Eastern Shore"
+                            WHEN minorbasin == "ES" Then "Eastern Shore"
+                            WHEN minorbasin == "JA" Then "James Appomattox"
+                            WHEN minorbasin == "JB" Then "Lower James"
+                            WHEN minorbasin == "JL" Then "Middle James"    
+                            WHEN minorbasin == "JU" Then "Upper James"
+                            WHEN minorbasin == "MN" Then "Meherrin Nottoway"
+                            WHEN minorbasin == "NR" Then "New River" 
+                            WHEN minorbasin == "PL" Then "Lower Potomac"     
+                            WHEN minorbasin == "PM" Then "Middle Potomac"
+                            WHEN minorbasin == "PS" Then "Potomac Shenandoah" 
+                            WHEN minorbasin == "PU" Then "Upper Potomac"  
+                            WHEN minorbasin == "RL" Then "Lower Rappahannock"
+                            WHEN minorbasin == "RU" Then "Upper Rappahannock"
+                            WHEN minorbasin == "OR" Then "Roanoke" 
+                            WHEN minorbasin == "OD" Then "Roanoke Dan"     
+                            WHEN minorbasin == "TU" Then "Upper Tennessee"
+                            WHEN minorbasin == "YL" Then "Lower York" 
+                            WHEN minorbasin == "YM" Then "York Mattaponi"
+                            WHEN minorbasin == "YP" Then "York Pamunkey"
+                            ELSE minorbasin
+                          END AS name
+                        FROM "minorbasin.df" ',sep=""))
+    mb_name <- mb_name$name                   
+    
     ######################################################################################################
     # DETERMINE MAP EXTENT FROM MINOR BASIN CENTROID
     extent <- mb.extent(minorbasin,MinorBasins.csv)
@@ -338,7 +439,7 @@ CIA_maps <- function(cia_data,map_layers){
       map <- ggdraw(source_current +
                       geom_polygon(data = MB.df,aes(x = long, y = lat, group = group), color="black", fill = NA,lwd=0.7) +
                       ggtitle(paste(" ",sep = '')) +
-                      labs(subtitle = paste("Minor Basin: ",minorbasin,sep='')) +
+                      labs(subtitle = paste("Minor Basin: ",mb_name,sep='')) +
                       
                       #ADD STATE BORDER LAYER ON TOP
                       geom_path(data = state.df,aes(x = long, y = lat, group = group), color="gray20",lwd=0.5) +
