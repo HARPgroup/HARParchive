@@ -21,8 +21,8 @@ RSeg.csv <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep
 # Inputs
 flow_metric <-'7q10' # input flow metric vahydro name as a string
 runid1 <- 11 # inputs for the two runids to compare
-runid2 <- 18
-riv_seg <- 'PS5_4380_4370' #'PS3_5990_6161' #'OR2_7900_7740' #'PS3_6161_6280' #'PS5_4380_4370' #'OR7_8470_8490'
+runid2 <- 18 #6011 #6012 #401
+riv_seg <- 'OR3_7740_8271_carvins' #'PS3_5990_6161' #'OR2_7900_7740' #'PS3_6161_6280' #'PS5_4380_4370' #'OR7_8470_8490' #'TU3_8880_9230' #'OR3_7740_8271_carvins'
 
 AllSegList <- RSeg.csv$hydrocode
 AllSegList <- substring(AllSegList, 17)
@@ -75,9 +75,22 @@ CIA_data <- function(riv_seg, runid1, runid2, flow_metric, AllSegList){
   cia_data$sub_length <- NULL
   
   #creating percent change columns
-  # Calculating Percent change values for mean annual flow and inputed metric flow
-  cia_data$Qout_pc <- ((cia_data$Qout_2 - cia_data$Qout_1)/cia_data$Qout_1)*100
-  cia_data$metric_pc <- ((cia_data$Metric_2 - cia_data$Metric_1)/cia_data$Metric_1)*100
+  #calculating Percent change values for mean annual flow and inputed metric flow
+  cia_data$Qout_pc <- ((abs(cia_data$Qout_2 - cia_data$Qout_1))/cia_data$Qout_1)*100
+  cia_data$metric_pc <- ((abs(cia_data$Metric_2 - cia_data$Metric_1))/cia_data$Metric_1)*100
+  
+  #creating column describing - vs + change
+  if(cia_data$Qout_1 > cia_data$Qout_2){
+    cia_data$Qout_change <- '-'
+  }else{
+    cia_data$Qout_change <- '+'
+  }
+  
+  if(cia_data$Metric_1 > cia_data$Metric_2){
+    cia_data$Metric_change <- '-'
+  }else{
+    cia_data$Metric_change <- '+'
+  }
   
   # #Adding length segments together to form river mile (distance from headwater) column
   # i <- 1
@@ -182,7 +195,7 @@ fn_plot_cia_dend <- function(cia_data_frame){
       names(river)[names(river) == colnames(river)[1]] <- "rivseg"
       
       #pulls river data from river segments that match headwater and its downstream segs
-      cia_data_loop <- sqldf("SELECT * FROM river join cdat
+      cia_data_loop <- sqldf("SELECT * FROM river join cia_data_frame
                         WHERE rivseg like riverseg")
       
       #Adding length segments together to form river mile (distance from headwater) column
@@ -247,13 +260,9 @@ fn_plot_cia_dend <- function(cia_data_frame){
       
       #plot graph
       p <- p +
-        geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_1, colour = Qout_pc, size = Qout_pc)) +
-        #geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2)) + 
-        scale_color_gradient2(low = "Red", high = "Blue", mid = "Green", midpoint = 0, name = "Percent Change") +
-        theme_bw() +
-        ggtitle(paste0("Percent Change in Mean Annual Flow between runid", runid1, " and runid", runid2)) +
-        xlab('River Mile [Mi]') +
-        ylab('Flow [cfs]')
+        geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_1, colour = Qout_change, size = Qout_pc))
+      #geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2)) + 
+      #scale_color_gradient2(low = "Brown", high = "Blue", mid = "Chocolate", midpoint = 0, name = "Percent Change") +
       #labs(size = 'Percent Change') +
       #geom_vline(data = cia_data_loop, (aes(xintercept = rmile)),linetype=8, colour = "grey") +
       #geom_text(data = cia_data_loop, aes(x = rmile, label = paste(propname),
@@ -261,14 +270,10 @@ fn_plot_cia_dend <- function(cia_data_frame){
       #          vjust=-0.4, size=3)
       
       p1 <- p1 +
-        geom_line(data = cia_data_loop, aes(x = rmile, y = Metric_1, colour = metric_pc, size = metric_pc)) +
-        #geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2)) + 
-        scale_color_gradient2(low = "Red", high = "Blue", mid = "Green", midpoint = 0, name = "Percent Change") +
-        theme_bw() +
-        ggtitle(paste0("Percent Change in ", flow_metric, " Flow between runid", runid1, " and runid", runid2)) +
-        xlab('River Mile [Mi]') +
-        ylab('Flow [cfs]') +
-        scale_x_reverse()
+        geom_line(data = cia_data_loop, aes(x = rmile, y = Metric_1, colour = Metric_change, size = metric_pc))
+      #geom_line(data = cia_data_loop, aes(x = rmile, y = Qout_2)) + 
+      #scale_color_gradient2(low = "Red", high = "Blue", mid = "Green", midpoint = 0, name = "Percent Change") +
+      
     }
     
     a <- a + 1
@@ -276,22 +281,33 @@ fn_plot_cia_dend <- function(cia_data_frame){
   
   # Reversing scale for correct river mile orientation
   p <- p + scale_x_reverse()
+  p1 <- p1 + scale_x_reverse()
   
   # Creating data frame with segment ID numbers
-  test <- cia_data[!duplicated(cia_data$riv_seg),]
+  cia_data <- cia_data[!duplicated(cia_data$riv_seg),]
   # Makes numbers ordered by river mile (is this whats best? should we make it based on tributary?)
-  test <- test[order(test$rmile, decreasing = TRUE),]
-  test$seglist <- 1:nrow(test)
+  cia_data <- cia_data[order(cia_data$rmile, decreasing = TRUE),]
+  cia_data$seglist <- 1:nrow(cia_data)
   
   p <- p +
-    geom_point(data = cia_data_loop, aes(x = rmile, y = Qout_1, size = Qout_pc)) +
-    geom_text(data = test, aes(x = rmile, y = Qout_1, label = seglist, vjust = 1.0)) + 
-    scale_size_continuous(range = c(3, 0.2), name = "Percent Change")
+    geom_point(data = cia_data, aes(x = rmile, y = Qout_1)) +
+    geom_text(data = cia_data, aes(x = rmile, y = Qout_1, label = seglist, vjust = 1.0)) + 
+    scale_size_continuous(range = c(0.2, 3), name = "Percent Change") +
+    scale_colour_manual(values = c("blue", "brown"), name = "Percent Change") +
+    theme_bw() +
+    ggtitle(paste0("Percent Change in Mean Annual Flow between runid", runid1, " and runid", runid2)) +
+    xlab('River Mile [Mi]') +
+    ylab('Flow [cfs]')
   
   p1 <- p1 +
-    geom_point(data = cia_data_loop, aes(x = rmile, y = Metric_1, size = metric_pc)) +
-    geom_text(data = test, aes(x = rmile, y = Metric_1, label = seglist, vjust = 1.0)) + 
-    scale_size_continuous(range = c(3, 0.2), name = "Percent Change")
+    geom_point(data = cia_data, aes(x = rmile, y = Metric_1)) +
+    geom_text(data = cia_data, aes(x = rmile, y = Metric_1, label = seglist, vjust = 1.0)) + 
+    scale_size_continuous(range = c(0.2, 3), name = "Percent Change") +
+    scale_colour_manual(values = c("blue", "brown"), name = "Percent Change") +
+    theme_bw() +
+    ggtitle(paste0("Percent Change in ", flow_metric, " Flow between runid", runid1, " and runid", runid2)) +
+    xlab('River Mile [Mi]') +
+    ylab('Flow [cfs]')
   
   dend_plot <- list(p, p1)
   
@@ -300,3 +316,7 @@ fn_plot_cia_dend <- function(cia_data_frame){
 
 #running fn_plot_cia_dend
 cia_plot <- fn_plot_cia_dend(cia_data_frame = cdat)
+
+#for testing purposes
+cia_plot[1]
+cia_plot[2]
