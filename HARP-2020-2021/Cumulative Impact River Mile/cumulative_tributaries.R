@@ -20,9 +20,9 @@ RSeg.csv <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep
 ####################################
 # Inputs
 flow_metric <-'7q10' # input flow metric vahydro name as a string
-runid1 <- 11 # inputs for the two runids to compare
-runid2 <- 18 #6011 #6012 #401
-riv_seg <- 'OR2_7900_7740' #'PS3_5990_6161' #'OR2_7900_7740' #'PS3_6161_6280' #'PS5_4380_4370' #'OR7_8470_8490' #'TU3_8880_9230' #'OR3_7740_8271_carvins'
+runid1 <- 401 # inputs for the two runids to compare
+runid2 <- 601 #6011 #6012 #401
+riv_seg <- 'JL6_7440_7430_harris_creek' #'PS3_5990_6161' #'OR2_7900_7740' #'PS3_6161_6280' #'PS5_4380_4370' #'OR7_8470_8490' #'TU3_8880_9230' #'OR3_7740_8271_carvins'
 
 AllSegList <- RSeg.csv$hydrocode
 AllSegList <- substring(AllSegList, 17)
