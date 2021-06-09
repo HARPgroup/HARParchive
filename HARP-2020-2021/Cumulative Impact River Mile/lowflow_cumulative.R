@@ -479,5 +479,3 @@ ggplot(totaldat, aes(x = mile)) +
   ggtitle('Segement Intake as a Percentage of Flow') +
   xlab('River Mile [mi]') +
   ylab('Percentage [%]') + theme_bw()
-
-# test
