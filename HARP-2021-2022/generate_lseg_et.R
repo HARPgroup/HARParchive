@@ -155,9 +155,9 @@ while(i<=length(AllLandsegList)){
               row.names = FALSE)
   write.csv(dfHSET,paste0("C:/Users/kylew/Documents/HARP/NLDAS/lseg_pet_csv/",landseg,".HSET"), 
               row.names = FALSE)
-  #write.csv(dfhPET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HET.csv"), 
+  #write.csv(dfHET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HET.csv"), 
   #           row.names = FALSE)
-  #write.csv(dfhsPET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HSET.csv"), 
+  #write.csv(dfHSET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HSET.csv"), 
   #           row.names = FALSE)
   
   i<-i+1
