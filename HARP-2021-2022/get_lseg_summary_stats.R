@@ -3,6 +3,7 @@
 ## HARP Group
 
 # load packages
+#.libPaths("/var/www/R/x86_64-pc-linux-gnu-library/")
 library(lubridate)
 library(sqldf)
 library(IHA)
@@ -31,7 +32,7 @@ AllLandsegList <- c("N51800", "N51550", "N51810", "N51037", "N51093", "N51111", 
 
 
 i <- 1
-while(i<=90){
+while(i<=length(AllLandsegList)){
   landseg <- AllLandsegList[i]
   # read in land segment temperature and precipitation data
   dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
@@ -102,18 +103,19 @@ while(i<=90){
   
   # create a summary data frame
   summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, maxConsec, noPrecipDays, precipDays,
-                        group2TMP$`7 Day Min`, group2PRC$`7 Day Min`, group2TMP$`30 Day Min`, group2PRC$`30 Day Min`)
+                        group2TMP$`7 Day Min`, group2PRC$`7 Day Min`, group2TMP$`30 Day Min`, group2PRC$`30 Day Min`,
+                        group2TMP$`90 Day Min`, group2PRC$`90 Day Min`)
   colnames(summaryStats) <- c("year", "max_temp_date", "max_temp", "min_temp_date", "min_temp", 
                               "max_precip_date", "max_precip", "min_precip_date", "min_precip",
                               "max_consec_no_precip_hours", "max_consec_no_precip_days", "no_precip_days", 
                               "precip_days", "7_day_min_temp", "7_day_min_precip", "30_day_min_temp",
-                              "30_day_min_precip")
+                              "30_day_min_precip", "90_day_min_temp", "90_day_min_precip")
   
   # create and save PET file as csv
   write.table(summaryStats,paste0("C:/Users/alexw/Documents/R/HARP/Summer 2021/landsegPETfiles/",landseg,"SummaryStats.csv"), 
               row.names = FALSE, col.names = TRUE, sep = ",")
   #write.table(summaryStats,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,"SummaryStats.csv"), 
-  #           row.names = FALSE, col.names = FALSE, sep = ",")
+  #           row.names = FALSE, col.names = TRUE, sep = ",")
   
   i<-i+1
 }
