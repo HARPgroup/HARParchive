@@ -39,7 +39,7 @@ while(i<=length(AllLandsegList)){
   dfRAD$date <- as.Date(paste(dfRAD$year,dfRAD$month,dfRAD$day,sep="-"))
 
   # determine if hour is daylight or dark
-  dfDLD <- sqldf("SELECT year, month, day, hour,
+  dfDLH <- sqldf("SELECT year, month, day, hour,
                  CASE
                  WHEN rad > 0 then 'Daylight'
                  WHEN rad = 0 then 'Dark'
@@ -47,9 +47,9 @@ while(i<=length(AllLandsegList)){
                  FROM dfRAD")
   
   # create and save DLD file as csv
-  write.table(dfDLD,paste0("/Users/katealbi/Desktop/HARP/",landseg,".DLD"), 
+  write.table(dfDLH,paste0("/Users/katealbi/Desktop/HARP/",landseg,".DLH"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfDLD,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".DLD"), 
+  #write.table(dfDLH,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".DLH"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   i<-i+1
