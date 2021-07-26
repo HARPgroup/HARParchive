@@ -30,92 +30,93 @@ AllLandsegList <- c("N51800", "N51550", "N51810", "N51037", "N51093", "N51111", 
                     "B51191", "B51185", "B51173", "B51169", "B51167", "B51141", "B51105", "B51077", "B51067", "B51035", "B37009", "B37005", 
                     "A51750", "A51720", "A51690", "A51640", "A51620", "A51595", "A51590", "A51520", "A51197", "A51195")
 
-
-i <- 1
-while(i<=length(AllLandsegList)){
-  landseg <- AllLandsegList[i]
-  # read in land segment temperature and precipitation data
-  dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-  dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-  #dfPRC <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-  #dfTMP <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-  colnames(dfTMP) = c("year","month","day","hour","temp")
-  dfTMP$date <- as.Date(paste(dfTMP$year,dfTMP$month,dfTMP$day, sep="-"))
-  colnames(dfPRC) = c("year","month","day","hour","precip")
-  dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day, sep="-"))
-  
-  # create df of daily values
-  dailyPrecip <- sqldf("SELECT year, date, sum(precip) daily_precip
-                         FROM dfPRC
-                         GROUP BY date")
-  dailyTemp <- sqldf("SELECT year, date, avg(temp) daily_temp
-                     FROM dfTMP
-                     GROUP BY date")
-  
-  # calculate min and max yearly temperature
-  minTemp <- sqldf("SELECT date, min(temp) min_temp 
-                     FROM dfTMP
-                     GROUP BY year")
-  maxTemp <- sqldf("SELECT year, date, max(temp) max_temp
-                     FROM dfTMP
-                     GROUP BY year")
-  # calculate min and max yearly precipitation
-  minPrecip <- sqldf("SELECT date, min(precip) min_precip
-                     FROM dfPRC
-                     GROUP BY year")
-  maxPrecip <- sqldf("SELECT date, max(precip) max_precip
-                     FROM dfPRC
-                     GROUP BY year")
-  # calculate number of consecutive 0 days of precipitation
-  repeats <- rle(dfPRC$precip)
-  repeats <- data.frame(lengths = repeats[1],
-                        values = repeats[2]) #turn repeats rle into a dataframe for sql
-  dfPRC$consec <- rep(repeats$lengths, repeats$lengths) #adding repeats lengths to precip df
-  maxConsec <- sqldf("SELECT max(consec) max_consec_hours, max(consec)/24.00 max_consec_days
+get_lseg_summary_stats <- function(AllLandsegList){
+  i <- 1
+  while(i<=length(AllLandsegList)){
+    landseg <- AllLandsegList[i]
+    # read in land segment temperature and precipitation data
+    dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
+    dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
+    #dfPRC <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
+    #dfTMP <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
+    colnames(dfTMP) = c("year","month","day","hour","temp")
+    dfTMP$date <- as.Date(paste(dfTMP$year,dfTMP$month,dfTMP$day, sep="-"))
+    colnames(dfPRC) = c("year","month","day","hour","precip")
+    dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day, sep="-"))
+    
+    # create df of daily values
+    dailyPrecip <- sqldf("SELECT year, date, sum(precip) daily_precip
+                           FROM dfPRC
+                           GROUP BY date")
+    dailyTemp <- sqldf("SELECT year, date, avg(temp) daily_temp
+                       FROM dfTMP
+                       GROUP BY date")
+    
+    # calculate min and max yearly temperature
+    minTemp <- sqldf("SELECT date, min(temp) min_temp 
+                       FROM dfTMP
+                       GROUP BY year")
+    maxTemp <- sqldf("SELECT year, date, max(temp) max_temp
+                       FROM dfTMP
+                       GROUP BY year")
+    # calculate min and max yearly precipitation
+    minPrecip <- sqldf("SELECT date, min(precip) min_precip
                        FROM dfPRC
-                       WHERE precip = 0
                        GROUP BY year")
-  # calculate number of no precip days and precip days
-  noPrecipDays <- sqldf("SELECT count(daily_precip) no_precip_days
-                          FROM dailyPrecip
-                          WHERE daily_precip = 0
-                          GROUP BY year")
-  precipDays <- sqldf("SELECT count(daily_precip) no_precip_days
-                          FROM dailyPrecip
-                          WHERE daily_precip > 0
-                          GROUP BY year")
-  # max consec take 2 (this calculates the maximum consecutive calendar days w/o precip rather than max 24 hour periods w/o precip)
-  repeats2 <- rle(dailyPrecip$daily_precip)
-  repeats2 <- data.frame(lengths = repeats2[1],
-                         values = repeats2[2])
-  dailyPrecip$consec <- rep(repeats2$lengths, repeats2$lengths)
-  maxConsec2 <- sqldf("SELECT max(consec) max_consec_days
-                       FROM dailyPrecip
-                       WHERE daily_precip = 0
+    maxPrecip <- sqldf("SELECT date, max(precip) max_precip
+                       FROM dfPRC
                        GROUP BY year")
-  
-  # IHA lowflow metrics applied to temperature
-  zooTMP <- zoo(x=dailyTemp$daily_temp, order.by=dailyTemp$date)
-  group2TMP <- group2(zooTMP, year=c('calendar'),mimic.tnc = T)
-  # IHA lowflow metrics applied to precipitation
-  zooPRC <- zoo(x=dailyPrecip$daily_precip, order.by=dailyPrecip$date)
-  group2PRC <-  group2(zooPRC, year=c('calendar'),mimic.tnc = T)
-  
-  # create a summary data frame
-  summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, maxConsec, noPrecipDays, precipDays,
-                        group2TMP$`7 Day Min`, group2PRC$`7 Day Min`, group2TMP$`30 Day Min`, group2PRC$`30 Day Min`,
-                        group2PRC$`90 Day Min`, group2PRC$`90 Day Max`)
-  colnames(summaryStats) <- c("year", "max_temp_date", "max_temp", "min_temp_date", "min_temp", 
-                              "max_precip_date", "max_precip", "min_precip_date", "min_precip",
-                              "max_consec_no_precip_hours", "max_consec_no_precip_days", "no_precip_days", 
-                              "precip_days", "7_day_min_temp", "7_day_min_precip", "30_day_min_temp",
-                              "30_day_min_precip", "90_day_min_precip", "90_day_max_precip")
-  
-  # create and save PET file as csv
-  write.table(summaryStats,paste0("C:/Users/alexw/Documents/R/HARP/Summer 2021/landsegPETfiles/",landseg,"SummaryStats.csv"), 
-              row.names = FALSE, col.names = TRUE, sep = ",")
-  #write.table(summaryStats,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,"SummaryStats.csv"), 
-  #           row.names = FALSE, col.names = TRUE, sep = ",")
-  
-  i<-i+1
+    # calculate number of consecutive 0 days of precipitation
+    repeats <- rle(dfPRC$precip)
+    repeats <- data.frame(lengths = repeats[1],
+                          values = repeats[2]) #turn repeats rle into a dataframe for sql
+    dfPRC$consec <- rep(repeats$lengths, repeats$lengths) #adding repeats lengths to precip df
+    maxConsec <- sqldf("SELECT max(consec) max_consec_hours, max(consec)/24.00 max_consec_days
+                         FROM dfPRC
+                         WHERE precip = 0
+                         GROUP BY year")
+    # calculate number of no precip days and precip days
+    noPrecipDays <- sqldf("SELECT count(daily_precip) no_precip_days
+                            FROM dailyPrecip
+                            WHERE daily_precip = 0
+                            GROUP BY year")
+    precipDays <- sqldf("SELECT count(daily_precip) no_precip_days
+                            FROM dailyPrecip
+                            WHERE daily_precip > 0
+                            GROUP BY year")
+    # max consec take 2 (this calculates the maximum consecutive calendar days w/o precip rather than max 24 hour periods w/o precip)
+    repeats2 <- rle(dailyPrecip$daily_precip)
+    repeats2 <- data.frame(lengths = repeats2[1],
+                           values = repeats2[2])
+    dailyPrecip$consec <- rep(repeats2$lengths, repeats2$lengths)
+    maxConsec2 <- sqldf("SELECT max(consec) max_consec_days
+                         FROM dailyPrecip
+                         WHERE daily_precip = 0
+                         GROUP BY year")
+    
+    # IHA lowflow metrics applied to temperature
+    zooTMP <- zoo(x=dailyTemp$daily_temp, order.by=dailyTemp$date)
+    group2TMP <- group2(zooTMP, year=c('calendar'),mimic.tnc = T)
+    # IHA lowflow metrics applied to precipitation
+    zooPRC <- zoo(x=dailyPrecip$daily_precip, order.by=dailyPrecip$date)
+    group2PRC <-  group2(zooPRC, year=c('calendar'),mimic.tnc = T)
+    
+    # create a summary data frame
+    summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, maxConsec, noPrecipDays, precipDays,
+                          group2TMP$`7 Day Min`, group2PRC$`7 Day Min`, group2TMP$`30 Day Min`, group2PRC$`30 Day Min`,
+                          group2PRC$`90 Day Min`, group2PRC$`90 Day Max`)
+    colnames(summaryStats) <- c("year", "max_temp_date", "max_temp", "min_temp_date", "min_temp", 
+                                "max_precip_date", "max_precip", "min_precip_date", "min_precip",
+                                "max_consec_no_precip_hours", "max_consec_no_precip_days", "no_precip_days", 
+                                "precip_days", "7_day_min_temp", "7_day_min_precip", "30_day_min_temp",
+                                "30_day_min_precip", "90_day_min_precip", "90_day_max_precip")
+    
+    # create and save PET file as csv
+    write.table(summaryStats,paste0("C:/Users/alexw/Documents/R/HARP/Summer 2021/landsegPETfiles/",landseg,"SummaryStats.csv"), 
+                row.names = FALSE, col.names = TRUE, sep = ",")
+    #write.table(summaryStats,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,"SummaryStats.csv"), 
+    #           row.names = FALSE, col.names = TRUE, sep = ",")
+    
+    i<-i+1
+  }
 }
