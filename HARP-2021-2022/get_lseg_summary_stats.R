@@ -9,6 +9,11 @@ library(sqldf)
 library(IHA)
 library(zoo)
 
+# load vahydro functions
+site <- "http://deq2.bse.vt.edu/d.dh"  #Specify the site of interest, either d.bet OR d.dh
+basepath <- '/var/www/R';
+source(paste(basepath,'config.R',sep='/'))
+
 # list of all land segments in VA's minor basins
 AllLandsegList <- c("N51800", "N51550", "N51810", "N51037", "N51093", "N51111", "N51053", "N51740", "N51710", "N51121", "N51135", "N51149", 
                     "N51181", "N51650", "N51700", "N51161", "N51019", "N51031", "N51147", "N51199", "N51735", "N51131", "N51071", "N51770", 
