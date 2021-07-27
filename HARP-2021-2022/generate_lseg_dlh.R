@@ -41,8 +41,8 @@ while(i<=length(AllLandsegList)){
   # determine if hour is daylight or dark
   dfDLH <- sqldf("SELECT year, month, day, hour,
                  CASE
-                 WHEN rad > 0 then 'Daylight'
-                 WHEN rad = 0 then 'Dark'
+                 WHEN rad > 0 then 1
+                 WHEN rad = 0 then 0
                  END light
                  FROM dfRAD")
   
