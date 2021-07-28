@@ -1,13 +1,11 @@
-##### This script is an outline of calculating PET for land segments
-## Last Updated 7/21/21
-## HARP Group
-
-# load packages
-#.libPaths("/var/www/R/x86_64-pc-linux-gnu-library/")
 library(lubridate)
 library(sqldf)
 library(IHA)
 library(zoo)
+
+site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
+basepath <- '/Users/katealbi/Desktop/var/www/R';
+source(paste(basepath,'config.R',sep='/'))
 
 # list of all land segments in VA's minor basins
 AllLandsegList <- c("N51800", "N51550", "N51810", "N51037", "N51093", "N51111", "N51053", "N51740", "N51710", "N51121", "N51135", "N51149", 
@@ -30,69 +28,78 @@ AllLandsegList <- c("N51800", "N51550", "N51810", "N51037", "N51093", "N51111", 
                     "B51191", "B51185", "B51173", "B51169", "B51167", "B51141", "B51105", "B51077", "B51067", "B51035", "B37009", "B37005", 
                     "A51750", "A51720", "A51690", "A51640", "A51620", "A51595", "A51590", "A51520", "A51197", "A51195")
 
-
-i <- 1
-while(i<=length(AllLandsegList)){
-  landseg <- AllLandsegList[i]
-  # read in land segment temperature and precipitation data
-  dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-  dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-  #dfPRC <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-  #dfTMP <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-  colnames(dfTMP) = c("year","month","day","hour","temp")
-  dfTMP$date <- as.Date(paste(dfTMP$year,dfTMP$month,dfTMP$day, sep="-"))
-  colnames(dfPRC) = c("year","month","day","hour","precip")
-  dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day, sep="-"))
-  
+get_lseg_summary_stats <- function(dfTMP,dfPRC, dfPET){
   # create df of daily values
   dailyPrecip <- sqldf("SELECT year, date, sum(precip) daily_precip
-                         FROM dfPRC
-                         GROUP BY date")
+                           FROM dfPRC
+                           GROUP BY date")
   dailyTemp <- sqldf("SELECT year, date, avg(temp) daily_temp
-                     FROM dfTMP
-                     GROUP BY date")
+                       FROM dfTMP
+                       GROUP BY date")
+  dailyPET <- sqldf("SELECT year, date, sum(pet) daily_pet
+                       FROM dfPET
+                       GROUP BY date")
   
   # calculate min and max yearly temperature
   minTemp <- sqldf("SELECT date, min(temp) min_temp 
-                     FROM dfTMP
-                     GROUP BY year")
+                       FROM dfTMP
+                       GROUP BY year")
   maxTemp <- sqldf("SELECT year, date, max(temp) max_temp
-                     FROM dfTMP
-                     GROUP BY year")
-  # calculate min and max yearly precipitation
+                       FROM dfTMP
+                       GROUP BY year")
+  # calculate min, max, and total yearly precipitation
   minPrecip <- sqldf("SELECT date, min(precip) min_precip
-                     FROM dfPRC
-                     GROUP BY year")
+                       FROM dfPRC
+                       GROUP BY year")
   maxPrecip <- sqldf("SELECT date, max(precip) max_precip
-                     FROM dfPRC
-                     GROUP BY year")
+                       FROM dfPRC
+                       GROUP BY year")
+  annualPrecip <- sqldf("SELECT date, sum(precip) annual_precip
+                       FROM dfPRC
+                       GROUP BY year")
   # calculate number of consecutive 0 days of precipitation
   repeats <- rle(dfPRC$precip)
   repeats <- data.frame(lengths = repeats[1],
                         values = repeats[2]) #turn repeats rle into a dataframe for sql
   dfPRC$consec <- rep(repeats$lengths, repeats$lengths) #adding repeats lengths to precip df
   maxConsec <- sqldf("SELECT max(consec) max_consec_hours, max(consec)/24.00 max_consec_days
-                       FROM dfPRC
-                       WHERE precip = 0
-                       GROUP BY year")
+                         FROM dfPRC
+                         WHERE precip = 0
+                         GROUP BY year")
+  # calculate number of consecutive days evapotranspiration > precipitation
+  dailyPET$PETvsPrecip <- dailyPET$daily_pet - dailyPrecip$daily_precip
+  dailyPET <- sqldf("SELECT year, date, daily_pet,
+                    CASE
+                    WHEN PETvsPRECIP > 0 then 1
+                    ELSE 0
+                    END PETvsPrecip
+                    FROM dailyPET")
+  repeats3 <- rle(dailyPET$PETvsPrecip)
+  repeats3 <- data.frame(lengths = repeats3[1],
+                         values = repeats3[2]) #turn repeats rle into a dataframe for sql
+  dailyPET$consec <- rep(repeats3$lengths, repeats3$lengths) #adding repeats lengths to pet df
+  maxConsec2 <- sqldf("SELECT max(consec) max_consec_days
+                         FROM dailyPET
+                         WHERE PETvsPrecip = 1
+                         GROUP BY year")
   # calculate number of no precip days and precip days
   noPrecipDays <- sqldf("SELECT count(daily_precip) no_precip_days
-                          FROM dailyPrecip
-                          WHERE daily_precip = 0
-                          GROUP BY year")
+                            FROM dailyPrecip
+                            WHERE daily_precip = 0
+                            GROUP BY year")
   precipDays <- sqldf("SELECT count(daily_precip) no_precip_days
-                          FROM dailyPrecip
-                          WHERE daily_precip > 0
-                          GROUP BY year")
+                            FROM dailyPrecip
+                            WHERE daily_precip > 0
+                            GROUP BY year")
   # max consec take 2 (this calculates the maximum consecutive calendar days w/o precip rather than max 24 hour periods w/o precip)
   repeats2 <- rle(dailyPrecip$daily_precip)
   repeats2 <- data.frame(lengths = repeats2[1],
                          values = repeats2[2])
   dailyPrecip$consec <- rep(repeats2$lengths, repeats2$lengths)
   maxConsec2 <- sqldf("SELECT max(consec) max_consec_days
-                       FROM dailyPrecip
-                       WHERE daily_precip = 0
-                       GROUP BY year")
+                         FROM dailyPrecip
+                         WHERE daily_precip = 0
+                         GROUP BY year")
   
   # IHA lowflow metrics applied to temperature
   zooTMP <- zoo(x=dailyTemp$daily_temp, order.by=dailyTemp$date)
@@ -102,20 +109,71 @@ while(i<=length(AllLandsegList)){
   group2PRC <-  group2(zooPRC, year=c('calendar'),mimic.tnc = T)
   
   # create a summary data frame
-  summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, maxConsec, noPrecipDays, precipDays,
+  summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, annualPrecip$annual_precip, maxConsec, maxConsec2, noPrecipDays, precipDays,
                         group2TMP$`7 Day Min`, group2PRC$`7 Day Min`, group2TMP$`30 Day Min`, group2PRC$`30 Day Min`,
-                        group2TMP$`90 Day Min`, group2PRC$`90 Day Min`)
+                        group2PRC$`90 Day Min`, group2PRC$`90 Day Max`)
   colnames(summaryStats) <- c("year", "max_temp_date", "max_temp", "min_temp_date", "min_temp", 
-                              "max_precip_date", "max_precip", "min_precip_date", "min_precip",
-                              "max_consec_no_precip_hours", "max_consec_no_precip_days", "no_precip_days", 
-                              "precip_days", "7_day_min_temp", "7_day_min_precip", "30_day_min_temp",
-                              "30_day_min_precip", "90_day_min_temp", "90_day_min_precip")
-  
-  # create and save PET file as csv
-  write.table(summaryStats,paste0("C:/Users/alexw/Documents/R/HARP/Summer 2021/landsegPETfiles/",landseg,"SummaryStats.csv"), 
-              row.names = FALSE, col.names = TRUE, sep = ",")
-  #write.table(summaryStats,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,"SummaryStats.csv"), 
-  #           row.names = FALSE, col.names = TRUE, sep = ",")
-  
-  i<-i+1
+                             "max_precip_date", "max_precip", "min_precip_date", "min_precip", "annual_precip",
+                             "max_consec_no_precip_hours", "max_consec_no_precip_days", "max_consec_PET>Precip_days", "no_precip_days", 
+                             "precip_days", "7_day_min_temp", "7_day_min_precip", "30_day_min_temp",
+                             "30_day_min_precip", "90_day_min_precip", "90_day_max_precip")
+  return(summaryStats)
 }
+
+  i <- 225
+  while(i<=length(AllLandsegList)){
+    landseg <- AllLandsegList[i]
+    # read in land segment temperature and precipitation data
+    dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
+    dfHET <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".HET"), header = FALSE, sep = ",")
+    dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
+    #dfPRC <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
+    #dfTMP <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
+    colnames(dfTMP) = c("year","month","day","hour","temp")
+    dfTMP$date <- as.Date(paste(dfTMP$year,dfTMP$month,dfTMP$day, sep="-"))
+    colnames(dfHET) = c("year","month","day","hour","pet")
+    dfHET$date <- as.Date(paste(dfHET$year,dfHET$month,dfHET$day, sep="-"))
+    colnames(dfPRC) = c("year","month","day","hour","precip")
+    dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day, sep="-"))
+    
+    summaryStats <- get_lseg_summary_stats(dfTMP = dfTMP, dfPRC = dfPRC, dfPET = dfHET)
+    
+    # create and save PET file as csv
+    write.table(summaryStats,paste0("/Users/katealbi/Desktop/HARP/",landseg,"SummaryStats.csv"), 
+                row.names = FALSE, col.names = TRUE, sep = ",")
+    #write.table(summaryStats,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,"SummaryStats.csv"), 
+    #           row.names = FALSE, col.names = TRUE, sep = ",")
+    
+    i<-i+1
+  }
+  
+#creating regression for consecutive days where PET>precip
+lmPET = lm(summaryStats$`max_consec_PET>Precip_days`~ year, data=summaryStats)
+summary(lmPET)
+
+#y-intercept = 8.9222380
+#slope = -0.000474
+#R^2 = -0.02857
+#p value = 0.991 (should be less than 0.05)
+#CONCLUDE NO LINEAR RELATIONSHIP BETWEEN VARIABLES 
+
+#creating regression for consecutive no precip days 
+lmPRC = lm(summaryStats$max_consec_no_precip_days ~ year, data=summaryStats)
+summary(lmPRC)
+
+#y-intercept = -5.831358
+#slope = 0.007359
+#R^2 = -0.02764
+#p value = 0.8594 (should be less than 0.05)
+#CONCLUDE NO LINEAR RELATIONSHIP BETWEEN VARIABLES 
+
+#similar r^2 and p values
+
+#graph for comparison of PET>PRC days and no PRC days
+diff_summaryStats <- ggplot() + geom_point(summaryStats,mapping = aes(x = summaryStats$`max_consec_PET>Precip_days`, y =summaryStats$max_consec_no_precip_days)) + 
+  geom_abline(intercept = 0, slope = 1) +
+  ylab("Consecutive days where PET>Precip") +
+  xlab("Consuctive Days with no Precip") +
+  ggtitle("Relationship Between PET>Precip and No Precip Days")
+
+diff_summaryStats
