@@ -56,11 +56,14 @@ get_lseg_summary_stats <- function(dfTMP, dfPRC, dfPET){
   maxTemp <- sqldf("SELECT year, date, max(temp) max_temp
                        FROM dfTMP
                        GROUP BY year")
-  # calculate min and max yearly precipitation
+  # calculate min and max and total yearly precipitation
   minPrecip <- sqldf("SELECT date, min(precip) min_precip
                        FROM dfPRC
                        GROUP BY year")
   maxPrecip <- sqldf("SELECT date, max(precip) max_precip
+                       FROM dfPRC
+                       GROUP BY year")
+  annualPrecip <- sqldf("SELECT date, sum(precip) annual_precip
                        FROM dfPRC
                        GROUP BY year")
   # calculate number of consecutive 0 days of precipitation
@@ -115,12 +118,12 @@ get_lseg_summary_stats <- function(dfTMP, dfPRC, dfPET){
   group2PRC <-  group2(zooPRC, year=c('calendar'),mimic.tnc = T)
   
   # create a summary data frame
-  summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, maxConsec, maxConsec2, noPrecipDays, precipDays,
+  summaryStats <- cbind(maxTemp, minTemp, maxPrecip, minPrecip, annualPrecip$annual_precip, maxConsec, maxConsec2, noPrecipDays, precipDays,
                         group2TMP$`7 Day Min`, group2PRC$`7 Day Min`, group2TMP$`30 Day Min`, group2PRC$`30 Day Min`,
                         group2PRC$`90 Day Min`, group2PRC$`90 Day Max`)
   colnames(summaryStats) <- c("year", "max_temp_date", "max_temp", "min_temp_date", "min_temp", 
-                              "max_precip_date", "max_precip", "min_precip_date", "min_precip",
-                              "max_consec_no_precip_hours", "max_consec_no_precip_days", "max_consec_PET>Precip_days", "no_precip_days", 
+                              "max_precip_date", "max_precip", "min_precip_date", "min_precip", "precip_annual",
+                              "max_consec_no_precip_hours", "no_precip_max", "water_deficit_max", "no_precip_days", 
                               "precip_days", "7_day_min_temp", "7_day_min_precip", "30_day_min_temp",
                               "30_day_min_precip", "90_day_min_precip", "90_day_max_precip")
   return(summaryStats)
