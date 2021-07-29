@@ -5,7 +5,6 @@
 #### The generated csv files for PET will be outputed and stored in the same /backup/meteorology/out/lseg_csv directory
 #### The csv files for the Hamon method follow the naming convention lseg.HET
 #### The csv files for the Hargreaves-Samani method follow the naming convention lseg.HSET
-
 ## Last Updated 7/29/21
 ## HARP Group
 
@@ -14,7 +13,13 @@
 library(lubridate)
 library(sqldf)
 
+# load vahydro functions
+site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
+basepath <- '/var/www/R';
+source(paste(basepath,'config.R',sep='/'))
+
 # load lseg_functions
+source(paste(github_location,"HARParchive/HARP-2021-2022","lseg_functions.R", sep = "/"))
 
 
 # dataframe of all land segments in VA's minor basins with corresponding centroid latitude

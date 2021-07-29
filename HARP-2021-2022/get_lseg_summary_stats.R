@@ -1,5 +1,5 @@
-##### This script is an outline of calculating PET for land segments
-## Last Updated 7/27/21
+##### This script dowloads temp, precip, and pet data and creates/downloads csv of summary stats
+## Last Updated 7/29/21
 ## HARP Group
 
 # load packages
@@ -15,7 +15,7 @@ basepath <- '/var/www/R';
 source(paste(basepath,'config.R',sep='/'))
 
 # load lseg_functions
-
+source(paste(github_location,"HARParchive/HARP-2021-2022","lseg_functions.R", sep = "/"))
 
 i <- 1
 while(i<=length(AllLandsegList)){

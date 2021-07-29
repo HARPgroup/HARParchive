@@ -5,11 +5,16 @@
 library(lubridate)
 library(sqldf)
 
-# load lseg_functions
+# load vahydro functions
+site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
+basepath <- '/var/www/R';
+source(paste(basepath,'config.R',sep='/'))
 
+# load lseg_functions
+source(paste(github_location,"HARParchive/HARP-2021-2022","lseg_functions.R", sep = "/"))
 
 # loop iterates through AllLandsegList and outputs 2 csv files, one for each PET method
-i <- 225
+i <- 1
 while(i<=length(AllLandsegList)){
   landseg <- AllLandsegList[i]
   # read in land segment radiation data
@@ -26,7 +31,7 @@ while(i<=length(AllLandsegList)){
   # create and save HET file as csv
   write.table(dfHET,paste0("C:/Users/kylew/Documents/HARP/NLDAS/lseg_pet_csv/",landseg,".HET"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.csv(dfHET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HET"), 
+  #write.table(dfHET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HET"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   i<-i+1
