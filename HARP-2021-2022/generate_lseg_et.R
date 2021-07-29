@@ -6,7 +6,7 @@
 #### The csv files for the Hamon method follow the naming convention lseg.HET
 #### The csv files for the Hargreaves-Samani method follow the naming convention lseg.HSET
 
-## Last Updated 7/21/21
+## Last Updated 7/29/21
 ## HARP Group
 
 
@@ -14,26 +14,8 @@
 library(lubridate)
 library(sqldf)
 
-# list of all land segments in VA's minor basins
-AllLandsegList <- c("N51800", "N51550", "N51810", "N51037", "N51093", "N51111", "N51053", "N51740", "N51710", "N51121", "N51135", "N51149", 
-                    "N51181", "N51650", "N51700", "N51161", "N51019", "N51031", "N51147", "N51199", "N51735", "N51131", "N51071", "N51770", 
-                    "N51011", "N51007", "N51041", "N51570", "N51730", "N51036", "N51095", "N51830", "N51073", "N51045", "N51775", "N51023", 
-                    "N51515", "N51680", "N51029", "N51049", "N51087", "N51670", "N51115", "H51023", "N51009", "N51145", "N51760", "N51127", 
-                    "N51097", "N51001", "H51045", "N51005", "L51023", "N51163", "N51125", "N51075", "N51085", "N51101", "N51119", "N51103", 
-                    "N51580", "L51163", "N51530", "H51009", "N51003", "N51065", "N51109", "N51057", "N51133", "N51017", "N51678", "H51125", 
-                    "N51033", "N51159", "N51015", "H51015", "N51177", "N51193", "L51015", "N51790", "N51820", "H51003", "N51540", "N51137", 
-                    "N24037", "N51091", "L51091", "H51165", "N51165", "L51079", "N51079", "N51113", "N51179", "N51099", "H51079", "N51047", 
-                    "N51630", "N24017", "N54071", "N51660", "N51139", "H51139", "H51113", "N51061", "N51153", "H54071", "L54071", "N51171", 
-                    "H51157", "N51157", "N51059", "N24033", "L51157", "N51683", "L54023", "N54023", "N54031", "H54031", "N51187", "N51107", 
-                    "N51685", "N51600", "N51013", "N51510", "N51610", "N11001", "N54093", "H54023", "L54031", "N51043", "N24031", "N54027", 
-                    "N51069", "N54077", "H24023", "N24023", "N54057", "N51840", "N54037", "N24021", "N24005", "N54003", "N24043", "N24013", 
-                    "N24001", "N54065", "H24021", "N42111", "N42009", "N42057", "N42055", "N42001", "N42041", "N42099", "N10001", "N10005", 
-                    "N24011", "N24019", "N24039", "N24045", "N24047", "A37001", "A37005", "A37009", "A37033", "A37067", "A37077", "A37081", 
-                    "A37131", "A37135", "A37145", "A37157", "A37169", "A37171", "A37181", "A37185", "A37189", "A47091", "A47163", "A51021", 
-                    "A51025", "A51027", "A51035", "A51051", "A51063", "A51067", "A51077", "A51081", "A51083", "A51089", "A51105", "A51117", 
-                    "A51141", "A51143", "A51155", "A51167", "A51169", "A51173", "A51175", "A51183", "A51185", "A51191", "B51197", "B51195", 
-                    "B51191", "B51185", "B51173", "B51169", "B51167", "B51141", "B51105", "B51077", "B51067", "B51035", "B37009", "B37005", 
-                    "A51750", "A51720", "A51690", "A51640", "A51620", "A51595", "A51590", "A51520", "A51197", "A51195")
+# load lseg_functions
+
 
 # dataframe of all land segments in VA's minor basins with corresponding centroid latitude
 AllLandsegLat <- data.frame("lseg" = c("A37001", "A37005", "A37009", "A37033", "A37067", "A37077", "A37081", "A37131", "A37135", "A37145",
@@ -99,66 +81,47 @@ while(i<=length(AllLandsegList)){
   dfRAD$date <- as.Date(paste(dfRAD$year,dfRAD$month,dfRAD$day, sep="-"))
   
   ###################################################################### Hamon's Method
-  # find average daily temperate
-  dailyMean <- sqldf("SELECT date, avg(temp) avg_temp
-                     FROM dfTMP
-                     GROUP BY date")
-  names(dailyMean)[names(dailyMean) == "date"] <- "date_2"
-  # calculate Julian Day
-  dailyMean$J <- yday(dailyMean$date_2)
-  # calculate declination (radians)
-  d <- 23.45*(pi/180)*sin(((dailyMean$J-80)/365)*360*(pi/180))
-  # calculate latitude (radians)
-  L <- (AllLandsegLat[AllLandsegLat$lseg == landseg, "lat"])*(pi/180)
-  # calculate daytime length fraciton
-  N <- (1/90)*acos((-tan(L))*(tan(d)))
-  # calculate potential evapotranspiration (mm/day)
-  hPET <- 0.63*(N^2)*(10^((7.5*dailyMean$avg_temp)/(dailyMean$avg_temp+273)))
-  dailyMean$PET <- hPET
-  dailyMean$freq <- 24
-  hourlyPET <- data.frame(date = dfTMP$date,
-                          PET = rep(dailyMean$PET, dailyMean$freq))
-  hourlyPET$PET <- hourlyPET$PET*0.0393701/24
-  # create PET dataframe
-  dfHET <- data.frame(year = dfTMP$year,
-                      month = dfTMP$month,
-                      day = dfTMP$day,
-                      hour = dfTMP$hour,
-                      PET = hourlyPET$PET)
+  # # find average daily temperate
+  # dailyMean <- sqldf("SELECT date, avg(temp) avg_temp
+  #                    FROM dfTMP
+  #                    GROUP BY date")
+  # names(dailyMean)[names(dailyMean) == "date"] <- "date_2"
+  # # calculate Julian Day
+  # dailyMean$J <- yday(dailyMean$date_2)
+  # # calculate declination (radians)
+  # d <- 23.45*(pi/180)*sin(((dailyMean$J-80)/365)*360*(pi/180))
+  # # calculate latitude (radians)
+  # L <- (AllLandsegLat[AllLandsegLat$lseg == landseg, "lat"])*(pi/180)
+  # # calculate daytime length fraciton
+  # N <- (1/90)*acos((-tan(L))*(tan(d)))
+  # # calculate potential evapotranspiration (mm/day)
+  # hPET <- 0.63*(N^2)*(10^((7.5*dailyMean$avg_temp)/(dailyMean$avg_temp+273)))
+  # dailyMean$PET <- hPET
+  # dailyMean$freq <- 24
+  # hourlyPET <- data.frame(date = dfTMP$date,
+  #                         PET = rep(dailyMean$PET, dailyMean$freq))
+  # hourlyPET$PET <- hourlyPET$PET*0.0393701/24
+  # # create PET dataframe
+  # dfHET <- data.frame(year = dfTMP$year,
+  #                     month = dfTMP$month,
+  #                     day = dfTMP$day,
+  #                     hour = dfTMP$hour,
+  #                     PET = hourlyPET$PET)
   #####################################################################################
   
   ############################################################ Hargreaves-Samani Method
-  # calculate daily maximum and minimum temperature values
-  dailyMetrics <- sqldf("SELECT date, max(temp) max_temp, min(temp) min_temp
-                     FROM dfTMP
-                     GROUP BY date")
-  # repeat daily maximum and minimum 24 times to match up with hourly values
-  dailyMetrics$freq <- 24
-  hourlyMetrics <- data.frame(date = dfTMP$date,
-                          max_temp = rep(dailyMetrics$max_temp, dailyMetrics$freq),
-                          min_temp = rep(dailyMetrics$min_temp, dailyMetrics$freq))
-  # calculate PET (mm/day)
-  k <- 0.19 # empirical coefficient
-  hsPET <- (0.0135*(k)*(dfTMP$temp+17.8)*((hourlyMetrics$max_temp - hourlyMetrics$min_temp)^0.5)*0.408*(dfRAD$rad))
-  # convert PET to inch/hour
-  hsPET <- hsPET*0.0393701/24
-  # create PET dataframe
-  dfHSET <- data.frame(year = dfTMP$year,
-                      month = dfTMP$month,
-                      day = dfTMP$day,
-                      hour = dfTMP$hour,
-                      PET = hsPET)
+  dfHSET <- generate_lseg_hset(dfTMP = dfTMP, dfRAD = dfRAD)
   #####################################################################################
  
   # create and save PET file as csv
-  write.csv(dfHET,paste0("C:/Users/kylew/Documents/HARP/NLDAS/lseg_pet_csv/",landseg,".HET"), 
-              row.names = FALSE)
-  write.csv(dfHSET,paste0("C:/Users/kylew/Documents/HARP/NLDAS/lseg_pet_csv/",landseg,".HSET"), 
-              row.names = FALSE)
-  #write.csv(dfHET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HET.csv"), 
-  #           row.names = FALSE)
-  #write.csv(dfHSET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HSET.csv"), 
-  #           row.names = FALSE)
+  # write.table(dfHET,paste0("C:/Users/kylew/Documents/HARP/NLDAS/lseg_pet_csv/",landseg,".HET"), 
+  #             row.names = FALSE, col.names = FALSE, sep = ",")
+  write.table(dfHSET,paste0("C:/Users/kylew/Documents/HARP/NLDAS/lseg_pet_csv/",landseg,".HSET"), 
+              row.names = FALSE, col.names = FALSE, sep = ",")
+  #write.table(dfHET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HET.csv"), 
+  #           row.names = FALSE, col.names = FALSE, sep = ",")
+  #write.table(dfHSET,paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".HSET.csv"), 
+  #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   i<-i+1
 }
