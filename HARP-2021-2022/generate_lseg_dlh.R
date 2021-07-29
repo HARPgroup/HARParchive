@@ -7,7 +7,13 @@
 library(lubridate)
 library(sqldf)
 
-# load lseg_functions file
+# load vahydro functions
+site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
+basepath <- '/var/www/R';
+source(paste(basepath,'config.R',sep='/'))
+
+# load lseg_functions
+source(paste(github_location,"HARParchive/HARP-2021-2022","lseg_functions.R", sep = "/"))
 
 
 # loop iterates through AllLandsegList and outputs csv file

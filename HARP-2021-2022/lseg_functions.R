@@ -115,8 +115,7 @@ generate_lseg_het <- function(dfTMP, dfRAD){
   # these will be used later to make PET 0 if there is no radiation
   hourlyPET <- data.frame(date = dfRAD$date,
                           hour = dfRAD$hour,
-                          rad = dfRAD$RAD,
-                          daylight = "NA")
+                          rad = dfRAD$rad)
   hourlyPET <- sqldf("SELECT date, hour, rad,
                        CASE
                        when rad == 0 then 0
