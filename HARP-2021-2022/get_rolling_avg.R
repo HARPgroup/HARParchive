@@ -1,8 +1,9 @@
 #Script that runs rolling averages function for one segment, and creates plots
 #functions created and used: get_rolling_avg_df, generate_rolling_avg_plots
+#last updated 4/9/2022
 #inputs: land segment, startDate, and endDate
-#         landseg
-#         startDate formatted YYYYMMDDHH
+#         landseg or grid
+#         startDate formatted YYYYMMDDHH or year
 #         endDate formatted YYYYMMDDHH
 
 #load libraries
@@ -13,8 +14,13 @@ library(ggplot2)
 #reads in data, uses get_rolling_avgs function to create data set, and creates graphs
 #inputs
 landseg <- 'A51810'
+grid <- 'x393y97'
 startDate <- "1984010100" #formatted YYYYMMDDHH
 endDate <- "2020123123" #formatted YYYYMMDDHH
+year <- "1984"
+
+#example of reading in land segment list (not used in this function)
+p5_landseg_list <- scan(file = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/p5_landsegments.txt", what = character())
 
 #############################################################################Functions
 #function that creates the parent rolling average dataset (old as of 3/31/2022)
@@ -119,7 +125,7 @@ generate_rolling_avg_precip_plots <- function(rolling_avg_df){
     ylab("Preciptation Days (number of days with measurable precipitation > 0.01 in) 
          and Annual Precipitation Depth (in)") +
     ggtitle("Number of Precipitation Days and Annual Precip",
-            subtitle = paste0("Landseg: ",landseg))
+            subtitle = paste0("Landseg/Grid: ",grid))
   p1
   
   #create yearly precip graph
@@ -128,17 +134,28 @@ generate_rolling_avg_precip_plots <- function(rolling_avg_df){
     xlab("Year") +
     ylab("Annual Precipitation Depth (in)") +
     ggtitle("Annual Precipitation",
-            subtitle = paste0("Landseg: ",landseg))
+            subtitle = paste0("Landseg/Grid: ",grid))
   p2
   
-  plots <- list(p1,p2)
+  #create daily precip graph (best when looking at small sets of data)
+  p3 <- ggplot() +
+    geom_line(data = dailyPrecip, aes(x = date, y = daily_precip)) +
+    xlab("Date") +
+    ylab("Daily Precipitation Depth (in)") +
+    ggtitle("Daily Precipitation",
+            subtitle = paste0("Landseg/Grid: ",grid))
+  p3
+  
+  plots <- list(p1,p2,p3)
   return(plots)
 }
 ###############################################################################
 
-#reading in precip, pet, and temp data sets
+#reading in precip, and temp land segment data sets
 dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/",startDate,"-",endDate,"/",landseg,".PRC"), header = FALSE, sep = ",")
 dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/",startDate,"-",endDate,"/",landseg,".TMP"), header = FALSE, sep = ",")
+#reading in precip data from grid cell
+dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/grid_met_csv/",year,"/",grid,"zPP.txt"), header = FALSE)
 
 #formatting columns
 colnames(dfTMP) = c("year","month","day","hour","temp")
@@ -147,10 +164,11 @@ colnames(dfPRC) = c("year","month","day","hour","precip")
 dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day, sep="-"))
 
 #creating table from function usign rolling_avg_df
-rollingAVG <- get_rolling_avgs(dfTMP = dfTMP, dfPRC = dfPRC)
+#rollingAVG <- get_rolling_avgs(dfTMP = dfTMP, dfPRC = dfPRC)
 rolling_avg_df <- get_rolling_avg_df(df = dfPRC, metric = "precip")
 
 #creating plots from generate_rolling_avg_precip_plots
 plots <- generate_rolling_avg_precip_plots(rolling_avg_df = rolling_avg_df)
 plots[1]
 plots[2]
+plots[3]
