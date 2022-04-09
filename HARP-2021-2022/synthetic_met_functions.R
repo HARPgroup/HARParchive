@@ -1,45 +1,36 @@
 ##### This script houses functions used to create mash-up timeseries data for synthetic meteorological datasets
-## Last Updated 3/23/22
+## Last Updated 4/9/22
 ## HARP Group
 
 
-library(lubridate)
-library(sqldf)
-
-# load vahydro functions
-site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
-basepath <- '/var/www/R';
-source(paste(basepath,'config.R',sep='/'))
-
-# load lseg_functions
-source(paste(github_location,"HARParchive/HARP-2021-2022","lseg_functions.R", sep = "/"))
-
-# testing variables
-landseg <- "N51800"
-startdate1 <- "1984-01-01"
-enddate1 <- "1984-12-31"
-startdate2 <- "2002-01-01"
-enddate2 <- "2002-12-31"
 
 # met timeseries data downloading function
 # inputs a landsegment 
+# inputs start and end date
+# inputs website and linux locations of data
 # outputs a list of lseg_csv timesieries for entire downloaded time period
-get_lseg_csv <- function(landseg){
+get_lseg_csv <- function(landseg, startdate, enddate, site, dir){
+  
+  # creating timeframe variable for grabing data
+  timeframe <- paste0(substring(startdate, 1, 4), substring(startdate, 6, 7), substring(startdate, 9, 10), "00-",
+                      substring(enddate, 1, 4), substring(enddate, 6, 7), substring(enddate, 9, 10), "23")
   
   # downloading entire timeseries data
-  dfRAD <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".RAD"), header = FALSE, sep = ",")
-  dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-  dfPET <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PET"), header = FALSE, sep = ",")
-  dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-  dfWND <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".WND"), header = FALSE, sep = ",")
-  dfDPT <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".DPT"), header = FALSE, sep = ",")
+  # using web directory
+  dfRAD <- read.table(paste0(site, landseg, ".RAD"), header = FALSE, sep = ",")
+  dfTMP <- read.table(paste0(site, landseg,".TMP"), header = FALSE, sep = ",")
+  dfPET <- read.table(paste0(site, landseg,".PET"), header = FALSE, sep = ",")
+  dfPRC <- read.table(paste0(site, landseg,".PRC"), header = FALSE, sep = ",")
+  dfWND <- read.table(paste0(site, landseg,".WND"), header = FALSE, sep = ",")
+  dfDPT <- read.table(paste0(site, landseg,".DPT"), header = FALSE, sep = ",")
   
-  #dfRAD <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".RAD"), header = FALSE, sep = ",")
-  #dfTMP <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-  #dfPET <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".PET"), header = FALSE, sep = ",")
-  #dfPRC <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-  #dfWND <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".WND"), header = FALSE, sep = ",")
-  #dfDPT <- read.table(paste0("/backup/meteorology/out/lseg_csv/1984010100-2020123123/",landseg,".DPT"), header = FALSE, sep = ",")
+  # using linux terminal directory
+  #dfRAD <- read.table(paste0(dir, "/", landseg,".RAD"), header = FALSE, sep = ",")
+  #dfTMP <- read.table(paste0(dir, "/", landseg,".TMP"), header = FALSE, sep = ",")
+  #dfPET <- read.table(paste0(dir, "/", landseg,".PET"), header = FALSE, sep = ",")
+  #dfPRC <- read.table(paste0(dir, "/", landseg,".PRC"), header = FALSE, sep = ",")
+  #dfWND <- read.table(paste0(dir, "/", landseg,".WND"), header = FALSE, sep = ",")
+  #dfDPT <- read.table(paste0(dir, "/", landseg,".DPT"), header = FALSE, sep = ",")
   
   
   # adding date column for date manipulation
@@ -62,6 +53,56 @@ get_lseg_csv <- function(landseg){
   dfDPT$date <- as.Date(paste(dfDPT$year,dfDPT$month,dfDPT$day,sep="-"))
   
   
+  # filter by inputted date range
+  dfRAD <- sqldf(paste0("SELECT year, month, day, hour, RAD
+                  FROM dfRAD
+                  WHERE date between ", 
+                        as.numeric(as.Date(startdate)),
+                        " AND ",
+                        as.numeric(as.Date(enddate)),
+                        ""))
+  
+  dfTMP <- sqldf(paste0("SELECT year, month, day, hour, TMP
+                  FROM dfTMP
+                  WHERE date between ", 
+                        as.numeric(as.Date(startdate)),
+                        " AND ",
+                        as.numeric(as.Date(enddate)),
+                        ""))
+  
+  dfPET <- sqldf(paste0("SELECT year, month, day, hour, PET
+                  FROM dfPET
+                  WHERE date between ", 
+                        as.numeric(as.Date(startdate)),
+                        " AND ",
+                        as.numeric(as.Date(enddate)),
+                        ""))
+  
+  dfPRC <- sqldf(paste0("SELECT year, month, day, hour, PRC
+                  FROM dfPRC
+                  WHERE date between ", 
+                        as.numeric(as.Date(startdate)),
+                        " AND ",
+                        as.numeric(as.Date(enddate)),
+                        ""))
+  
+  dfWND <- sqldf(paste0("SELECT year, month, day, hour, WND
+                  FROM dfWND
+                  WHERE date between ", 
+                        as.numeric(as.Date(startdate)),
+                        " AND ",
+                        as.numeric(as.Date(enddate)),
+                        ""))
+  
+  dfDPT <- sqldf(paste0("SELECT year, month, day, hour, DPT
+                  FROM dfDPT
+                  WHERE date between ", 
+                        as.numeric(as.Date(startdate)),
+                        " AND ",
+                        as.numeric(as.Date(enddate)),
+                        ""))
+  
+  
   # return new time series as list
   dfALL <- list(
     "RAD" = dfRAD,
@@ -74,9 +115,6 @@ get_lseg_csv <- function(landseg){
   return(dfALL)
   
 }
-
-# running data downloading function
-all_time <- get_lseg_csv(landseg = landseg)
 
 
 # mash up time series function
@@ -92,6 +130,25 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
   dfPRC <- lseg_csv$PRC
   dfWND <- lseg_csv$WND
   dfDPT <- lseg_csv$DPT
+  
+  # adding date column for date manipulation
+  colnames(dfRAD) = c("year","month","day","hour","RAD")
+  dfRAD$date <- as.Date(paste(dfRAD$year,dfRAD$month,dfRAD$day,sep="-"))
+  
+  colnames(dfTMP) = c("year","month","day","hour","TMP")
+  dfTMP$date <- as.Date(paste(dfTMP$year,dfTMP$month,dfTMP$day,sep="-"))
+  
+  colnames(dfPET) = c("year","month","day","hour","PET")
+  dfPET$date <- as.Date(paste(dfPET$year,dfPET$month,dfPET$day,sep="-"))
+  
+  colnames(dfPRC) = c("year","month","day","hour","PRC")
+  dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day,sep="-"))
+  
+  colnames(dfWND) = c("year","month","day","hour","WND")
+  dfWND$date <- as.Date(paste(dfWND$year,dfWND$month,dfWND$day,sep="-"))
+  
+  colnames(dfDPT) = c("year","month","day","hour","DPT")
+  dfDPT$date <- as.Date(paste(dfDPT$year,dfDPT$month,dfDPT$day,sep="-"))
   
   
   # filter by inputted date ranges
@@ -207,51 +264,50 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
 }
 
 
-# running mash up function
-mash_up <- generate_synthetic_timeseries(lseg_csv = all_time, startdate1 = startdate1, enddate1 = enddate1, startdate2 = startdate2, enddate2 = enddate2)
-
-
 # posting timeseries function
 # inputs a land segment
 # inputs two start dates and end dates
 # inputs a lseg_csv synthetic timeseries for given dates (output of generate_synthetic_timesieries function)
+# inputs saving directory
 # posts new synthetic timeseries to terminal for wdm generation
-post_synthetic_timeseries <- function(landseg, startdate1, enddate1, startdate2, enddate2, lseg_csv){
+post_synthetic_timeseries <- function(landseg, startdate1, enddate1, startdate2, enddate2, lseg_csv, dir){
   
   # create mashup date format for saving
   mashupdate <- paste0(substring(startdate1, 1, 4), substring(startdate1, 6, 7), substring(startdate1, 9, 10), "00-",
-                       substring(enddate2, 1, 4), substring(enddate2, 6, 7), substring(enddate1, 9, 10), "23")
+                       substring(enddate2, 1, 4), substring(enddate2, 6, 7), substring(enddate2, 9, 10), "23")
   
   
   # saving and posting new timeseries
+  # first line is for local testing
+  # second line saves to ouput directory on linux
   write.table(lseg_csv$RAD, paste0("C:/Users/kylew/Documents/HARP/NLDAS/mashups/", mashupdate, landseg, ".RAD"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfSYNTHETIC$RAD,paste0("/backup/meteorology/out/lseg_csv/", mashupdate, landseg,".RAD"), 
+  #write.table(lseg_csv$RAD,paste0(dir, mashupdate, landseg,".RAD"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   write.table(lseg_csv$TMP, paste0("C:/Users/kylew/Documents/HARP/NLDAS/mashups/", mashupdate, landseg, ".TMP"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfSYNTHETIC$TMP,paste0("/backup/meteorology/out/lseg_csv/", mashupdate, landseg,".TMP"), 
+  #write.table(lseg_csv$TMP,paste0(dir, mashupdate, landseg,".TMP"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   write.table(lseg_csv$PET, paste0("C:/Users/kylew/Documents/HARP/NLDAS/mashups/", mashupdate, landseg, ".PET"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfSYNTHETIC$PET,paste0("/backup/meteorology/out/lseg_csv/", mashupdate, landseg,".PET"), 
+  #write.table(lseg_csv$PET,paste0(dir, mashupdate, landseg,".PET"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   write.table(lseg_csv$PRC, paste0("C:/Users/kylew/Documents/HARP/NLDAS/mashups/", mashupdate, landseg, ".PRC"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfSYNTHETIC$PRC,paste0("/backup/meteorology/out/lseg_csv/", mashupdate, landseg,".PRC"), 
+  #write.table(lseg_csv$PRC,paste0(dir, mashupdate, landseg,".PRC"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   write.table(lseg_csv$WND, paste0("C:/Users/kylew/Documents/HARP/NLDAS/mashups/", mashupdate, landseg, ".WND"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfSYNTHETIC$WND,paste0("/backup/meteorology/out/lseg_csv/", mashupdate, landseg,".WND"), 
+  #write.table(lseg_csv$WND,paste0(dir, mashupdate, landseg,".WND"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
   
   write.table(lseg_csv$DPT, paste0("C:/Users/kylew/Documents/HARP/NLDAS/mashups/", mashupdate, landseg, ".DPT"), 
               row.names = FALSE, col.names = FALSE, sep = ",")
-  #write.table(dfSYNTHETIC$DPT,paste0("/backup/meteorology/out/lseg_csv/", mashupdate, landseg,".DPT"), 
+  #write.table(lseg_csv$DPT,paste0(dir, mashupdate, landseg,".DPT"), 
   #           row.names = FALSE, col.names = FALSE, sep = ",")
 }
 
