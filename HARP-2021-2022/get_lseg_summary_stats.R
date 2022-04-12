@@ -16,6 +16,8 @@ source(paste(basepath,'config.R',sep='/'))
 
 # load lseg_functions
 source(paste(github_location,"HARParchive/HARP-2021-2022","lseg_functions.R", sep = "/"))
+# load landseg list of interest
+AllLandsegList <- scan(file = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/p5_landsegments.txt", what = character())
 
 i <- 1
 while(i<=length(AllLandsegList)){
