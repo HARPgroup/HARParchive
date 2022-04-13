@@ -4,6 +4,7 @@
 
 library(lubridate)
 library(sqldf)
+library(data.table)
 
 # load vahydro functions
 site <- "http://deq1.bse.vt.edu:81/d.dh"
@@ -20,6 +21,7 @@ source(paste(github_location,"HARParchive/HARP-2021-2022","synthetic_met_functio
 in_dir <- "/backup/meteorology/out/lseg_csv/1984010100-2020123123/" # linux directory
 out_dir <- "/backup/meteorology/out/lseg_csv/"
 site <- "http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/" # temporary cloud url
+#site <- paste(site, "met", "out", "lseg_csv", "1984010100-2020123123/", sep = "/")
 
 # declare land segment and date range variables
 # startdate1 needs to include warm up period of two years
