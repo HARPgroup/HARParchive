@@ -17,12 +17,12 @@ get_lseg_csv <- function(landseg, startdate, enddate, site, dir){
   
   # downloading entire timeseries data
   # using web directory
-  dfRAD <- read.table(paste0(site, landseg, ".RAD"), header = FALSE, sep = ",")
-  dfTMP <- read.table(paste0(site, landseg,".TMP"), header = FALSE, sep = ",")
-  dfPET <- read.table(paste0(site, landseg,".PET"), header = FALSE, sep = ",")
-  dfPRC <- read.table(paste0(site, landseg,".PRC"), header = FALSE, sep = ",")
-  dfWND <- read.table(paste0(site, landseg,".WND"), header = FALSE, sep = ",")
-  dfDPT <- read.table(paste0(site, landseg,".DPT"), header = FALSE, sep = ",")
+  dfRAD <- fread(paste0(site,landseg, ".RAD"))
+  dfTMP <- fread(paste0(site,landseg, ".TMP"))
+  dfPET <- fread(paste0(site,landseg, ".PET"))
+  dfPRC <- fread(paste0(site,landseg, ".PRC"))
+  dfWND <- fread(paste0(site,landseg, ".WND"))
+  dfDPT <- fread(paste0(site,landseg, ".DPT"))
   
   # using linux terminal directory
   #dfRAD <- read.table(paste0(dir, "/", landseg,".RAD"), header = FALSE, sep = ",")
