@@ -11,30 +11,39 @@
 # load necessary packages
 library(sqldf)
 library(lubridate)
+library(data.table)
+
+get_lseg_data_met <- function(landseg,met_comp,date_range="all_data", metsite="http://deq1.bse.vt.edu:81") {
+  # read in land segment radiation data
+  dfDAT <- data.table::fread(
+    paste0(metsite,"/met/out/lseg_csv/", date_range, "/", landseg, ".", met_comp), 
+    header = FALSE, sep = ","
+  )
+  colnames(dfDAT) = c("year","month","day","hour",met_comp)
+  dfDAT$date <- as.Date(paste(dfDAT$year,dfDAT$month,dfDAT$day, sep="-"))
+  return(dfDAT)
+}
 
 # creating get_lseg_data function
-get_lseg_data <- function(landseg){
+get_lseg_data <- function(landseg, date_range="all_data", metsite="http://deq1.bse.vt.edu:81"){
     
-    # read in land segment radiation data
-    dfRAD <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".RAD"), header = FALSE, sep = ",")
-    colnames(dfRAD) = c("year","month","day","hour","RAD")
-    dfRAD$date <- as.Date(paste(dfRAD$year,dfRAD$month,dfRAD$day, sep="-"))
+  # read in land segment radiation data
+  dfRAD <- get_lseg_data_met(landseg,"RAD", date_range,metsite)
+
+  # read in land segment temperature data
+  dfTMP <- get_lseg_data_met(landseg,"TMP", date_range,metsite)
+
+  # read in land segment precipitation data
+  dfPRC <- get_lseg_data_met(landseg,"PRC", date_range,metsite)
     
-    # read in land segment temperature data
-    dfTMP <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".TMP"), header = FALSE, sep = ",")
-    colnames(dfTMP) = c("year","month","day","hour","temp")
-    dfTMP$date <- as.Date(paste(dfTMP$year,dfTMP$month,dfTMP$day, sep="-"))
-    
-    # read in land segment precipitation data
-    dfPRC <- read.table(paste0("http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/",landseg,".PRC"), header = FALSE, sep = ",")
-    colnames(dfPRC) = c("year","month","day","hour","precip")
-    dfPRC$date <- as.Date(paste(dfPRC$year,dfPRC$month,dfPRC$day, sep="-"))
-    
-    # returning data frames in list format
-    lseg_data <- list(dfRAD = dfRAD, 
-                      dfTMP = dfTMP, 
-                      dfPRC = dfPRC)
-    return(lseg_data)
+  # returning data frames in list format
+  lseg_data <- list(
+    dfRAD = dfRAD, 
+    dfTMP = dfTMP, 
+    dfPRC = dfPRC
+  )
+
+  return(lseg_data)
   
 }
 
