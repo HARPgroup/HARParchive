@@ -1,5 +1,5 @@
 #### This script contains all of the functions we have used for generating land segment data
-## Last Updated 7/29/2021
+## Last Updated 4/14/2022
 ## HARP Group
 
 
@@ -188,3 +188,136 @@ generate_lseg_dlh <- function(dfRAD){
                    END light
                    FROM dfRAD")
 }
+
+#function that creates the parent rolling average dataset (old as of 3/31/2022)
+#inputs: temperature and precipitation dataframes formatted with specific columns
+#         dfTMP - year, month, day, hour, temp, date
+#         dfPRC - year, month, day, hour, precip, date
+get_rolling_avgs <- function(dfTMP, dfPRC){
+  
+  # create df of daily values
+  dailyPrecip <- sqldf("SELECT year, date, month, sum(precip) daily_precip
+                           FROM dfPRC
+                           GROUP BY date") 
+  dailyTemp <- sqldf("SELECT date, avg(temp) daily_temp
+                       FROM dfTMP
+                       GROUP BY date") %>% select(daily_temp)
+  df <- cbind(dailyPrecip, dailyTemp)
+  
+  #rolling averages for precip
+  rolling_7day_PRC <- sqldf(paste('SELECT *, AVG(daily_precip)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)
+                           AS rolling_7day_PRC
+                          FROM df',sep="")) %>% select(rolling_7day_PRC)
+  rolling_30day_PRC <- sqldf(paste('SELECT *, AVG(daily_precip)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)
+                           AS rolling_30day_PRC
+                          FROM df',sep="")) %>% select(rolling_30day_PRC)
+  rolling_90day_PRC <- sqldf(paste('SELECT *, AVG(daily_precip)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 89 PRECEDING AND CURRENT ROW)
+                           AS rolling_90day_PRC
+                          FROM df',sep="")) %>% select(rolling_90day_PRC)
+  
+  #rolling averages for temperature
+  rolling_7day_TEMP <- sqldf(paste('SELECT *, AVG(daily_temp)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)
+                           AS rolling_7day_TEMP
+                          FROM df',sep="")) %>% select(rolling_7day_TEMP)
+  rolling_30day_TEMP <- sqldf(paste('SELECT *, AVG(daily_temp)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)
+                           AS rolling_30day_TEMP
+                          FROM df',sep="")) %>% select(rolling_30day_TEMP)
+  rolling_90day_TEMP <- sqldf(paste('SELECT *, AVG(daily_temp)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 89 PRECEDING AND CURRENT ROW)
+                           AS rolling_90day_TEMP
+                          FROM df',sep="")) %>% select(rolling_90day_TEMP)
+  
+  rollingAVG <- cbind(df, rolling_7day_PRC, rolling_30day_PRC, rolling_90day_PRC, 
+                      rolling_7day_TEMP,rolling_30day_TEMP, rolling_90day_TEMP) 
+  return(rollingAVG)
+}
+
+#function that creates rolling average dataframe for desired metric
+#inputs: dataframe formatted with specific columns, and metric of data
+#         df - year, month, day, hour, 'metric', date
+#         metric - 'metric' in df (as a character string, must match column name)
+get_rolling_avg_df <- function(df, metric){
+  # create df of daily values
+  daily <- fn$sqldf("SELECT year, date, month, sum($metric) daily_$metric
+                           FROM df
+                           GROUP BY date") 
+  
+  #rolling averages for precip
+  rolling_7day <- fn$sqldf(paste('SELECT *, AVG(daily_$metric)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)
+                           AS rolling_7day_$metric
+                          FROM daily',sep="")) %>% select(paste0("rolling_7day_",metric))
+  rolling_30day <- fn$sqldf(paste('SELECT *, AVG(daily_$metric)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)
+                           AS rolling_30day_$metric
+                          FROM daily',sep="")) %>% select(paste0("rolling_30day_",metric))
+  rolling_90day <- fn$sqldf(paste('SELECT *, AVG(daily_$metric)
+                           OVER (ORDER BY date ASC ROWS BETWEEN 89 PRECEDING AND CURRENT ROW)
+                           AS rolling_90day_$metric
+                          FROM daily',sep="")) %>% select(paste0("rolling_90day_",metric))
+  
+  
+  rolling_avg_df <- cbind(daily, rolling_7day, rolling_30day, rolling_90day) 
+  return(rolling_avg_df)
+}
+
+#function that creates plots from rolling average dataframe
+#inputs: rolling averages dataframe, grid/landsegment of dataframe
+#         rolling_avg_df - rolling average data frame from get_rolling_avgs
+#         spatial_unit - the name of the grid/land segment/spatial unit
+generate_rolling_avg_precip_plots <- function(rolling_avg_df, spatial_unit){
+  #calculate the daily precip 
+  dailyPrecip <-  sqldf("SELECT year, month, date, daily_precip
+                               FROM rolling_avg_df 
+                               WHERE daily_precip > 0.01")
+  #calculate precip days
+  precipDays <- sqldf("SELECT year, daily_precip, count(daily_precip) precip_days
+                              FROM dailyPrecip
+                              WHERE daily_precip > 0
+                              GROUP BY year")
+  #calculate total annual precip
+  precip <- sqldf("SELECT year, sum(daily_precip) total_precip
+                         FROM dailyPrecip
+                         GROUP BY year")
+  #create precip graph
+  p1 <- ggplot() + 
+    geom_bar(data = precipDays, aes(x = year, y = precip_days), stat = "identity") + 
+    geom_bar(data = precip, aes(x = year, y = total_precip), stat = "identity", fill= "darkblue") +
+    xlab("Year") + 
+    ylab("Preciptation Days (number of days with measurable precipitation > 0.01 in) 
+         and Annual Precipitation Depth (in)") +
+    ggtitle("Number of Precipitation Days and Annual Precip",
+            subtitle = paste0("Landseg/Grid: ",spatial_unit))
+  p1
+  
+  #create yearly precip graph
+  p2 <- ggplot() +
+    geom_line(data = precip, aes(x = year, y = total_precip)) +
+    xlab("Year") +
+    ylab("Annual Precipitation Depth (in)") +
+    ggtitle("Annual Precipitation",
+            subtitle = paste0("Landseg/Grid: ",spatial_unit))
+  p2
+  
+  #create daily precip graph (best when looking at small sets of data)
+  p3 <- ggplot() +
+    geom_line(data = dailyPrecip, aes(x = date, y = daily_precip)) +
+    xlab("Date") +
+    ylab("Daily Precipitation Depth (in)") +
+    ggtitle("Daily Precipitation",
+            subtitle = paste0("Landseg/Grid: ",spatial_unit))
+  p3
+  
+  plots <- list(p1,p2,p3)
+  return(plots)
+}
+
+#example of reading in p5 land segment list
+p5_landseg_list <- scan(file = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/p5_landsegments.txt", what = character())
+#example of reading in p6 land segment list
+p6_landseg_list <- scan(file = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/p6_landsegments.txt", what = character())
