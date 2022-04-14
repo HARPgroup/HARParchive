@@ -53,7 +53,7 @@ while(i<=length(AllLandsegList)){
     
     if (as.numeric(timeSeries$V5[j]) > 4.0) {
       ErrorLsegs <- rbind(ErrorLsegs, paste0(landseg))
-      ErrorYear <- rbind(ErrorYear, paste0(timeSerieass$V1[j]))
+      ErrorYear <- rbind(ErrorYear, paste0(timeSeries$V1[j]))
       ErrorMonth <- rbind(ErrorMonth, paste0(timeSeries$V2[j]))
       ErrorDay <- rbind(ErrorDay, paste0(timeSeries$V3[j]))
       ErrorHour <- rbind(ErrorHour, paste0(timeSeries$V4[j]))
