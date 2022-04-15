@@ -49,8 +49,8 @@ get_lseg_data <- function(landseg, date_range="all_data", metsite="http://deq1.b
 
 # use
 # dfRAD, dfTMP, and dfPRC are used as inputs to the get_lseg_summary_stats() function
-landseg <- "A51197"
-lseg_data <- get_lseg_data(landseg = landseg)
-dfRAD <- lseg_data$dfRAD
-dfTMP <- lseg_data$dfTMP
-dfPRC <- lseg_data$dfPRC
+# landseg <- "A51197"
+# lseg_data <- get_lseg_data(landseg = landseg)
+# dfRAD <- lseg_data$dfRAD
+# dfTMP <- lseg_data$dfTMP
+# dfPRC <- lseg_data$dfPRC
