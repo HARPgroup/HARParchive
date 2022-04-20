@@ -1,5 +1,5 @@
 ##### This script runs QA on land segment summary stat data. It generates a txt file with list of land segments it flags.
-## Last Updated 4/14/21
+## Last Updated 4/20/21
 ## HARP Group
 ## To change metric and QA testing value alter lines 33 and 45
 ## Change the .XXX label at the end of the paste statement in line 36 to correspond to metric (ex: PRC = precipitation)
@@ -7,16 +7,15 @@
 
 # load packages
 #.libPaths("/var/www/R/x86_64-pc-linux-gnu-library/")
+site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
+basepath <- '/var/www/R';
+source(paste(basepath,'config.R',sep='/'))
+
 library(lubridate)
 library(sqldf)
 library(IHA)
 library(zoo)
 library(data.table)
-
-# load vahydro functions
-site <- "http://deq1.bse.vt.edu:81/d.dh"  #Specify the site of interest, either d.bet OR d.dh
-basepath <- '/var/www/R';
-source(paste(basepath,'config.R',sep='/'))
 
 # load lseg_functions
 site <- "http://deq1.bse.vt.edu:81/met/out/lseg_csv/1984010100-2020123123/" # temporary cloud url
