@@ -1,5 +1,5 @@
 ##### This script runs QA on land segment summary stat data. It generates a txt file with list of land segments it flags.
-## Last Updated 4/20/21
+## Last Updated 4/26/22
 ## HARP Group
 ## To change metric and QA testing value alter lines 33 and 45
 ## Change the .XXX label at the end of the paste statement in line 36 to correspond to metric (ex: PRC = precipitation)
@@ -25,6 +25,7 @@ dir <- "/backup/meteorology/" # directory where met data is stored
 # load AllLandsegList
 AllLandsegList <- scan(file = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/p5_landsegments.txt", what = character())
 #AllLandsegList <- scan(file = paste0(dir, "p5_landsegments.txt"), what = character())
+paste("loaded land segment list")
 
 # instantiate data frames and variables for loops
 i <- 1
@@ -34,14 +35,17 @@ ErrorMonth <- data.frame()
 ErrorDay <- data.frame()
 ErrorHour <- data.frame()
 ErrorValue <- data.frame()
+paste("data frames instantiated")
 while(i<=length(AllLandsegList)){
   
   landseg <- AllLandsegList[i]
+  print(paste0("current landsegment: ", landseg))
   
   # read in lseg_csv
   timeSeries <- fread(paste0(site,landseg,".PRC"))
   # code with correct input directory if running on deq machine
   #timeSeries <- fread(paste0(dir, "out/lseg_csv/1984010100-2020123123/",landseg,".PRC"))
+  print(paste0(landseg," data read"))
   
   # line of code to help run even with incomplete lseg_csv
   #timeSeries <- timeSeries[-nrow(timeSeries),]
@@ -57,15 +61,18 @@ while(i<=length(AllLandsegList)){
       ErrorDay <- rbind(ErrorDay, paste0(timeSeries$V3[j]))
       ErrorHour <- rbind(ErrorHour, paste0(timeSeries$V4[j]))
       ErrorValue <- rbind(ErrorValue, paste0(timeSeries$V5[j]))
+      print(paste0(landseg, " has an abnormality value"))
     }
     j <- j + 1
   }
   
+  print(paste0(landseg, " abnormallity values checked"))
   i <- i+ 1
 }
 
 # creates data framed of flagged values with corresponding time and land segment
 FlaggedData <- data.frame(ErrorYear, ErrorMonth, ErrorDay, ErrorHour, ErrorLsegs, ErrorValue)
+paste("Flagged data frame created")
 
 # create and save error landsegment file as txt
 write.table(FlaggedData,"C:/Users/kylew/Documents/R/HARPSpring2021/NLDAS-2/p5FlaggedLsegsPRC.txt", 
@@ -73,3 +80,4 @@ write.table(FlaggedData,"C:/Users/kylew/Documents/R/HARPSpring2021/NLDAS-2/p5Fla
 # code to write it to /backup/meteorology directory if we ever decide to
 #write.table(FlaggedData,paste0(dir, "p5FlaggedLsegsPRC.txt"), 
 #           row.names = FALSE, col.names = FALSE, sep = ",")
+paste("Data written to table")
