@@ -1,5 +1,5 @@
 ##### This script houses functions used to create mash-up timeseries data for synthetic meteorological datasets
-## Last Updated 4/9/22
+## Last Updated 4/27/22
 ## HARP Group
 
 
@@ -151,6 +151,9 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
   dfDPT$date <- as.Date(paste(dfDPT$year,dfDPT$month,dfDPT$day,sep="-"))
   
   
+  # declaring difference in years for naming purposes
+  year_diff = as.numeric(substring(enddate1, 1, 4)) - as.numeric(substring(startdate2, 1, 4))
+  
   # filter by inputted date ranges
   dfRAD1 <- sqldf(paste0("SELECT year, month, day, hour, RAD
                   FROM dfRAD
@@ -159,7 +162,7 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
                          " AND ",
                          as.numeric(as.Date(enddate1)),
                          ""))
-  dfRAD2 <- sqldf(paste0("SELECT year, month, day, hour, RAD
+  dfRAD2 <- sqldf(paste0("SELECT year + ", year_diff, " , month, day, hour, RAD
                   FROM dfRAD
                   WHERE date between ", 
                          as.numeric(as.Date(startdate2)),
@@ -174,7 +177,7 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
                          " AND ",
                          as.numeric(as.Date(enddate1)),
                          ""))
-  dfTMP2 <- sqldf(paste0("SELECT year, month, day, hour, TMP
+  dfTMP2 <- sqldf(paste0("SELECT year + ", year_diff, " , month, day, hour, TMP
                   FROM dfTMP
                   WHERE date between ", 
                          as.numeric(as.Date(startdate2)),
@@ -189,14 +192,14 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
                          " AND ",
                          as.numeric(as.Date(enddate1)),
                          ""))
-  dfPET2 <- sqldf(paste0("SELECT year, month, day, hour, PET
+  dfPET2 <- sqldf(paste0("SELECT year + ", year_diff, " , month, day, hour, PET
                   FROM dfPET
                   WHERE date between ", 
                          as.numeric(as.Date(startdate2)),
                          " AND ",
                          as.numeric(as.Date(enddate2)),
                          ""))
-  
+
   dfPRC1 <- sqldf(paste0("SELECT year, month, day, hour, PRC
                   FROM dfPRC
                   WHERE date between ", 
@@ -204,13 +207,14 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
                          " AND ",
                          as.numeric(as.Date(enddate1)),
                          ""))
-  dfPRC2 <- sqldf(paste0("SELECT year, month, day, hour, PRC
+  dfPRC2 <- sqldf(paste0("SELECT year + ", year_diff, " , month, day, hour, PRC
                   FROM dfPRC
                   WHERE date between ", 
                          as.numeric(as.Date(startdate2)),
                          " AND ",
                          as.numeric(as.Date(enddate2)),
                          ""))
+
   
   dfWND1 <- sqldf(paste0("SELECT year, month, day, hour, WND
                   FROM dfWND
@@ -219,13 +223,14 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
                          " AND ",
                          as.numeric(as.Date(enddate1)),
                          ""))
-  dfWND2 <- sqldf(paste0("SELECT year, month, day, hour, WND
+  dfWND2 <- sqldf(paste0("SELECT year + ", year_diff, " , month, day, hour, WND
                   FROM dfWND
                   WHERE date between ", 
                          as.numeric(as.Date(startdate2)),
                          " AND ",
                          as.numeric(as.Date(enddate2)),
                          ""))
+
   
   dfDPT1 <- sqldf(paste0("SELECT year, month, day, hour, DPT
                   FROM dfDPT
@@ -234,14 +239,21 @@ generate_synthetic_timeseries <- function(lseg_csv, startdate1, enddate1, startd
                          " AND ",
                          as.numeric(as.Date(enddate1)),
                          ""))
-  dfDPT2 <- sqldf(paste0("SELECT year, month, day, hour, DPT
+  dfDPT2 <- sqldf(paste0("SELECT year + ", year_diff, " , month, day, hour, DPT
                   FROM dfDPT
                   WHERE date between ", 
                          as.numeric(as.Date(startdate2)),
                          " AND ",
                          as.numeric(as.Date(enddate2)),
                          ""))
-  
+
+  # renaming columns to match before merging timeseries tables
+  colnames(dfRAD2) = c("year","month","day","hour","RAD")
+  colnames(dfTMP2) = c("year","month","day","hour","TMP")
+  colnames(dfPET2) = c("year","month","day","hour","PET")
+  colnames(dfPRC2) = c("year","month","day","hour","PRC")
+  colnames(dfWND2) = c("year","month","day","hour","WND")
+  colnames(dfDPT2) = c("year","month","day","hour","DPT")
   
   # combining two timeseries
   dfRAD_MASH <- rbind(dfRAD1, dfRAD2)
