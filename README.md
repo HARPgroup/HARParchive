@@ -3,4 +3,4 @@ This repo houses HARP code development items, resources, and intermediate work p
 
 ## Overview
 
-![](HARP-Onboarding/HARP_Timeline_5.10.22.png)<!-- -->
+![](HARP-Onboarding/HARP_Timeline_6.3.22.png)<!-- -->
