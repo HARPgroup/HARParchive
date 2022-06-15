@@ -64,11 +64,16 @@ boxplot(Monthly_post_med, ylab = 'Monthly magnitude (cfs)', ylim = c(0,3000), ma
 
 #----IHA parameter #2: ---------------------------------------------------------------------------------
 
+pre2 <- group2(DRpre_z)
+post2 <- group2(DRpost_z)
 
+pre2_max <- select(pre2, 3,5,7,9,11) 
+post2_max <- select(post2, 3,5,7,9,11)
 
-
-
-
+boxplot(pre2_max, pre2_max, ylab = 'Flow (cfs)', col = 'blue')
+title(main = "Max Flow Pre Dam")
+boxplot(post_g2_max, post_g2_max, ylab = 'Flow (cfs)', col = 'red')
+title(main = "Max Flow Post Dam")
 
 
 
