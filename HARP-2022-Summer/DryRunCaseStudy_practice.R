@@ -77,7 +77,7 @@ plot(Monthly_post_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)',
 
 
 
-#----IHA parameter #2: ---------------------------------------------------------------------------------
+#----IHA parameter #2:              ---------------------------------------------------------------------------
 
 
 
@@ -117,3 +117,55 @@ title(main= 'Date of Minimum Flow')
 legend(x= 2 ,y= 360 ,legend=c("Pre Dam","Post Dam"), col=c('blue','red'), bty='n',lty=1)
 
 #note: Water J Day 1 = October 1st ; Day 300 = July 28
+
+
+#----IHA Parameter 4:       -----------------------------------------------------------------
+
+
+
+
+
+#----IHA Parameter 5: Rise/Fall Rates & Hydrologic Reversals----------------------------------------
+#use IHA group5 function to find Rates
+pre.zoo <- zoo(DRflow_pre$Flow, order.by=DRflow_pre$Date) #group by dates
+pre.rt <- group5(pre.zoo)
+
+post.zoo <- zoo(DRflow_post$Flow, order.by=DRflowpost$Date)
+post.rt <- group5(post.zoo)
+
+#rename col's for plot purposes (remove spaces)
+colnames(pre.rt)<- c('RiseRate','FallRate','Reversals')
+colnames(post.rt)<- c('RiseRate','FallRate','Reversals')
+
+pre.rt
+post.rt
+
+pre.rt<- data.frame(pre.rt) #needs to be data frame to plot
+post.rt<- data.frame(post.rt)
+
+#plot rise rates
+par(mfrow=c(1,2))
+plot(1:12, pre.rt$RiseRate, type='l', col='blue', ylab='Rise Rate (cfs/day)', xlab='Year')
+lines(post.rt$RiseRate, type='l', col='red')
+title(main='Daily Consecutive Rise Rates')
+legend(x=3.75, y=145, legend=c("Pre Dam","Post Dam"), col=c('blue', 'red'), bty='n', lty=1)
+#plot fall rates
+plot(1:12, pre.rt$FallRate, type='l', col='blue', ylab='Fall Rate (cfs/day)', xlab='Year', ylim=c(0,-150))
+lines(post.rt$FallRate, type='l', col='red')
+title(main='Daily Consecutive Fall Rates')
+legend(x=3, y=-145, legend=c("Pre Dam","Post Dam"), col=c('blue', 'red'), bty='n', lty=1)
+#  rise & fall rates post dam extremely similar --> streamflow more regulated/consistent speed?
+
+#zoom in on fall rates alone
+plot(1:12, pre.rt$FallRate, type='l', col='blue', ylab='Fall Rate (cfs/day)', xlab='Year', ylim=c(0,-14)) #same code but change ylim
+lines(post.rt$FallRate, type='l', col='red')
+title(main='Fall Rates (up close)')
+legend(x=3, y=-145, legend=c("Pre Dam","Post Dam"), col=c('blue', 'red'), bty='n', lty=1)
+
+#plot hydrologic reversals
+plot(1:12, pre.rt$Reversals, type='l', col='blue', ylab='# of Reversals', xlab='Year', ylim=c(0,150))
+lines(post.rt$Reversals, type='l', col='red')
+title(main='Number of Hydrologic Reversals')
+legend(x=3, y=30 , legend=c("Pre Dam","Post Dam"), col=c('blue','red'), bty='n', lty=1)
+
+#--------------------------------------------------------------------------------------------------------
