@@ -61,6 +61,21 @@ par(mfrow=c(1,2))
 boxplot(Monthly_pre_med, ylab = 'Monthly magnitude (cfs)', ylim = c(0,3000), main = 'Monthly median pre-dam')
 boxplot(Monthly_post_med, ylab = 'Monthly magnitude (cfs)', ylim = c(0,3000), main = 'Monthly median post-dam')
 
+#looking closer at a month of low flows: September
+
+#plotting change in monthly magnitude (mean) for September before and after dam construction 
+par(mfrow=c(1,2))
+plot(Monthly_pre_mean$September, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(0,200), main = 'Sept mean flows pre-dam', type = 'l', col = 'red')
+plot(Monthly_post_mean$September, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(0,200), main = 'Sept mean flows post-dam', type = 'l', col = 'blue')
+
+#looking closer at a month of high flows: January
+
+#plotting change in monthly magnitude (mean) for January before and after dam construction 
+par(mfrow=c(1,2))
+plot(Monthly_pre_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(0,5000), main = 'Sept mean flows pre-dam', type = 'l', col = 'red')
+plot(Monthly_post_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(0,5000), main = 'Sept mean flows post-dam', type = 'l', col = 'blue')
+
+
 
 #----IHA parameter #2: ---------------------------------------------------------------------------------
 
