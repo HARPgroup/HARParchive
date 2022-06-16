@@ -79,13 +79,16 @@ plot(Monthly_post_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)',
 
 #----IHA parameter #2:              ---------------------------------------------------------------------------
 
+pre2 <- group2(DRpre_z)
+post2 <- group2(DRpost_z)
 
+pre2_max <- select(pre2, 3,5,7,9,11) 
+post2_max <- select(post2, 3,5,7,9,11)
 
-
-
-
-
-
+boxplot(pre2_max, pre2_max, ylab = 'Flow (cfs)', col = 'blue')
+title(main = "Max Flow Pre Dam")
+boxplot(post_g2_max, post_g2_max, ylab = 'Flow (cfs)', col = 'red')
+title(main = "Max Flow Post Dam")
 
 #----IHA parameter #3: Timing of Extremes ----------------------------------------------------------
 #use IHA group3 function to find the extreme dates
@@ -121,8 +124,40 @@ legend(x= 2 ,y= 360 ,legend=c("Pre Dam","Post Dam"), col=c('blue','red'), bty='n
 
 #----IHA Parameter 4:       -----------------------------------------------------------------
 
+#table of pre-dam pulses
+library(IHA)
+pre<-zoo(USGS_pre$Flow,order.by=USGS_pre$Date)
+x<-group4(pre,year="water")
+x
 
+#table of post-dam pulses
+post<-zoo(USGS_post$Flow,order.by=USGS_post$Date)
+y<-group4(post,year="water")
+y
 
+#percentiles for pre dam
+quantile(DRflow_pre$Flow, probs=0.25)
+quantile(DRflow_pre$Flow, probs=0.75)
+
+#percentiles for post dam
+quantile(DRflow_post$Flow, probs=0.25)
+quantile(DRflow_post$Flow, probs=0.75)
+
+#plotting pre dam
+plot(DRflow_pre$Date, DRflow_pre$Flow, ylim=c(0,12500), main='Flow vs. Time Pre-dam',type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+legend("topright", legend= c("Flow [cfs]","25th percentile", "75th percentile"),col=c('blue','red','green'), cex=1.0, bty='n', lty=1, x.intersp = 0.5, y.intersp = 0.75)
+
+abline(a=NULL,b=NULL,h=1.5,v=NULL,col="red")
+abline(a=NULL,b=NULL,h=163,v=NULL,col="green")
+
+#plotting post dam
+plot(DRflow_post$Date, DRflow_post$Flow, ylim=c(0,12500), main='Flow vs. Time Post-dam',type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+legend("topright", legend= c("Flow [cfs]","25th percentile", "75th percentile"),col=c('blue','red','green'), cex=1.0, bty='n', lty=1, x.intersp = 0.5, y.intersp = 0.75)
+
+abline(a=NULL,b=NULL,h=88,v=NULL,col="red")
+abline(a=NULL,b=NULL,h=132,v=NULL,col="green")
 
 
 #----IHA Parameter 5: Rise/Fall Rates & Hydrologic Reversals----------------------------------------
