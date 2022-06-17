@@ -22,14 +22,15 @@
 #install.packages("sf")
 
 # reading in the libraries
-library(classInt) # needed this for sf package to work for me -GC
-library(sf) # allows you to use shapefiles
+library(classInt) # needed this for sf package to work for me -Glenn
+library(sf)
 library(dplyr)
 library(ggplot2)
 library(ggspatial) # needed for making maps w/ ggplot
 
 # reading in the data
 # samps are just extra points added to the map manually through an excel file that we don't have!
+# need to set working directory to location of source file to import data 
 river <- st_read("Watershed/Shape/NHDArea.shp") # adding in the river shapefile
 boundry <- st_read("Watershed/Shape/WBDHU6.shp") # adding the watershed boundary
 #samps <- read.csv("Site_Metadata_Cleaned.csv") # adding data points
