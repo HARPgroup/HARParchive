@@ -34,12 +34,12 @@ library(ggspatial) # needed for making maps w/ ggplot
 river <- st_read("Watershed/Shape/NHDArea.shp") # adding in the river shapefile
 boundry <- st_read("Watershed/Shape/WBDHU6.shp") # adding the watershed boundary
 #samps <- read.csv("Site_Metadata_Cleaned.csv") # adding data points
-states <- st_read("States/cb_2018_us_region_500k.shp")
+states <- st_read("States2/cb_2018_us_state_500k.shp")
 virginia <- filter(states, NAME == "Virginia" | NAME == "Maryland") # only select state data on VA and MD
 fred <- data.frame(-77.4605, 38.3032, "Fredrickburg") # add in the location of Fredricksburg
 
 # creating the map
-boundary<- data.frame(boundry)
+boundry<- data.frame(boundry)
 fred<- data.frame(fred)
 river<- data.frame(river)
 states<- data.frame(states)
