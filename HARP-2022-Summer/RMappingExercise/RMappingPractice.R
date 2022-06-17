@@ -15,16 +15,18 @@
   # - legend (if needed)
   # - elevation/hillshade (if needed)
 
-install.packages("classInt")
-install.packages("ggspatial")
-install.packages("sf")
+# if you don't have all packages:
+#install.packages("classInt")
+#install.packages("classint")
+#install.packages("ggspatial")
+#install.packages("sf")
 
 # reading in the libraries
 library(classInt) # needed this for sf package to work for me -Glenn
 library(sf)
 library(dplyr)
 library(ggplot2)
-library(ggspatial)
+library(ggspatial) # needed for making maps w/ ggplot
 
 # reading in the data
 # samps are just extra points added to the map manually through an excel file that we don't have!
@@ -37,6 +39,12 @@ virginia <- filter(states, NAME == "Virginia" | NAME == "Maryland") # only selec
 fred <- data.frame(-77.4605, 38.3032, "Fredrickburg") # add in the location of Fredricksburg
 
 # creating the map
+boundary<- data.frame(boundry)
+fred<- data.frame(fred)
+river<- data.frame(river)
+states<- data.frame(states)
+virginia<- data.frame(virginia)
+
 ggplot() +
   geom_sf(data=virginia, fill= "green", color= "black", lwd=0.75) +
   geom_sf(data=boundry, fill=alpha("yellow", 0.2), color= "yellow", lwd=1.5) +
