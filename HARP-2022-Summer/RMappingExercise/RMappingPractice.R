@@ -16,21 +16,20 @@
   # - elevation/hillshade (if needed)
 
 install.packages("classInt")
-install.packages("classint")
 install.packages("ggspatial")
 install.packages("sf")
 
 # reading in the libraries
-library(classInt) # needed this for sf package to work for me -GC
+library(classInt) # needed this for sf package to work for me -Glenn
 library(sf)
 library(dplyr)
-library(sf)
 library(ggplot2)
 library(ggspatial)
 
 # reading in the data
 # samps are just extra points added to the map manually through an excel file that we don't have!
-river <- st_read("Watershed/NHDArea.shp") # adding in the river shapefile
+# need to set working directory to location of source file to import data 
+river <- st_read("Watershed/Shape/NHDArea.shp") # adding in the river shapefile
 boundry <- st_read("Watershed/Shape/WBDHU6.shp") # adding the watershed boundary
 #samps <- read.csv("Site_Metadata_Cleaned.csv") # adding data points
 states <- st_read("States/cb_2018_us_region_500k.shp")
