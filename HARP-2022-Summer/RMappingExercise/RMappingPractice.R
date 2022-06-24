@@ -30,6 +30,7 @@ library(ggspatial) # needed for making maps w/ ggplot
 
 # reading in the data
 # samps are just extra points added to the map manually through an excel file that we don't have!
+
 # need to set working directory to location of source file to import data 
 river <- st_read("Watershed/Shape/NHDArea.shp") # adding in the river shapefile
 boundry <- st_read("Watershed/Shape/WBDHU6.shp") # adding the watershed boundary
@@ -53,7 +54,7 @@ ggplot() +
   xlim(-78.5,-76) +
   ylim(37.5,38.75) +
   annotation_scale() +
-  annotation_north_arrow(height= ,) +
-  annotate(geom=text, x= -77.2, y= 38.85, label= "Fredricksburg", fontface= "bold", color= "white") +
+ # annotation_north_arrow(height= ,) 
+ # annotate(geom=text, x= -77.2, y= 38.85, label= 'Fredricksburg', fontface= "bold", color= "white") +
   theme(panel.background = element_rect(fill= 'lightblue'), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
   
