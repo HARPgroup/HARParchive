@@ -65,15 +65,25 @@ title(main = 'AGWS (monthly average)')
 # Graph type #2: Stacked plots 
 
 ```{r}
-# Unfinished :
-
+# Example of stacked plot:
 pwater1 <- head(pwater,50)
 ggplot(pwater1, aes(x=index)) + geom_area(aes(y=pwater1$LZS), fill = 'blue')+ geom_area(aes(y=pwater1$AGWS), fill = 'red') + geom_area(aes(y=pwater1$UZS), fill = 'green') 
+```
 
-# Use the group_by function to get daily/weekly/monthly data 
-pwaterDaily <- group_by(pwater, pwater$date)
 
-plot1 <- ggplot(pwater, aes(x=index)) + geom_area(aes(y=pwater$LZS), fill = 'blue')+ geom_area(aes(y=pwater$AGWS), fill = 'red') + geom_area(aes(y=pwater$UZS), fill = 'green') 
-plot1
+```{r}
+# Adding UZS and LZS to the table of daily data
+dailyUZS <- aggregate(pwater$UZS, by = list(pwater$date), FUN = "mean")
+colnames(dailyUZS) <- c('date', 'UZS')
+dailyLZS <- aggregate(pwater$LZS, by = list(pwater$date), FUN = "mean")
+colnames(dailyLZS) <- c('date', 'LZS')
+dailyAGWS$UZS <- dailyUZS$UZS
+dailyAGWS$LZS <- dailyLZS$LZS
+```
+
+
+```{r}
+# Graphing daily data as a stacked plot:
+ggplot(dailyAGWS, aes(x=date)) + geom_area(aes(y=LZS), fill = 'blue')+ geom_area(aes(y=UZS), fill = 'red') + geom_area(aes(y=AGWS), fill = 'green') 
 ```
 
