@@ -64,12 +64,6 @@ title(main = 'AGWS (monthly average)')
 
 # Graph type #2: Stacked plots 
 
-```{r}
-# Example of stacked plot:
-pwater1 <- head(pwater,50)
-ggplot(pwater1, aes(x=index)) + geom_area(aes(y=pwater1$LZS), fill = 'blue')+ geom_area(aes(y=pwater1$AGWS), fill = 'red') + geom_area(aes(y=pwater1$UZS), fill = 'green') 
-```
-
 
 ```{r}
 # Adding UZS and LZS to the table of daily data
@@ -83,7 +77,53 @@ dailyAGWS$LZS <- dailyLZS$LZS
 
 
 ```{r}
-# Graphing daily data as a stacked plot:
+# Graphing daily groundwater storage (UZS, LZS & AGWS) as a stacked plot:
 ggplot(dailyAGWS, aes(x=date)) + geom_area(aes(y=LZS), fill = 'blue')+ geom_area(aes(y=UZS), fill = 'red') + geom_area(aes(y=AGWS), fill = 'green') 
 ```
+
+
+
+```{r}
+# Plotting AGWO and indicating summer for first 5-year period of data 
+hourlySummer <- pwater %>% filter(month==7|month==8|month==9|month==10)
+h5_1 <- filter(pwater, year==1984|year==1985|year==1986|year==1987|year==1988|year==1989)
+hs5_1 <- filter(hourlySummer, year==1984|year==1985|year==1986|year==1987|year==1988|year==1989)
+plot1 <- ggplot(data=h5_1, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_1, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 1984-1989') + labs(x='Date',y='AGWO(in/hr)')
+```
+
+```{r}
+# Plotting for the second 5-year period
+h5_2 <- filter(pwater, year==1990|year==1991|year==1992|year==1993|year==1994|year==1995)
+hs5_2 <- filter(hourlySummer, year==1990|year==1991|year==1992|year==1993|year==1994|year==1995)
+plot2 <- ggplot(data=h5_2, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_2, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 1990-1995') + labs(x='Date',y='AGWO(in/hr)')
+```
+
+```{r}
+# Plotting the third 5-year period
+h5_3 <- filter(pwater, year==1996|year==1997|year==1998|year==1999|year==2000|year==2001)
+hs5_3 <- filter(hourlySummer, year==1996|year==1997|year==1998|year==1999|year==2000|year==2001)
+plot3 <- ggplot(data=h5_3, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_3, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 1996-2001') + labs(x='Date',y='AGWO(in/hr)')
+```
+
+```{r}
+# Fourth
+h5_4 <- filter(pwater, year==2002|year==2003|year==2004|year==2005|year==2006|year==2007)
+hs5_4 <- filter(hourlySummer, year==2002|year==2003|year==2004|year==2005|year==2006|year==2007)
+plot4 <- ggplot(data=h5_4, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_4, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 2002-2007') + labs(x='Date',y='AGWO(in/hr)')
+```
+
+```{r}
+# Fifth
+h5_5 <- filter(pwater, year==2008|year==2009|year==2010|year==2011|year==2012|year==2013)
+hs5_5 <- filter(hourlySummer, year==2008|year==2009|year==2010|year==2011|year==2012|year==2013)
+plot5 <- ggplot(data=h5_5, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_5, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 2008-2013') + labs(x='Date',y='AGWO(in/hr)')
+```
+
+```{r}
+h5_6 <- filter(pwater, year==2014|year==2015|year==2016|year==2017|year==2018|year==2019|year==2020)
+hs5_6 <- filter(hourlySummer, year==2014|year==2015|year==2016|year==2017|year==2018|year==2019|year==2020)
+plot6 <- ggplot(data=h5_6, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_6, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 2014-2020') + labs(x='Date',y='AGWO(in/hr)')
+```
+
+
 
