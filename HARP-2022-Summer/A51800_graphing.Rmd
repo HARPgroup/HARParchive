@@ -1,0 +1,79 @@
+---
+title: "A51800_baseflowGraphing"
+author: "Glenn Campagna"
+date: "7/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(zoo)
+library(IHA)
+library(PearsonDS)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+```
+
+```{r}
+setwd("/Users/glenncampagna/Documents/HARPteam22/Data") # Set working directory to location of .csv file 
+pwater <- fread("forA51800_pwater.csv")
+pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
+pwater$week <- week(pwater$date)
+pwater$month <- month(pwater$date)
+pwater$year <- year(pwater$date)
+dailyAGWS <- aggregate(pwater$AGWS, by = list(pwater$date), FUN = "mean")
+colnames(dailyAGWS) <- c("date", "AGWS") # Changing column names
+weeklyAGWS <- aggregate(pwater$AGWS, by = list(pwater$week, pwater$year), FUN = "mean")
+monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean")
+colnames(weeklyAGWS) <- c("week", "yr", "AGWS")
+colnames(monthlyAGWS) <- c("month", "yr", "AGWS")
+```
+
+
+```{r}
+# Plotting hourly AGWS
+years <- seq(1984,2020,1)
+plot(pwater$index, pwater$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xlab = NA, col = 'blue')
+axis(1, at = seq(1,13151,365), labels = years) 
+title(main = 'AGWS (hourly)')
+```
+
+```{r}
+# Plotting daily average
+plot(dailyAGWS$date, dailyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xlab = NA, col = 'blue')
+title(main = 'AGWS (daily average)')
+```
+
+
+```{r}
+# Plotting weekly average 
+plot(weeklyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xaxt = 'n', xlab = NA, col = 'blue')
+axis(1, at = seq(1,1909,53), labels = years) 
+title(main = 'AGWS (weekly average)')
+```
+
+
+```{r}
+# Plotting monthly average
+plot(monthlyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xaxt = 'n', xlab = NA, col = 'blue')
+axis(1, at = seq(6,438,12), labels = years) 
+title(main = 'AGWS (monthly average)')
+```
+
+# Graph type #2: Stacked plots 
+
+```{r}
+# Unfinished :
+
+pwater1 <- head(pwater,50)
+ggplot(pwater1, aes(x=index)) + geom_area(aes(y=pwater1$LZS), fill = 'blue')+ geom_area(aes(y=pwater1$AGWS), fill = 'red') + geom_area(aes(y=pwater1$UZS), fill = 'green') 
+
+# Use the group_by function to get daily/weekly/monthly data 
+pwaterDaily <- group_by(pwater, pwater$date)
+
+plot1 <- ggplot(pwater, aes(x=index)) + geom_area(aes(y=pwater$LZS), fill = 'blue')+ geom_area(aes(y=pwater$AGWS), fill = 'red') + geom_area(aes(y=pwater$UZS), fill = 'green') 
+plot1
+```
+
