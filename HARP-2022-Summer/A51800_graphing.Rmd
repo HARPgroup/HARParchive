@@ -31,29 +31,13 @@ colnames(weeklyAGWS) <- c("week", "yr", "AGWS")
 colnames(monthlyAGWS) <- c("month", "yr", "AGWS")
 ```
 
-
-```{r}
-# Plotting hourly AGWS
-years <- seq(1984,2020,1)
-plot(pwater$index, pwater$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xlab = NA, col = 'blue')
-axis(1, at = seq(1,13151,365), labels = years) 
-title(main = 'AGWS (hourly)')
-```
-
-```{r}
-# Plotting daily average
-plot(dailyAGWS$date, dailyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xlab = NA, col = 'blue')
-title(main = 'AGWS (daily average)')
-```
-
-
 ```{r}
 # Plotting weekly average 
+years <- seq(1984,2020,1)
 plot(weeklyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xaxt = 'n', xlab = NA, col = 'blue')
 axis(1, at = seq(1,1909,53), labels = years) 
 title(main = 'AGWS (weekly average)')
 ```
-
 
 ```{r}
 # Plotting monthly average
@@ -62,8 +46,7 @@ axis(1, at = seq(6,438,12), labels = years)
 title(main = 'AGWS (monthly average)')
 ```
 
-# Graph type #2: Stacked plots 
-
+# Graph type #2: Stacked plot
 
 ```{r}
 # Adding UZS and LZS to the table of daily data
@@ -75,55 +58,69 @@ dailyAGWS$UZS <- dailyUZS$UZS
 dailyAGWS$LZS <- dailyLZS$LZS
 ```
 
+```{r}
+# Manipulating data to graph
+dailyAGWS$month <- month(dailyAGWS$date)
+dailyAGWS$year <- year(dailyAGWS$date)
+monthlyAGWS <- aggregate(dailyAGWS[ ,2:4], by = list(dailyAGWS$month, dailyAGWS$year), FUN = "mean")
+colnames(monthlyAGWS) <- c('month','year','AGWS','UZS','LZS')
+# Adding dates for graphing 
+monthlyAGWS$date <-  as.Date(paste(monthlyAGWS$month, monthlyAGWS$year, '15'), '%m %Y %d')
+```
 
 ```{r}
 # Graphing daily groundwater storage (UZS, LZS & AGWS) as a stacked plot:
-ggplot(dailyAGWS, aes(x=date)) + geom_area(aes(y=LZS), fill = 'blue')+ geom_area(aes(y=UZS), fill = 'red') + geom_area(aes(y=AGWS), fill = 'green') 
-```
-
-
-
-```{r}
-# Plotting AGWO and indicating summer for first 5-year period of data 
-hourlySummer <- pwater %>% filter(month==7|month==8|month==9|month==10)
-h5_1 <- filter(pwater, year==1984|year==1985|year==1986|year==1987|year==1988|year==1989)
-hs5_1 <- filter(hourlySummer, year==1984|year==1985|year==1986|year==1987|year==1988|year==1989)
-plot1 <- ggplot(data=h5_1, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_1, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 1984-1989') + labs(x='Date',y='AGWO(in/hr)')
+ggplot(monthlyAGWS, aes(x=date)) + geom_area(aes(y=LZS, fill = 'blue'))+ geom_area(aes(y=UZS, fill ='red')) + 
+  geom_area(aes(y=AGWS, fill='green')) + 
+  labs(x='Date', y= 'Storage (in)') + 
+  ggtitle('Groundwater storage for A51800') +
+  scale_fill_identity(name =NULL, breaks=c('green','red','blue'), labels = c('Active groundwater','Upper zone','Lower zone'), guide = 'legend') +
+  theme(legend.position = c(.9,.99))
 ```
 
 ```{r}
-# Plotting for the second 5-year period
-h5_2 <- filter(pwater, year==1990|year==1991|year==1992|year==1993|year==1994|year==1995)
-hs5_2 <- filter(hourlySummer, year==1990|year==1991|year==1992|year==1993|year==1994|year==1995)
-plot2 <- ggplot(data=h5_2, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_2, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 1990-1995') + labs(x='Date',y='AGWO(in/hr)')
+# Converting AGWO in in/hr to cfs/mi^2
+convert_cfs_sqm = 645.3333333
+pwater$AGWO_ <- pwater$AGWO*convert_cfs_sqm # AGWO_ has units of cfs/sq mi
 ```
 
 ```{r}
-# Plotting the third 5-year period
-h5_3 <- filter(pwater, year==1996|year==1997|year==1998|year==1999|year==2000|year==2001)
-hs5_3 <- filter(hourlySummer, year==1996|year==1997|year==1998|year==1999|year==2000|year==2001)
-plot3 <- ggplot(data=h5_3, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_3, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 1996-2001') + labs(x='Date',y='AGWO(in/hr)')
+# Manipulating data to graph
+dailyAGWO_ <- aggregate(pwater$AGWO_, by=list(pwater$date), FUN='mean')
+colnames(dailyAGWO_) <- c('date','AGWO')
+dailyAGWO_$month <- month(dailyAGWO_$date)
+dailyAGWO_$year <- year(dailyAGWO_$date)
+monthlyAGWO <- aggregate(dailyAGWO_$AGWO, by = list(dailyAGWO_$month, dailyAGWO_$year), FUN = "mean")
+dailySummer <- dailyAGWO_ %>% filter(month==7|month==8|month==9|month==10)
+monthlySummer <- aggregate(dailySummer$AGWO, by = list(dailySummer$month, dailySummer$year), FUN = "mean")
+colnames(monthlyAGWO) <- c('Month', 'Year', 'AGWO')
+colnames(monthlySummer) <- c('Month', 'Year', 'AGWO')
+monthlyAGWO$date <-  as.Date(paste(monthlyAGWO$Month, monthlyAGWO$Year, '15'), '%m %Y %d')
+monthlySummer$date <-  as.Date(paste(monthlySummer$Month, monthlySummer$Year, '15'), '%m %Y %d')
 ```
 
 ```{r}
-# Fourth
-h5_4 <- filter(pwater, year==2002|year==2003|year==2004|year==2005|year==2006|year==2007)
-hs5_4 <- filter(hourlySummer, year==2002|year==2003|year==2004|year==2005|year==2006|year==2007)
-plot4 <- ggplot(data=h5_4, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_4, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 2002-2007') + labs(x='Date',y='AGWO(in/hr)')
+# Plotting type #3 on a monthly scale 
+ggplot(monthlyAGWO, aes(x=date, y=AGWO)) + geom_line(aes(col = 'blue')) + geom_line(data = monthlySummer, aes(x=date, y=AGWO, group = Year, col = 'red')) + labs(x='Date', y= 'Baseflow (cfs/sq mi)') + 
+  ggtitle('Summer baseflow') +
+  scale_color_identity(name = NULL, breaks=c('red','blue'), labels = c('Summer months','Rest of Year'), guide = 'legend') +
+  theme(legend.position = c(.85,.9))
 ```
 
 ```{r}
-# Fifth
-h5_5 <- filter(pwater, year==2008|year==2009|year==2010|year==2011|year==2012|year==2013)
-hs5_5 <- filter(hourlySummer, year==2008|year==2009|year==2010|year==2011|year==2012|year==2013)
-plot5 <- ggplot(data=h5_5, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_5, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 2008-2013') + labs(x='Date',y='AGWO(in/hr)')
+# Manipulating data to graph
+pwater$sum <- pwater$AGWO+pwater$IFWO+pwater$SURO
+# pwater$sum <- pwater$sum*convert_cfs_sqm         # sum in pwater is now in units of cfs/sq mi - must run this line ONE TIME ONLY and then comment out 
+monthlySum <- aggregate(pwater$sum, by = list(pwater$month, pwater$year), FUN = 'mean')
+colnames(monthlySum) <- c('month','year','sum')
+monthlySum$date <- monthlyAGWO$date
+monthlyAGWO$sum <- monthlySum$sum
 ```
 
 ```{r}
-h5_6 <- filter(pwater, year==2014|year==2015|year==2016|year==2017|year==2018|year==2019|year==2020)
-hs5_6 <- filter(hourlySummer, year==2014|year==2015|year==2016|year==2017|year==2018|year==2019|year==2020)
-plot6 <- ggplot(data=h5_6, aes(x=date)) + geom_point(aes(y=AGWO), col = 'blue', size = 0.01) + geom_point(aes(y=AGWO), data = hs5_6, col = 'red', size = 0.01) + ggtitle('Active groundwater outflow 2014-2020') + labs(x='Date',y='AGWO(in/hr)')
+# Plotting AGWO and sum of runoff, interflow, and baseflow on the same graph
+plot(monthlyAGWO$date, monthlyAGWO$AGWO, type = 'l', col = 'blue', ylim = c(0,7.25), xlab = NA, ylab = 'Flow (cfs/sq mi)')
+lines(monthlyAGWO$date, monthlyAGWO$sum, type ='l', col = 'red')
+legend(x = 4800,y = 7.25, legend = c('Total outflow', 'Baseflow'), fill = c('red','blue'))
+title(main = 'Baseflow vs total outflow to river segment', sub = 'Total outflow represents the sum of runoff, interflow, and baseflow')
 ```
-
-
-
