@@ -35,7 +35,7 @@ dailyAGWO_$month <- month(dailyAGWO_$date)
 dailyAGWO_$year <- year(dailyAGWO_$date)
 monthlyAGWO <- aggregate(dailyAGWO_$AGWO, by = list(dailyAGWO_$month, dailyAGWO_$year), FUN = "mean")
 colnames(monthlyAGWO) <- c('month', 'year', 'AGWO')
-monthlyAGWO$date <-  as.Date(paste(monthlyAGWO$Month, monthlyAGWO$Year, '15'), '%m %Y %d')
+monthlyAGWO$date <-  as.Date(paste(monthlyAGWO$month, monthlyAGWO$year, '15'), '%m %Y %d')
 
 # For graph 2
 monthlySURO <- aggregate(pwater$SURO, by = list(pwater$month, pwater$year), FUN = 'mean')
