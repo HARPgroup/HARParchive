@@ -17,19 +17,23 @@ library(R.utils)
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
-h5_file_path <- as.character(argst[1])
-output_file_path <- as.integer(argst[2])
-data_source_table <- as.integer(argst[3])
-propcode <- as.integer(argst[4])
-scenario <- as.integer(argst[5])
+h5_file_path <- argst[1]
+output_file_path <- argst[2]
+data_source_table <- argst[3]
+#propcode <- as.integer(argst[4])
+#scenario <- as.integer(argst[5])
 
 
-# h5 <- open(h5_file_path)
-# fid = H5Fopen(h5)
-# did = H5Dopen(fid, "RESULTS/PERLND_P001/PWATER/table")
-# pwater <- H5Dread(did, bit64conversion = "double")
-# origin <- "1970-01-01"
-# pwater$index <- as.POSIXct((pwater$index)/1000000000, origin = origin, tz = "UTC")
+h5 <- open(h5_file_path)
+fid = H5Fopen(h5)
+did = H5Dopen(fid, data_source_table)
+pwater <- H5Dread(did, bit64conversion = "double")
+origin <- "1970-01-01"
+pwater$index <- as.POSIXct((pwater$index)/1000000000, origin = origin, tz = "UTC")
+
+#Exporting to a csv
+write.table(pwater,file = output_file_path, sep = ",", row.names = FALSE)
+
 
 
 
