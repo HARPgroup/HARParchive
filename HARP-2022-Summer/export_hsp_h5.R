@@ -24,8 +24,7 @@ data_source_table <- argst[3]
 #scenario <- as.integer(argst[5])
 
 
-h5 <- open(h5_file_path)
-fid = H5Fopen(h5)
+fid = H5Fopen(h5_file_path)
 did = H5Dopen(fid, data_source_table)
 pwater <- H5Dread(did, bit64conversion = "double")
 origin <- "1970-01-01"
