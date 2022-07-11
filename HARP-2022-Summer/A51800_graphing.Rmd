@@ -150,7 +150,6 @@ summary(AGWOlm) # Value in Estimate column and date row represents slope
 # Values for slope from daily and monthly linear regressions were found to be  very similar 
 ```
 
-
 ```{r}
 # Finding 90 day low flow values 
 dailySum <- aggregate(pwater$sum_, by = list(pwater$date), FUN = 'mean')
