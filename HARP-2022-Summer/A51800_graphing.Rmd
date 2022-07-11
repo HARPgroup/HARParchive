@@ -124,3 +124,36 @@ lines(monthlyAGWO$date, monthlyAGWO$sum, type ='l', col = 'red')
 legend(x = 4800,y = 7.25, legend = c('Total outflow', 'Baseflow'), fill = c('red','blue'))
 title(main = 'Baseflow vs total outflow to river segment', sub = 'Total outflow represents the sum of runoff, interflow, and baseflow')
 ```
+
+
+```{r}
+# Plotting all variables contributing to the total outflow 
+# First need to add all variables to monthly table 
+monthlySURO <- aggregate(pwater$SURO, by = list(pwater$month, pwater$year), FUN = 'mean')
+colnames(monthlySURO) <- c('month','year','SURO')
+monthlySURO$SURO_ <- monthlySURO$SURO*convert_cfs_sqm # the SURO_ column is in units of cfs/sq mi
+monthlyIFWO <- aggregate(pwater$IFWO, by = list(pwater$month, pwater$year), FUN = 'mean')
+colnames(monthlyIFWO) <- c('month','year','IFWO')
+monthlyIFWO$IFWO_ <- monthlyIFWO$IFWO*convert_cfs_sqm # the IFWO_ column is in units of cfs/sq mi
+monthlyAGWO$SURO <- monthlySURO$SURO_
+monthlyAGWO$IFWO <- monthlyIFWO$IFWO_
+```
+
+```{r}
+ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'))  + 
+  geom_line(aes(y=SURO, col = 'red')) +
+  geom_line(aes(y=IFWO, col = 'dark green')) +
+  labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
+  ggtitle('Elements of total outflow to the river segment ') +
+   scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
+  theme(legend.position = c(.75,.85))
+```
+
+```{r}
+#Finding a linear regression for baseflow over time 
+AGWOlm <- lm(AGWO~date, data = dailyAGWO_) # Daily averages 
+summary(AGWOlm) # Value in Estimate column and date row represents slope 
+# Values for slope from daily and monthly linear regressions were found to be  very similar 
+```
+```
+
