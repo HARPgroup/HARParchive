@@ -14,6 +14,7 @@ library(PearsonDS)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(stats)
 ```
 
 ```{r}
@@ -32,18 +33,11 @@ colnames(monthlyAGWS) <- c("month", "yr", "AGWS")
 ```
 
 ```{r}
-# Plotting weekly average 
-years <- seq(1984,2020,1)
-plot(weeklyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xaxt = 'n', xlab = NA, col = 'blue')
-axis(1, at = seq(1,1909,53), labels = years) 
-title(main = 'AGWS (weekly average)')
-```
-
-```{r}
 # Plotting monthly average
-plot(monthlyAGWS$AGWS, type ='l', ylab = 'Active Groundwater Storage (in)', xaxt = 'n', xlab = NA, col = 'blue')
+years <- seq(1984,2020,1)
+plot(monthlyAGWS$AGWS, type ='l', ylab = 'AGWS (in)', xaxt = 'n', xlab = NA, col = 'blue')
 axis(1, at = seq(6,438,12), labels = years) 
-title(main = 'AGWS (monthly average)')
+title(main = 'Active groundwater storage', sub = 'Monthly average values are plotted')
 ```
 
 # Graph type #2: Stacked plot
@@ -110,8 +104,8 @@ ggplot(monthlyAGWO, aes(x=date, y=AGWO)) + geom_line(aes(col = 'blue')) + geom_l
 ```{r}
 # Manipulating data to graph
 pwater$sum <- pwater$AGWO+pwater$IFWO+pwater$SURO
-# pwater$sum <- pwater$sum*convert_cfs_sqm         # sum in pwater is now in units of cfs/sq mi - must run this line ONE TIME ONLY and then comment out 
-monthlySum <- aggregate(pwater$sum, by = list(pwater$month, pwater$year), FUN = 'mean')
+pwater$sum_ <- pwater$sum*convert_cfs_sqm         
+monthlySum <- aggregate(pwater$sum_, by = list(pwater$month, pwater$year), FUN = 'mean')
 colnames(monthlySum) <- c('month','year','sum')
 monthlySum$date <- monthlyAGWO$date
 monthlyAGWO$sum <- monthlySum$sum
@@ -124,3 +118,56 @@ lines(monthlyAGWO$date, monthlyAGWO$sum, type ='l', col = 'red')
 legend(x = 4800,y = 7.25, legend = c('Total outflow', 'Baseflow'), fill = c('red','blue'))
 title(main = 'Baseflow vs total outflow to river segment', sub = 'Total outflow represents the sum of runoff, interflow, and baseflow')
 ```
+
+
+```{r}
+# Plotting all variables contributing to the total outflow 
+# First need to add all variables to monthly table 
+monthlySURO <- aggregate(pwater$SURO, by = list(pwater$month, pwater$year), FUN = 'mean')
+colnames(monthlySURO) <- c('month','year','SURO')
+monthlySURO$SURO_ <- monthlySURO$SURO*convert_cfs_sqm # the SURO_ column is in units of cfs/sq mi
+monthlyIFWO <- aggregate(pwater$IFWO, by = list(pwater$month, pwater$year), FUN = 'mean')
+colnames(monthlyIFWO) <- c('month','year','IFWO')
+monthlyIFWO$IFWO_ <- monthlyIFWO$IFWO*convert_cfs_sqm # the IFWO_ column is in units of cfs/sq mi
+monthlyAGWO$SURO <- monthlySURO$SURO_
+monthlyAGWO$IFWO <- monthlyIFWO$IFWO_
+```
+
+```{r}
+ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'))  + 
+  geom_line(aes(y=SURO, col = 'red')) +
+  geom_line(aes(y=IFWO, col = 'dark green')) +
+  labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
+  ggtitle('Elements of total outflow to the river segment ') +
+   scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
+  theme(legend.position = c(.75,.85))
+```
+
+```{r}
+#Finding a linear regression for baseflow over time 
+AGWOlm <- lm(AGWO~date, data = dailyAGWO_) # Daily averages 
+summary(AGWOlm) # Value in Estimate column and date row represents slope 
+# Values for slope from daily and monthly linear regressions were found to be  very similar 
+```
+
+
+```{r}
+# Finding 90 day low flow values 
+dailySum <- aggregate(pwater$sum_, by = list(pwater$date), FUN = 'mean')
+colnames(dailySum) <- c('date','sum')
+dailyAGWO_$sum <- dailySum$sum
+dailyAGWOz <- zoo(dailyAGWO_$AGWO, order.by = dailyAGWO_$date)
+dailySumz <- zoo(dailyAGWO_$sum, order.by = dailyAGWO_$date)
+sum_g2 <- data.frame(group2(dailySumz))
+l90_Runit <- min(sum_g2$X90.Day.Min)
+AGWO_g2 <- data.frame(group2(dailyAGWOz))
+l90_agwo_Runit <- min(AGWO_g2$X90.Day.Min)
+```
+
+```{r}
+l90_table <- matrix(nrow =2, ncol = 2)
+l90_table[,2] <- c(l90_Runit,l90_agwo_Runit)
+l90_table[,1] <- c('l90_Runit','l90_agwo_Runit')
+l90_table
+```
+
