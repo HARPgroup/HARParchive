@@ -77,13 +77,13 @@ axis(1, at = seq(6,438,12), labels = years)
 title(main = 'Active groundwater storage', sub = 'Monthly average values are plotted')
 
 #Graph 2 -- need to edit
-plot2 <- ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'))  + 
-  geom_line(aes(y=SURO, col = 'red')) +
-  geom_line(aes(y=IFWO, col = 'dark green')) +
+plot2 <- ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
+  geom_line(aes(y=SURO, col = 'red'), size = 0.25) +
+  geom_line(aes(y=IFWO, col = 'dark green'), size = 0.25) +
   labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
   ggtitle('Elements of total outflow to the river segment ') +
   scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
-  theme(legend.position = c(.75,.85))
+  theme(legend.position = 'bottom')
 
 
 
