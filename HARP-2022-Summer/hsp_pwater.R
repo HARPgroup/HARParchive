@@ -174,7 +174,7 @@ model_constant_agwo_Runit$save(TRUE)
 
 
 # Add code here to export graphs 
-save_url = omsite
+save_url = paste(omsite,'/data/proj3/out', sep ='')
 # For graph 1
 fname <- paste(
   save_directory,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
