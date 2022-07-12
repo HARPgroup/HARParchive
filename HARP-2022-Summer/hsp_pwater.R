@@ -19,7 +19,7 @@ basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/p6/out/land/hsp2_2022/eos"
+save_directory <-  "/p6/out/land/hsp2_2022/eos/"
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -176,7 +176,7 @@ fname <- paste(
   sep = '/'
 )
 furl <- paste(
-  save_url,paste0('fig.AGWS.',scenario_name,  '.png'),
+  save_url,paste0(save_directory,'fig.AGWS.',scenario_name,  '.png'),
   sep = '/'
 )
 png(fname) #fname is a character string with file name
@@ -203,7 +203,7 @@ fname2 <- paste(
   sep = '/'
 )
 furl2 <- paste(
-  save_url,paste0('fig.totalFlowOut.',scenario_name,  '.png'),
+  save_url,paste0(save_directory,'fig.totalFlowOut.',scenario_name,  '.png'),
   sep = '/'
 )
 png(fname2)
