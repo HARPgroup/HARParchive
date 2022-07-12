@@ -1,8 +1,6 @@
 # This script will convert the pwater csv to a data table and perform analysis & generate graphs 
 #install.packages("IHA", repos="http://R-Forge.R-project.org")
 #install_github("HARPGroup/hydro-tools", force=TRUE)
-#install.packages("hydroTSM")
-#install.packages("RCurl")
 library(data.table)
 library(lubridate)
 library(zoo)
@@ -15,9 +13,6 @@ library(ggplot2)
 library(dplyr)
 library(stats)
 library(R.utils)
-library(devtools)
-library(hydroTSM)
-library(RCurl)
 library(hydrotools)
 
 # Accepting command arguments:
@@ -189,6 +184,7 @@ model_constant_agwo_Runit$save(TRUE)
 
 model_graph1 <- RomProperty$new(
   ds, list(
+    pid = model_scenario$pid,
     varkey="om_class_Constant",
     featureid=model_scenario$pid,
     entity_type='dh_image_file',
