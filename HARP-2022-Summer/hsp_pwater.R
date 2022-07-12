@@ -19,7 +19,7 @@ basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/p6/out/land/hsp2_2022/eos/"
+save_directory <-  "/p6/out/land/hsp2_2022/eos"
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
