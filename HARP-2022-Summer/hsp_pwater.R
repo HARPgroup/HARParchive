@@ -1,12 +1,15 @@
 # This script will convert the pwater csv to a data table and perform analysis & generate graphs 
-
+#install.packages("IHA", repos="http://R-Forge.R-project.org")
 library(data.table)
+library(lubridate)
 library(zoo)
+library(plyr)
+library(caTools)
+library(RColorBrewer)
 library(IHA)
 library(PearsonDS)
 library(ggplot2)
 library(dplyr)
-library(lubridate)
 library(stats)
 library(R.utils)
 library(hydrotools)
