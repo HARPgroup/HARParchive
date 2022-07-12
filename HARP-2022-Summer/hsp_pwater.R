@@ -184,7 +184,7 @@ model_constant_agwo_Runit$save(TRUE)
 
 model_graph1 <- RomProperty$new(
  ds, list(
-    pid = 6823653,
+    pid = model_constant_Runit$pid,
     varkey="om_class_Constant",
     featureid=model_scenario$pid,
     entity_type='dh_image_file',
