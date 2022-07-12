@@ -182,14 +182,14 @@ model_constant_agwo_Runit$save(TRUE)
 
 # Add code here to export graphs 
 
-# model_graph1 <- RomProperty$new(
-#  ds, list(
-#    pid = model_scenario$pid,
-#    varkey="om_class_Constant",
-#    featureid=model_scenario$pid,
-#    entity_type='dh_image_file',
-#    propname = 'AGWSplot',
-#    propvalue= plot1
-#  )
-# )
-# model_graph1$save(TRUE)
+model_graph1 <- RomProperty$new(
+ ds, list(
+    pid = 6823653,
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_image_file',
+    propname = 'AGWSplot',
+    propvalue= plot1
+ )
+ )
+ model_graph1$save(TRUE)
