@@ -20,12 +20,15 @@ source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 # save_directory <-  "/var/www/html/data/proj3/out"
 save_directory <-  "/var/www/html/data/proj3/out"
+#land_segment_name <- 'A51800' # need to remove before using on server 
+#scenario_name <- 'p532sova_2021'# need to remove before using on server 
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 land_segment_name <- argst[1]
 scenario_name <- argst[2]
 pwater_file_path <- argst[3]
+landuse <- argst[4]
 
 pwater <- fread(pwater_file_path)
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
@@ -110,14 +113,15 @@ model <- RomProperty$new(
 )
 model$save(TRUE)
 
+
 lu <- RomProperty$new(
   ds,
   list(
     varkey="om_hspf_landuse", 
-    propname="for",
+    propname=landuse,
     featureid=model$pid, 
     entity_type="dh_properties", 
-    propcode="for" 
+    propcode=landuse 
   ), 
   TRUE
 )
@@ -172,11 +176,11 @@ model_constant_agwo_Runit$save(TRUE)
 save_url = omsite
 # For graph 1
 fname <- paste(
-  save_directory,paste0('fig.AGWS.', scenario_name, '.png'), # building file name
+  save_directory,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
   sep = '/'
 )
 furl <- paste(
-  save_url,paste0('fig.AGWS.',scenario_name,  '.png'),
+  save_url,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.',scenario_name,  '.png'),
   sep = '/'
 )
 png(fname) #fname is a character string with file name
@@ -199,11 +203,11 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0('fig.totalFlowOut.', scenario_name, '.png'), # building file name
+  save_directory,paste0('fig.totalFlowOut', land_segment_name, scenario_name, '.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
-  save_url,paste0('fig.totalFlowOut.',scenario_name,  '.png'),
+  save_url,paste0('fig.totalFlowOut.', land_segment_name, scenario_name,  '.png'),
   sep = '/'
 )
 png(fname2)
