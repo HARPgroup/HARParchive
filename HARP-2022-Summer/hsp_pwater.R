@@ -19,7 +19,7 @@ basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/media/model/p6/out/land/hsp2_2022/eos/"
+save_directory <-  "/var/www/R"
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -179,7 +179,7 @@ furl <- paste(
   save_url,paste0('fig.AGWS.',scenario_name,  '.png'),
   sep = '/'
 )
-png(fname)
+png(fname) #fname is a character string with file name
 years <- seq(1984,2020,1)
 plot(monthlyAGWS$AGWS, type ='l', ylab = 'AGWS (in)', xaxt = 'n', xlab = NA, col = 'blue')
 axis(1, at = seq(6,438,12), labels = years) 
@@ -206,7 +206,7 @@ furl2 <- paste(
   save_url,paste0('fig.totalFlowOut.',scenario_name,  '.png'),
   sep = '/'
 )
-png(fname)
+png(fname2)
 ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
   geom_line(aes(y=SURO, col = 'red'), size = 0.25) +
   geom_line(aes(y=IFWO, col = 'dark green'), size = 0.25) +
