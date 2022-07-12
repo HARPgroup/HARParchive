@@ -15,6 +15,12 @@ library(stats)
 library(R.utils)
 library(hydrotools)
 
+basepath='/var/www/R';
+source("/var/www/R/config.R") # will need file in same folder/directory
+# establishing location on server for storing images
+# save_directory <-  "/var/www/html/data/proj3/out"
+save_directory <-  "/media/model/p6/out/land/hsp2_2022/eos/"
+
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 land_segment_name <- argst[1]
@@ -70,26 +76,8 @@ l90_Runit <- min(sum_g2$X90.Day.Min)
 AGWO_g2 <- data.frame(group2(dailyAGWOz))
 l90_agwo_Runit <- min(AGWO_g2$X90.Day.Min)
 
-#Graph 1
-years <- seq(1984,2020,1)
-plot1 <- plot(monthlyAGWS$AGWS, type ='l', ylab = 'AGWS (in)', xaxt = 'n', xlab = NA, col = 'blue')
-axis(1, at = seq(6,438,12), labels = years) 
-title(main = 'Active groundwater storage', sub = 'Monthly average values are plotted')
-
-#Graph 2 -- need to edit
-plot2 <- ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
-  geom_line(aes(y=SURO, col = 'red'), size = 0.25) +
-  geom_line(aes(y=IFWO, col = 'dark green'), size = 0.25) +
-  labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
-  ggtitle('Elements of total outflow to the river segment ') +
-  scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
-  theme(legend.position = 'bottom')
-
-
-
 #Exporting to VAHydro
-basepath='/var/www/R';
-source("/var/www/R/config.R")
+
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
@@ -181,15 +169,61 @@ model_constant_agwo_Runit$save(TRUE)
 
 
 # Add code here to export graphs 
+save_url = omsite
+# For graph 1
+fname <- paste(
+  save_directory,paste0('fig.AGWS.', scenario_name, '.png'), # building file name
+  sep = '/'
+)
+furl <- paste(
+  save_url,paste0('fig.AGWS.',scenario_name,  '.png'),
+  sep = '/'
+)
+png(fname)
+years <- seq(1984,2020,1)
+plot(monthlyAGWS$AGWS, type ='l', ylab = 'AGWS (in)', xaxt = 'n', xlab = NA, col = 'blue')
+axis(1, at = seq(6,438,12), labels = years) 
+title(main = 'Active groundwater storage', sub = 'Monthly average values are plotted')
+dev.off()
+print(paste("Saved file: ", fname, "with URL", furl))
+model_graph1 <- RomProperty$new(
+  ds, list(
+    varkey="dh_image_file",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propcode = furl,
+    propname = 'fig.AGWS'
+  )
+)
+model_graph1$save(TRUE)
 
-#model_graph1 <- RomProperty$new(
-# ds, list(
-#    pid = ,
-#    varkey="om_class_Constant",
-#    featureid=model_scenario$pid,
-#    entity_type='dh_image_file',
-#    propname = 'AGWSplot',
-#    propvalue= plot1
-# )
-# )
-# model_graph1$save(TRUE)
+# For graph 2
+fname2 <- paste(
+  save_directory,paste0('fig.totalFlowOut.', scenario_name, '.png'), # building file name
+  sep = '/'
+)
+furl2 <- paste(
+  save_url,paste0('fig.totalFlowOut.',scenario_name,  '.png'),
+  sep = '/'
+)
+png(fname)
+ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
+  geom_line(aes(y=SURO, col = 'red'), size = 0.25) +
+  geom_line(aes(y=IFWO, col = 'dark green'), size = 0.25) +
+  labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
+  ggtitle('Elements of total outflow to the river segment ') +
+  scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
+  theme(legend.position = 'bottom')
+dev.off()
+print(paste("Saved file: ", fname2, "with URL", furl2))
+model_graph1 <- RomProperty$new(
+  ds, list(
+    varkey="dh_image_file",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propcode = furl2,
+    propname = 'fig.totalFlowOut'
+  )
+)
+model_graph1$save(TRUE)
+
