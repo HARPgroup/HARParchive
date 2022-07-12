@@ -204,7 +204,7 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0('fig.totalFlowOut', land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
+  save_directory,paste0('fig.totalFlowOut.', land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
