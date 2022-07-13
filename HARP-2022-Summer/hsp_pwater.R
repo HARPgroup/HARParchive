@@ -15,44 +15,45 @@ library(stats)
 library(R.utils)
 library(hydrotools)
 
-basepath='/var/www/R';
+basepath='/var/www/R'; # 
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/var/www/html/data/proj3/out"
-#land_segment_name <- 'A51800' # need to remove before using on server 
-#scenario_name <- 'p532sova_2021'# need to remove before using on server 
+save_directory <-  "/var/www/html/media/model/p532" # gives the location of online directory for image storage 
+
+land_segment_name <- 'A51800' # need to remove before using on server 
+scenario_name <- 'p532sova_2021'# need to remove before using on server 
+landuse <- 'for'
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 land_segment_name <- argst[1]
 scenario_name <- argst[2]
 pwater_file_path <- argst[3]
-landuse <- argst[4]
+landuse <- argst[4] #for file naming purposes, need to be within quotes 
 
-pwater <- fread(pwater_file_path)
+pwater <- fread(pwater_file_path) #reads the csv in to a data table 
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
-pwater$week <- week(pwater$date)
 pwater$month <- month(pwater$date)
 pwater$year <- year(pwater$date)
-monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean")
+monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean") # finds average AGWS monthly 
 colnames(monthlyAGWS) <- c("month", "year", "AGWS")
 
 #Creating column in pwater for baseflow in units of cfs/sq mi
-convert_cfs_sqm = 645.3333333
+convert_cfs_sqm = 645.3333333 # 1 in/hr = 645.333 cts/sq mi
 pwater$AGWO_ <- pwater$AGWO*convert_cfs_sqm # AGWO_ has units of cfs/sq mi
 
-dailyAGWO_ <- aggregate(pwater$AGWO_, by=list(pwater$date), FUN='mean')
+dailyAGWO_ <- aggregate(pwater$AGWO_, by=list(pwater$date), FUN='mean') # finds AGWO daily (in units of cfs/sq mi)
 colnames(dailyAGWO_) <- c('date','AGWO')
 dailyAGWO_$month <- month(dailyAGWO_$date)
 dailyAGWO_$year <- year(dailyAGWO_$date)
-monthlyAGWO <- aggregate(dailyAGWO_$AGWO, by = list(dailyAGWO_$month, dailyAGWO_$year), FUN = "mean")
+monthlyAGWO <- aggregate(dailyAGWO_$AGWO, by = list(dailyAGWO_$month, dailyAGWO_$year), FUN = "mean") # finds average AGWO monthly
 colnames(monthlyAGWO) <- c('month', 'year', 'AGWO')
 monthlyAGWO$date <-  as.Date(paste(monthlyAGWO$month, monthlyAGWO$year, '15'), '%m %Y %d')
 
 # For graph 2
-monthlySURO <- aggregate(pwater$SURO, by = list(pwater$month, pwater$year), FUN = 'mean')
+monthlySURO <- aggregate(pwater$SURO, by = list(pwater$month, pwater$year), FUN = 'mean') 
 colnames(monthlySURO) <- c('month','year','SURO')
 monthlySURO$SURO_ <- monthlySURO$SURO*convert_cfs_sqm # the SURO_ column is in units of cfs/sq mi
 monthlyIFWO <- aggregate(pwater$IFWO, by = list(pwater$month, pwater$year), FUN = 'mean')
@@ -65,10 +66,9 @@ monthlyAGWO$IFWO <- monthlyIFWO$IFWO_
 #IHA group 2 metrics
 pwater$sum <- pwater$AGWO+pwater$IFWO+pwater$SURO
 pwater$sum_ <- pwater$sum*convert_cfs_sqm         
-monthlySum <- aggregate(pwater$sum_, by = list(pwater$month, pwater$year), FUN = 'mean')
+monthlySum <- aggregate(pwater$sum_, by = list(pwater$month, pwater$year), FUN = 'mean') # average monthly sum of runoff, interflow, and baseflow
 colnames(monthlySum) <- c('month','year','sum')
 monthlySum$date <- monthlyAGWO$date
-monthlyAGWO$sum <- monthlySum$sum # maybe not needed?
 
 dailySum <- aggregate(pwater$sum_, by = list(pwater$date), FUN = 'mean')
 colnames(dailySum) <- c('date','sum')
@@ -119,7 +119,7 @@ lu <- RomProperty$new(
   ds,
   list(
     varkey="om_hspf_landuse", 
-    propname=landuse,
+    propname=landuse, 
     featureid=model$pid, 
     entity_type="dh_properties", 
     propcode=landuse 
@@ -174,14 +174,14 @@ model_constant_agwo_Runit$save(TRUE)
 
 
 # Add code here to export graphs 
-save_url = paste(omsite,'/data/proj3/out', sep ='')
+save_url = paste(omsite,'/media/model/p532', sep ='') 
 # For graph 1
 fname <- paste(
-  save_directory,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'), # building file name
   sep = '/'
 )
 furl <- paste(
-  save_url,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.',scenario_name,  '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'),
   sep = '/'
 )
 png(fname) #fname is a character string with file name
@@ -191,6 +191,7 @@ axis(1, at = seq(6,438,12), labels = years)
 title(main = 'Active groundwater storage', sub = 'Monthly average values are plotted')
 dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
+
 model_graph1 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
@@ -204,11 +205,11 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0('fig.totalFlowOut.', land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name, '.', 'fig.totalOut','.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
-  save_url,paste0('fig.totalFlowOut.', land_segment_name,'.',landuse,'.', scenario_name,'.png'),
+  save_url,paste0(landuse,'',land_segment_name, '.', 'fig.totalOut','.png'),
   sep = '/'
 )
 png(fname2)
@@ -221,13 +222,14 @@ ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)
   theme(legend.position = 'bottom')
 dev.off()
 print(paste("Saved file: ", fname2, "with URL", furl2))
+
 model_graph1 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
     featureid=model_scenario$pid,
     entity_type='dh_properties',
     propcode = furl2,
-    propname = 'fig.totalFlowOut'
+    propname = 'fig.totalOut'
   )
 )
 model_graph1$save(TRUE)
