@@ -20,7 +20,7 @@ source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/var/www/html/data/proj3/out"
+save_directory <-  "/media/model/p532/out/land/p532sova_2021"
 #land_segment_name <- 'A51800' # need to remove before using on server 
 #scenario_name <- 'p532sova_2021'# need to remove before using on server 
 
@@ -174,14 +174,14 @@ model_constant_agwo_Runit$save(TRUE)
 
 
 # Add code here to export graphs 
-save_url = paste(omsite,'/data/proj3/out', sep ='')
+save_url = paste(omsite,'/p532/out/land/p532sova_2021', sep ='')
 # For graph 1
 fname <- paste(
-  save_directory,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'), # building file name
   sep = '/'
 )
 furl <- paste(
-  save_url,paste0('fig.AGWS.',land_segment_name,'.',landuse,'.',scenario_name,  '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'),
   sep = '/'
 )
 png(fname) #fname is a character string with file name
@@ -204,11 +204,11 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0('fig.totalFlowOut.', land_segment_name,'.',landuse,'.', scenario_name, '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.totalOut', '.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
-  save_url,paste0('fig.totalFlowOut.', land_segment_name,'.',landuse,'.', scenario_name,'.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.totalOut', '.png'),
   sep = '/'
 )
 png(fname2)
@@ -216,7 +216,7 @@ ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)
   geom_line(aes(y=SURO, col = 'red'), size = 0.25) +
   geom_line(aes(y=IFWO, col = 'dark green'), size = 0.25) +
   labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
-  ggtitle('Elements of total outflow to the river segment ') +
+  ggtitle('Elements of total outflow from the land segment ') +
   scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
   theme(legend.position = 'bottom')
 dev.off()
