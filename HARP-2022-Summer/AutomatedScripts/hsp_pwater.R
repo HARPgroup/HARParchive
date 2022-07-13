@@ -19,8 +19,9 @@ basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
+# output_file_path = 'out/land/p532sova_2021'
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/media/model/p532/out/land/p532sova_2021"
+save_directory <-  paste("/media/model/p532/",output_file_path, sep = '')
 #land_segment_name <- 'A51800' # need to remove before using on server 
 #scenario_name <- 'p532sova_2021'# need to remove before using on server 
 
@@ -29,7 +30,8 @@ argst <- commandArgs(trailingOnly = T)
 land_segment_name <- argst[1]
 scenario_name <- argst[2]
 pwater_file_path <- argst[3]
-landuse <- argst[4]
+output_file_path <-  argst[4] # 'out/land/p532sova_2021'
+landuse <- argst[5]
 
 pwater <- fread(pwater_file_path)
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
@@ -174,7 +176,7 @@ model_constant_agwo_Runit$save(TRUE)
 
 
 # Add code here to export graphs 
-save_url = paste(omsite,'/p532/out/land/p532sova_2021', sep ='')
+save_url = paste(omsite,'/p532/', output_file_path, sep ='')
 # For graph 1
 fname <- paste(
   save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'), # building file name
