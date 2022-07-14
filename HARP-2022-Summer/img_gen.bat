@@ -17,10 +17,10 @@ segments=`cbp get_landsegs $basin`
 for landseg in $segments; do
   
   for landuse in landuses do
-  h5_file_path = %landuse% + %landseg%  .h5
+  h5_file_path=${landuse}${landseg}.h5
   echo h5_file_path
 
-  SET output_file_path = %landuse% + %landseg%  _pwater.csv
+  SET output_file_path=${landuse}${landseg}_pwater.csv
   echo output_file_path
 
   echo "Rscript HARParchive/HARP-Summer-2022/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_file_path $data_source_table"
