@@ -162,7 +162,7 @@ lu$save(TRUE)
 model_constant_Runit <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_scenario$pid,
+    featureid=lu$pid,
     entity_type='dh_properties',
     propname = 'l90_Runit',
     propvalue= l90_Runit
@@ -173,7 +173,7 @@ model_constant_Runit$save(TRUE)
 model_constant_agwo_Runit <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_scenario$pid,
+    featureid=lu$pid,
     entity_type='dh_properties',
     propname = 'l90_agwo_Runit',
     propvalue= l90_agwo_Runit
@@ -203,7 +203,7 @@ print(paste("Saved file: ", fname, "with URL", furl))
 model_graph1 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
-    featureid=model_scenario$pid,
+    featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl,
     propname = 'fig.AGWS'
@@ -233,7 +233,7 @@ print(paste("Saved file: ", fname2, "with URL", furl2))
 model_graph1 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
-    featureid=model_scenario$pid,
+    featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl2,
     propname = 'fig.totalFlowOut'
