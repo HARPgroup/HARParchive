@@ -108,6 +108,7 @@ landseg<- RomFeature$new(
   ), 
   TRUE
 )
+landseg$save(TRUE)
 
 model <- RomProperty$new(
   ds,
