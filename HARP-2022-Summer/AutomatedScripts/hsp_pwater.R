@@ -14,7 +14,6 @@ library(dplyr)
 library(stats)
 library(R.utils)
 library(hydrotools)
-library(tidyverse)
 
 #message(R_TempDir)
 basepath='/var/www/R';
