@@ -14,6 +14,7 @@ library(dplyr)
 library(stats)
 library(R.utils)
 library(hydrotools)
+library(tidyverse)
 
 #message(R_TempDir)
 basepath='/var/www/R';
@@ -21,7 +22,7 @@ source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 # save_directory <-  "/var/www/html/data/proj3/out"
-save_directory <-  "/media/model/p532/out/land/p532sova_2021"
+# landuse <- 'for' # needs to be commented when running on the server 
 #land_segment_name <- 'A51800' # need to remove before using on server 
 #scenario_name <- 'p532sova_2021'# need to remove before using on server 
 
@@ -29,8 +30,15 @@ save_directory <-  "/media/model/p532/out/land/p532sova_2021"
 argst <- commandArgs(trailingOnly = T)
 land_segment_name <- argst[1]
 scenario_name <- argst[2]
-pwater_file_path <- argst[3]
-landuse <- argst[4]
+landuse <- as.character(argst[3]) # don't need quotes around landuse argument anymore
+pwater_file_path <- argst[4] 
+image_directory_path <- argst[5] # '/media/model/p532/out/land/p532sova_2021/images'
+#image_directory_path <- '/media/model/p532/out/land/p532sova_2021/images' # needs to be commented when running on the server 
+save_directory <-  image_directory_path
+
+
+image_path_split <- strsplit(image_directory_path, split = '/')
+# print(image_path_split[[1]][2]) # this is how to call items of a list
 
 pwater <- fread(pwater_file_path)
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
@@ -115,13 +123,25 @@ model <- RomProperty$new(
 )
 model$save(TRUE)
 
+model_scenario <- RomProperty$new( #Re-ordered scenario to be within the model element and the land use within the scenario
+  ds,
+  list(
+    varkey="om_scenario", 
+    featureid=model$pid, 
+    entity_type="dh_properties", 
+    propname=scenario_name, 
+    propcode=scenario_name 
+  ), 
+  TRUE
+)
+model_scenario$save(TRUE)
 
 lu <- RomProperty$new(
   ds,
   list(
     varkey="om_hspf_landuse", 
     propname=landuse,
-    featureid=model$pid, 
+    featureid=model_scenario$pid, 
     entity_type="dh_properties", 
     propcode=landuse 
   ), 
@@ -134,18 +154,7 @@ lu$save(TRUE)
 # note: do not set tstime when retrieving since if we have a previous
 #       timesereies event already set, we want to gt it and may not know the tstime
 # 
-model_scenario <- RomProperty$new(
-  ds, 
-  list(
-    varkey="om_scenario", 
-    featureid=lu$pid, 
-    entity_type="dh_properties", 
-    propname=scenario_name, 
-    propcode=scenario_name 
-  ), 
-  TRUE
-)
-model_scenario$save(TRUE)
+
 
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
@@ -175,7 +184,7 @@ model_constant_agwo_Runit$save(TRUE)
 
 
 # Add code here to export graphs 
-save_url = paste(omsite,'/p532/out/land/p532sova_2021', sep ='')
+save_url = paste(omsite,image_path_split[[1]][4],image_path_split[[1]][5],image_path_split[[1]][6],image_path_split[[1]][7],image_path_split[[1]][8],sep ='/')
 # For graph 1
 fname <- paste(
   save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'), # building file name
