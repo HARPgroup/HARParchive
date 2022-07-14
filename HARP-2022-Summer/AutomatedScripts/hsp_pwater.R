@@ -15,7 +15,7 @@ library(stats)
 library(R.utils)
 library(hydrotools)
 
-message(R_TempDir)
+#message(R_TempDir)
 basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
