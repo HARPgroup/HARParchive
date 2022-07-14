@@ -21,5 +21,3 @@ pwater$index <- as.POSIXct((pwater$index)/10^9, origin = origin, tz = "UTC")
 # Exporting to a csv
 write.table(pwater,file = output_file_path, sep = ",", row.names = FALSE) # Maybe .csv should be added to the end of file argument?
 
-# Deleting the .h5 used to make the .csv
-file.remove(h5_file_path)
