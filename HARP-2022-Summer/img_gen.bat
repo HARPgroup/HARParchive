@@ -5,30 +5,28 @@ if [ $# -lt 2 ]; then
 fi
 # load paths
 . hspf_config
-scenario=$1
+scenario_name=$1
 basin=$2
 
 # check the directories
 #if [ ! -d "$CBP_EXPORT_DIR" ] ; then mkdir $CBP_EXPORT_DIR; fi
-#if [ ! -d "$CBP_EXPORT_DIR/$scenario" ] ; then mkdir $CBP_EXPORT_DIR/$scenario; fi
-#if [ ! -d "$CBP_EXPORT_DIR/$scenario/eos" ] ; then mkdir $CBP_EXPORT_DIR/$scenario/eos; fi
+#if [ ! -d "$CBP_EXPORT_DIR/$scenario" ] ; then mkdir $CBP_EXPORT_DIR/$scenario_name; fi
+#if [ ! -d "$CBP_EXPORT_DIR/$scenario/eos" ] ; then mkdir $CBP_EXPORT_DIR/$scenario_name/eos; fi
 
 segments=`cbp get_landsegs $basin`
 for landseg in $segments; do
   
   for landuse in landuses do
-  h5_source = %landuse% + %landseg%  .h5
-  echo h5_source
+  h5_file_path = %landuse% + %landseg%  .h5
+  echo h5_file_path
 
-  SET csv_output = %landuse% + %landseg%  _pwater.h5
-  echo csv_output
+  SET output_file_path = %landuse% + %landseg%  _pwater.csv
+  echo output_file_path
 
-  echo "Rscript /media/model/p6/out/land/hsp2_2022/eos/export_hsp_h5.R $h5_source $csv_output $data_source_table"
-  Rscript /media/model/p6/out/land/hsp2_2022/eos/export_hsp_h5.R $h5_source $csv_output $data_source_table
+  echo "Rscript HARParchive/HARP-Summer-2022/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_file_path $data_source_table"
   
-  echo "Rscript /media/model/p6/out/land/hsp2_2022/eos/hsp_pwater.R $landseg $scenario $csv_output $landuse"
-    Rscript /media/model/p6/out/land/hsp2_2022/eos/hsp_pwater.R $landseg $scenario $csv_output $landuse
-
+  echo "Rscript HARParchive/HARP-Summer-2022/AutomatedScripts/hsp_pwater.R $landseg $scenario $landuse $output_file_path $image_file_path "
+   
   #remove old .h5 file
   del h5_file_path
   done
