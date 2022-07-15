@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -lt 2 ]; then
-  echo "Usage: cbp img_gen scenario basin "
+  echo "Usage: cbp img_gen scenario basin"
     exit 1
 fi
 # load paths
