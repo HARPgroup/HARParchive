@@ -7,7 +7,7 @@ output:
   html_document: default
 ---
 
-### Timeseries Analysis Exploration
+# Timeseries Analysis Exploration
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,6 +22,7 @@ library(readr)
 ```
 
 ```{r}
+setwd("/Users/VT_SA/Documents/HARP")
 pwater <- read_csv("forA51800_pwater.csv")
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
 pwater$week <- week(pwater$date)
@@ -30,8 +31,12 @@ pwater$year <- year(pwater$date)
 ```
 
 ```{r}
-monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month), FUN = "mean")
-colnames(monthlyAGWS) <- c("month", "AGWS")
+dailyAGWS <- aggregate(pwater$AGWS, by = list(pwater$date), FUN = "mean")
+colnames(dailyAGWS) <- c("date", "AGWS")
+monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean")
+colnames(monthlyAGWS) <- c("month","year", "AGWS")
+yearlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "mean")
+colnames(yearlyAGWS) <- c("year", "AGWS")
 ```
 
 <br>
@@ -99,7 +104,7 @@ __Conclusion:__ This might be an easy way to plot averages in various time inter
 
 <br>
 
-# Setting a timeseries:
+### Setting a timeseries:
 
 ```{r}
 # the functions below require data that is created with ts()
@@ -123,17 +128,17 @@ $type
 <br>
 
 ```{r}
-agws_decomp <- decompose(AGWS_ts, type = "multiplicative") #here we note the type of data set we are working with
+agws_decompM <- decompose(AGWS_ts, type = "multiplicative") #here we note the type of data set we are working with
 
-plot(agws_decomp)
+plot(agws_decompM)
 
-decomp_df <- data.frame(agws_decomp$figure)
-colnames(decomp_df) <- c('Seasonality')
-rownames(decomp_df) <- c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec')
-decomp_df
+decomp_dfM <- data.frame(agws_decompM$figure)
+colnames(decomp_dfM) <- c('Seasonality')
+rownames(decomp_dfM) <- c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec')
+decomp_dfM
 
 
-plot(agws_decomp$figure, type = 'l', ylab = 'AGWS Fitted Trend (in)', xaxt = 'n', xlab = NA, col = 'blue')
+plot(agws_decompM$figure, type = 'l', ylab = 'AGWS Fitted Trend (in)', xaxt = 'n', xlab = NA, col = 'blue')
 axis(1, at = seq(1,12,1), labels = c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'))
 title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
 
@@ -143,6 +148,45 @@ title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
 __Conclusion:__ Our data set is 'multiplicative', which is why the 'type' has to be specified in the decompose() -function. This explains why some of the values in the decomposition are straight lines (our data isn't 'additive'). The 'figure' column displays the fitted trend for the active groundwater storage for each month. This displays the seasonal variability between the months very well, where the summer months have low storage compared to high storage months in the winter. 
 
 This could be showcased in the water year so that the plot would be a bell shape.
+
+```{r}
+agws_decompA <- decompose(AGWS_ts, type = "additive") #here we note the type of data set we are working with
+
+plot(agws_decompA)
+
+decomp_dfA <- data.frame(agws_decompA$figure)
+colnames(decomp_dfA) <- c('Seasonality')
+rownames(decomp_dfA) <- c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec')
+decomp_dfA
+
+
+plot(agws_decompA$figure, type = 'l', ylab = 'AGWS Fitted Trend (in)', xaxt = 'n', xlab = NA, col = 'blue')
+axis(1, at = seq(1,12,1), labels = c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'))
+title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
+
+```
+<br>
+
+## Additive or multiplicative???
+
+```{r}
+
+acfM <- acf(agws_decompM$random, lag.max=20, na.action = na.omit)
+
+ljung_boxM <- Box.test(agws_decompM$random, lag=20, type="Ljung-Box")
+
+plot.ts(agws_decompM$random)
+
+acfA <- acf(agws_decompA$random, lag.max=20, na.action = na.omit)
+
+ljung_boxA <- Box.test(agws_decompA$random, lag=20, type="Ljung-Box")
+
+plot.ts(agws_decompA$random)
+
+#ssacf<- function(x) sum(acf(x, na.action = na.omit)$acf^2)
+#compare_ssacf<-function(add,mult) ifelse(ssacf(add)< ssacf(mult), "Additive", "Multiplicative")
+#AGWS_ts[,(multiplicative = compare_ssacf('residual_a', 'residual_m' ))]
+```
 
 <br>
 
@@ -190,8 +234,56 @@ __Conclusion:__ The first plot "Holt-Winters filtering" displays the raw data an
 
 <br>
 
+```{r}
+acf_holtA <- acf(agws_holt_winters$coefficients, na.action = na.omit)
+
+ljung_boxM <- Box.test(agws_holt_winters$coefficients, lag=20, type="Ljung-Box")
+
+ljung_boxM
+
+plot.ts(agws_holt_winters$coefficients)
+
+```
 ## Potential futher analysis:
 
 The function stl() was mentioned with the decompose() function. It apparently has potential for more seasonal decomposition analysis. I didn't look into this yet.
 
 Especially the Holt-Winter forecasting function seems to be a powerful tool for predicting future data in a time series, but it is unsure if this is necessary in our case.
+
+<br>
+
+# 7/14/2022 - Next Steps
+
+## Box plots
+
+```{r}
+#par(mfrow=c(1,2)) 
+dailyAGWS$month <- month(dailyAGWS$date)
+dailyAGWS$year <- year(dailyAGWS$date)
+
+dailySummer <- filter(dailyAGWS, month==7|month==8|month==9|month==10)
+monthlySummer <- aggregate(dailySummer$AGWS, by = list(dailySummer$month, dailySummer$year), FUN = "mean")
+colnames(monthlySummer) <- c('Month', 'Year', 'AGWS')
+monthlySummer$date <-  as.Date(paste(monthlySummer$Month, monthlySummer$Year, '15'), '%m %Y %d')
+
+dailyWinter <- filter(dailyAGWS, month==1 | month==2 | month==3 | month==12)
+monthlyWinter <- aggregate(dailyWinter$AGWS, by = list(dailyWinter$month, dailyWinter$year), FUN = "mean")
+colnames(monthlyWinter) <- c('Month', 'Year', 'AGWS')
+monthlyWinter$date <-  as.Date(paste(monthlyWinter$Month, monthlyWinter$Year, '15'), '%m %Y %d')
+
+boxplot(dailySummer$AGWS, dailyWinter$AGWS, ylab = 'Daily AGWS (in)', xaxt = 'n', xlab = NA, 
+        main = 'Active Groundwater Storage in 1984-2020', col = c("pink", "lightblue"))
+axis(1, at = 1:2, labels = c('Summer (July - Oct)', 'Winter (Dec - March)'))
+
+```
+
+
+```{r}
+yearlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "mean")
+colnames(yearlyAGWS) <- c("year", "AGWS")
+
+AGWS_interval <- filter(yearlyAGWS, year==1:6|year==7:12|year==13:18|year==19:24|year==25:30
+                        |year==31:36)
+
+boxplot(AGWS_interval, )
+```
