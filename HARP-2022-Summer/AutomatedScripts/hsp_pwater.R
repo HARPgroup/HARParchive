@@ -166,7 +166,8 @@ model_constant_Runit <- RomProperty$new(
     entity_type='dh_properties',
     propname = 'l90_Runit',
     propvalue= l90_Runit
-  )
+  ),
+  TRUE
 )
 model_constant_Runit$save(TRUE)
 
@@ -177,7 +178,8 @@ model_constant_agwo_Runit <- RomProperty$new(
     entity_type='dh_properties',
     propname = 'l90_agwo_Runit',
     propvalue= l90_agwo_Runit
-  )
+  ),
+  TRUE
 )
 model_constant_agwo_Runit$save(TRUE)
 
@@ -207,7 +209,8 @@ model_graph1 <- RomProperty$new(
     entity_type='dh_properties',
     propcode = furl,
     propname = 'fig.AGWS'
-  )
+  ),
+  TRUE
 )
 model_graph1$save(TRUE)
 
@@ -230,13 +233,14 @@ ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)
   theme(legend.position = 'bottom')
 dev.off()
 print(paste("Saved file: ", fname2, "with URL", furl2))
-model_graph1 <- RomProperty$new(
+model_graph2 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
     featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl2,
     propname = 'fig.totalFlowOut'
-  )
+  ),
+  TRUE
 )
-model_graph1$save(TRUE)
+model_graph2$save(TRUE)
