@@ -21,8 +21,8 @@ source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 #landuse <- 'for' # needs to be commented when running on the server 
-#land_segment_name <- 'A51019' # need to remove before using on server 
-#scenario_name <- 'p532sova_2021'# need to remove before using on server 
+#land_segment_name <- 'A51019' # need to comment before using on server 
+#scenario_name <- 'hsp2_2022'# need to comment before using on server 
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -31,7 +31,7 @@ scenario_name <- argst[2]
 landuse <- as.character(argst[3]) # don't need quotes around landuse argument anymore
 pwater_file_path <- argst[4] 
 image_directory_path <- argst[5] # '/media/model/p532/out/land/p532sova_2021/images'
-#image_directory_path <- '/opt/model/p53/p532c-sova/output/hspf/land/out/for/hsp2_2022/images' # needs to be commented when running on the server 
+#image_directory_path <- '/media/model/p532/out/land/hsp2_2022/images' # needs to be commented when running on the server 
 
 
 image_path_split <- strsplit(image_directory_path, split = '/')
