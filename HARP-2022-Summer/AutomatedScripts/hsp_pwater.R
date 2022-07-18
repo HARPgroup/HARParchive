@@ -18,7 +18,6 @@ basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
-# save_directory <-  "/var/www/html/data/proj3/out"
 #landuse <- 'for' # needs to be commented when running on the server 
 #land_segment_name <- 'A51019' # need to remove before using on server 
 #scenario_name <- 'p532sova_2021'# need to remove before using on server 
