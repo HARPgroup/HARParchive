@@ -12,6 +12,7 @@ library(PearsonDS)
 library(ggplot2)
 library(dplyr)
 library(R.utils)
+library(hydrotools)
 
 #message(R_TempDir)
 basepath='/var/www/R';
