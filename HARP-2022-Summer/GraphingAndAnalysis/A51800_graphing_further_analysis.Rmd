@@ -24,7 +24,7 @@ library(readr)
 ```{r}
 setwd("/Users/VT_SA/Documents/HARP")
 pwater <- read_csv("forA51800_pwater.csv")
-pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
+pwater$date <- as.Date(pwater$index, format = "%m/%d/%Y %H:%M")
 pwater$week <- week(pwater$date)
 pwater$month <- month(pwater$date)
 pwater$year <- year(pwater$date)
@@ -110,6 +110,7 @@ __Conclusion:__ This might be an easy way to plot averages in various time inter
 # the functions below require data that is created with ts()
 AGWS_ts <- ts(monthlyAGWS$AGWS, start = c(1984,1), end = c(2020,12), frequency = 12)
 # frequency = 12 (monthly); = 4 (quarterly); = 1 (annual)
+plot.ts(AGWS_ts)
 ```
 
 <br>
@@ -127,6 +128,8 @@ $type
 
 <br>
 
+## Multiplicative
+
 ```{r}
 agws_decompM <- decompose(AGWS_ts, type = "multiplicative") #here we note the type of data set we are working with
 
@@ -142,12 +145,13 @@ plot(agws_decompM$figure, type = 'l', ylab = 'AGWS Fitted Trend (in)', xaxt = 'n
 axis(1, at = seq(1,12,1), labels = c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'))
 title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
 
+
 ```
 <br>
 
-__Conclusion:__ Our data set is 'multiplicative', which is why the 'type' has to be specified in the decompose() -function. This explains why some of the values in the decomposition are straight lines (our data isn't 'additive'). The 'figure' column displays the fitted trend for the active groundwater storage for each month. This displays the seasonal variability between the months very well, where the summer months have low storage compared to high storage months in the winter. 
+__Conclusion:__ ...
 
-This could be showcased in the water year so that the plot would be a bell shape.
+## Additive
 
 ```{r}
 agws_decompA <- decompose(AGWS_ts, type = "additive") #here we note the type of data set we are working with
@@ -165,29 +169,6 @@ axis(1, at = seq(1,12,1), labels = c('Jan','Feb','Mar','Apr','May','June','July'
 title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
 
 ```
-<br>
-
-## Additive or multiplicative???
-
-```{r}
-
-acfM <- acf(agws_decompM$random, lag.max=20, na.action = na.omit)
-
-ljung_boxM <- Box.test(agws_decompM$random, lag=20, type="Ljung-Box")
-
-plot.ts(agws_decompM$random)
-
-acfA <- acf(agws_decompA$random, lag.max=20, na.action = na.omit)
-
-ljung_boxA <- Box.test(agws_decompA$random, lag=20, type="Ljung-Box")
-
-plot.ts(agws_decompA$random)
-
-#ssacf<- function(x) sum(acf(x, na.action = na.omit)$acf^2)
-#compare_ssacf<-function(add,mult) ifelse(ssacf(add)< ssacf(mult), "Additive", "Multiplicative")
-#AGWS_ts[,(multiplicative = compare_ssacf('residual_a', 'residual_m' ))]
-```
-
 <br>
 
 ## Holt-Winters() -function
@@ -210,51 +191,49 @@ This function can be further utilized to modify the time period and to forecast 
 
 <br>
 
-```{r}
-agws_holt_winters <- HoltWinters(AGWS_ts, gamma = FALSE, seasonal = "multiplicative") #gamma set as false since we aren't dealing with additive data
+## Additive
 
-plot(agws_holt_winters, col = 'blue')
-agws_ab <- data.frame(agws_holt_winters$alpha, agws_holt_winters$beta)
-colnames(agws_ab) <- c('Alpha','Beta')
-rownames(agws_ab) <- c('AGWS')
-agws_ab
+```{r}
+agws_holt_wintersA <- HoltWinters(AGWS_ts, gamma = TRUE, seasonal = "additive") #gamma set as false
+
+agws_hw_plotA <- plot(agws_holt_wintersA, col = 'blue')
 
 # Extracting the trend -column from the fitted values:
-agws_fitted <- data.frame(agws_holt_winters$fitted)
-plot(agws_fitted$trend, type = 'l', ylab = 'AGWS Fitted Trend', xaxt = 'n', xlab = NA, col = 'blue')
+agws_fittedA <- data.frame(agws_holt_wintersA$fitted)
+plot(agws_fittedA$trend, type = 'l', ylab = 'AGWS Fitted Trend', xaxt = 'n', xlab = NA, col = 'blue')
 years <- seq(1984,2020,1)
 axis(1, at = seq(6,444,12), labels = years) 
 title(main = 'Active Groundwater Storage Fitted Trend')
 
 ```
+## Multiplicative
 
-<br>
-
-__Conclusion:__ The first plot "Holt-Winters filtering" displays the raw data and the fitted data, in order to see if the function fits well. Based on our figure it seems like it is a good fit. After extracting just the 'trend' column within the 'fitted' value, it results in a plot that demonstrates the trend within the time series where active groundwater storage decreases over the years. If gamma is set to TRUE, it doesn't provide clean trends, this only verifies the analysis that our data is multiplicative.
-
-<br>
 
 ```{r}
-acf_holtA <- acf(agws_holt_winters$coefficients, na.action = na.omit)
+agws_holt_wintersM <- HoltWinters(AGWS_ts, gamma = FALSE, seasonal = "multiplicative") #gamma set as false
 
-ljung_boxM <- Box.test(agws_holt_winters$coefficients, lag=20, type="Ljung-Box")
+agws_hw_plotM <- plot(agws_holt_wintersM, col = 'blue')
 
-ljung_boxM
+# Extracting the trend -column from the fitted values:
+agws_fittedM <- data.frame(agws_holt_wintersM$fitted)
+plot(agws_fittedM$trend, type = 'l', ylab = 'AGWS Fitted Trend', xaxt = 'n', xlab = NA, col = 'blue')
+years <- seq(1984,2020,1)
+axis(1, at = seq(6,444,12), labels = years) 
+title(main = 'Active Groundwater Storage Fitted Trend')
 
-plot.ts(agws_holt_winters$coefficients)
+agws_adjustedM <- AGWS_ts - agws_holt_wintersM$fitted
+plot(agws_adjustedM)
 
 ```
-## Potential futher analysis:
-
-The function stl() was mentioned with the decompose() function. It apparently has potential for more seasonal decomposition analysis. I didn't look into this yet.
-
-Especially the Holt-Winter forecasting function seems to be a powerful tool for predicting future data in a time series, but it is unsure if this is necessary in our case.
 
 <br>
 
-# 7/14/2022 - Next Steps
+__Conclusion:__ .....
 
-## Box plots
+<br>
+
+
+# Box plots
 
 ```{r}
 #par(mfrow=c(1,2)) 
@@ -277,13 +256,44 @@ axis(1, at = 1:2, labels = c('Summer (July - Oct)', 'Winter (Dec - March)'))
 
 ```
 
+## Yearly Median
 
 ```{r}
-yearlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "mean")
-colnames(yearlyAGWS) <- c("year", "AGWS")
+AGWS_median <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "median")
+colnames(AGWS_median) <- c("year", "median")
 
-AGWS_interval <- filter(yearlyAGWS, year==1:6|year==7:12|year==13:18|year==19:24|year==25:30
-                        |year==31:36)
+plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS median (in)", xlab = NA)
+title(main = "Active Groundwater Storage Yearly Median")
+abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
 
-boxplot(AGWS_interval, )
+median_lm <- lm(median~year, data = AGWS_median)
+  slope <- summary(median_lm)$coefficients[2]
+  Rsq <- summary(median_lm)$r.squared
+  p <- summary(median_lm)$coefficients[2,4]
+
 ```
+
+
+Lower 25 percentile median
+
+```{r}
+AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
+
+AGWS_perc <- AGWS_median$median - AGWS_25
+perc_df <- data.frame(AGWS_median$year, AGWS_perc)
+colnames(perc_df) <- c("year", "median_25")
+
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
+  lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
+  abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
+  abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
+  legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
+  title(main = "Yearly Active Groundwater Storage")
+
+lm_25 <- lm(median_25~year, data = perc_df)
+  slope_25 <- summary(lm_25)$coefficients[2]
+  Rsq_25 <- summary(lm_25)$r.squared
+  p_25 <- summary(lm_25)$coefficients[2,4]
+
+```
+

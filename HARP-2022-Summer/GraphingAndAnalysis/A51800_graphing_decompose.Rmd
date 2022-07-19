@@ -15,13 +15,14 @@ library(ggplot2)
 library(dplyr)
 library(lubridate)
 library(readr)
+library(knitr)
 ```
 
 
 ```{r}
 setwd("/Users/VT_SA/Documents/HARP")
 pwater <- read_csv("forA51800_pwater.csv")
-pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
+pwater$date <- as.Date(pwater$index, format = "%m/%d/%Y %H:%M")
 pwater$week <- week(pwater$date)
 pwater$month <- month(pwater$date)
 pwater$year <- year(pwater$date)
@@ -31,8 +32,8 @@ pwater$year <- year(pwater$date)
 ```{r}
 #dailyAGWS <- aggregate(pwater$AGWS, by = list(pwater$date), FUN = "mean")
 #colnames(dailyAGWS) <- c("date", "AGWS")
-monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean")
-colnames(monthlyAGWS) <- c("month","year", "AGWS")
+#monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean")
+#colnames(monthlyAGWS) <- c("month","year", "AGWS")
 #yearlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "mean")
 #colnames(yearlyAGWS) <- c("year", "AGWS")
 ```
@@ -40,8 +41,9 @@ colnames(monthlyAGWS) <- c("month","year", "AGWS")
 
 ```{r}
 # the functions below require data that is created with ts()
-AGWS_ts <- ts(monthlyAGWS$AGWS, start = c(1984,1), end = c(2020,12), frequency = 12)
+AGWS_ts <- ts(pwater$AGWS, start = c(1984,1), end = c(2020,12), frequency = 12)
 # frequency = 12 (monthly); = 4 (quarterly); = 1 (annual)
+head(AGWS_ts)
 ```
 
 ## Multiplicative
@@ -60,6 +62,9 @@ decomp_dfM
 plot(agws_decompM$figure, type = 'l', ylab = 'AGWS Fitted Trend (in)', xaxt = 'n', xlab = NA, col = 'blue')
 axis(1, at = seq(1,12,1), labels = c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'))
 title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
+
+plot(agws_decompM$trend, type = 'l', ylab = 'AGWS Fitted Trend (in)', xlab = NA, col = 'blue')
+title(main = 'Active Groundwater Storage Fitted Trend')
 ```
 
 
@@ -75,10 +80,12 @@ colnames(decomp_dfA) <- c('Seasonality')
 rownames(decomp_dfA) <- c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec')
 decomp_dfA
 
-
 plot(agws_decompA$figure, type = 'l', ylab = 'AGWS Fitted Trend (in)', xaxt = 'n', xlab = NA, col = 'blue')
 axis(1, at = seq(1,12,1), labels = c('Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'))
 title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
+
+plot(agws_decompA$trend, type = 'l', ylab = 'AGWS Fitted Trend (in)', xlab = NA, col = 'blue')
+title(main = 'Active Groundwater Storage Fitted Trend')
 ```
 
 
@@ -87,16 +94,13 @@ title(main = 'Active Groundwater Storage Fitted Trend (1984-2020)')
 ```{r}
 #multiplicative
 acfM <- acf(agws_decompM$random, na.action = na.omit)
-plotM_acf <- plot(acfM)
 
 ljung_boxM <- Box.test(agws_decompM$random, lag=1, type="Ljung-Box")
 print(ljung_boxM)
 
 #additive
 acfA <- acf(agws_decompA$random, na.action = na.omit)
-plotA_acf <- plot(acfA)
 
 ljung_boxA <- Box.test(agws_decompA$random, lag=1, type="Ljung-Box")
 print(ljung_boxA)
 ```
-
