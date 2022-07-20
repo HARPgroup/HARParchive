@@ -277,7 +277,7 @@ furl2 <- paste(
   sep = '/'
 )
 png(fname2)
-plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
 title(main = "Annual Active Groundwater Storage")
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
 dev.off()
