@@ -44,6 +44,9 @@ path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 
+path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
+path_string_m2 <- paste(path_list_m2, collapse = "/")
+
 pwater <- fread(pwater_file_path)
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%Y %H:%M")
 pwater$week <- week(pwater$date)
@@ -64,17 +67,10 @@ AGWS_ts <- ts(monthlyAGWS$AGWS, start = c(1984,1), end = c(2020,12), frequency =
 
 agws_decomp <- decompose(AGWS_ts, type = "multiplicative") #multiplicative seasonality was chosen
 
-    #plot(agws_decomp) #in the script below
-
-
 # 2. Yearly Median
 
 AGWS_median <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "median")
 colnames(AGWS_median) <- c("year", "median")
-
-    #plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
-    #title(main = "Annual Active Groundwater Storage")
-    #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')     #in the script below
 
 median_lm <- lm(median~year, data = AGWS_median)
 
@@ -82,22 +78,13 @@ slope <- summary(median_lm)$coefficients[2]
 rsquared <- summary(median_lm)$r.squared
 p <- summary(median_lm)$coefficients[2,4]
 
-
 # 3. 25th percentile Yearly Median
 
 AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
 
-AGWS_perc <- AGWS_median$median - AGWS_25
+AGWS_perc <- AGWS_median$median - AGWS_25       # this has to be changed!!!!!!!!
 perc_df <- data.frame(AGWS_median$year, AGWS_perc)
 colnames(perc_df) <- c("year", "median_25")
-
-    #plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
-    #lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
-    #abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
-    #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
-    #legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
-    #title(main = "Annual Active Groundwater Storage")      
-                                                              #in the script below
 
 min_25 <- min(perc_df$median_25)
 max_med <- max(AGWS_median$median)
@@ -108,6 +95,8 @@ slope_25th <- summary(lm_25)$coefficients[2]
 rsquared_25th <- summary(lm_25)$r.squared
 p_25th <- summary(lm_25)$coefficients[2,4]
 
+min_lim <- min(perc_df$median_25)
+max_lim <- max(AGWS_median$median)
 
 # Exporting to VAHydro
 
@@ -315,11 +304,12 @@ furl3 <- paste(
   sep = '/'
 )
 png(fname3)
+
 plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_25,max_med))
 lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
 abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
-legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
+legend(x = "topright", legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
 title(main = "Annual Active Groundwater Storage")
 dev.off()
 print(paste("Saved file: ", fname3, "with URL", furl3))
