@@ -78,15 +78,7 @@ slope <- summary(median_lm)$coefficients[2]
 rsquared <- summary(median_lm)$r.squared
 p <- summary(median_lm)$coefficients[2,4]
 
-# 3. 25th percentile Yearly Median
 
-AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
-
-lm_25 <- lm(q1~year, data = AGWS_median)
-
-slope_25th <- summary(lm_25)$coefficients[2]
-rsquared_25th <- summary(lm_25)$r.squared
-p_25th <- summary(lm_25)$coefficients[2,4]
 
 quan_fun <- function(pwater) {   #Creating a function to use in aggregate function for 25th percentile 
   quantile(pwater, probs = .25)
@@ -97,6 +89,17 @@ AGWS_median$q1 <- quan_ag$q1
 
 min_lim <- min(AGWS_median$q1)
 max_lim <- max(AGWS_median$median)
+
+# 3. 25th percentile Yearly Median
+
+AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
+
+lm_25 <- lm(q1~year, data = AGWS_median)
+
+slope_25th <- summary(lm_25)$coefficients[2]
+rsquared_25th <- summary(lm_25)$r.squared
+p_25th <- summary(lm_25)$coefficients[2,4]
+
 
 # Exporting to VAHydro
 
