@@ -176,41 +176,41 @@ lu$save(TRUE)
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
-model_constant_rsq <- RomProperty$new(
+model_constant_rsq50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'rsquared',
+    propname = 'rsquared_med',
     propvalue= rsquared
   ),
   TRUE
 )
-model_constant_rsq$save(TRUE)
+model_constant_rsq50$save(TRUE)
 
-model_constant_slope <- RomProperty$new(
+model_constant_slope50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'slope',
+    propname = 'slope_med',
     propvalue= slope
   ),
   TRUE
 )
-model_constant_slope$save(TRUE)
+model_constant_slope50$save(TRUE)
 
-model_constant_p <- RomProperty$new(
+model_constant_p50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'p',
+    propname = 'p_med',
     propvalue= p
   ),
   TRUE
 )
-model_constant_p$save(TRUE)
+model_constant_p50$save(TRUE)
 
 model_constant_rsq25 <- RomProperty$new(
   ds, list(
@@ -312,7 +312,7 @@ furl3 <- paste(
   sep = '/'
 )
 png(fname3)
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
 lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
 abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
