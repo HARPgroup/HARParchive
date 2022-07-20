@@ -82,14 +82,7 @@ p <- summary(median_lm)$coefficients[2,4]
 
 AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
 
-AGWS_perc <- AGWS_median$median - AGWS_25       # this has to be changed!!!!!!!!
-perc_df <- data.frame(AGWS_median$year, AGWS_perc)
-colnames(perc_df) <- c("year", "median_25")
-
-min_25 <- min(perc_df$median_25)
-max_med <- max(AGWS_median$median)
-
-lm_25 <- lm(median_25~year, data = perc_df)
+lm_25 <- lm(q1~year, data = AGWS_median)
 
 slope_25th <- summary(lm_25)$coefficients[2]
 rsquared_25th <- summary(lm_25)$r.squared
