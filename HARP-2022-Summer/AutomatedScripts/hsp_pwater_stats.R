@@ -304,11 +304,11 @@ model_graph2$save(TRUE)
 
 # For graph 3
 fname3 <- paste(
-  image_directory_path,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS.25perc', '.png'), # building file name
+  image_directory_path,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS25perc', '.png'), # building file name
   sep = '/'
 )
 furl3 <- paste(
-  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS.25perc', '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS25perc', '.png'),
   sep = '/'
 )
 png(fname3)
@@ -326,7 +326,7 @@ model_graph3 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl3,
-    propname = 'fig.AGWS.25perc'
+    propname = 'fig.AGWS25perc'
   ),
   TRUE
 )
