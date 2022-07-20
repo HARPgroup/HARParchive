@@ -1,6 +1,9 @@
 # This script will convert the pwater csv to a data table and perform analysis & generate graphs 
 #install.packages("IHA", repos="http://R-Forge.R-project.org")
 #install_github("HARPGroup/hydro-tools", force=TRUE)
+basepath='/var/www/R';
+source("/var/www/R/config.R") # will need file in same folder/directory
+
 library(data.table)
 library(lubridate)
 library(zoo)
@@ -16,8 +19,7 @@ library(R.utils)
 library(hydrotools)
 
 #message(R_TempDir)
-basepath='/var/www/R';
-source("/var/www/R/config.R") # will need file in same folder/directory
+
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 #landuse <- 'for' # needs to be commented when running on the server 
