@@ -95,7 +95,14 @@ slope_25th <- summary(lm_25)$coefficients[2]
 rsquared_25th <- summary(lm_25)$r.squared
 p_25th <- summary(lm_25)$coefficients[2,4]
 
-min_lim <- min(perc_df$median_25)
+quan_fun <- function(pwater) {   #Creating a function to use in aggregate function for 25th percentile 
+  quantile(pwater, probs = .25)
+}
+quan_ag <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = quan_fun)
+colnames(quan_ag) <- c('year','q1')
+AGWS_median$q1 <- quan_ag$q1
+
+min_lim <- min(AGWS_median$q1)
 max_lim <- max(AGWS_median$median)
 
 # Exporting to VAHydro
@@ -305,9 +312,9 @@ furl3 <- paste(
 )
 png(fname3)
 
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_25,max_med))
-lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
-abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_lim,max_lim))
+lines(AGWS_median$year, AGWS_median$q1 , type = 'l', col = 'forestgreen')
+abline(lm(AGWS_median$q1 ~ AGWS_median$year), col='purple')
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
 legend(x = "topright", legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
 title(main = "Annual Active Groundwater Storage")
