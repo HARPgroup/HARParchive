@@ -1,8 +1,10 @@
 # This script will convert the pwater csv to a data table and perform 
 # time series and trend analysis by generating graphs and summary statistics.
-
 #install.packages("IHA", repos="http://R-Forge.R-project.org")
 #install_github("HARPGroup/hydro-tools", force=TRUE)
+basepath='/var/www/R';
+source("/var/www/R/config.R") # will need file in same folder/directory
+
 library(data.table)
 library(lubridate)
 library(zoo)
@@ -18,14 +20,12 @@ library(R.utils)
 library(hydrotools)
 
 #message(R_TempDir)
-basepath='/var/www/R';
-source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 #save_directory <-  "/var/www/html/data/proj3/out"
 #landuse <- 'for' # needs to be commented when running on the server 
 #land_segment_name <- 'A51800' # need to remove before using on server 
-#scenario_name <- 'p532sova_2021'# need to remove before using on server 
+#scenario_name <- 'hsp2_2022'# need to remove before using on server 
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -34,12 +34,15 @@ scenario_name <- argst[2]
 landuse <- as.character(argst[3]) # don't need quotes around landuse argument anymore
 pwater_file_path <- argst[4] 
 image_directory_path <- argst[5] # '/media/model/p532/out/land/p532sova_2021/images'
-#image_directory_path <- '/media/model/p532/out/land/p532sova_2021/images' # needs to be commented when running on the server 
-save_directory <-  image_directory_path
+#image_directory_path <- '/media/model/p532/out/land/hsp2_2022/images' # needs to be commented when running on the server 
+
 
 
 image_path_split <- strsplit(image_directory_path, split = '/')
 # print(image_path_split[[1]][2]) # this is how to call items of a list
+path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
+path_string_m2 <- paste(path_list_m2, collapse = "/")
+
 
 path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
@@ -75,7 +78,6 @@ slope <- summary(median_lm)$coefficients[2]
 rsquared <- summary(median_lm)$r.squared
 p <- summary(median_lm)$coefficients[2,4]
 
-
 # 3. 25th percentile Yearly Median
 
 AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
@@ -83,6 +85,9 @@ AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
 AGWS_perc <- AGWS_median$median - AGWS_25       # this has to be changed!!!!!!!!
 perc_df <- data.frame(AGWS_median$year, AGWS_perc)
 colnames(perc_df) <- c("year", "median_25")
+
+min_25 <- min(perc_df$median_25)
+max_med <- max(AGWS_median$median)
 
 lm_25 <- lm(median_25~year, data = perc_df)
 
@@ -168,12 +173,11 @@ model_constant_rsq50 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'rsquared_med',
+    propname = 'rsquared_med'
   ),
   TRUE
 )
-model_constant_rsq50$propcode <- met.propcode
-model_constant_rsq50$propvalue <- as.numeric(rsquared_med)
+model_constant_rsq50$propvalue <- as.numeric(rsquared)
 model_constant_rsq50$save(TRUE)
 
 model_constant_slope50 <- RomProperty$new(
@@ -181,12 +185,11 @@ model_constant_slope50 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'slope_med',
+    propname = 'slope_med'
   ),
   TRUE
 )
-model_constant_slope50$propcode <- met.propcode
-model_constant_slope50$propvalue <- as.numeric(slope_med)
+model_constant_slope50$propvalue <- as.numeric(slope)
 model_constant_slope50$save(TRUE)
 
 model_constant_p50 <- RomProperty$new(
@@ -194,12 +197,11 @@ model_constant_p50 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'p_med',
+    propname = 'p_med'
   ),
   TRUE
 )
-model_constant_p50$propcode <- met.propcode
-model_constant_p50$propvalue <- as.numeric(p_med)
+model_constant_p50$propvalue <- as.numeric(p) 
 model_constant_p50$save(TRUE)
 
 model_constant_rsq25 <- RomProperty$new(
@@ -207,11 +209,10 @@ model_constant_rsq25 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'rsquared_25th',
+    propname = 'rsquared_25th'
   ),
   TRUE
 )
-model_constant_rsq25$propcode <- met.propcode
 model_constant_rsq25$propvalue <- as.numeric(rsquared_25th)
 model_constant_rsq25$save(TRUE)
 
@@ -220,11 +221,10 @@ model_constant_slope25 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'slope_25th',
+    propname = 'slope_25th'
   ),
   TRUE
 )
-model_constant_slope25$propcode <- met.propcode
 model_constant_slope25$propvalue <- as.numeric(slope_25th)
 model_constant_slope25$save(TRUE)
 
@@ -233,11 +233,10 @@ model_constant_p25 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'p_25th',
+    propname = 'p_25th'
   ),
   TRUE
 )
-model_constant_p25$propcode <- met.propcode
 model_constant_p25$propvalue <- as.numeric(p_25th)
 model_constant_p25$save(TRUE)
 
@@ -305,7 +304,8 @@ furl3 <- paste(
   sep = '/'
 )
 png(fname3)
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_lim,max_lim))
+
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_25,max_med))
 lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
 abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
@@ -319,7 +319,7 @@ model_graph3 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl3,
-    propname = 'fig.25perc'
+    propname = 'fig.AGWS25perc'
   ),
   TRUE
 )
