@@ -22,7 +22,7 @@ basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
-# save_directory <-  "/var/www/html/data/proj3/out"
+#save_directory <-  "/var/www/html/data/proj3/out"
 #landuse <- 'for' # needs to be commented when running on the server 
 #land_segment_name <- 'A51800' # need to remove before using on server 
 #scenario_name <- 'p532sova_2021'# need to remove before using on server 
@@ -46,6 +46,9 @@ pwater$date <- as.Date(pwater$index, format = "%m/%d/%Y %H:%M")
 pwater$week <- week(pwater$date)
 pwater$month <- month(pwater$date)
 pwater$year <- year(pwater$date)
+
+monthlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$month, pwater$year), FUN = "mean")
+colnames(monthlyAGWS) <- c("month","year", "AGWS")
 yearlyAGWS <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "mean")
 colnames(yearlyAGWS) <- c("year", "AGWS")
 
@@ -56,8 +59,9 @@ colnames(yearlyAGWS) <- c("year", "AGWS")
 
 AGWS_ts <- ts(monthlyAGWS$AGWS, start = c(1984,1), end = c(2020,12), frequency = 12)
 
-agws_decompM <- decompose(AGWS_ts, type = "multiplicative") #multiplicative seasonality was chosen
-plot(agws_decompM) #to be pushed to VAHydro
+agws_decomp <- decompose(AGWS_ts, type = "multiplicative") #multiplicative seasonality was chosen
+
+    #plot(agws_decomp) #in the script below
 
 
 # 2. Yearly Median
@@ -65,13 +69,14 @@ plot(agws_decompM) #to be pushed to VAHydro
 AGWS_median <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "median")
 colnames(AGWS_median) <- c("year", "median")
 
-plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS median (in)", xlab = NA)
-title(main = "Active Groundwater Storage Yearly Median")
-abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
+    #plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
+    #title(main = "Annual Active Groundwater Storage")
+    #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')     #in the script below
 
 median_lm <- lm(AGWS_median~year, data = AGWS_yearly_median)
+
 slope <- summary(median_lm)$coefficients[2]
-Rsq <- summary(median_lm)$r.squared
+squared <- summary(median_lm)$r.squared
 p <- summary(median_lm)$coefficients[2,4]
 
 
@@ -83,20 +88,22 @@ AGWS_perc <- AGWS_median$median - AGWS_25
 perc_df <- data.frame(AGWS_median$year, AGWS_perc)
 colnames(perc_df) <- c("year", "median_25")
 
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
-lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
-abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
-abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
-legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
-title(main = "Yearly Active Groundwater Storage")
+    #plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
+    #lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
+    #abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
+    #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
+    #legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
+    #title(main = "Annual Active Groundwater Storage")      
+                                                              #in the script below
 
 lm_25 <- lm(median_25~year, data = perc_df)
-slope_25 <- summary(lm_25)$coefficients[2]
-Rsq_25 <- summary(lm_25)$r.squared
-p_25 <- summary(lm_25)$coefficients[2,4]
+
+slope_25th <- summary(lm_25)$coefficients[2]
+rsquared_25th <- summary(lm_25)$r.squared
+p_25th <- summary(lm_25)$coefficients[2,4]
 
 
-# Exporting to VAHydro            (=> decomp.fig, )
+# Exporting to VAHydro
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
@@ -166,48 +173,91 @@ lu$save(TRUE)
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
-
-model_constant_Runit <- RomProperty$new(
+model_constant_rsq <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'l90_Runit',
-    propvalue= l90_Runit
+    propname = 'rsquared',
+    propvalue= rsquared
   ),
   TRUE
 )
-model_constant_Runit$save(TRUE)
+model_constant_rsq$save(TRUE)
 
-model_constant_agwo_Runit <- RomProperty$new(
+model_constant_slope <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'l90_agwo_Runit',
-    propvalue= l90_agwo_Runit
+    propname = 'slope',
+    propvalue= slope
   ),
   TRUE
 )
-model_constant_agwo_Runit$save(TRUE)
+model_constant_slope$save(TRUE)
 
+model_constant_p <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propname = 'p',
+    propvalue= p
+  ),
+  TRUE
+)
+model_constant_p$save(TRUE)
+
+model_constant_rsq25 <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propname = 'rsquared_25th',
+    propvalue= rsquared_25th
+  ),
+  TRUE
+)
+model_constant_rsq25$save(TRUE)
+
+model_constant_slope25 <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propname = 'slope_25th',
+    propvalue= slope_25th
+  ),
+  TRUE
+)
+model_constant_slope25$save(TRUE)
+
+model_constant_p25 <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propname = 'p_25th',
+    propvalue= p_25th
+  ),
+  TRUE
+)
+model_constant_p25$save(TRUE)
 
 # Add code here to export graphs 
 save_url = paste(omsite,image_path_split[[1]][4],image_path_split[[1]][5],image_path_split[[1]][6],image_path_split[[1]][7],image_path_split[[1]][8],sep ='/')
 # For graph 1
 fname <- paste(
-  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSdecomp', '.png'), # building file name
   sep = '/'
 )
 furl <- paste(
-  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS', '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSdecomp', '.png'),
   sep = '/'
 )
 png(fname) #fname is a character string with file name
-years <- seq(1984,2020,1)
-plot(monthlyAGWS$AGWS, type ='l', ylab = 'AGWS (in)', xaxt = 'n', xlab = NA, col = 'blue')
-axis(1, at = seq(6,438,12), labels = years) 
-title(main = 'Active groundwater storage', sub = 'Monthly average values are plotted')
+plot(agws_decomp)
 dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
 model_graph1 <- RomProperty$new(
@@ -216,7 +266,7 @@ model_graph1 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl,
-    propname = 'fig.AGWS'
+    propname = 'fig.AGWSdecomp'
   ),
   TRUE
 )
@@ -224,21 +274,17 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.totalOut', '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.median', '.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
-  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.totalOut', '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.median', '.png'),
   sep = '/'
 )
 png(fname2)
-ggplot(monthlyAGWO, aes(date, AGWO)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
-  geom_line(aes(y=SURO, col = 'red'), size = 0.25) +
-  geom_line(aes(y=IFWO, col = 'dark green'), size = 0.25) +
-  labs (x = NULL, y = 'Flow (cfs/sq mi)') + 
-  ggtitle('Elements of total outflow from the land segment ') +
-  scale_color_identity(name = NULL, breaks=c('red','dark green','blue'), labels = c('Runoff', 'Interflow', 'Baseflow'), guide = 'legend') +
-  theme(legend.position = 'bottom')
+plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
+title(main = "Annual Active Groundwater Storage")
+abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
 dev.off()
 print(paste("Saved file: ", fname2, "with URL", furl2))
 model_graph2 <- RomProperty$new(
@@ -247,12 +293,41 @@ model_graph2 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl2,
-    propname = 'fig.totalFlowOut'
+    propname = 'fig.median'
   ),
   TRUE
 )
 model_graph2$save(TRUE)
 
+# For graph 3
+fname3 <- paste(
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.25perc', '.png'), # building file name
+  sep = '/'
+)
+furl3 <- paste(
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.25perc', '.png'),
+  sep = '/'
+)
+png(fname3)
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
+lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
+abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
+abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
+legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
+title(main = "Annual Active Groundwater Storage")
+dev.off()
+print(paste("Saved file: ", fname3, "with URL", furl3))
+model_graph3 <- RomProperty$new(
+  ds, list(
+    varkey="dh_image_file",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propcode = furl3,
+    propname = 'fig.25perc'
+  ),
+  TRUE
+)
+model_graph3$save(TRUE)
 
 
 
