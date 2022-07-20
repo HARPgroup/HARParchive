@@ -76,7 +76,7 @@ colnames(AGWS_median) <- c("year", "median")
     #title(main = "Annual Active Groundwater Storage")
     #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')     #in the script below
 
-median_lm <- lm(AGWS_median~year, data = AGWS_median)
+median_lm <- lm(median~year, data = AGWS_median)
 
 slope <- summary(median_lm)$coefficients[2]
 rsquared <- summary(median_lm)$r.squared
