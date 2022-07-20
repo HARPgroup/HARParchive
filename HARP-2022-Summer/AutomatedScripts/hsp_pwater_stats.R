@@ -41,6 +41,9 @@ save_directory <-  image_directory_path
 image_path_split <- strsplit(image_directory_path, split = '/')
 # print(image_path_split[[1]][2]) # this is how to call items of a list
 
+path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
+path_string_m2 <- paste(path_list_m2, collapse = "/")
+
 pwater <- fread(pwater_file_path)
 pwater$date <- as.Date(pwater$index, format = "%m/%d/%Y %H:%M")
 pwater$week <- week(pwater$date)
@@ -61,19 +64,12 @@ AGWS_ts <- ts(monthlyAGWS$AGWS, start = c(1984,1), end = c(2020,12), frequency =
 
 agws_decomp <- decompose(AGWS_ts, type = "multiplicative") #multiplicative seasonality was chosen
 
-    #plot(agws_decomp) #in the script below
-
-
 # 2. Yearly Median
 
 AGWS_median <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "median")
 colnames(AGWS_median) <- c("year", "median")
 
-    #plot(AGWS_median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
-    #title(main = "Annual Active Groundwater Storage")
-    #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')     #in the script below
-
-median_lm <- lm(AGWS_median~year, data = AGWS_yearly_median)
+median_lm <- lm(median~year, data = AGWS_median)
 
 slope <- summary(median_lm)$coefficients[2]
 rsquared <- summary(median_lm)$r.squared
@@ -84,17 +80,9 @@ p <- summary(median_lm)$coefficients[2,4]
 
 AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
 
-AGWS_perc <- AGWS_median$median - AGWS_25
+AGWS_perc <- AGWS_median$median - AGWS_25       # this has to be changed!!!!!!!!
 perc_df <- data.frame(AGWS_median$year, AGWS_perc)
 colnames(perc_df) <- c("year", "median_25")
-
-    #plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
-    #lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
-    #abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
-    #abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
-    #legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
-    #title(main = "Annual Active Groundwater Storage")      
-                                                              #in the script below
 
 lm_25 <- lm(median_25~year, data = perc_df)
 
@@ -102,6 +90,8 @@ slope_25th <- summary(lm_25)$coefficients[2]
 rsquared_25th <- summary(lm_25)$r.squared
 p_25th <- summary(lm_25)$coefficients[2,4]
 
+min_lim <- min(perc_df$median_25)
+max_lim <- max(AGWS_median$median)
 
 # Exporting to VAHydro
 
@@ -173,41 +163,44 @@ lu$save(TRUE)
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
-model_constant_rsq <- RomProperty$new(
+model_constant_rsq50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'rsquared',
-    propvalue= rsquared
+    propname = 'rsquared_med',
   ),
   TRUE
 )
-model_constant_rsq$save(TRUE)
+model_constant_rsq50$propcode <- met.propcode
+model_constant_rsq50$propvalue <- as.numeric(rsquared_med)
+model_constant_rsq50$save(TRUE)
 
-model_constant_slope <- RomProperty$new(
+model_constant_slope50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'slope',
-    propvalue= slope
+    propname = 'slope_med',
   ),
   TRUE
 )
-model_constant_slope$save(TRUE)
+model_constant_slope50$propcode <- met.propcode
+model_constant_slope50$propvalue <- as.numeric(slope_med)
+model_constant_slope50$save(TRUE)
 
-model_constant_p <- RomProperty$new(
+model_constant_p50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'p',
-    propvalue= p
+    propname = 'p_med',
   ),
   TRUE
 )
-model_constant_p$save(TRUE)
+model_constant_p50$propcode <- met.propcode
+model_constant_p50$propvalue <- as.numeric(p_med)
+model_constant_p50$save(TRUE)
 
 model_constant_rsq25 <- RomProperty$new(
   ds, list(
@@ -215,10 +208,11 @@ model_constant_rsq25 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propname = 'rsquared_25th',
-    propvalue= rsquared_25th
   ),
   TRUE
 )
+model_constant_rsq25$propcode <- met.propcode
+model_constant_rsq25$propvalue <- as.numeric(rsquared_25th)
 model_constant_rsq25$save(TRUE)
 
 model_constant_slope25 <- RomProperty$new(
@@ -227,10 +221,11 @@ model_constant_slope25 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propname = 'slope_25th',
-    propvalue= slope_25th
   ),
   TRUE
 )
+model_constant_slope25$propcode <- met.propcode
+model_constant_slope25$propvalue <- as.numeric(slope_25th)
 model_constant_slope25$save(TRUE)
 
 model_constant_p25 <- RomProperty$new(
@@ -239,17 +234,18 @@ model_constant_p25 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propname = 'p_25th',
-    propvalue= p_25th
   ),
   TRUE
 )
+model_constant_p25$propcode <- met.propcode
+model_constant_p25$propvalue <- as.numeric(p_25th)
 model_constant_p25$save(TRUE)
 
 # Add code here to export graphs 
-save_url = paste(omsite,image_path_split[[1]][4],image_path_split[[1]][5],image_path_split[[1]][6],image_path_split[[1]][7],image_path_split[[1]][8],sep ='/')
+save_url = paste(omsite, '/', path_string_m2, sep ='')
 # For graph 1
 fname <- paste(
-  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSdecomp', '.png'), # building file name
+  image_directory_path,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSdecomp', '.png'), # building file name
   sep = '/'
 )
 furl <- paste(
@@ -274,7 +270,7 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSmedian', '.png'), # building file name
+  image_directory_path,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSmedian', '.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
@@ -301,19 +297,19 @@ model_graph2$save(TRUE)
 
 # For graph 3
 fname3 <- paste(
-  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.25perc', '.png'), # building file name
+  image_directory_path,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS25perc', '.png'), # building file name
   sep = '/'
 )
 furl3 <- paste(
-  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.25perc', '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWS25perc', '.png'),
   sep = '/'
 )
 png(fname3)
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_lim,max_lim))
 lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
 abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
-legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
+legend(x = "topright", legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
 title(main = "Annual Active Groundwater Storage")
 dev.off()
 print(paste("Saved file: ", fname3, "with URL", furl3))

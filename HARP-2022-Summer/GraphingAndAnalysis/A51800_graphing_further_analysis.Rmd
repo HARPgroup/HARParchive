@@ -278,16 +278,18 @@ Lower 25 percentile median
 
 ```{r}
 AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
+yr84_25 <- quantile(dailyAGWS[1:365,2], probs = .25)
 
 AGWS_perc <- AGWS_median$median - AGWS_25
 perc_df <- data.frame(AGWS_median$year, AGWS_perc)
 colnames(perc_df) <- c("year", "median_25")
 
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(-0.2,0.4))
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", 
+     xlab = NA, ylim = c(-0.2,0.4), )
   lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
   abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
   abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
-  legend(x = 2010,y = 0.35, legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
+  legend(x = "topright", legend = c('Median', '25th Percentile'), fill = c('blue','forestgreen'), bty = 'n')
   title(main = "Yearly Active Groundwater Storage")
 
 lm_25 <- lm(median_25~year, data = perc_df)
