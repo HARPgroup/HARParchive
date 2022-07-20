@@ -76,7 +76,7 @@ colnames(AGWS_median) <- c("year", "median")
 median_lm <- lm(AGWS_median~year, data = AGWS_yearly_median)
 
 slope <- summary(median_lm)$coefficients[2]
-squared <- summary(median_lm)$r.squared
+rsquared <- summary(median_lm)$r.squared
 p <- summary(median_lm)$coefficients[2,4]
 
 
@@ -274,11 +274,11 @@ model_graph1$save(TRUE)
 
 # For graph 2
 fname2 <- paste(
-  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.median', '.png'), # building file name
+  save_directory,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSmedian', '.png'), # building file name
   sep = '/'
 )
 furl2 <- paste(
-  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.median', '.png'),
+  save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSmedian', '.png'),
   sep = '/'
 )
 png(fname2)
@@ -293,7 +293,7 @@ model_graph2 <- RomProperty$new(
     featureid=lu$pid,
     entity_type='dh_properties',
     propcode = furl2,
-    propname = 'fig.median'
+    propname = 'fig.AGWSmedian'
   ),
   TRUE
 )
