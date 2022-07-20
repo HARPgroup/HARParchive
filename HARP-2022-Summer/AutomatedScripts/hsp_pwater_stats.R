@@ -170,11 +170,37 @@ lu$save(TRUE)
 
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
+#Implementing containers for VAHydro
+
+model_constant_median_cont<- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propname = 'AGWSmedian'
+  ),
+  TRUE
+)
+
+model_constant_median_cont$save(TRUE)
+
+model_constant_25perc_cont<- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=lu$pid,
+    entity_type='dh_properties',
+    propname = 'AGWS25perc'
+  ),
+  TRUE
+)
+
+model_constant_25perc_cont$save(TRUE)
+
 
 model_constant_rsq50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_constant_median_cont$pid,
     entity_type='dh_properties',
     propname = 'rsquared_med'
   ),
@@ -186,7 +212,7 @@ model_constant_rsq50$save(TRUE)
 model_constant_slope50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_constant_median_cont$pid,
     entity_type='dh_properties',
     propname = 'slope_med'
   ),
@@ -198,7 +224,7 @@ model_constant_slope50$save(TRUE)
 model_constant_p50 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_constant_median_cont$pid,
     entity_type='dh_properties',
     propname = 'p_med'
   ),
@@ -210,7 +236,7 @@ model_constant_p50$save(TRUE)
 model_constant_rsq25 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_constant_25perc_cont$pid,
     entity_type='dh_properties',
     propname = 'rsquared_25th'
   ),
@@ -222,7 +248,7 @@ model_constant_rsq25$save(TRUE)
 model_constant_slope25 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_constant_25perc_cont$pid,
     entity_type='dh_properties',
     propname = 'slope_25th'
   ),
@@ -234,7 +260,7 @@ model_constant_slope25$save(TRUE)
 model_constant_p25 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_constant_25perc_cont$pid,
     entity_type='dh_properties',
     propname = 'p_25th'
   ),
