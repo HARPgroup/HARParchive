@@ -314,7 +314,7 @@ print(paste("Saved file: ", fname2, "with URL", furl2))
 model_graph2 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
-    featureid=lu$pid,
+    featureid=model_constant_median_cont$pid,
     entity_type='dh_properties',
     propcode = furl2,
     propname = 'fig.AGWSmedian'
@@ -345,7 +345,7 @@ print(paste("Saved file: ", fname3, "with URL", furl3))
 model_graph3 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
-    featureid=lu$pid,
+    featureid=model_constant_25perc_cont$pid,
     entity_type='dh_properties',
     propcode = furl3,
     propname = 'fig.AGWS25perc'
