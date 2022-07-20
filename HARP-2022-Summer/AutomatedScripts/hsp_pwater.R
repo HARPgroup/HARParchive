@@ -168,11 +168,11 @@ model_constant_Runit <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'l90_Runit',
-    propvalue= l90_Runit
+    propname = 'l90_Runit'
   ),
   TRUE
 )
+model_constant_Runit$propvalue <- as.numeric(l90_Runit)
 model_constant_Runit$save(TRUE)
 
 model_constant_agwo_Runit <- RomProperty$new(
@@ -180,11 +180,11 @@ model_constant_agwo_Runit <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'l90_agwo_Runit',
-    propvalue= l90_agwo_Runit
+    propname = 'l90_agwo_Runit'
   ),
   TRUE
 )
+model_constant_agwo_Runit$propvalue <- as.numeric(l90_agwo_Runit)
 model_constant_agwo_Runit$save(TRUE)
 
 

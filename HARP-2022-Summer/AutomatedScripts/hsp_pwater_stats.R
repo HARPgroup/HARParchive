@@ -99,6 +99,9 @@ colnames(perc_df) <- c("year", "median_25")
     #title(main = "Annual Active Groundwater Storage")      
                                                               #in the script below
 
+min_25 <- min(perc_df$median_25)
+max_med <- max(AGWS_median$median)
+
 lm_25 <- lm(median_25~year, data = perc_df)
 
 slope_25th <- summary(lm_25)$coefficients[2]
@@ -181,11 +184,11 @@ model_constant_rsq50 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'rsquared_med',
-    propvalue= rsquared
+    propname = 'rsquared_med'
   ),
   TRUE
 )
+model_constant_rsq50$propvalue <- as.numeric(rsquared)
 model_constant_rsq50$save(TRUE)
 
 model_constant_slope50 <- RomProperty$new(
@@ -193,11 +196,11 @@ model_constant_slope50 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'slope_med',
-    propvalue= slope
+    propname = 'slope_med'
   ),
   TRUE
 )
+model_constant_slope50$propvalue <- as.numeric(slope)
 model_constant_slope50$save(TRUE)
 
 model_constant_p50 <- RomProperty$new(
@@ -205,11 +208,11 @@ model_constant_p50 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'p_med',
-    propvalue= p
+    propname = 'p_med'
   ),
   TRUE
 )
+model_constant_p50$propvalue <- as.numeric(p) 
 model_constant_p50$save(TRUE)
 
 model_constant_rsq25 <- RomProperty$new(
@@ -217,11 +220,11 @@ model_constant_rsq25 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'rsquared_25th',
-    propvalue= rsquared_25th
+    propname = 'rsquared_25th'
   ),
   TRUE
 )
+model_constant_rsq25$propvalue <- as.numeric(rsquared_25th)
 model_constant_rsq25$save(TRUE)
 
 model_constant_slope25 <- RomProperty$new(
@@ -229,11 +232,11 @@ model_constant_slope25 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'slope_25th',
-    propvalue= slope_25th
+    propname = 'slope_25th'
   ),
   TRUE
 )
+model_constant_slope25$propvalue <- as.numeric(slope_25th)
 model_constant_slope25$save(TRUE)
 
 model_constant_p25 <- RomProperty$new(
@@ -241,11 +244,11 @@ model_constant_p25 <- RomProperty$new(
     varkey="om_class_Constant",
     featureid=lu$pid,
     entity_type='dh_properties',
-    propname = 'p_25th',
-    propvalue= p_25th
+    propname = 'p_25th'
   ),
   TRUE
 )
+model_constant_p25$propvalue <- as.numeric(p_25th)
 model_constant_p25$save(TRUE)
 
 # Add code here to export graphs 
@@ -312,7 +315,7 @@ furl3 <- paste(
   sep = '/'
 )
 png(fname3)
-plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA)
+plot(AGWS_median$year, AGWS_median$median, type = 'l', col = 'blue', ylab = "AGWS Median (in)", xlab = NA, ylim = c(min_25,max_med))
 lines(perc_df$year, perc_df$median_25 , type = 'l', col = 'forestgreen')
 abline(lm(perc_df$median_25 ~ perc_df$year), col='purple')
 abline(lm(AGWS_median$median ~ AGWS_median$year), col='red')
