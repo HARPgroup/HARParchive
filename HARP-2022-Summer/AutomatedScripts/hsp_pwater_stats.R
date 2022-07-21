@@ -189,7 +189,7 @@ model_constant_25perc_cont<- RomProperty$new(
   ),
   TRUE
 )
-model_constant_median_cont$propcode<- paste("25th Percentile AGWS summary stats")
+model_constant_25perc_cont$propcode<- paste("25th Percentile AGWS summary stats")
 model_constant_25perc_cont$save(TRUE)
 
 
