@@ -177,7 +177,7 @@ model_constant_median_cont<- RomProperty$new(
   ),
   TRUE
 )
-model_constant_median_cont$propvalue <- paste("Median AGWS fig and stats")
+model_constant_median_cont$propvalue <- paste("Median AGWS Summary Stats")
 model_constant_median_cont$save(TRUE)
 
 model_constant_25perc_cont<- RomProperty$new(
@@ -189,7 +189,7 @@ model_constant_25perc_cont<- RomProperty$new(
   ),
   TRUE
 )
-model_constant_median_cont$propvalue <- paste("25th Percentile AGWS fig and stats")
+model_constant_median_cont$propvalue <- paste("25th Percentile AGWS Summary Stats")
 model_constant_25perc_cont$save(TRUE)
 
 
