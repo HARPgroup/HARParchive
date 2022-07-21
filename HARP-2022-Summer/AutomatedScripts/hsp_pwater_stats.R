@@ -5,15 +5,15 @@
 basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 
-library(data.table)
+#library(data.table)
 library(lubridate)
 library(zoo)
-library(plyr)
-library(caTools)
-library(RColorBrewer)
-library(IHA)
+#library(plyr)
+#library(caTools)
+#library(RColorBrewer)
+#library(IHA)
 library(PearsonDS)
-library(ggplot2)
+#library(ggplot2)
 library(dplyr)
 library(R.utils)
 
