@@ -5,7 +5,7 @@
 basepath='/var/www/R';
 source("/var/www/R/config.R") # will need file in same folder/directory
 
-#library(data.table)
+library(data.table)
 library(lubridate)
 library(zoo)
 #library(plyr)
