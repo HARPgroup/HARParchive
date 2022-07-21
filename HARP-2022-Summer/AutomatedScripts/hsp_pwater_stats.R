@@ -67,7 +67,7 @@ AGWS_ts <- ts(monthlyAGWS$AGWS, start = c(1984,1), end = c(2020,12), frequency =
 
 agws_decomp <- decompose(AGWS_ts, type = "multiplicative") #multiplicative seasonality was chosen
 
-# 2. Yearly Median
+# 2. Yearly Median - stats
 
 AGWS_median <- aggregate(pwater$AGWS, by = list(pwater$year), FUN = "median")
 colnames(AGWS_median) <- c("year", "median")
@@ -78,7 +78,7 @@ slope <- summary(median_lm)$coefficients[2]
 rsquared <- summary(median_lm)$r.squared
 p <- summary(median_lm)$coefficients[2,4]
 
-
+# 3. 25th percentile Yearly Median - stats
 
 quan_fun <- function(pwater) {   #Creating a function to use in aggregate function for 25th percentile 
   quantile(pwater, probs = .25)
@@ -89,10 +89,6 @@ AGWS_median$q1 <- quan_ag$q1
 
 min_lim <- min(AGWS_median$q1)
 max_lim <- max(AGWS_median$median)
-
-# 3. 25th percentile Yearly Median
-
-AGWS_25 <- quantile(yearlyAGWS$AGWS, probs = .25)
 
 lm_25 <- lm(q1~year, data = AGWS_median)
 
@@ -181,7 +177,7 @@ model_constant_median_cont<- RomProperty$new(
   ),
   TRUE
 )
-
+model_constant_median_cont$propvalue <- paste("Median AGWS fig and stats")
 model_constant_median_cont$save(TRUE)
 
 model_constant_25perc_cont<- RomProperty$new(
@@ -193,7 +189,7 @@ model_constant_25perc_cont<- RomProperty$new(
   ),
   TRUE
 )
-
+model_constant_median_cont$propvalue <- paste("25th Percentile AGWS fig and stats")
 model_constant_25perc_cont$save(TRUE)
 
 
