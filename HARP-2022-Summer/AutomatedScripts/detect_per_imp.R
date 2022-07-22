@@ -16,9 +16,7 @@ if (str_detect(ls_string, 'PERLND')== TRUE) {
   }
 if (str_detect(ls_string, 'IMPLND')== TRUE) {
   var1=0 
- }
-if (var1 != 0|1) {
- print('Neither pwater or iwater available')  
 }
+
 cat(var1)
 #prints 1 for pwater table, prints 0 for iwater table
