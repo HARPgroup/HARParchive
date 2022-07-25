@@ -35,7 +35,7 @@ echo 'R analysis scripts were run for' $landuse$landseg'_pwater.csv'
 
 
 elif [ ! -f $output_file_path ]  ; then #executes next command if pwater csv doesn't exist
-echo 'No analysis performed, no groundwater data for' $landuse$landseg; fi
+echo 'No analysis performed, no groundwater data for' $landuse$landseg
 
 fi
 done
