@@ -41,18 +41,18 @@ landvar_imp=($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/detect_da
 landvar_riv=($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/detect_data_source.R $h5_file_path $data_source_riv))
 
 
+
 if  [[ $landvar_per -eq 1 ]]; then
   Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_path_list'_pwater.csv' $data_source_per'/table'
-echo 'pwater csv created'
+  echo 'pwater csv created'
 fi
 if  [[ $landvar_imp -eq 1 ]]; then
   Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_path_list'_iwater.csv' $data_source_imp'/table'
-echo 'iwater csv created'
+  echo 'iwater csv created'
 fi
 if  [[ $landvar_riv -eq 1 ]]; then
- Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_path_list'_hydr.csv' $data_source_riv'/table'
-
-echo 'hydr csv created'
+  Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_path_list'_hydr.csv' $data_source_riv'/table'
+  echo 'hydr csv created'
 fi
 
 done
