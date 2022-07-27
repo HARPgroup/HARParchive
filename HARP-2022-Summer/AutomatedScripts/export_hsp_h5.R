@@ -14,10 +14,10 @@ data_source_table <- argst[3] # Path to data table within h5 that begins with /[
 # Reading in table from h5
 fid = H5Fopen(h5_file_path) # Opens the h5 file, fid is a h5 identifier
 did = H5Dopen(fid, data_source_table) # Opens the data table of interest using the path provided
-pwater <- H5Dread(did, bit64conversion = "double")
+data <- H5Dread(did, bit64conversion = "double")
 origin <- "1970-01-01"
-pwater$index <- as.POSIXct((pwater$index)/10^9, origin = origin, tz = "UTC")
+data$index <- as.POSIXct((data$index)/10^9, origin = origin, tz = "UTC")
 
 # Exporting to a csv
-write.table(pwater,file = output_file_path, sep = ",", row.names = FALSE) # Maybe .csv should be added to the end of file argument?
+write.table(data,file = output_file_path, sep = ",", row.names = FALSE) # Maybe .csv should be added to the end of file argument?
 

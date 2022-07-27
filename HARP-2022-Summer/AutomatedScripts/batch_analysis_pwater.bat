@@ -13,6 +13,13 @@ basin=$2
 image_file_path=$CBP_EXPORT_DIR/land/$scenario_name/images
 echo 'image file path:' $image_file_path
 
+# image file paths
+#image_file_path_land=$CBP_EXPORT_DIR/land/$scenario_name/images
+#echo 'image file path:' $image_file_path_land
+#image_file_path_river=$CBP_EXPORT_DIR/river/$scenario_name/images
+#echo 'image file path:' $image_file_path_river
+
+
 land_use_list=$(ls $CBP_ROOT/output/hspf/land/out)
 echo 'land use list:' $land_use_list
 
