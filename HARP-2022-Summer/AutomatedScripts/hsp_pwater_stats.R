@@ -21,7 +21,7 @@ library(R.utils)
 #message(R_TempDir)
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
-#save_directory <-  "/var/www/html/data/proj3/out"
+save_directory <-  "/var/www/html/data/proj3/out"
 #landuse <- 'for' # needs to be commented when running on the server 
 #land_segment_name <- 'A51800' # need to remove before using on server 
 #scenario_name <- 'hsp2_2022'# need to remove before using on server 
