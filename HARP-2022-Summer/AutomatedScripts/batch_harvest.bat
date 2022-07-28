@@ -30,7 +30,8 @@ segments=`cbp get_landsegs $basin`
 
   for landseg in $segments; do
     for landuse in $land_use_list; do
-      h5_file_path=$CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name/$landuse$landseg'.h5'
+      #h5_file_path=$CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name/$landuse$landseg'.h5'
+	h5_file_path=$CBP_EXPORT_DIR/land/h5/$landuse/$scenario_name/$landuse$landseg'.h5'
 
       output_path_list=$CBP_EXPORT_DIR/land/$scenario_name/pwater/$landuse$landseg
 
