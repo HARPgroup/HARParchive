@@ -22,7 +22,7 @@ data_source_riv=/RESULTS/RCHRES_R001/HYDR
 image_file_path=$CBP_EXPORT_DIR/land/$scenario_name/images
 echo 'image file path:' $image_file_path
 
-land_use_list=$(ls $CBP_ROOT/output/hspf/land/out)
+land_use_list=$(ls $CBP_EXPORT_DIR/land/h5)
 echo 'land use list:' $land_use_list
 
 segments=`cbp get_landsegs $basin`
