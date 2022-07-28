@@ -1,8 +1,8 @@
 #Script will detect if a data table path is present in an h5 file
 
-library(rhdf5)
-library(R.utils)
-library(stringr)
+suppressPackageStartupMessages(library(rhdf5))
+suppressPackageStartupMessages(library(R.utils))
+suppressPackageStartupMessages(library(stringr))
 
 argst <- commandArgs(trailingOnly = T)
 h5_file_path <- argst[1]
