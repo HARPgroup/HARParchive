@@ -7,7 +7,8 @@ library(stringr)
 argst <- commandArgs(trailingOnly = T)
 h5_file_path <- argst[1]
 data_source_path <- argst[2] #path should begin with / and not contain 'table' at the end
-#h5_file_path <- '/opt/model/p53/p532c-sova/output/hspf/land/out/for/hsp2_2022/forA51037.h5'   #comment out
+#data_source_path <- '/RESULTS/PERLND_P001/PWATER'   #comment out
+#h5_file_path <- '/media/model/p532/out/land/h5/for/hsp2_2022/forA51037.h5'   #comment out
 
 h5_ls <- h5ls(h5_file_path) #h5_ls becomes a data frame
 group_string <- toString(h5_ls[,1])
