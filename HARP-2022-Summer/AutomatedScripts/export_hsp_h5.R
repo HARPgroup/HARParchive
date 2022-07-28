@@ -2,8 +2,8 @@
 # Script for exporting run data from an h5 to CSV
 # Script will have 3 inputs: h5_file_path, output_file_path, and data_source_table 
 
-library(rhdf5)
-library(R.utils)
+suppressPackageStartupMessages(library(rhdf5))
+suppressPackageStartupMessages(library(R.utils))
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
