@@ -174,7 +174,11 @@ model_constant_median_cont<- RomProperty$new(
   ),
   TRUE
 )
+<<<<<<< HEAD
 model_constant_median_cont$propcode <- paste("Median AGWS summary stats")
+=======
+model_constant_median_cont$propvalue <- paste("Median AGWS Summary Stats")
+>>>>>>> a2121e174fd5c8bf5ee2cd4d7ba932901f91aeb3
 model_constant_median_cont$save(TRUE)
 
 model_constant_25perc_cont<- RomProperty$new(
@@ -186,7 +190,11 @@ model_constant_25perc_cont<- RomProperty$new(
   ),
   TRUE
 )
+<<<<<<< HEAD
 model_constant_25perc_cont$propcode<- paste("25th Percentile AGWS summary stats")
+=======
+model_constant_median_cont$propvalue <- paste("25th Percentile AGWS Summary Stats")
+>>>>>>> a2121e174fd5c8bf5ee2cd4d7ba932901f91aeb3
 model_constant_25perc_cont$save(TRUE)
 
 
