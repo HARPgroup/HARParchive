@@ -25,4 +25,3 @@ data_source_riv=/RESULTS/RCHRES_R001/HYDR
 Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path $output_path'_hydr.csv' $data_source_riv'/table'
   echo 'hydr csv created'
 
-done
