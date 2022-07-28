@@ -15,9 +15,9 @@ riverseg <- argst[2]
 channel <- argst[3]
 
 #Testing: comment these out later
-hydroid <- "68308"
-riverseg <- "JL2_6440_6441_moormans_sugar_hollow"
-channel<- "local_channel"
+hydroid <- "68299"
+riverseg <- "OD6_8660_8621"
+channel<- "0. River Channel"
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
@@ -51,7 +51,7 @@ model <- RomProperty$new(
 channel_prop <- RomProperty$new(
   ds,
   list(
-    varkey="om_USGSChannelGeomObject_sub",
+    varkey="om_USGSChannelGeomObject", #local_channel needs _sub added to end
     featureid=model$pid,
     entity_type='dh_properties',
     propname = channel
@@ -163,24 +163,29 @@ z = 0.5 * (bf - b ) / h
 #----------------------------------------------------------------------------
 
 # Calculating FTABLE
+
 # Depth
-depth <- seq(0,h,length=10) #sequence between zero and bank full stage
+depth <- seq(0,h,length=19) #sequence between zero and bank full stage
 
 # Surface Area
     # water surface width * length of channel
-area <- (b + 2*z*depth) * length$propvalue
+sw <- b+2*z*depth
+area <- (sw *length$propvalue)/43560 #converting from ft^2 to acres
 
 # Volume
-    # length * (b*depth + side_slope*depth^2)
-vol <- length$propvalue * (b*depth + z*depth**2)
+    # length * cross sectional area
+vol <- (length$propvalue * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
 
 # Discharge
-    # Q = V * A
+    # Q = V * A , A = cross sectional area
     # Manning's: V = (1/n) * R^(2/3) * S^(1/2)
-disch <- (1/n) * (depth/2)**(2/3) * slope$propvalue**0.5 * sqrt(3)*depth**2
+    # Hydraulic radius = (depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2))
+disch <- (1/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * slope$propvalue**0.5 * 
+  0.5*(sw+b)*depth
 
 # Compile
 ftable <- data.frame(depth, area, vol, disch)
+#colnames(ftable) <- ("Depth (ft)", "Area (acres)", "Volume (ac-ft)", "Discharge (cfs)")
 #----------------------------------------------------------------------------
 
 # Exporting to VAHydro
