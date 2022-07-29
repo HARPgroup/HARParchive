@@ -43,7 +43,7 @@ path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 
 pwater <- fread(pwater_file_path)
-pwater$date <- as.Date(pwater$index, format = "%m/%d/%y")
+pwater$date <- as.Date(pwater$index, format = "%m/%d/%Y %H:%M")
 pwater$week <- week(pwater$date)
 pwater$month <- month(pwater$date)
 pwater$year <- year(pwater$date)
