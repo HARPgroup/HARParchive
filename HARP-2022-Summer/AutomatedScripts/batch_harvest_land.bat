@@ -33,24 +33,24 @@ segments=`cbp get_landsegs $basin`
 
   for landseg in $segments; do
     for landuse in $land_use_list; do
-      h5_file_path_land=$CBP_EXPORT_DIR/land/h5/$landuse/$scenario_name/$landuse$landseg'.h5'
+      h5_file_path=$CBP_EXPORT_DIR/land/h5/$landuse/$scenario_name/$landuse$landseg'.h5'
          
         output_path_pwater=$CBP_EXPORT_DIR/land/$scenario_name/pwater/$landuse$landseg
         output_path_iwater=$CBP_EXPORT_DIR/land/$scenario_name/iwater/$landuse$landseg
 
 # creating the output csv with appropriate naming conventions
 
-landvar_per=($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/detect_data_source.R $h5_file_path_land $data_source_per))
+landvar_per=($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/detect_data_source.R $h5_file_path $data_source_per))
 
-landvar_imp=($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/detect_data_source.R $h5_file_path_land $data_source_imp))
+landvar_imp=($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/detect_data_source.R $h5_file_path $data_source_imp))
 
 
 if  [ $landvar_per -eq 1 ]; then
-  Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path_land    $output_path_pwater'_pwater.csv' $data_source_per'/table'
+  Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path    $output_path_pwater'_pwater.csv' $data_source_per'/table'
     echo 'pwater csv created'
 fi
 if  [ $landvar_imp -eq 1 ]; then
-  Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path_land$output_path_iwater'_iwater.csv' $data_source_imp'/table'
+  Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file_path$output_path_iwater'_iwater.csv' $data_source_imp'/table'
   echo 'iwater csv created'
 fi
 
