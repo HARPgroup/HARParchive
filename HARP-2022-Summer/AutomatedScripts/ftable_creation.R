@@ -71,6 +71,8 @@ drainage_area <- RomProperty$new(
   TRUE
 )
 
+da <- drainage_area$propvalue
+
 province <- RomProperty$new(
   channel_prop[["datasource"]],
   list(
@@ -93,6 +95,8 @@ length <- RomProperty$new(
   TRUE
 )
 
+clength <- 122284.8
+
 slope <- RomProperty$new(
   channel_prop[["datasource"]],
   list(
@@ -103,6 +107,8 @@ slope <- RomProperty$new(
   ),
   TRUE
 )
+cslope <- 0.0016
+
 #----------------------------------------------------------------------------
 
 # Calculating Channel Geometry
@@ -152,11 +158,11 @@ if (province$propvalue ==4){
 
 # Regional Regression Eqn's:
 #bank full stage "max height before floodplain":
-h = hc * (drainage_area$propvalue**he)
+h = hc * (da**he)
 #bank full width "max width before floodplain":
-bf = bfc * (drainage_area$propvalue**bfe)
+bf = bfc * (da**bfe)
 #base width "width @ lowest stage":
-b = bc * (drainage_area$propvalue**be)
+b = bc * (da**be)
 #side slope:
 z = 0.5 * (bf - b ) / h
 
@@ -165,25 +171,25 @@ z = 0.5 * (bf - b ) / h
 # Calculating FTABLE
 
 # Depth
-depth <- seq(0,h,length=19) #sequence between zero and bank full stage
+#depth <- seq(0,h,length=19) #sequence between zero and bank full stage
+depth<- c(0.586,1.172,1.758)
 
 # Surface Area
     # water surface width * length of channel
 sw <- b+2*z*depth
-area <- (sw *length$propvalue)/43560 #converting from ft^2 to acres
+area <- (sw *clength)/43560 #converting from ft^2 to acres
 
 # Volume
     # length * cross sectional area
-vol <- (length$propvalue * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
+vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
 
 # Discharge
     # Q = V * A , A = cross sectional area
     # Manning's: V = (1/n) * R^(2/3) * S^(1/2)
     # Hydraulic radius = (depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2))
-disch <- (1/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * slope$propvalue**0.5 * 
-  0.5*(sw+b)*depth
+disch <- (1/n) * (depth/2)**(2/3) * cslope**0.5 * 0.5*(sw+b)*depth
 
-# Compile
+# Compile 
 ftable <- data.frame(depth, area, vol, disch)
 #colnames(ftable) <- ("Depth (ft)", "Area (acres)", "Volume (ac-ft)", "Discharge (cfs)")
 #----------------------------------------------------------------------------
