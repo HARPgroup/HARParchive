@@ -15,8 +15,8 @@ riverseg <- argst[2]
 channel <- argst[3]
 
 #Testing: comment these out later
-hydroid <- "68299"
-riverseg <- "OD6_8660_8621"
+hydroid <- "68298"
+riverseg <- "OR1_7700_7980"
 channel<- "0. River Channel"
 
 # Set up our data source
@@ -39,26 +39,24 @@ model <- RomProperty$new(
   ds,
   list(
     varkey="om_water_model_node",
-    propname=rseg$name,
-    featureid=rseg$hydroid, 
+    propname="Upper Club Creek", #previously rseg$name
+    featureid=rseg$hydroid,
     entity_type="dh_feature", 
     propcode="vahydro-1.0"
   ), 
   TRUE
 )
-#model$save(TRUE)
 
 channel_prop <- RomProperty$new(
   ds,
   list(
-    varkey="om_USGSChannelGeomObject", #local_channel needs _sub added to end
+    varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
     featureid=model$pid,
     entity_type='dh_properties',
     propname = channel
   ),
   TRUE
 )
-#local_channel$save(TRUE)
 
 drainage_area <- RomProperty$new(
   channel_prop[["datasource"]],
@@ -71,7 +69,7 @@ drainage_area <- RomProperty$new(
   TRUE
 )
 
-da <- drainage_area$propvalue
+da <- drainage_area$propvalue #106.052
 
 province <- RomProperty$new(
   channel_prop[["datasource"]],
@@ -84,6 +82,8 @@ province <- RomProperty$new(
   TRUE
 )
 
+province <- province$propvalue
+
 length <- RomProperty$new(
   channel_prop[["datasource"]],
   list(
@@ -95,7 +95,7 @@ length <- RomProperty$new(
   TRUE
 )
 
-clength <- 122284.8
+clength <- length$propvalue
 
 slope <- RomProperty$new(
   channel_prop[["datasource"]],
@@ -107,12 +107,12 @@ slope <- RomProperty$new(
   ),
   TRUE
 )
-cslope <- 0.0016
+cslope <- slope$propvalue #0.0016
 
 #----------------------------------------------------------------------------
 
 # Calculating Channel Geometry
-if (province$propvalue == 1){
+if (province == 1){
   #Appalachian Plateau
   hc = 2.030 # "c" = coefficient for regional regression eqn
   he = 0.2310 # "e" = exponent for regional regression eqn
@@ -123,7 +123,7 @@ if (province$propvalue == 1){
   n = 0.036 # Manning's n
 }
 
-if (province$propvalue ==2){
+if (province ==2){
   #Valley and Ridge
   hc = 1.435
   he = 0.2830
@@ -134,7 +134,7 @@ if (province$propvalue ==2){
   n = 0.038
 }
 
-if (province$propvalue ==3){
+if (province ==3){
   #Piedmont
   hc = 2.137
   he = 0.2561
@@ -145,7 +145,7 @@ if (province$propvalue ==3){
   n = 0.095
 }
 
-if (province$propvalue ==4){
+if (province ==4){
   #Coastal Plain
   hc = 2.820
   he = 0.2000
@@ -156,6 +156,17 @@ if (province$propvalue ==4){
   n = 0.040
 }
 
+if (province == -1){
+  #Single/General Equation
+  hc = 2.177
+  he = 0.2293
+  bfc = 13.128
+  bfe = 0.4432
+  bc = 5.471
+  be = 0.5103
+  n = 0.05225 #avg of above n values
+}
+  
 # Regional Regression Eqn's:
 #bank full stage "max height before floodplain":
 h = hc * (da**he)
@@ -172,7 +183,7 @@ z = 0.5 * (bf - b ) / h
 
 # Depth
 #depth <- seq(0,h,length=19) #sequence between zero and bank full stage
-depth<- c(0.586,1.172,1.758)
+depth<- c(0.586,1.172,1.758, 2.343, 2.929, 3.515)
 
 # Surface Area
     # water surface width * length of channel
@@ -184,10 +195,12 @@ area <- (sw *clength)/43560 #converting from ft^2 to acres
 vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
 
 # Discharge
-    # Q = V * A , A = cross sectional area
-    # Manning's: V = (1/n) * R^(2/3) * S^(1/2)
+    # Q = V * A , A = cross sectional area / flow area
+    # Manning's: V = (1.49/n) * R^(2/3) * S^(1/2) 
+    # ^^ (1.49/n) is English ; (1/n) is metric
     # Hydraulic radius = (depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2))
-disch <- (1/n) * (depth/2)**(2/3) * cslope**0.5 * 0.5*(sw+b)*depth
+    # or Hydraulic R = (depth*(b + sw)/2)/(b + 2*(((sw-b)/2)**2 + depth**2)**0.5)
+disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * cslope**0.5 * 0.5*(sw+b)*depth
 
 # Compile 
 ftable <- data.frame(depth, area, vol, disch)
@@ -196,15 +209,15 @@ ftable <- data.frame(depth, area, vol, disch)
 
 # Exporting to VAHydro
 
-exp_ftable<- RomProperty$new(
-  ds, list(
-    varkey="om_class_Constant", # what do we say when it's a table??
-    featureid=local_channel$pid,
-    entity_type='dh_properties',
-    propname = 'ftable'
-  ),
-  TRUE
-)
-exp_ftable$propvalue <- ftable
-exp_ftable$save(TRUE)
+#exp_ftable<- RomProperty$new(
+#  ds, list(
+#    varkey="om_class_Constant", # what do we say when it's a table??
+#    featureid=local_channel$pid,
+#    entity_type='dh_properties',
+#    propname = 'ftable'
+#  ),
+#  TRUE
+#)
+#exp_ftable$propvalue <- ftable
+#exp_ftable$save(TRUE)
 
