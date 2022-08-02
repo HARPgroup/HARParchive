@@ -30,7 +30,7 @@ argst <- commandArgs(trailingOnly = T)
 river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
-output_file_path <- argst[4]  
+output_file_path <- argst[3]  
 #output_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
 #image_directory_path <- argst[5] # '/media/model/p532/out/river/p532sova_2021/images'
 
