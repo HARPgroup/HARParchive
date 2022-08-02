@@ -118,17 +118,18 @@ ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
 rseg_name=river_segment_name
-rseg_ftype="cbp532_riverseg"
+rseg_ftype="vahydro"
 
 riverseg<- RomFeature$new(
   ds,
   list(
-    hydrocode=rseg_name, 
+    hydrocode=rseg_name,
     ftype=rseg_ftype,
-    bundle='riverunit'
-  ), 
+    bundle='watershed'
+  ),
   TRUE
 )
+#riverseg$save(TRUE)
 
 model <- RomProperty$new(
   ds,
