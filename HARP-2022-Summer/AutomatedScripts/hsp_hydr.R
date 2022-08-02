@@ -16,23 +16,21 @@ suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 
+#setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
+#hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only 
+
+
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
-land_segment_name <- argst[1]
+river_segment_name <- argst[1]
 scenario_name <- argst[2]
-landuse <- as.character(argst[3]) # don't need quotes around landuse argument anymore
-hydr_file_path <- argst[4] 
-image_directory_path <- argst[5] # '/media/model/p532/out/river/p532sova_2021/images'
+hydr_file_path <- argst[4]  # path to hydr csv file 
+#image_directory_path <- argst[5] # '/media/model/p532/out/river/p532sova_2021/images'
 
-image_path_split <- strsplit(image_directory_path, split = '/')
-# print(image_path_split[[1]][2]) # this is how to call items of a list
-
-path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
-path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 # Reading in the table
 
@@ -42,84 +40,71 @@ hydr$week <- week(hydr$date)
 hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
-dailyRO <- aggregate(hydr$RO, by = list(hydr$date), FUN='mean')
-colnames(dailyRO) <- c('date','RO')
-monthlyRO <- aggregate(hydr$RO, by = list(hydr$month, hydr$year), FUN = "mean")
-colnames(monthlyAGWS) <- c("month", "year", "RO")
+# Converting units to mgd from ac.ft/ivld
+
+convert_acfthr_mgd = 7.820434      
+hydr$ROVOL_mgd <- hydr$ROVOL*convert_acfthr_mgd
+
+
+dailyQout <- aggregate(hydr$ROVOL_mgd, by = list(hydr$date), FUN='mean')  # ROVOL_mgd represents Qout
+colnames(dailyQout) <- c('date','Qout') # Qout in units of mgd
+monthlyQout <- aggregate(hydr$ROVOL_mgd, by = list(hydr$month, hydr$year), FUN = "mean")
+colnames(monthlyQout) <- c("month", "year", "Qout") # ROVOL in units of mgd
 
 
 # Conversion to water-year ???????????????/
 
 # From: waterSupplyModelNode.R
 
-syear = as.integer(min(hydr$year))
-eyear = as.integer(max(hydr$year))
-model_run_start <- min(hydr$date)   # not sure about the "date"
-model_run_end <- max(hydr$date)
-if (syear < (eyear - 2)) {
-  sdate <- as.Date(paste0(syear,"-10-01"))
-  edate <- as.Date(paste0(eyear,"-09-30"))
-  flow_year_type <- 'water'
-} else {
-  sdate <- as.Date(paste0(syear,"-02-01"))
-  edate <- as.Date(paste0(eyear,"-12-31"))
-  flow_year_type <- 'calendar'
-}
-hydr <- window(hydr, start = sdate, end = edate);   # not sure what this does
-mode(hydr) <- 'numeric'
-scen.propname<-paste0('runid_', runid)  # not sure what this does/what to input instead of runid
+#syear = as.integer(min(hydr$year))
+#eyear = as.integer(max(hydr$year))
+#model_run_start <- min(hydr$date)   # not sure about the "date"
+#model_run_end <- max(hydr$date)
+#if (syear < (eyear - 2)) {
+#  sdate <- as.Date(paste0(syear,"-10-01"))
+#  edate <- as.Date(paste0(eyear,"-09-30"))
+#  flow_year_type <- 'water'
+#} else {
+#  sdate <- as.Date(paste0(syear,"-02-01"))
+#  edate <- as.Date(paste0(eyear,"-12-31"))
+#  flow_year_type <- 'calendar'
+#}
+#hydr <- window(hydr, start = sdate, end = edate);   # not sure what this does
+#mode(hydr) <- 'numeric'
+#scen.propname<-paste0('runid_', runid)  # not sure what this does/what to input instead of runid
 
 
         # this would then be used in the values below instead of "hydr"??
 
 
-# Converting units to mgd from ac.ft/ivld
-
-convert_mgd = 7.8204342682083             #proof?
-hydr$ROVOL_mgd <- hydr$ROVOL*convert_mgd
-hydr$IVOL_mgd <- hydr$IVOL*convert_mgd
-
-dailyROVOL <- aggregate(hydr$ROVOL_mgd, by = list(hydr$date), FUN='mean')
-colnames(dailyRO) <- c('date','RO')
-dailyIVOL <- aggregate(hydr$IVOL_mgd, by = list(hydr$date), FUN='mean')
-colnames(dailyRO) <- c('date','RO')
-
 # Mean values for outflow amount and rate, and inflow amount
 
-ROVOL_mean <- mean(as.numeric(dailyROVOL$ROVOL_mgd))
-IVOL_mean <- mean(as.numeric(dailyIVOL$IVOL_mgd))
-RO_mean <- mean(as.numeric(dailyRO$RO))
+Qout_mean <- mean(as.numeric(dailyQout$Qout)) # mgd
 
 # l90 and l30 from RO (IHA metric - group 2)
 # l90 Runit???
 
-RO_zoo <- zoo(dailyRO$RO, order.by = dailyRO$date)
-RO_g2 <- data.frame(group2(RO_zoo))
-l90_RO_Runit <- min(RO_g2$X90.Day.Min)
-l30_RO_Runit <- min(RO_g2$X30.Day.Min)
-
-
+Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
+Qout_g2 <- data.frame(group2(Qout_zoo))
+l90_Qout <- min(Qout_g2$X90.Day.Min) # mgd
+l30_Qout <- min(Qout_g2$X30.Day.Min)
 
 
 # Exporting to VAHydro
-
-      # From hsp_pwater => not modified yet
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
-# TBD: get inputs from the comand line
-#  For now we just load some samples
-lseg_name=land_segment_name
-lseg_ftype="cbp532_landseg"
+rseg_name=river_segment_name
+rseg_ftype="cbp532_riverseg"
 
-landseg<- RomFeature$new(
+riverseg<- RomFeature$new(
   ds,
   list(
-    hydrocode=lseg_name, 
-    ftype=lseg_ftype,
-    bundle='landunit'
+    hydrocode=rseg_name, 
+    ftype=rseg_ftype,
+    bundle='riverunit'
   ), 
   TRUE
 )
@@ -128,8 +113,8 @@ model <- RomProperty$new(
   ds,
   list(
     varkey="om_model_element", 
-    propname=landseg$name,
-    featureid=landseg$hydroid, 
+    propname=riverseg$name,
+    featureid=riverseg$hydroid, 
     entity_type="dh_feature", 
     propcode="cbp-5.3.2" 
   ), 
@@ -137,7 +122,7 @@ model <- RomProperty$new(
 )
 model$save(TRUE)
 
-model_scenario <- RomProperty$new( #Re-ordered scenario to be within the model element and the land use within the scenario
+model_scenario <- RomProperty$new( 
   ds,
   list(
     varkey="om_scenario", 
@@ -150,41 +135,34 @@ model_scenario <- RomProperty$new( #Re-ordered scenario to be within the model e
 )
 model_scenario$save(TRUE)
 
-lu <- RomProperty$new(
-  ds,
-  list(
-    varkey="om_hspf_landuse", 
-    propname=landuse,
-    featureid=model_scenario$pid, 
-    entity_type="dh_properties", 
-    propcode=landuse 
-  ), 
-  TRUE
-)
-lu$save(TRUE)
-
-# Create/Load a model scenario property
-# tstime = the run time 
-# note: do not set tstime when retrieving since if we have a previous
-#       timesereies event already set, we want to gt it and may not know the tstime
-# 
-
 
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
 
-model_constant_Runit <- RomProperty$new(
+model_constant_l90_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=lu$pid,
+    featureid=model_scenario$pid,
     entity_type='dh_properties',
-    propname = 'l90_Runit'
+    propname = 'l90_Qout_mgd'
   ),
   TRUE
 )
-model_constant_Runit$propvalue <- as.numeric(l90_Runit)
-model_constant_Runit$save(TRUE)
+model_constant_l90_Qout$propvalue <- as.numeric(l90_Qout)
+model_constant_l90_Qout$save(TRUE)
 
 
+
+model_constant_l30_Qout <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'l30_Qout_mgd'
+  ),
+  TRUE
+)
+model_constant_l30_Qout$propvalue <- as.numeric(l30_Qout)
+model_constant_l30_Qout$save(TRUE)
 
