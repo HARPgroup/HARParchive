@@ -129,8 +129,6 @@ riverseg<- RomFeature$new(
   ), 
   TRUE
 )
-riverseg$save(TRUE)
-
 
 model <- RomProperty$new(
   ds,
