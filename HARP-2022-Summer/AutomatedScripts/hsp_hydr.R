@@ -12,7 +12,7 @@ suppressPackageStartupMessages(library(caTools))
 suppressPackageStartupMessages(library(RColorBrewer))
 suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
-suppressPackageStartupMessages(library(ggplot2))
+#suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 
@@ -21,7 +21,7 @@ suppressPackageStartupMessages(library(R.utils))
 
 
 # establishing location on server for storing images
-omsite = "http://deq1.bse.vt.edu:81"
+#omsite = "http://deq1.bse.vt.edu:81"
 
 
 # Accepting command arguments:
@@ -80,7 +80,7 @@ colnames(monthlyQout) <- c("month", "year", "Qout") # ROVOL in units of mgd
 # Mean values for outflow amount and rate, and inflow amount
 
 Qout_mean <- mean(as.numeric(dailyQout$Qout)) # mgd
-
+paste('Qout_mean:', Qout_mean)
 # l90 and l30 from RO (IHA metric - group 2)
 # l90 Runit???
 
@@ -88,8 +88,8 @@ Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
 Qout_g2 <- data.frame(group2(Qout_zoo))
 l90_Qout <- min(Qout_g2$X90.Day.Min) # mgd
 l30_Qout <- min(Qout_g2$X30.Day.Min)
-
-
+paste('l90_Qout:', l90_Qout)
+paste('l30_Qout:', l30_Qout)
 # Exporting to VAHydro
 
 # Set up our data source
