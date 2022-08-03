@@ -22,7 +22,7 @@ suppressPackageStartupMessages(library(R.utils))
 #ps_flow <- fread("OR1_7700_7980_psflow.csv") # for testing only
 
 # establishing location on server for storing images
-#omsite = "http://deq1.bse.vt.edu:81"
+omsite = "http://deq1.bse.vt.edu:81"
 
 
 # Accepting command arguments:
@@ -31,12 +31,20 @@ river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
 output_file_path <- argst[3]  
+image_directory_path <- argst[4] 
+#image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
 #output_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
 #image_directory_path <- argst[5] # '/media/model/p532/out/river/p532sova_2021/images'
 
 hydr_file_path=paste(output_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
 divr_file_path=paste(output_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
 ps_file_path=paste(output_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
+
+image_path_split <- strsplit(image_directory_path, split = '/')
+# print(image_path_split[[1]][2]) # this is how to call items of a list
+
+path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
+path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 # Reading in the tables
 hydr <- fread(hydr_file_path)
@@ -148,6 +156,9 @@ fn_iha_7q10 <- function(zoots) {
 }
 x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period 
 
+#For graphing purposes:
+len_Qmon <- length(monthlyQout$year)
+years <- seq(min(monthlyQout$year),max(monthlyQout$year))
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
@@ -288,3 +299,37 @@ model_constant_x7q10 <- RomProperty$new(
 )
 model_constant_x7q10$propvalue <- as.numeric(x7q10)
 model_constant_x7q10$save(TRUE)
+
+#Exporting graph of Qout to Vahydro
+save_url = paste(omsite, '/', path_string_m2, sep ='')
+
+fname <- paste(
+  image_directory_path,paste0( river_segment_name, '.','fig.Qout','.png'), # building file name
+  sep = '/'
+)
+furl <- paste(
+  save_url,paste0( river_segment_name,'.','fig.Qout', '.png'),
+  sep = '/'
+)
+png(fname) #fname is a character string with file name
+plot(monthlyQout$Qout, type = 'l', col = 'blue', ylab = 'Qout (mgd)', xaxt = 'n', xlab = NA,)
+title(main = 'Outflow from the River Segment', sub = 'Monthly average values are plotted')
+axis(1, at = seq(0,len_Qmon,12), labels = years)
+dev.off()
+print(paste("Saved file: ", fname, "with URL", furl))
+model_graph1 <- RomProperty$new(
+  ds, list(
+    varkey="dh_image_file",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propcode = furl,
+    propname = 'fig.Qout'
+  ),
+  TRUE
+)
+model_graph1$save(TRUE)
+
+
+
+
+
