@@ -199,17 +199,17 @@ model_scenario$save(TRUE)
 
 #Add 2 total rest sections:   x7q10, output_file_path
 
-model_constant_hydr_path <- RomProperty$new(
-  ds, list(
-    varkey="om_class_Constant",
-    featureid=model_scenario$pid,
-    entity_type='dh_properties',
-    propname = 'hydr_file_path'
-  ),
-  TRUE
-)
-model_constant_hydr_path <- as.character(hydr_file_path)
-model_constant_hydr_path$save(TRUE)
+#model_constant_hydr_path <- RomProperty$new(
+#  ds, list(
+#    varkey="om_class_Constant",
+#    featureid=model_scenario$pid,
+#    entity_type='dh_properties',
+#    propname = 'hydr_file_path'
+#  ),
+#  TRUE
+#)
+#model_constant_hydr_path <- as.character(hydr_file_path)
+#model_constant_hydr_path$save(TRUE)
 
 
 model_constant_Qout <- RomProperty$new(
