@@ -118,7 +118,7 @@ ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
 rseg_name=river_segment_name
-rseg_ftype="vahydro"
+rseg_ftype='cbp532' # "vahydro" 
 
 riverseg<- RomFeature$new(
   ds,
