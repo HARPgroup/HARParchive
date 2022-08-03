@@ -220,11 +220,24 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(hydr_file_path)
 model_constant_hydr_path$save(TRUE)
 
+#Creating Qout container;
+model_constant_Qout_cont<- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'Qout_stats'
+  ),
+  TRUE
+)
+
+model_constant_Qout_cont$propcode <- paste("River seg Outflow")
+model_constant_Qout_cont$save(TRUE)
 
 model_constant_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_scenario$pid,
+    featureid=model_constant_Qout_cont$pid,
     entity_type='dh_properties',
     propname = 'Qout_mgd'
   ),
@@ -237,7 +250,7 @@ model_constant_Qout$save(TRUE)
 model_constant_l90_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_scenario$pid,
+    featureid=model_constant_Qout_cont$pid,
     entity_type='dh_properties',
     propname = 'l90_Qout_mgd'
   ),
@@ -251,7 +264,7 @@ model_constant_l90_Qout$save(TRUE)
 model_constant_l30_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_scenario$pid,
+    featureid=model_constant_Qout_cont$pid,
     entity_type='dh_properties',
     propname = 'l30_Qout_mgd'
   ),
@@ -320,7 +333,7 @@ print(paste("Saved file: ", fname, "with URL", furl))
 model_graph1 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
-    featureid=model_scenario$pid,
+    featureid=model_constant_Qout_cont$pid,
     entity_type='dh_properties',
     propcode = furl,
     propname = 'fig.Qout'
