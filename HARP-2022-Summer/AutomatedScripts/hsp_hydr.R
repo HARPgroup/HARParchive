@@ -199,7 +199,7 @@ model_scenario$save(TRUE)
 
 model_constant_hydr_path <- RomProperty$new(
   ds, list(
-    varkey="om_class_Constant",
+    varkey="om_class_textField",  # change var key since it's not a constant 
     featureid=model_scenario$pid,
     entity_type='dh_properties',
     propname = 'hydr_file_path'
