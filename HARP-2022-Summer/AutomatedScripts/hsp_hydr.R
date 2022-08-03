@@ -70,7 +70,7 @@ hydr$ROVOL_mgd <- hydr$ROVOL*convert_acfthr_mgd
 dailyQout <- aggregate(hydr$ROVOL_mgd, by = list(hydr$date), FUN='mean')  # ROVOL_mgd represents Qout
 colnames(dailyQout) <- c('date','Qout') # Qout in units of mgd
 monthlyQout <- aggregate(hydr$ROVOL_mgd, by = list(hydr$month, hydr$year), FUN = "mean")
-colnames(monthlyQout) <- c("month", "year", "Qout") # ROVOL in units of mgd
+colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of mgd
 
 
 # Conversion to water-year ???????????????/
@@ -102,8 +102,7 @@ colnames(monthlyQout) <- c("month", "year", "Qout") # ROVOL in units of mgd
 
 Qout_mean <- mean(as.numeric(dailyQout$Qout)) # mgd
 paste('Qout_mean:', Qout_mean)
-# l90 and l30 from RO (IHA metric - group 2)
-# l90 Runit???
+
 
 Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
 Qout_g2 <- data.frame(group2(Qout_zoo))
@@ -112,6 +111,43 @@ l30_Qout <- min(Qout_g2$X30.Day.Min)
 paste('l90_Qout:', l90_Qout)
 paste('l30_Qout:', l30_Qout)
 # Exporting to VAHydro
+
+fn_iha_mlf <- function(zoots, targetmo) {
+  modat <- group1(zoots,'calendar','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
+  print(paste("Grabbing ", targetmo, " values ", sep=''))
+  g1vec <- as.vector(as.matrix(modat[,targetmo]))  # gives only August statistics
+  print("Performing quantile analysis")
+  x <- quantile(g1vec, 0.5, na.rm = TRUE);
+  return(as.numeric(x));
+  }
+alf <- fn_iha_mlf(Qout_zoo,'August') #The median flow of the annual minumum flows in august 
+
+# Sept. 10%
+dailyQout$month <- month(dailyQout$date)
+sept_flows <- subset(dailyQout, month == '9')
+sept_10 <- as.numeric(round(quantile(sept_flows$Qout, 0.10),6)) # September 10th percentile value of Qout flows with quantile 
+
+fn_iha_7q10 <- function(zoots) {
+  g2 <- group2(zoots) 
+  #print("Group 2, 7-day low flow results ")
+  #print(g2["7 Day Min"])
+  x <- as.vector(as.matrix(g2["7 Day Min"]))
+  # fudge 0 values
+  # correct for zeroes?? If so, use this loop:
+  # This is not an "approved" method - we need to see how the GS/other authorities handles this
+  for (k in 1:length(x)) {
+    if (x[k] <= 0) {
+      x[k] <- 0.00000001
+      print (paste("Found 0.0 average in year", g2["year"], sep = " "))
+    }
+  }
+  x <- log(x)
+  pars <- PearsonDS:::pearsonIIIfitML(x)
+  x7q10 <- exp(qpearsonIII(0.1, params = pars$par))
+  return(x7q10);
+}
+x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period 
+
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
@@ -161,6 +197,33 @@ model_scenario$save(TRUE)
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
+#Add 2 total rest sections:   x7q10, output_file_path
+
+model_constant_hydr_path <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'hydr_file_path'
+  ),
+  TRUE
+)
+model_constant_hydr_path <- as.character(hydr_file_path)
+model_constant_hydr_path$save(TRUE)
+
+
+model_constant_Qout <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'Qout_mgd'
+  ),
+  TRUE
+)
+model_constant_Qout <- as.numeric(Qout_mean)
+model_constant_Qout$save(TRUE)
+
 
 model_constant_l90_Qout <- RomProperty$new(
   ds, list(
@@ -188,3 +251,42 @@ model_constant_l30_Qout <- RomProperty$new(
 model_constant_l30_Qout$propvalue <- as.numeric(l30_Qout)
 model_constant_l30_Qout$save(TRUE)
 
+
+model_constant_sept10 <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'sept_10'
+  ),
+  TRUE
+)
+model_constant_sept10 <- as.numeric(sept_10)
+model_constant_sept10$save(TRUE)
+
+
+model_constant_alf <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'alf'
+  ),
+  TRUE
+)
+model_constant_alf <- as.numeric(alf)
+model_constant_alf$save(TRUE)
+
+
+
+model_constant_x7q10 <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'x7q10'
+  ),
+  TRUE
+)
+model_constant_x7q10 <- as.numeric(x7q10)
+model_constant_x7q10$save(TRUE)
