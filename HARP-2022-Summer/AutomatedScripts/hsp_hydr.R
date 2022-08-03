@@ -197,19 +197,17 @@ model_scenario$save(TRUE)
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
-#Add 2 total rest sections:   x7q10, output_file_path
-
-#model_constant_hydr_path <- RomProperty$new(
-#  ds, list(
-#    varkey="om_class_Constant",
-#    featureid=model_scenario$pid,
-#    entity_type='dh_properties',
-#    propname = 'hydr_file_path'
-#  ),
-#  TRUE
-#)
-#model_constant_hydr_path <- as.character(hydr_file_path)
-#model_constant_hydr_path$save(TRUE)
+model_constant_hydr_path <- RomProperty$new(
+  ds, list(
+    varkey="om_class_Constant",
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = 'hydr_file_path'
+  ),
+  TRUE
+)
+model_constant_hydr_path$propvalue <- as.character(hydr_file_path)
+model_constant_hydr_path$save(TRUE)
 
 
 model_constant_Qout <- RomProperty$new(
@@ -221,7 +219,7 @@ model_constant_Qout <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_Qout <- as.numeric(Qout_mean)
+model_constant_Qout$propvalue <- as.numeric(Qout_mean)
 model_constant_Qout$save(TRUE)
 
 
@@ -261,7 +259,7 @@ model_constant_sept10 <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_sept10 <- as.numeric(sept_10)
+model_constant_sept10$propvalue <- as.numeric(sept_10)
 model_constant_sept10$save(TRUE)
 
 
@@ -274,7 +272,7 @@ model_constant_alf <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_alf <- as.numeric(alf)
+model_constant_alf$propvalue <- as.numeric(alf)
 model_constant_alf$save(TRUE)
 
 
@@ -288,5 +286,5 @@ model_constant_x7q10 <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_x7q10 <- as.numeric(x7q10)
+model_constant_x7q10$propvalue <- as.numeric(x7q10)
 model_constant_x7q10$save(TRUE)
