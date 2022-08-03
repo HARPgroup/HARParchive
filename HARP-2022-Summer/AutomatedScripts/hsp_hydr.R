@@ -206,7 +206,7 @@ model_constant_hydr_path <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_hydr_path$propvalue <- as.character(hydr_file_path)
+model_constant_hydr_path$propcode <- as.character(hydr_file_path)
 model_constant_hydr_path$save(TRUE)
 
 
