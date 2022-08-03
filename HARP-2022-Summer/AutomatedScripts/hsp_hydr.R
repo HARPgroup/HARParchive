@@ -51,13 +51,12 @@ hydr <- fread(hydr_file_path)
 divr <- fread(divr_file_path) # divr in units of cfs
 ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
 
+convert_acfthr_mgd = 7.820434 
 
 colnames(divr) = c('date','divr_cfs')
 colnames(ps_flow) = c('date','ps_cfs')
 divr$divr_mgd=divr$divr_cfs*1.55
-convert_acfthr_mgd = 7.820434 
 ps_flow$ps_mgd=ps_flow$ps_cfs*convert_acfthr_mgd
-
 #Coverting from cfs to mgd:
 
 
@@ -85,25 +84,32 @@ colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of mgd
 
 # From: waterSupplyModelNode.R
 
-#syear = as.integer(min(hydr$year))
-#eyear = as.integer(max(hydr$year))
-#model_run_start <- min(hydr$date)   # not sure about the "date"
-#model_run_end <- max(hydr$date)
-#if (syear < (eyear - 2)) {
-#  sdate <- as.Date(paste0(syear,"-10-01"))
-#  edate <- as.Date(paste0(eyear,"-09-30"))
-#  flow_year_type <- 'water'
-#} else {
-#  sdate <- as.Date(paste0(syear,"-02-01"))
-#  edate <- as.Date(paste0(eyear,"-12-31"))
-#  flow_year_type <- 'calendar'
-#}
-#hydr <- window(hydr, start = sdate, end = edate);   # not sure what this does
+syear = min(hydr$year)
+eyear = max(hydr$year)
+model_run_start <- min(hydr$date)   # not sure about the "date"
+model_run_end <- max(hydr$date)
+years <- seq(syear,eyear)
+
+if (syear < (eyear - 2)) {
+  sdate <- as.Date(paste0(syear,"-10-01"))
+  edate <- as.Date(paste0((eyear-1),"-09-30")) # the change i made to eyear
+  flow_year_type <- 'water'
+} else {
+  sdate <- as.Date(paste0(syear,"-02-01"))
+  edate <- as.Date(paste0(eyear,"-12-31"))
+  flow_year_type <- 'calendar'
+}
+
+hydr_wy <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
+
+dailyQout_wy <- aggregate(hydr_wy$ROVOL_mgd, by = list(hydr_wy$date), FUN='mean')
+colnames(dailyQout_wy) <- c('date','Qout')
+# not sure what this does
 #mode(hydr) <- 'numeric'
 #scen.propname<-paste0('runid_', runid)  # not sure what this does/what to input instead of runid
 
 
-        # this would then be used in the values below instead of "hydr"??
+        # this would then be used in the values below instead of "hydr"?? 
 
 
 # Mean values for outflow amount and rate, and inflow amount
@@ -121,14 +127,15 @@ paste('l30_Qout:', l30_Qout)
 # Exporting to VAHydro
 
 fn_iha_mlf <- function(zoots, targetmo) {
-  modat <- group1(zoots,'calendar','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
+  modat <- group1(zoots,'water','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
   print(paste("Grabbing ", targetmo, " values ", sep=''))
   g1vec <- as.vector(as.matrix(modat[,targetmo]))  # gives only August statistics
   print("Performing quantile analysis")
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
-  }
-alf <- fn_iha_mlf(Qout_zoo,'August') #The median flow of the annual minumum flows in august 
+}
+Qout_wy_z <- zoo(dailyQout_wy$Qout, order.by = dailyQout_wy$date)
+alf <- fn_iha_mlf(Qout_wy_z,'August') #The median flow of the annual minumum flows in august 
 
 # Sept. 10%
 dailyQout$month <- month(dailyQout$date)
@@ -158,7 +165,7 @@ x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period
 
 #For graphing purposes:
 len_Qmon <- length(monthlyQout$year)
-years <- seq(min(monthlyQout$year),max(monthlyQout$year))
+
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
