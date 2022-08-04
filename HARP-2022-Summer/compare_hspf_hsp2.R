@@ -50,8 +50,8 @@ colnames(monthlyQout2) <- c("month", "year", "Qout")
 monthlyQoutF <- aggregate(hydr_f$flow, by = list(hydr_f$month, hydr_f$year), FUN = "mean")
 colnames(monthlyQoutF) <- c("month", "year", "Qout")
 
-monthlyQout2$date <- as.date(paste(monthlyQout2$month,'-',monthlyQout2$year, sep = ''))
-monthlyQoutF$date <- as.date(paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = ''))
+monthlyQout2$date <- as.Date(paste(monthlyQout2$month,'-',monthlyQout2$year, sep = ''))
+monthlyQoutF$date <- as.Date(paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = ''))
 
 png(image_path)
 plot1 <- ggplot(monthlyQout2, aes(date, Qout)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
