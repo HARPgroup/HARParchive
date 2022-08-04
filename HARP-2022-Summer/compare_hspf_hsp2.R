@@ -48,20 +48,20 @@ hydr_f$day = as.numeric(hydr_f$day)
 hydr_f$hour = as.numeric(hydr_f$hour)
 
 
-for (row in 1:nrow(hydr_f)) {
-if (hydr_f$month < 10) {
-  hydr_f$month = paste('0',hydr_f$month, sep='') 
-} else {
-}
-if (hydr_f$day < 10) {
-  hydr_f$day = paste('0',hydr_f$day, sep='') 
-} else {
-}
-if (hydr_f$hour < 10) {
-  hydr_f$hour= paste('0',hydr_f$hour, sep='') 
-} else {
-} 
-}
+#for (row in 1:nrow(hydr_f)) {
+#if (hydr_f$month < 10) {
+#  hydr_f$month = paste('0',hydr_f$month, sep='') 
+#} else {
+#}
+#if (hydr_f$day < 10) {
+#  hydr_f$day = paste('0',hydr_f$day, sep='') 
+#} else {
+#}
+#if (hydr_f$hour < 10) {
+#  hydr_f$hour= paste('0',hydr_f$hour, sep='') 
+#} else {
+#} 
+#}
 
 print('Table from HSPF:') #for de-bugging
 hydr_f[1:12,]
@@ -76,12 +76,12 @@ colnames(monthlyQoutF) <- c("month", "year", "Qout")
 
 monthlyQout2$date <- paste(monthlyQout2$month,'-',monthlyQout2$year, sep = '')
 monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
-monthlyQout2$date %>% as.Date(format = "%m-%Y")
-monthlyQoutF$date %>% as.Date(format = "%m-%Y")
+#monthlyQout2$date %>% as.Date(format = "%m-%Y")
+#monthlyQoutF$date %>% as.Date(format = "%m-%Y")
 
 png(image_path)
-plot(monthlyQout2$date,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA,xlim = c('1984-01-01', '2019-12-31'))
-lines(monthlyQoutF$date,monthlyQoutF$Qout, col = 'red')
+plot(monthlyQout2$date,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA)
+lines(monthlyQoutF$Qout, col = 'red')
 legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 title(main = 'HSPF vs HSP2 Outflows', sub = 'Monthly average values are plotted')
 
