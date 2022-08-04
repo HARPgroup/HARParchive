@@ -84,8 +84,8 @@ monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
 monthlyQout2$num <- 1:nrow(monthlyQout2)
 monthlyQoutF$num <- 1:nrow(monthlyQoutF)
 
-max_2 <- max(monthlyQout2$Qout)
-max_f <- max(monthlyQoutF$Qout)
+max2 <- max(monthlyQout2$Qout)
+maxf <- max(monthlyQoutF$Qout)
 if (max2 > maxf) {
   max = max2
 }
