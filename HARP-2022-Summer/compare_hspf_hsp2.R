@@ -33,7 +33,7 @@ hydr_2 <- fread(path_to_hsp2) # Hydr table from hsp2
 colnames(hydr_f) <- c('year', 'month', 'day', 'hour', 'flow')
 
 print('Table from HSPF:') #for de-bugging
-head(hydr_f)
+head(hydr_f, n=12)
 print('Table from HSP2:')
 head(hydr_2)
 
@@ -47,7 +47,21 @@ hydr_2$year <- year(hydr_2$date)
 
 hydr_f$date = paste(hydr_f[,1],'-',hydr_f[,2],'-',hydr_f[,3], sep = '')
 
-
+if (hydr_f$month < 10) {
+  hydr_f$month = paste('0',hydr$month) 
+} else {
+  hydr_f$month=hydr_f$month
+}
+if (hydr_f$day < 10) {
+  hydr_f$day = paste('0',hydr$day) 
+} else {
+  hydr_f$day=hydr_f$day
+}
+if (hydr_f$hour < 10) {
+  hydr_f$hour= paste('0',hydr$hour) 
+} else {
+  hydr_f$hour=hydr_f$hour
+}
 #Aggregate both tables to get monthly average flows 
 monthlyQout2 <- aggregate(hydr_2$ROVOL_cfs, by = list(hydr_2$month, hydr_2$year), FUN = "mean")
 colnames(monthlyQout2) <- c("month", "year", "Qout")
