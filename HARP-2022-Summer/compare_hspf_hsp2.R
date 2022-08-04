@@ -52,8 +52,8 @@ colnames(monthlyQoutF) <- c("month", "year", "Qout")
 
 monthlyQout2$date <- paste(monthlyQout2$month,'-',monthlyQout2$year, sep = '')
 monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
-monthlyQout2$date %>% as.Date()
-monthlyQoutF$date %>% as.Date()
+monthlyQout2$date %>% as.Date(format = "%m-%Y")
+monthlyQoutF$date %>% as.Date(format = "%m-%Y")
 
 png(image_path)
 plot(monthlyQout2$date,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA,xlim = c('1984-01-01', '2019-12-31'))
