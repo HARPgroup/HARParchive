@@ -84,8 +84,11 @@ monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
 monthlyQout2$num <- 1:nrow(monthlyQout2)
 monthlyQoutF$num <- 1:nrow(monthlyQoutF)
 
+max <- max(monthlyQout2$Qout) + 20
+
+monthlyQout_clip <- monthlyQout2[1:nrow(monthlyQoutF), ]
 png(image_path)
-plot(monthlyQout2$num,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA)
+plot(monthlyQout_clip$num,monthlyQout_clip$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA, xaxt - 'n', ylim = c(0,max))
 lines(monthlyQoutF$num, monthlyQoutF$Qout, col = 'red')
 legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 title(main = 'HSPF vs HSP2 Outflows', sub = 'Monthly average values are plotted')
