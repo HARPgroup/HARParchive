@@ -56,31 +56,23 @@ convert_acfthr_mgd = 7.820434
 colnames(divr) = c('date','divr_cfs')
 colnames(ps_flow) = c('date','ps_cfs')
 divr$divr_mgd=divr$divr_cfs*1.55
-ps_flow$ps_mgd=ps_flow$ps_cfs*convert_acfthr_mgd
-#Coverting from cfs to mgd:
-
+ps_flow$ps_mgd=ps_flow$ps_cfs*convert_acfthr_mgd #Coverting from cfs to mgd
 
 hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
 hydr$week <- week(hydr$date)
 hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
-# We don't know what units divr and ps_flow will come in as (cfs or ac-ft/hr)
-
-
 # Converting units to mgd from ac.ft/ivld
+#hydr$ROVOL_mgd <- hydr$ROVOL*convert_acfthr_mgd
 
-     
-hydr$ROVOL_mgd <- hydr$ROVOL*convert_acfthr_mgd
+#Converting ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
+hydr$ROVOL_cfs = hydr$ROVOL*12.1 
 
-
-dailyQout <- aggregate(hydr$ROVOL_mgd, by = list(hydr$date), FUN='mean')  # ROVOL_mgd represents Qout
+dailyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$date), FUN='mean')  # ROVOL_cfs represents Qout
 colnames(dailyQout) <- c('date','Qout') # Qout in units of mgd
-monthlyQout <- aggregate(hydr$ROVOL_mgd, by = list(hydr$month, hydr$year), FUN = "mean")
+monthlyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$month, hydr$year), FUN = "mean")
 colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of mgd
-
-
-# Conversion to water-year ???????????????/
 
 # From: waterSupplyModelNode.R
 
@@ -102,25 +94,22 @@ if (syear < (eyear - 2)) {
 
 hydr_wy <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
 
-dailyQout_wy <- aggregate(hydr_wy$ROVOL_mgd, by = list(hydr_wy$date), FUN='mean')
+dailyQout_wy <- aggregate(hydr_wy$ROVOL_cfs, by = list(hydr_wy$date), FUN='mean')
 colnames(dailyQout_wy) <- c('date','Qout')
 # not sure what this does
 #mode(hydr) <- 'numeric'
 #scen.propname<-paste0('runid_', runid)  # not sure what this does/what to input instead of runid
 
 
-        # this would then be used in the values below instead of "hydr"?? 
-
-
 # Mean values for outflow amount and rate, and inflow amount
 
-Qout_mean <- mean(as.numeric(dailyQout$Qout)) # mgd
+Qout_mean <- mean(as.numeric(dailyQout$Qout)) # cfs
 paste('Qout_mean:', Qout_mean)
 
 
 Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
 Qout_g2 <- data.frame(group2(Qout_zoo))
-l90_Qout <- min(Qout_g2$X90.Day.Min) # mgd
+l90_Qout <- min(Qout_g2$X90.Day.Min) # cfs
 l30_Qout <- min(Qout_g2$X30.Day.Min)
 paste('l90_Qout:', l90_Qout)
 paste('l30_Qout:', l30_Qout)
@@ -227,26 +216,13 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(hydr_file_path)
 model_constant_hydr_path$save(TRUE)
 
-#Creating Qout container;
-model_constant_Qout_cont<- RomProperty$new(
-  ds, list(
-    varkey="om_class_Constant",
-    featureid=model_scenario$pid,
-    entity_type='dh_properties',
-    propname = 'Qout_stats'
-  ),
-  TRUE
-)
-
-model_constant_Qout_cont$propcode <- paste("River seg Outflow")
-model_constant_Qout_cont$save(TRUE)
 
 model_constant_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_constant_Qout_cont$pid,
+    featureid=model_scenario$pid,
     entity_type='dh_properties',
-    propname = 'Qout_mgd'
+    propname = 'Qout'
   ),
   TRUE
 )
@@ -257,9 +233,9 @@ model_constant_Qout$save(TRUE)
 model_constant_l90_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_constant_Qout_cont$pid,
+    featureid=model_scenario$pid,
     entity_type='dh_properties',
-    propname = 'l90_Qout_mgd'
+    propname = 'l90_Qout'
   ),
   TRUE
 )
@@ -271,9 +247,9 @@ model_constant_l90_Qout$save(TRUE)
 model_constant_l30_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
-    featureid=model_constant_Qout_cont$pid,
+    featureid=model_scenario$pid,
     entity_type='dh_properties',
-    propname = 'l30_Qout_mgd'
+    propname = 'l30_Qout'
   ),
   TRUE
 )
@@ -332,7 +308,7 @@ furl <- paste(
   sep = '/'
 )
 png(fname) #fname is a character string with file name
-plot(monthlyQout$Qout, type = 'l', col = 'blue', ylab = 'Qout (mgd)', xaxt = 'n', xlab = NA,)
+plot(monthlyQout$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)', xaxt = 'n', xlab = NA,)
 title(main = 'Outflow from the River Segment', sub = 'Monthly average values are plotted')
 axis(1, at = seq(0,len_Qmon,12), labels = years)
 dev.off()
@@ -340,7 +316,7 @@ print(paste("Saved file: ", fname, "with URL", furl))
 model_graph1 <- RomProperty$new(
   ds, list(
     varkey="dh_image_file",
-    featureid=model_constant_Qout_cont$pid,
+    featureid=model_scenario$pid,
     entity_type='dh_properties',
     propcode = furl,
     propname = 'fig.Qout'
