@@ -84,7 +84,7 @@ monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
 monthlyQout2$num <- 1:nrow(monthlyQout2)
 monthlyQoutF$num <- 1:nrow(monthlyQoutF)
 
-max <- max(monthlyQout2$Qout) + 20
+max <- max(monthlyQout2$Qout) + 3
 
 monthlyQout_clip <- monthlyQout2[1:nrow(monthlyQoutF), ]
 png(image_path)
