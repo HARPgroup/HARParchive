@@ -46,24 +46,28 @@ hydr_f$date = paste(hydr_f[,1],'-',hydr_f[,2],'-',hydr_f[,3], sep = '')
 hydr_f$month = as.numeric(hydr_f$month)
 hydr_f$day = as.numeric(hydr_f$day)
 hydr_f$hour = as.numeric(hydr_f$hour)
+
+
+for (row in hydr_f) {
 if (hydr_f$month < 10) {
   hydr_f$month = paste('0',hydr_f$month, sep='') 
 } else {
-  hydr_f$month=hydr_f$month
+  next
 }
 if (hydr_f$day < 10) {
   hydr_f$day = paste('0',hydr_f$day, sep='') 
 } else {
-  hydr_f$day=hydr_f$day
+  next
 }
 if (hydr_f$hour < 10) {
   hydr_f$hour= paste('0',hydr_f$hour, sep='') 
 } else {
-  hydr_f$hour=hydr_f$hour
+  next
+} 
 }
 
 print('Table from HSPF:') #for de-bugging
-head(hydr_f, n=12)
+head(hydr_f, n=12L)
 print('Table from HSP2:')
 head(hydr_2)
 #Aggregate both tables to get monthly average flows 
