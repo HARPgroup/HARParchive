@@ -113,7 +113,7 @@ cslope <- slope$propvalue #longitudinal channel slope
 
 
 #----Calculating Regional-Specific Ftable----
-# Geometry:
+#- - - Channel Geometry: - - - 
 if (prov == 1){
   #Appalachian Plateau
   hc = 2.030 # "c" = coefficient for regional regression eqn
@@ -123,6 +123,8 @@ if (prov == 1){
   bc = 5.389
   be = 0.5349
   n = 0.036 # Manning's n
+  
+  nf = 0.055 # Floodplain n
 }
 
 if (prov == 2){
@@ -134,6 +136,8 @@ if (prov == 2){
   bc = 4.667
   be = 0.5489
   n = 0.038
+  
+  nf = 0.048
 }
 
 if (prov ==3){
@@ -145,6 +149,8 @@ if (prov ==3){
   bc = 6.393
   be = 0.4604
   n = 0.04
+  
+  nf = 0.063
 }
 
 if (prov ==4){
@@ -156,6 +162,8 @@ if (prov ==4){
   bc = 6.440
   be = 0.4442
   n = 0.033
+  
+  nf = 0.06
 }
 
 # Regional Regression Eqn's:
@@ -168,7 +176,51 @@ b = bc * (da**be)
 #side slope of channel:
 z = 0.5 * (bf - b ) / h
 
-# - - - - Ftable: - - - - 
+
+
+
+# - - - Ftable w/ Floodplain - - - 
+# Depth
+cdepth <- c(ftable_uci$depth[1:10])
+fdepth <- c(ftable_uci$depth[11:19])
+depth <- c(cdepth, fdepth)
+
+# Floodplain Parameters
+ym <- h/1.25 # mean channel depth
+wm <- b + 2*z*ym # mean channel width
+fw <- 2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
+zf <- h*49 / fw # total change in elevation / width of floodplain (USGS); max depth = 50x channel depth (h) -BASINS 1
+# don't forget: "the depth at which the flood plain slope changes is 1.5 times the channel depth"
+
+# Surface Area
+csw <- b + 2*z*cdepth
+fsw <- fw + 2*zf*(fdepth-h)
+sw <- c(csw, fsw)
+sw[depth == 0] <- 0 # zero depth = zero surface water width
+area = (sw * clength)/43560 #converting to acres
+
+# Volume
+cvol <- (clength * (0.5*(csw+b)*cdepth))/43560
+hvol <- (clength * (0.5*((b + 2*z*h)+b)*h))/43560
+fvol <- (clength * (0.5*(fsw+fw)*(fdepth-h)))/43560 + hvol
+
+vol <- c(cvol,fvol)
+
+# Discharge
+cdisch <- (1.49/n) * ((cdepth*(b+z*cdepth))/(b+2*cdepth*sqrt(1+z^2)))**(2/3) * 
+  cslope**0.5 * 0.5*(csw+b)*cdepth
+hdisch <- (1.49/n) * ((h*(b+z*h))/(b+2*h*sqrt(1+z^2)))**(2/3) * 
+  cslope**0.5 * 0.5*((b + 2*z*h)+b)*h
+fdisch <- (1.49/nf) * (((fdepth-h)*(fw+zf*(fdepth-h)))/(fw+2*(fdepth-h)*sqrt(1+zf^2)))**(2/3) * 
+  cslope**0.5 * 0.5*(fsw+fw)*(fdepth-h) + hdisch
+
+disch <- c(cdisch, fdisch)
+
+# Compile
+ftable_specific <- data.frame(depth, area, vol, disch)
+
+#----
+#----Original Ftable:----
 # Depth
 depth <- c(ftable_uci$depth)
 
@@ -189,7 +241,7 @@ disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) *
 # Compile
 ftable_specific <- data.frame(depth, area, vol, disch)
 
-
+#----
 
 #----Generic Ftable----
 prov <- -1
