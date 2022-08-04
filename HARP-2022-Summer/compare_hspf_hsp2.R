@@ -54,10 +54,8 @@ monthlyQout2$date <- paste(monthlyQout2$month,'-',monthlyQout2$year, sep = '')
 monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
 
 png(image_path)
-plot1 <- ggplot(monthlyQout2, aes(date, Qout)) + geom_line(aes(col = 'blue'), size = 0.25)  + 
-  geom_line(monthlyQoutF, aes(date, Qout, col = 'red'), size = 0.25) +
-  labs (x = NULL, y = 'Flow (cfs)') + 
-  ggtitle('HSPF vs HSP2') +
-  scale_color_identity(name = NULL, breaks=c('red','blue'), labels = c('HSPF', 'HSP2'), guide = 'legend') +
-  theme(legend.position = 'bottom')
+plot(monthlyQout2$date,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA,)
+lines(monthlyQoutF$date,monthlyQoutF$Qout, col = 'red')
+legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
+title(main = 'HSPF vs HSP2 Outflows', sub = 'Monthly average values are plotted')
 
