@@ -40,8 +40,8 @@ hydr_2$date <- as.Date(hydr_2$index, format = "%m/%d/%Y %H:%M")
 hydr_2$month <- month(hydr_2$date)
 hydr_2$year <- year(hydr_2$date)
 
-hydr_f$days = paste(hydr_f[,2],'/',hydr_f[,3],'/',hydr_f[,1],' ',hydr_f[,4], sep = '')
-hydr_f$date <- as.Date(hydr_f$days, format = "%m/%d/%Y %H")
+hydr_f$date = paste(hydr_f[,1],'-',hydr_f[,2],'-',hydr_f[,3], sep = '')
+
 
 #Aggregate both tables to get monthly average flows 
 monthlyQout2 <- aggregate(hydr_2$ROVOL_cfs, by = list(hydr_2$month, hydr_2$year), FUN = "mean")
