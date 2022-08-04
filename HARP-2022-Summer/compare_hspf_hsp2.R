@@ -84,8 +84,14 @@ monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
 monthlyQout2$num <- 1:nrow(monthlyQout2)
 monthlyQoutF$num <- 1:nrow(monthlyQoutF)
 
-max <- max(monthlyQout2$Qout) + 3
-
+max_2 <- max(monthlyQout2$Qout)
+max_f <- max(monthlyQoutF$Qout)
+if (max2 > maxf) {
+  max = max2
+}
+if (maxf > max2) {
+  max = maxf
+}
 monthlyQout_clip <- monthlyQout2[1:nrow(monthlyQoutF), ]
 png(image_path)
 plot(monthlyQout_clip$num,monthlyQout_clip$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA, xaxt = 'n', ylim = c(0,max))
