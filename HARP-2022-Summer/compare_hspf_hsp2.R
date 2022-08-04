@@ -32,6 +32,11 @@ hydr_2 <- fread(path_to_hsp2) # Hydr table from hsp2
 
 colnames(hydr_f) <- c('year', 'month', 'day', 'hour', 'flow')
 
+print('Table from HSPF:') #for de-bugging
+head(hydr_f)
+print('Table from HSP2:')
+head(hydr_2)
+
 #Convert ROVOL in hsp2 hydr to cfs for comparison (from ac-ft/hr)
 hydr_2$ROVOL_cfs = hydr_2$ROVOL*12.1
 
