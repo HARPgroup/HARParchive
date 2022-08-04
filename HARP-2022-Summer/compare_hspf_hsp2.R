@@ -43,19 +43,21 @@ hydr_2$month <- month(hydr_2$date)
 hydr_2$year <- year(hydr_2$date)
 
 hydr_f$date = paste(hydr_f[,1],'-',hydr_f[,2],'-',hydr_f[,3], sep = '')
-
+hydr_f$month = as.numeric(hydr_f$month)
+hydr_f$day = as.numeric(hydr_f$day)
+hydr_f$hour = as.numeric(hydr_f$hour)
 if (hydr_f$month < 10) {
-  hydr_f$month = paste('0',hydr_f$month) 
+  hydr_f$month = paste('0',hydr_f$month, sep='') 
 } else {
   hydr_f$month=hydr_f$month
 }
 if (hydr_f$day < 10) {
-  hydr_f$day = paste('0',hydr_f$day) 
+  hydr_f$day = paste('0',hydr_f$day, sep='') 
 } else {
   hydr_f$day=hydr_f$day
 }
 if (hydr_f$hour < 10) {
-  hydr_f$hour= paste('0',hydr_f$hour) 
+  hydr_f$hour= paste('0',hydr_f$hour, sep='') 
 } else {
   hydr_f$hour=hydr_f$hour
 }
