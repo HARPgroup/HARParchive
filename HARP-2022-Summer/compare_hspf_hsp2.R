@@ -17,6 +17,10 @@ suppressPackageStartupMessages(library(R.utils))
 
 omsite = "http://deq1.bse.vt.edu:81"
 
+#setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
+#hydr_2 <- fread("OR1_7700_7980_hydr.csv") # for testing only 
+#hydr_f <- fread("OR1_7700_7980_0111.csv") # for testing only 
+
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 path_to_hspf <- argst[1]
@@ -35,17 +39,15 @@ colnames(hydr_f) <- c('year', 'month', 'day', 'hour', 'flow')
 
 
 #Convert ROVOL in hsp2 hydr to cfs for comparison (from ac-ft/hr)
-hydr_2$ROVOL_cfs = hydr_2$ROVOL*12.1
+#hydr_2$ROVOL_cfs = hydr_2$ROVOL*12.1
 
 #Adding usable dates to both data tables 
 hydr_2$date <- as.Date(hydr_2$index, format = "%m/%d/%Y %H:%M")
 hydr_2$month <- month(hydr_2$date)
 hydr_2$year <- year(hydr_2$date)
 
-hydr_f$date = paste(hydr_f[,1],'-',hydr_f[,2],'-',hydr_f[,3], sep = '')
-hydr_f$month = as.numeric(hydr_f$month)
-hydr_f$day = as.numeric(hydr_f$day)
-hydr_f$hour = as.numeric(hydr_f$hour)
+hydr_f$date = paste(hydr_f$year,'-',hydr_f$month,'-',hydr_f$day, sep = '')
+
 
 
 #for (row in 1:nrow(hydr_f)) {
@@ -64,11 +66,11 @@ hydr_f$hour = as.numeric(hydr_f$hour)
 #}
 
 print('Table from HSPF:') #for de-bugging
-hydr_f[1:12,]
+head(hydr_f)
 print('Table from HSP2:')
 head(hydr_2)
 #Aggregate both tables to get monthly average flows 
-monthlyQout2 <- aggregate(hydr_2$ROVOL_cfs, by = list(hydr_2$month, hydr_2$year), FUN = "mean")
+monthlyQout2 <- aggregate(hydr_2$ROVOL, by = list(hydr_2$month, hydr_2$year), FUN = "mean")
 colnames(monthlyQout2) <- c("month", "year", "Qout")
 
 monthlyQoutF <- aggregate(hydr_f$flow, by = list(hydr_f$month, hydr_f$year), FUN = "mean")
@@ -79,9 +81,12 @@ monthlyQoutF$date <- paste(monthlyQoutF$month,'-',monthlyQoutF$year, sep = '')
 #monthlyQout2$date %>% as.Date(format = "%m-%Y")
 #monthlyQoutF$date %>% as.Date(format = "%m-%Y")
 
+monthlyQout2$num <- 1:nrow(monthlyQout2)
+monthlyQoutF$num <- 1:nrow(monthlyQoutF)
+
 png(image_path)
-plot(monthlyQout2$date,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA)
-lines(monthlyQoutF$Qout, col = 'red')
+plot(monthlyQout2$num,monthlyQout2$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA)
+lines(monthlyQoutF$num, monthlyQoutF$Qout, col = 'red')
 legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 title(main = 'HSPF vs HSP2 Outflows', sub = 'Monthly average values are plotted')
 
