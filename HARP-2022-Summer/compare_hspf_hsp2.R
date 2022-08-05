@@ -85,7 +85,7 @@ axis(1, at = seq(4,nrow(monthlyQout_clip),12), labels = years)
 
 
 #Percent differences:
-monthlyQout_clip$pct_df <- abs((monthlyQout_clip$Qout - monthlyQout_clip$QoutF)/monthlyQout_clip$QoutF)*100
+monthlyQout_clip$pct_df <- (abs(monthlyQout_clip$Qout - monthlyQout_clip$QoutF))/((monthlyQout_clip$QoutF+monthlyQout_clip$Qout)/2)*100
 pc_avg = as.numeric(mean(monthlyQout_clip$pct_df))
 pc_rd <- round(pc_avg, digits = 2)
 
