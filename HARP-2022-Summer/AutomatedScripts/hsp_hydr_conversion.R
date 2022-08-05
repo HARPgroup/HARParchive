@@ -57,23 +57,11 @@ colnames(ps_flow) = c('date','ps_cfs')
 divr$divr_mgd=divr$divr_achfth*7.820434
 ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
 
-# Creating tables with just wanted columns:
-rovol <- data.frame(hydr$date, hydr$week, hydr$month, hydr$year, hydr$ROVOL_cfs)
-colnames(rovol) <- c("date","week","month","year","ROVOL_cfs")
 
-divr_mgd <- data.frame(divr$date, divr$divr_mgd)
-colnames(divr_mgd) <- c("date","divr_mgd")
-
-ps_mgd <- data.frame(ps_flow$date, ps_flow$ps_mgd)
-colnames(ps_mgd) <- c("date", "ps_mgd")
 
 # Exporting the modified csv files into the output_file_path:
 
-rovol_file_path=paste(output_file_path,'/hydr/', river_segment_name, '_rovol_cfs.csv', sep = '')
-divr_mgd_file_path=paste(output_file_path,'/divr/', river_segment_name, '_divr_mgd.csv', sep = '')
-ps_mgd_file_path=paste(output_file_path,'/ps_flow/', river_segment_name, '_psflow_mgd.csv', sep = '')
-
-write.table(rovol,file = rovol_file_path, sep = ",", row.names = FALSE)
-write.table(divr_mgd,file = divr_mgd_file_path, sep = ",", row.names = FALSE)
-write.table(ps_mgd,file = ps_mgd_file_path, sep = ",", row.names = FALSE)
+write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
+write.table(divr,file = divr_file_path, sep = ",", row.names = FALSE)
+write.table(ps_flow,file = ps_file_path, sep = ",", row.names = FALSE)
 

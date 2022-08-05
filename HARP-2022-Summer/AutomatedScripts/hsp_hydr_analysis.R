@@ -45,9 +45,9 @@ path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 # need to change since trying to save the modified csvs into the directory? 
 # Accessing CSVs
-hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_rovol_cfs.csv', sep = '')
-divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr_mgd.csv', sep = '')
-ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow_mgd.csv', sep = '')
+hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
+divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
+ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
       
 # Reading in the tables
 hydr <- fread(hydr_file_path)
