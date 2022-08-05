@@ -109,6 +109,6 @@ png(image_path4)
 ggplot(pc_mon, aes(x=reorder(month,mon),pc)) + geom_bar(stat='identity') + 
   ggtitle('Avg % difference in outflow by month (HSPF - HSP2)') +
   labs(x=NULL,y='% Difference') + 
-  annotate(geom = "label", x=3, y=2.5, label = paste("Overall avg % diff:", pc_rd)) +
+  annotate(geom = "label", x=3, y=0.5, label = paste("Overall avg % diff:", pc_rd)) +
   scale_x_discrete( labels = month.abb) 
 
