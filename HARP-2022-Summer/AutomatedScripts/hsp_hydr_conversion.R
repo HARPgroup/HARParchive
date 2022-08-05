@@ -52,7 +52,7 @@ hydr$ROVOL_cfs = hydr$ROVOL*12.1
 
 # Converting to mgd:
 colnames(ps_flow) = c('date','ps_cfs')
-colnames(divr_flow) = c('date','divr_acfth')
+colnames(divr) = c('date','divr_acfth')
 
 ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
 divr$divr_mgd=divr$divr_acfth*7.820434   #if ps was in acft/hr instead!
