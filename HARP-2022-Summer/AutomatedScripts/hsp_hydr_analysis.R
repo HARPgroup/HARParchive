@@ -46,13 +46,13 @@ path_string_m2 <- paste(path_list_m2, collapse = "/")
 # need to change since trying to save the modified csvs into the directory? 
 # Accessing CSVs
 hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_rovol_cfs.csv', sep = '')
-divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr_mgd.csv', sep = '')
-ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow_mgd.csv', sep = '')
+#divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr_mgd.csv', sep = '')
+#ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow_mgd.csv', sep = '')
       
 # Reading in the tables
 hydr <- fread(hydr_file_path)
-divr <- fread(divr_file_path) # divr in units of mgd
-ps_flow <- fread(ps_file_path) # ps in units of mgd
+#divr <- fread(divr_file_path) # divr in units of mgd
+#ps_flow <- fread(ps_file_path) # ps in units of mgd
 
 # Adding columns for daily and monthly values
 dailyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$date), FUN='mean')  # ROVOL_cfs represents Qout
