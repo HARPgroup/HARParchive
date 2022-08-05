@@ -32,7 +32,7 @@ river_segment_name <- argst[1]
 scenario_name <- argst[2]
 input_file_path <- argst[3] 
 #input_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
-image_directory_path <- paste(output_file_path, '/', 'images', sep='')
+image_directory_path <- paste(input_file_path, '/', 'images', sep='')
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
 
 dir.create(file.path(image_directory_path)) #creates 'images' directory if one does not yet exists
