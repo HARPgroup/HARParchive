@@ -64,10 +64,10 @@ rovol <- data.frame(hydr$date, hydr$week, hydr$month, hydr$year, hydr$ROVOL_cfs)
 colnames(rovol) <- c("date","week","month","year","ROVOL_cfs")
 
 divr_mgd <- data.frame(divr$index, divr$divr_mgd)
-colnames(divr_mgd) <- c("index","divr_mgd")
+colnames(divr_mgd) <- c("date","divr_mgd")
 
 ps_mgd <- data.frame(ps_flow$index, ps_flow$ps_mgd)
-colnames(ps_mgd) <- c("index", "ps_mgd")
+colnames(ps_mgd) <- c("date", "ps_mgd")
 
 # Exporting the modified csv files into the output_file_path:
 
