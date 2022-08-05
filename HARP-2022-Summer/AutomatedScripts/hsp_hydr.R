@@ -31,17 +31,17 @@ river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
 output_file_path <- argst[3]  
-image_directory_path <- argst[4] 
+image_directory_path <- paste(output_file_path, '/', 'images', sep='')
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
 #output_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
-#image_directory_path <- argst[5] # '/media/model/p532/out/river/p532sova_2021/images'
+
+dir.create(file.path(image_directory_path)) #creates 'images' directory if one does not yet exists
 
 hydr_file_path=paste(output_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
 divr_file_path=paste(output_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
 ps_file_path=paste(output_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
 
 image_path_split <- strsplit(image_directory_path, split = '/')
-# print(image_path_split[[1]][2]) # this is how to call items of a list
 
 path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
@@ -96,16 +96,10 @@ hydr_wy <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr tab
 
 dailyQout_wy <- aggregate(hydr_wy$ROVOL_cfs, by = list(hydr_wy$date), FUN='mean')
 colnames(dailyQout_wy) <- c('date','Qout')
-# not sure what this does
-#mode(hydr) <- 'numeric'
-#scen.propname<-paste0('runid_', runid)  # not sure what this does/what to input instead of runid
-
 
 # Mean values for outflow amount and rate, and inflow amount
-
 Qout_mean <- mean(as.numeric(dailyQout$Qout)) # cfs
 paste('Qout_mean:', Qout_mean)
-
 
 Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
 Qout_g2 <- data.frame(group2(Qout_zoo))
@@ -113,8 +107,8 @@ l90_Qout <- min(Qout_g2$X90.Day.Min) # cfs
 l30_Qout <- min(Qout_g2$X30.Day.Min)
 paste('l90_Qout:', l90_Qout)
 paste('l30_Qout:', l30_Qout)
-# Exporting to VAHydro
 
+# Exporting to VAHydro
 fn_iha_mlf <- function(zoots, targetmo) {
   modat <- group1(zoots,'water','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
   print(paste("Grabbing ", targetmo, " values ", sep=''))
@@ -133,12 +127,9 @@ sept_10 <- as.numeric(round(quantile(sept_flows$Qout, 0.10),6)) # September 10th
 
 fn_iha_7q10 <- function(zoots) {
   g2 <- group2(zoots) 
-  #print("Group 2, 7-day low flow results ")
-  #print(g2["7 Day Min"])
+ 
   x <- as.vector(as.matrix(g2["7 Day Min"]))
-  # fudge 0 values
-  # correct for zeroes?? If so, use this loop:
-  # This is not an "approved" method - we need to see how the GS/other authorities handles this
+
   for (k in 1:length(x)) {
     if (x[k] <= 0) {
       x[k] <- 0.00000001
@@ -172,7 +163,6 @@ riverseg<- RomFeature$new(
   ),
   TRUE
 )
-#riverseg$save(TRUE)
 
 model <- RomProperty$new(
   ds,
@@ -200,13 +190,12 @@ model_scenario <- RomProperty$new(
 )
 model_scenario$save(TRUE)
 
-
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 
 model_constant_hydr_path <- RomProperty$new(
   ds, list(
-    varkey="om_class_textField",  # change var key since it's not a constant 
+    varkey="om_class_textField", 
     featureid=model_scenario$pid,
     entity_type='dh_properties',
     propname = 'hydr_file_path'
@@ -229,7 +218,6 @@ model_constant_Qout <- RomProperty$new(
 model_constant_Qout$propvalue <- as.numeric(Qout_mean)
 model_constant_Qout$save(TRUE)
 
-
 model_constant_l90_Qout <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
@@ -241,8 +229,6 @@ model_constant_l90_Qout <- RomProperty$new(
 )
 model_constant_l90_Qout$propvalue <- as.numeric(l90_Qout)
 model_constant_l90_Qout$save(TRUE)
-
-
 
 model_constant_l30_Qout <- RomProperty$new(
   ds, list(
@@ -256,7 +242,6 @@ model_constant_l30_Qout <- RomProperty$new(
 model_constant_l30_Qout$propvalue <- as.numeric(l30_Qout)
 model_constant_l30_Qout$save(TRUE)
 
-
 model_constant_sept10 <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
@@ -269,7 +254,6 @@ model_constant_sept10 <- RomProperty$new(
 model_constant_sept10$propvalue <- as.numeric(sept_10)
 model_constant_sept10$save(TRUE)
 
-
 model_constant_alf <- RomProperty$new(
   ds, list(
     varkey="om_class_Constant",
@@ -281,8 +265,6 @@ model_constant_alf <- RomProperty$new(
 )
 model_constant_alf$propvalue <- as.numeric(alf)
 model_constant_alf$save(TRUE)
-
-
 
 model_constant_x7q10 <- RomProperty$new(
   ds, list(
@@ -298,7 +280,6 @@ model_constant_x7q10$save(TRUE)
 
 #Exporting graph of Qout to Vahydro
 save_url = paste(omsite, '/', path_string_m2, sep ='')
-
 fname <- paste(
   image_directory_path,paste0( river_segment_name, '.','fig.Qout','.png'), # building file name
   sep = '/'
@@ -307,7 +288,7 @@ furl <- paste(
   save_url,paste0( river_segment_name,'.','fig.Qout', '.png'),
   sep = '/'
 )
-png(fname) #fname is a character string with file name
+png(fname) 
 plot(monthlyQout$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)', xaxt = 'n', xlab = NA,)
 title(main = 'Outflow from the River Segment', sub = 'Monthly average values are plotted')
 axis(1, at = seq(0,len_Qmon,12), labels = years)
@@ -324,8 +305,3 @@ model_graph1 <- RomProperty$new(
   TRUE
 )
 model_graph1$save(TRUE)
-
-
-
-
-
