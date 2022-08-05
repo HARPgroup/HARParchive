@@ -51,11 +51,12 @@ hydr$year <- year(hydr$date)
 hydr$ROVOL_cfs = hydr$ROVOL*12.1 
 
 # Converting to mgd:
+colnames(divr) = c('date','divr_achfth')
 colnames(ps_flow) = c('date','ps_cfs')
-colnames(divr) = c('date','divr_acfth')
 
+divr$divr_mgd=divr$divr_achfth*7.820434
 ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
-divr$divr_mgd=divr$divr_acfth*7.820434   #if ps was in acft/hr instead!
+
 
 
 # Exporting the modified csv files into the output_file_path:
@@ -64,7 +65,3 @@ write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
 write.table(divr,file = divr_file_path, sep = ",", row.names = FALSE)
 write.table(ps_flow,file = ps_file_path, sep = ",", row.names = FALSE)
 
-
-
-## Converting to mgd (instead of cfs):
-#hydr$ROVOL_mgd <- hydr$ROVOL*7.820434
