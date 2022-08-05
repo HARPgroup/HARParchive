@@ -74,12 +74,15 @@ if (maxf > max2) {
 }
 monthlyQout_clip <- monthlyQout2[1:nrow(monthlyQoutF), ]
 monthlyQout_clip$QoutF <- monthlyQoutF$Qout
+years <- seq(min(monthlyQout_clip$year), max(monthlyQout_clip$year)) # for graphing
 
 png(image_path1)
 plot(monthlyQout_clip$num,monthlyQout_clip$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)',  xlab = NA, xaxt = 'n', ylim = c(0,max))
 lines(monthlyQoutF$num, monthlyQoutF$Qout, col = 'red')
 legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 title(main = 'HSPF vs HSP2 Outflows', sub = 'Monthly average values are plotted')
+axis(1, at = seq(4,nrow(monthlyQout_clip),12), labels = years)
+
 
 #Percent differences:
 monthlyQout_clip$pct_df <- abs((monthlyQout_clip$Qout - monthlyQout_clip$QoutF)/monthlyQout_clip$QoutF)*100
