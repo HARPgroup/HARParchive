@@ -25,7 +25,6 @@ ftable_uci <- read.csv(paste('http://deq1.bse.vt.edu:81/p532/input/param/river/h
                        nrows = 19, skip= 5,
                        comment.char="*")
 
-
 #----Pulling from VAHydro----
 rseg<- RomFeature$new(
   ds,
@@ -96,7 +95,7 @@ length <- RomProperty$new(
   ),
   TRUE
 )
-clength <- length$propvalue #channel length
+clength <- length$propvalue #122284.8  channel length
 
 
 slope <- RomProperty$new(
@@ -109,11 +108,10 @@ slope <- RomProperty$new(
   ),
   TRUE
 )
-cslope <- slope$propvalue #longitudinal channel slope
+cslope <-  slope$propvalue #0.0016 longitudinal channel slope
 
 
-#----Calculating Regional-Specific Ftable----
-#- - - Channel Geometry: - - - 
+#----Regional-Specific Channel Geometry----
 if (prov == 1){
   #Appalachian Plateau
   hc = 2.030 # "c" = coefficient for regional regression eqn
@@ -166,7 +164,7 @@ if (prov ==4){
   nf = 0.06
 }
 
-# Regional Regression Eqn's:
+#- - - Regional Regression Eqn's:- - -
 #bank full stage "max height before floodplain":
 h = hc * (da**he)
 #bank full width "max width before floodplain":
@@ -176,10 +174,8 @@ b = bc * (da**be)
 #side slope of channel:
 z = 0.5 * (bf - b ) / h
 
-
-
-
-# - - - Ftable w/ Floodplain - - - 
+#----
+#----Ftable w/ Floodplain---- 
 # Depth
 cdepth <- c(ftable_uci$depth[1:10])
 fdepth <- c(ftable_uci$depth[11:19])
@@ -189,6 +185,7 @@ depth <- c(cdepth, fdepth)
 ym <- h/1.25 # mean channel depth
 wm <- b + 2*z*ym # mean channel width
 fw <- 2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
+#zf <- 20
 zf <- h*49 / fw # total change in elevation / width of floodplain (USGS); max depth = 50x channel depth (h) -BASINS 1
 # don't forget: "the depth at which the flood plain slope changes is 1.5 times the channel depth"
 
@@ -219,6 +216,7 @@ disch <- c(cdisch, fdisch)
 # Compile
 ftable_specific <- data.frame(depth, area, vol, disch)
 
+
 #----
 #----Original Ftable:----
 # Depth
@@ -235,8 +233,9 @@ area = (sw * clength)/43560 #converting to acres
 vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
 
 # Discharge
-disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * 
-  cslope**0.5 * 0.5*(sw+b)*depth
+A <- ((sw+b)/2)*depth
+P <- b + 2*depth*sqrt(z**2 +1)
+disch <- (1.49/n) * (A/P)**(2/3) * cslope**0.5 * A
 
 # Compile
 ftable_specific <- data.frame(depth, area, vol, disch)
@@ -331,5 +330,7 @@ lines(ftable_specific$depth, ftable_specific$disch, type='l', col='dark green')
 lines(ftable_generic$depth, ftable_generic$disch, type='l', col='blue')
 title(main = 'Discharge Just Past h')
 #legend(x=0 , y=median(ftable_uci$disch) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+
+
 
 
