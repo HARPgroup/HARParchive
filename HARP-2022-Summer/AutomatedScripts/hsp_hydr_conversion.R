@@ -51,13 +51,11 @@ hydr$year <- year(hydr$date)
 hydr$ROVOL_cfs = hydr$ROVOL*12.1 
 
 # Converting to mgd:
-colnames(divr) = c('date','divr_cfs')
+colnames(divr) = c('date','divr_achfth')
 colnames(ps_flow) = c('date','ps_cfs')
-#colnames(ps_flow) = c('date','ps_acfth')   #if ps was in acft/hr instead!
 
-divr$divr_mgd=divr$divr_cfs*1.547
+divr$divr_mgd=divr$divr_achfth*7.820434
 ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
-#ps_flow$ps_mgd=ps_flow$ps_acfth*7.820434   #if ps was in acft/hr instead!
 
 # Creating tables with just wanted columns:
 rovol <- data.frame(hydr$date, hydr$week, hydr$month, hydr$year, hydr$ROVOL_cfs)
@@ -79,7 +77,3 @@ write.table(rovol,file = rovol_file_path, sep = ",", row.names = FALSE)
 write.table(divr_mgd,file = divr_mgd_file_path, sep = ",", row.names = FALSE)
 write.table(ps_mgd,file = ps_mgd_file_path, sep = ",", row.names = FALSE)
 
-
-
-## Converting to mgd (instead of cfs):
-#hydr$ROVOL_mgd <- hydr$ROVOL*7.820434
