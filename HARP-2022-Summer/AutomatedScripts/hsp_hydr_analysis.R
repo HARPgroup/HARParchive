@@ -1,4 +1,4 @@
-# This script will convert the hydr csv to a data table and perform analysis & generate graphs 
+# This script will perform analysis & generate graphs of river segment data
 #install.packages("IHA", repos="http://R-Forge.R-project.org")
 #install_github("HARPGroup/hydro-tools", force=TRUE)
 basepath='/var/www/R';
@@ -30,49 +30,36 @@ argst <- commandArgs(trailingOnly = T)
 river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
-output_file_path <- argst[3]  
+input_file_path <- argst[3] 
+#input_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
 image_directory_path <- paste(output_file_path, '/', 'images', sep='')
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
-#output_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
 
 dir.create(file.path(image_directory_path)) #creates 'images' directory if one does not yet exists
-
-hydr_file_path=paste(output_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
-divr_file_path=paste(output_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
-ps_file_path=paste(output_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
 
 image_path_split <- strsplit(image_directory_path, split = '/')
 
 path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 
+
+# need to change since trying to save the modified csvs into the directory? 
+# Accessing CSVs
+hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_rovol_cfs.csv', sep = '')
+divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr_mgd.csv', sep = '')
+ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow_mgd.csv', sep = '')
+      
 # Reading in the tables
 hydr <- fread(hydr_file_path)
-divr <- fread(divr_file_path) # divr in units of cfs
-ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
+divr <- fread(divr_file_path) # divr in units of mgd
+ps_flow <- fread(ps_file_path) # ps in units of mgd
 
-convert_acfthr_mgd = 7.820434 
-
-colnames(divr) = c('date','divr_cfs')
-colnames(ps_flow) = c('date','ps_cfs')
-divr$divr_mgd=divr$divr_cfs*1.55
-ps_flow$ps_mgd=ps_flow$ps_cfs*convert_acfthr_mgd #Coverting from cfs to mgd
-
-hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
-hydr$week <- week(hydr$date)
-hydr$month <- month(hydr$date)
-hydr$year <- year(hydr$date)
-
-# Converting units to mgd from ac.ft/ivld
-#hydr$ROVOL_mgd <- hydr$ROVOL*convert_acfthr_mgd
-
-#Converting ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
-hydr$ROVOL_cfs = hydr$ROVOL*12.1 
-
+# Adding columns for daily and monthly values
 dailyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$date), FUN='mean')  # ROVOL_cfs represents Qout
-colnames(dailyQout) <- c('date','Qout') # Qout in units of mgd
+colnames(dailyQout) <- c('date','Qout') # Qout in units of cfs
 monthlyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$month, hydr$year), FUN = "mean")
-colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of mgd
+colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of cfs
+
 
 # From: waterSupplyModelNode.R
 
@@ -127,9 +114,9 @@ sept_10 <- as.numeric(round(quantile(sept_flows$Qout, 0.10),6)) # September 10th
 
 fn_iha_7q10 <- function(zoots) {
   g2 <- group2(zoots) 
- 
+  
   x <- as.vector(as.matrix(g2["7 Day Min"]))
-
+  
   for (k in 1:length(x)) {
     if (x[k] <= 0) {
       x[k] <- 0.00000001
@@ -305,3 +292,4 @@ model_graph1 <- RomProperty$new(
   TRUE
 )
 model_graph1$save(TRUE)
+
