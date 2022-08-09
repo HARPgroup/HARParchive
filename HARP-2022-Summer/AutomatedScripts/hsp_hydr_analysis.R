@@ -45,19 +45,20 @@ path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 # need to change since trying to save the modified csvs into the directory? 
 # Accessing CSVs
-hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
-divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
-ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
+hydr_file_path=paste(input_file_path, river_segment_name, '_hydr.csv', sep = '')
+#hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
+#divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
+#ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
       
 # Reading in the tables
 hydr <- fread(hydr_file_path)
-divr <- fread(divr_file_path) # divr in units of mgd
-ps_flow <- fread(ps_file_path) # ps in units of mgd
+#divr <- fread(divr_file_path) # divr in units of mgd
+#ps_flow <- fread(ps_file_path) # ps in units of mgd
 
 # Adding columns for daily and monthly values
-dailyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$date), FUN='mean')  # ROVOL_cfs represents Qout
+dailyQout <- aggregate(hydr$Qout, by = list(hydr$date), FUN='mean')  
 colnames(dailyQout) <- c('date','Qout') # Qout in units of cfs
-monthlyQout <- aggregate(hydr$ROVOL_cfs, by = list(hydr$month, hydr$year), FUN = "mean")
+monthlyQout <- aggregate(hydr$Qout, by = list(hydr$month, hydr$year), FUN = "mean")
 colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of cfs
 
 
@@ -81,7 +82,7 @@ if (syear < (eyear - 2)) {
 
 hydr_wy <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
 
-dailyQout_wy <- aggregate(hydr_wy$ROVOL_cfs, by = list(hydr_wy$date), FUN='mean')
+dailyQout_wy <- aggregate(hydr_wy$Qout, by = list(hydr_wy$date), FUN='mean')
 colnames(dailyQout_wy) <- c('date','Qout')
 
 # Mean values for outflow amount and rate, and inflow amount
