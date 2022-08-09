@@ -10,8 +10,6 @@ echo -n 'landseg: '
 read landseg
 echo -n 'landuse: '
 read landuse
-echo -n 'dataset (pwater/iwater): '
-read dataset
 fi
 
 if [ "$segvar" == "river" ]; then
@@ -19,7 +17,6 @@ echo -n 'scenario: '
 read scenario_name
 echo -n 'riverseg: '
 read riverseg
-dataset='hydr'
 fi
 
 . hspf_config #Loads version-specific cbp variables
@@ -31,11 +28,10 @@ if  [ -f $h5 ]; then
 echo 'River seg h5:' $h5
 fi
 if  [ ! -f $h5 ]; then
-echo 'River seg h5 does not exists at' $CBP_EXPORT_DIR/river/$scenario_name/h5
-fi
+echo 'River seg h5 does not exists at' $CBP_EXPORT_DIR/river/$scenario_name/h5 ; fi
 fi
 
-if [ "$dataset" == "pwater" ]; then
+if [ "$segvar" == "land" ]; then
 h5_land=$CBP_EXPORT_DIR/land/$scenario_name/h5/$landseg'.h5'
 if  [ -f $h5_land ]; then
 echo 'Land seg h5:' $h5_land
@@ -44,26 +40,11 @@ h5_land_root=$CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name/$landuse$lan
 if  [ -f $h5_land_root ]; then
 echo 'Land seg h5:' $h5_land_root
 fi
-
 if  [ ! -f $h5_land ] && [ ! -f $h5_land_root ]; then
-echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name
+echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name ;
 fi
 fi
 
-if [ "$dataset" == "iwater" ]; then
-h5_land=$CBP_EXPORT_DIR/land/$scenario_name/h5/$landseg'.h5'
-if  [ -f $h5_land ]; then
-echo 'Land seg h5:' $h5_land
-fi
-h5_land_root=$CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name/$landuse$landseg'.h5'
-if  [ -f $h5_land_root ]; then
-echo 'Land seg h5:' $h5_land_root
-fi
-
-if  [ ! -f $h5_land ] && [ ! -f $h5_land_root ]; then
-echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name
-fi
-fi
 
 
 
