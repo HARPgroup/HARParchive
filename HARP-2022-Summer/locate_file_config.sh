@@ -33,7 +33,7 @@ if  [ -f $h5_land_root ]; then
 echo 'Land seg h5:' $h5_land_root
 fi
 if  [ ! -f $h5_land ] && [ ! -f $h5_land_root ]; then
-echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out>
+echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name ;
 fi
 fi
 }
