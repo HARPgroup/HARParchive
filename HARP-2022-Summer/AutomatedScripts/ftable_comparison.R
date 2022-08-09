@@ -16,14 +16,12 @@ riverseg <- "OR1_7700_7980"
 channel<- "0. River Channel"
 
 # Load the UCI Table:
-library(RCurl)
 ftable_uci <- read.csv(paste('http://deq1.bse.vt.edu:81/p532/input/param/river/hsp2_2022/ftables/',
                              riverseg, '.ftable', sep=''), 
                        sep='', 
                        header=FALSE,
                        col.names = c('depth','area','vol', 'disch', 'flo-thru'),
-                       nrows = 19, skip= 5,
-                       comment.char="*")
+                       nrows = 19, skip= 5)
 
 #----Pulling from VAHydro----
 rseg<- RomFeature$new(
