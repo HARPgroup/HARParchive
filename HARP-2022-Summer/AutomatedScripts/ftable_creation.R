@@ -18,93 +18,31 @@ channel <- argst[2]
 #Testing: comment these out later
 #riverseg <- "OR1_7700_7980"
 riverseg <- "JL2_6850_6890"
-channel<- "0. River Channel"
+channel<- '0. River Channel'
+hydrocode= paste("vahydrosw_wshed",riverseg,sep = "_")
 
 #----Pulling from VAHydro----
-rseg<- RomFeature$new(
-  ds,
-  list(
-    hydrocode= paste("vahydrosw_wshed",riverseg,sep = "_"), 
-    ftype='vahydro',
-    bundle='watershed'
-  ), 
-  TRUE
-)
+library(jsonlite)
+feature <- RomFeature$new(ds,list(hydrocode=hydrocode, bundle="watershed",ftype="vahydro"),TRUE)
+model <- RomProperty$new(ds,list(featureid=feature$hydroid, propcode="vahydro-1.0"),TRUE)
+model_obj_url <- paste(json_obj_url, model$pid, sep="/")
+model_info <- ds$auth_read(model_obj_url, "text/json", "")
+model <- fromJSON(model_info)
 
-model <- RomProperty$new(
-  ds,
-  list(
-    varkey="om_water_model_node",
-    #propname="Upper Club Creek", #previously rseg$name
-    featureid=rseg$hydroid,
-    entity_type="dh_feature", 
-    propcode="vahydro-1.0"
-  ), 
-  TRUE
-)
+#loop for different channels
+if (channel == '0. River Channel'){
+  da <- as.numeric(model[[1]]$'0. River Channel'$drainage_area$value) #106.052
+  prov <- as.numeric(model[[1]]$'0. River Channel'$province$value)
+  clength <- as.numeric(model[[1]]$'0. River Channel'$length$value) #channel length
+  cslope <- as.numeric(model[[1]]$'0. River Channel'$slope$value) #longitudinal channel slope
+}
 
-channel_prop <- RomProperty$new(
-  ds,
-  list(
-    varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
-    featureid=model$pid,
-    entity_type='dh_properties',
-    propname = channel
-  ),
-  TRUE
-)
-
-drainage_area <- RomProperty$new(
-  channel_prop[["datasource"]],
-  list(
-    varkey="om_class_Constant",
-    featureid=channel_prop$pid,
-    entity_type='dh_properties',
-    propname='drainage_area'
-  ),
-  TRUE
-)
-da <- drainage_area$propvalue #106.052
-
-
-province <- RomProperty$new(
-  channel_prop[["datasource"]],
-  list(
-    varkey="om_class_Constant",
-    featureid=channel_prop$pid,
-    entity_type='dh_properties',
-    propname='province'
-  ),
-  TRUE
-)
-prov <- province$propvalue
-
-
-length <- RomProperty$new(
-  channel_prop[["datasource"]],
-  list(
-    varkey="om_class_Constant",
-    featureid=channel_prop$pid,
-    entity_type='dh_properties',
-    propname='length'
-  ),
-  TRUE
-)
-clength <- length$propvalue #channel length
-
-
-slope <- RomProperty$new(
-  channel_prop[["datasource"]],
-  list(
-    varkey="om_class_Constant",
-    featureid=channel_prop$pid,
-    entity_type='dh_properties',
-    propname='slope'
-  ),
-  TRUE
-)
-cslope <- slope$propvalue #longitudinal channel slope
-
+if (channel == 'local_channel'){
+  da <- as.numeric(model[[1]]$'local_channel'$drainage_area$value)
+  prov <- as.nuemric(model[[1]]$'local_channel'$province$value)
+  clength <- as.numeric(model[[1]]$'local_channel'$length$value)
+  cslope <- as.numeric(model[[1]]$'local_channel'$slope$value)
+}
 
 #----Calculating Channel Geometry----
 if (prov == 1){
@@ -205,3 +143,16 @@ colnames(ftable) <- c('Depth (ft)', 'Area (acres)', 'Volume (ac-ft)', 'Discharge
 
 
 #----Exporting----
+ftable <- format(ftable, quote = TRUE, digits = getOption("digits"), method = "non.compact")
+ftable <- ftable(ftable)
+ftable_push <- write.ftable(ftable,file = paste('http://deq1.bse.vt.edu:81/p532/input/param/river/hsp2_2022/ftables/', riverseg, 'test.ftable', sep=''),
+                         quote = TRUE,
+                         append = FALSE,
+                         digits = getOption("digits"))
+                         
+
+                         
+                         
+                       
+                       
+                       
