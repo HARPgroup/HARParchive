@@ -82,8 +82,8 @@ avg_diff <- mean(hydr_f_warm$diff)
 #  max = max2
 #}
 #if (maxf > max2) {
-  max = maxf
-}
+#  max = maxf
+#}
 #monthlyQout_clip <- monthlyQout2[1:nrow(monthlyQoutF), ]
 #monthlyQout_clip$QoutF <- monthlyQoutF$Qout
 #years <- seq(min(monthlyQout_clip$year), max(monthlyQout_clip$year)) # for graphing
