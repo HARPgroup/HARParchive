@@ -20,7 +20,7 @@ if  [ -f $h5 ]; then
 echo 'River seg h5:' $h5
 fi
 if  [ ! -f $h5 ]; then
-echo 'River seg h5 does not exists at' $CBP_EXPORT_DIR/river/$scenario_name/h5 ; fi
+echo 'River seg h5 does not exist at' $CBP_EXPORT_DIR/river/$scenario_name/h5 ; fi
 fi
 
 if [ "$segvar" == "land" ]; then
