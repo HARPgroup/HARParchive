@@ -37,3 +37,4 @@ echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or'
 fi
 fi
 }
+ echo 'Loading h5_file_retrieve_function'
