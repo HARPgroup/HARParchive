@@ -6,7 +6,7 @@ suppressPackageStartupMessages(library(R.utils))
 
 argst <- commandArgs(trailingOnly = T)
 featureid <- argst[1] # pid of model being run (featureID = hydroID)
-entity_type <- argst[2] # ex. dh_feature
+entity_type <- argst[2] #  dh_timeseries
 varkey <- argst[3] # om_model_run
 tstime <- argst[4] # timestamp that model was initiated
 tsendtime <- argst[5] # timestamp that model was completed (should be NULL when model is initiated)
@@ -19,12 +19,11 @@ tscode <- argst[7] # scenario/runid (hsp2_2022)
 
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
-rseg_ftype='vahydro'
 
 riverseg<- RomFeature$new(
   ds,
   list(
-    hydroid=featureid
+    hydroid= featureid
   ),
   TRUE
 )
@@ -32,41 +31,18 @@ riverseg<- RomFeature$new(
 model <- RomProperty$new(
   ds,
   list(
-    varkey=varkey, 
-    featureid=riverseg$hydroid, 
-    entity_type=entity_type, 
-    propcode="cbp-5.3.2" 
+    varkey= varkey, 
+    featureid= riverseg$hydroid, 
+    entity_type= entity_type, 
+    propcode= tscode,
+    propvalue= tsvalue,
+    startdate = tstime,
+    enddate= tsendtime
   ), 
   TRUE
 )
 model$save(TRUE)
 
-model_scenario <- RomProperty$new( 
-  ds,
-  list(
-    pid=model$pid,
-    varkey="om_scenario", 
-    featureid=model$pid, 
-    entity_type="dh_properties", 
-    propname=tscode, 
-    propcode=tscode
-  ), 
-  TRUE
-)
-model_scenario$save(TRUE)
 
-#Want to attatch and export tstime and tsendtime
-model_ts <- RomTimeSeries$new( 
-  ds,
-  list(
-    pid=model_scenario$pid,
-    varkey="om_class_textField", 
-    featureid=model$pid, 
-    entity_type="dh_timeseries", 
-    propname='model ts'
-  ), 
-  TRUE
-)
-model_ts$propcode <- as.character(paste(tstime, tsendtime, sep = '-'))
-model_ts$save(TRUE)
+
 
