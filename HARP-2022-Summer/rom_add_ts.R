@@ -44,6 +44,7 @@ model$save(TRUE)
 model_scenario <- RomProperty$new( 
   ds,
   list(
+    pid=model$pid,
     varkey="om_scenario", 
     featureid=model$pid, 
     entity_type="dh_properties", 
@@ -58,6 +59,7 @@ model_scenario$save(TRUE)
 model_ts <- RomTimeSeries$new( 
   ds,
   list(
+    pid=model_scenario$pid,
     varkey="om_class_textField", 
     featureid=model$pid, 
     entity_type="dh_timeseries", 
