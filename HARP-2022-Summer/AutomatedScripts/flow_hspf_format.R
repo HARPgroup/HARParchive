@@ -28,7 +28,7 @@ hydr <- fread(hydr_file)
 
 # the hydr.csv contains the year and month columns already
 hydr$day <- day(hydr$date)
-hydr$hour <- hour(hydr$date)
+hydr$hour <- hour(hydr$index)
 
 # adding commas after the time columns
 year_comma <- paste0(as.character(hydr$year), ',') 
