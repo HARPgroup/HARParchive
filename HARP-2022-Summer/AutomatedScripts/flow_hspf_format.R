@@ -43,7 +43,7 @@ hydr_ovol3 <- data.frame(year_comma, month_comma, day_comma, hour_comma, ovol3_c
 colnames(hydr_ovol3) <- c('year', 'month', 'day', 'hour', 'OVOL3')
 
 hydr_rovol <- data.frame(year_comma, month_comma, day_comma, hour_comma, hydr$Qout)
-colnames(hydr_ovol3) <- c('year', 'month', 'day', 'hour', 'ROVOL')
+colnames(hydr_rovol) <- c('year', 'month', 'day', 'hour', 'ROVOL')
 
 # exporting the tables
 output_file_ovol3=paste(file_path,'/fortran/', river_seg, '_ovol3.csv', sep = '')
