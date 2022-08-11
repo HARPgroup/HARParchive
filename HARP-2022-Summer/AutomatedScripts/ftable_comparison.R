@@ -11,8 +11,8 @@ ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
 # Arguments:
-riverseg <- "OR1_7700_7980"
-#riverseg <- "JL2_6850_6890"
+#riverseg <- "OR1_7700_7980"
+riverseg <- "JL2_6850_6890"
 channel<- "0. River Channel"
 
 # Load the UCI Table:
@@ -182,9 +182,9 @@ depth <- c(cdepth, fdepth)
 # Floodplain Parameters
 ym <- h/1.25 # mean channel depth
 wm <- b + 2*z*ym # mean channel width
-fw <- 2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
-#zf <- 20
-zf <- h*49 / fw # total change in elevation / width of floodplain (USGS); max depth = 50x channel depth (h) -BASINS 1
+fw <- bf #2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
+zf <- 6*z
+#zf <- h*49 / fw # total change in elevation / width of floodplain (USGS); max depth = 50x channel depth (h) -BASINS 1
 # don't forget: "the depth at which the flood plain slope changes is 1.5 times the channel depth"
 
 # Surface Area
@@ -214,6 +214,32 @@ disch <- c(cdisch, fdisch)
 # Compile
 ftable_specific <- data.frame(depth, area, vol, disch)
 
+
+fn_make_trap_ftable <- function(cdepth, clength, b, z, cslope, n) { 
+  csw <- b + 2*z*cdepth
+  csw[cdepth == 0] <- 0
+  carea <- (csw * clength)/43560
+  cvol <- (clength * (0.5*(csw+b)*cdepth))/43560
+  cdisch <- (1.49/n) * ((cdepth*(b+z*cdepth))/(b+2*cdepth*sqrt(1+z^2)))**(2/3) * 
+    cslope**0.5 * 0.5*(csw+b)*cdepth
+  ftable <- data.frame(cdepth, carea, cvol, cdisch)
+  return(ftable)
+}
+
+cftab <- fn_make_trap_ftable(cdepth, clength, b, z, cslope, n)
+
+fptab <- fn_make_trap_ftable(fdepth-h, clength, bf, zf, cslope, nf)
+# add values from below floodplain to floodplain ftab
+fptab$cdepth <- fptab$cdepth + h
+fptab$cvol <- fptab$cvol + max(cftab$cvol)
+fptab$cdisch <- fptab$cdisch + max(cftab$cdisch)
+
+ftab <- rbind(cftab, fptab)
+#saving 
+writeLines(sprintf("% 16s", as.list(round(ftab, 2))))
+
+model_features <- c(68210, 68123, 68183)
+sprintf("% 12s", model_features)
 
 #----
 #----Original Ftable:----
