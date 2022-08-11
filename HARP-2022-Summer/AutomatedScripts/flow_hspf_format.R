@@ -49,7 +49,7 @@ colnames(hydr_ovol3) <- c('year', 'month', 'day', 'hour', 'ROVOL')
 output_file_ovol3=paste(file_path,'/fortran/', river_seg, '_ovol3.csv', sep = '')
 output_file_rovol=paste(file_path,'/fortran/', river_seg, '_rovol.csv', sep = '')
 
-write.table(hydr_ovol3, file = output_file_path, sep = ",", row.names = FALSE)
-write.table(hydr_rovol, file = output_file_path, sep = ",", row.names = FALSE)
+write.table(hydr_ovol3, file = output_file_ovol3, sep = ",", row.names = FALSE)
+write.table(hydr_rovol, file = output_file_rovol, sep = ",", row.names = FALSE)
 
 
