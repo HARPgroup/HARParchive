@@ -17,7 +17,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 #hydr <- fread("OR1_7700_7980_hydr.csv") #for testing
 
 argst <- commandArgs(trailingOnly = T)
-riverseg <- argst[1]
+river_seg <- argst[1]
 #river_seg <- ('OR1_7700_7980')
 file_path <- argst[2]
 #file_path <- ('/media/model/p532/out/river/hsp2_2022')
