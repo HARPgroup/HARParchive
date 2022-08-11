@@ -32,5 +32,3 @@ model_ts <- RomTS$new(
   TRUE
 )
 model_ts$save(TRUE)
-
-
