@@ -12,8 +12,8 @@ tsendtime <- argst[5] # timestamp that model was completed (should be NULL when 
 tsvalue <- argst[6] # run status (0=finished, 1=initializing, 2=running)
 tscode <- argst[7] # scenario/runid (hsp2_2022)
 
-tstime <- as.numeric(as.POSIXct(tstime))
-tsendtime <- as.numeric(as.POSIXct(tsendtime))
+tstime <- as.numeric((as.POSIXct(tstime)+4))
+tsendtime <- as.numeric(as.POSIXct(tsendtime)+4)
 
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
