@@ -31,10 +31,10 @@ hydr$day <- day(hydr$date)
 hydr$hour <- hour(hydr$date)
 
 # adding commas after the time columns
-year_comma <- paste0(as.character(hydr_ovol3$year), ',') 
-month_comma <- paste0(as.character(hydr_ovol3$month), ',')
-day_comma <- paste0(as.character(hydr_ovol3$day), ',')
-hour_comma <- paste0(as.character(hydr_ovol3$hour), ',')
+year_comma <- paste0(as.character(hydr$year), ',') 
+month_comma <- paste0(as.character(hydr$month), ',')
+day_comma <- paste0(as.character(hydr$day), ',')
+hour_comma <- paste0(as.character(hydr$hour), ',')
 
 ovol3_cfs <- hydr$OVOL3*12.1 # ovol had to be converted to cfs from ac.ft/hr
 
