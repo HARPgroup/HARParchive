@@ -31,18 +31,30 @@ riverseg<- RomFeature$new(
 model <- RomProperty$new(
   ds,
   list(
-    varkey= varkey, 
-    featureid= riverseg$hydroid, 
-    entity_type= entity_type, 
-    propcode= tscode,
-    propvalue= tsvalue,
-    startdate = tstime,
-    enddate= tsendtime
+    varkey="om_model_run", 
+    propname=riverseg$name,
+    featureid=riverseg$hydroid, 
+    entity_type="dh_feature", 
+    propcode="cbp-5.3.2"  
   ), 
   TRUE
 )
 model$save(TRUE)
 
+model_ts <- RomTS$new(
+  ds,
+  list(
+    entity_type='dh_timeseries',
+    featureid=model$pid,
+    propname='model run ts'
+  ),
+  TRUE
+)
+model_ts$tscode <- tscode
+model_ts$tstime <- tstime
+model_ts$tsvalue <- tsvalue
+model_ts$tsendtime <- tsendtime
+model_ts$save(TRUE)
 
 
 
