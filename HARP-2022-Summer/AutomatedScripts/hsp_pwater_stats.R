@@ -8,12 +8,7 @@ source("/var/www/R/config.R") # will need file in same folder/directory
 library(data.table)
 library(lubridate)
 library(zoo)
-#library(plyr)
-#library(caTools)
-#library(RColorBrewer)
-#library(IHA)
 library(PearsonDS)
-#library(ggplot2)
 library(dplyr)
 library(R.utils)
 
@@ -30,7 +25,7 @@ save_directory <-  "/var/www/html/data/proj3/out"
 argst <- commandArgs(trailingOnly = T)
 land_segment_name <- argst[1]
 scenario_name <- argst[2]
-landuse <- as.character(argst[3]) # don't need quotes around landuse argument anymore
+landuse <- as.character(argst[3]) 
 pwater_file_path <- argst[4] 
 image_directory_path <- argst[5] # '/media/model/p532/out/land/hsp2_2022/images'
 #image_directory_path <- '/media/model/p532/out/land/hsp2_2022/images' # needs to be commented when running on the server 
@@ -128,7 +123,7 @@ model <- RomProperty$new(
 )
 model$save(TRUE)
 
-model_scenario <- RomProperty$new( #Re-ordered scenario to be within the model element and the land use within the scenario
+model_scenario <- RomProperty$new( 
   ds,
   list(
     varkey="om_scenario", 
@@ -275,7 +270,7 @@ furl <- paste(
   save_url,paste0(landuse,'',land_segment_name,'.', 'fig.AGWSdecomp', '.png'),
   sep = '/'
 )
-png(fname) #fname is a character string with file name
+png(fname) 
 plot(agws_decomp)
 dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
