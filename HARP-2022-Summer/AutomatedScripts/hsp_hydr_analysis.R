@@ -12,7 +12,6 @@ suppressPackageStartupMessages(library(caTools))
 suppressPackageStartupMessages(library(RColorBrewer))
 suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
-#suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 
@@ -45,7 +44,6 @@ path_string_m2 <- paste(path_list_m2, collapse = "/")
 
 # need to change since trying to save the modified csvs into the directory? 
 # Accessing CSVs
-#hydr_file_path=paste(input_file_path, '/', river_segment_name, '_hydr.csv', sep = '')
 hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
 #divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
 #ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
@@ -66,13 +64,13 @@ colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of cfs
 
 syear = min(hydr$year)
 eyear = max(hydr$year)
-model_run_start <- min(hydr$date)   # not sure about the "date"
+model_run_start <- min(hydr$date)   
 model_run_end <- max(hydr$date)
 years <- seq(syear,eyear)
 
 if (syear < (eyear - 2)) {
   sdate <- as.Date(paste0(syear,"-10-01"))
-  edate <- as.Date(paste0((eyear-1),"-09-30")) # the change i made to eyear
+  edate <- as.Date(paste0((eyear-1),"-09-30")) 
   flow_year_type <- 'water'
 } else {
   sdate <- as.Date(paste0(syear,"-02-01"))

@@ -2,9 +2,9 @@
 #install.packages("IHA", repos="http://R-Forge.R-project.org")
 #install_github("HARPGroup/hydro-tools", force=TRUE)
 basepath='/var/www/R';
-source("/var/www/R/config.R") # will need file in same folder/directory
+source("/var/www/R/config.R")
 
-library(data.table) #I don't think we need this package anymore
+library(data.table) 
 library(lubridate)
 library(zoo)
 library(plyr)
