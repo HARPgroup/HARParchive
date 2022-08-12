@@ -19,30 +19,23 @@ channel <- argst[2]
 #riverseg <- "OR1_7700_7980"
 riverseg <- "JL2_6850_6890"
 channel<- '0. River Channel'
-hydrocode= paste("vahydrosw_wshed",riverseg,sep = "_")
 
 #----Pulling from VAHydro----
-library(jsonlite)
+hydrocode <- paste("vahydrosw_wshed",riverseg,sep = "_")
+
 feature <- RomFeature$new(ds,list(hydrocode=hydrocode, bundle="watershed",ftype="vahydro"),TRUE)
 model <- RomProperty$new(ds,list(featureid=feature$hydroid, propcode="vahydro-1.0"),TRUE)
+
+#using new json:
+library(jsonlite)
 model_obj_url <- paste(json_obj_url, model$pid, sep="/")
 model_info <- ds$auth_read(model_obj_url, "text/json", "")
 model <- fromJSON(model_info)
-
-#loop for different channels
-if (channel == '0. River Channel'){
-  da <- as.numeric(model[[1]]$'0. River Channel'$drainage_area$value) #106.052
-  prov <- as.numeric(model[[1]]$'0. River Channel'$province$value)
-  clength <- as.numeric(model[[1]]$'0. River Channel'$length$value) #channel length
-  cslope <- as.numeric(model[[1]]$'0. River Channel'$slope$value) #longitudinal channel slope
-}
-
-if (channel == 'local_channel'){
-  da <- as.numeric(model[[1]]$'local_channel'$drainage_area$value)
-  prov <- as.nuemric(model[[1]]$'local_channel'$province$value)
-  clength <- as.numeric(model[[1]]$'local_channel'$length$value)
-  cslope <- as.numeric(model[[1]]$'local_channel'$slope$value)
-}
+#get values:
+da <- as.numeric(model[[1]][[channel]]$drainage_area$value) #106.052
+prov <- as.numeric(model[[1]][[channel]]$province$value)
+clength <- as.numeric(model[[1]][[channel]]$length$value) #channel length
+cslope <- as.numeric(model[[1]][[channel]]$slope$value) #longitudinal channel slope
 
 #----Calculating Channel Geometry----
 if (prov == 1){
@@ -54,6 +47,7 @@ if (prov == 1){
   bc = 5.389
   be = 0.5349
   n = 0.036 # Manning's n
+  nf = 0.055 # Floodplain n
 }
 
 if (prov == 2){
@@ -65,6 +59,7 @@ if (prov == 2){
   bc = 4.667
   be = 0.5489
   n = 0.038
+  nf = 0.048
 }
 
 if (prov ==3){
@@ -76,6 +71,7 @@ if (prov ==3){
   bc = 6.393
   be = 0.4604
   n = 0.04
+  nf = 0.063
 }
 
 if (prov ==4){
@@ -87,6 +83,7 @@ if (prov ==4){
   bc = 6.440
   be = 0.4442
   n = 0.033
+  nf = 0.06
 }
 
 if (prov == -1){
@@ -143,16 +140,4 @@ colnames(ftable) <- c('Depth (ft)', 'Area (acres)', 'Volume (ac-ft)', 'Discharge
 
 
 #----Exporting----
-ftable <- format(ftable, quote = TRUE, digits = getOption("digits"), method = "non.compact")
-ftable <- ftable(ftable)
-ftable_push <- write.ftable(ftable,file = paste('http://deq1.bse.vt.edu:81/p532/input/param/river/hsp2_2022/ftables/', riverseg, 'test.ftable', sep=''),
-                         quote = TRUE,
-                         append = FALSE,
-                         digits = getOption("digits"))
-                         
 
-                         
-                         
-                       
-                       
-                       

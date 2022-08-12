@@ -38,7 +38,6 @@ model <- RomProperty$new(
   ds,
   list(
     varkey="om_water_model_node",
-    #propname="Upper Club Creek", #previously rseg$name
     featureid=rseg$hydroid,
     entity_type="dh_feature", 
     propcode="vahydro-1.0"
@@ -172,8 +171,7 @@ b = bc * (da**be)
 #side slope of channel:
 z = 0.5 * (bf - b ) / h
 
-#----
-#----Ftable w/ Floodplain---- 
+#----Ftable Parameters---- 
 # Depth
 cdepth <- c(ftable_uci$depth[1:10])
 fdepth <- c(ftable_uci$depth[11:19])
@@ -183,92 +181,35 @@ depth <- c(cdepth, fdepth)
 ym <- h/1.25 # mean channel depth
 wm <- b + 2*z*ym # mean channel width
 fw <- bf #2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
-zf <- 6*z
-#zf <- h*49 / fw # total change in elevation / width of floodplain (USGS); max depth = 50x channel depth (h) -BASINS 1
-# don't forget: "the depth at which the flood plain slope changes is 1.5 times the channel depth"
+zf <- 6*z #for Rockfish
+#zf <- 9.25*z #for Roanoke
 
-# Surface Area
-csw <- b + 2*z*cdepth
-fsw <- fw + 2*zf*(fdepth-h)
-sw <- c(csw, fsw)
-sw[depth == 0] <- 0 # zero depth = zero surface water width
-area = (sw * clength)/43560 #converting to acres
-
-# Volume
-cvol <- (clength * (0.5*(csw+b)*cdepth))/43560
-hvol <- (clength * (0.5*((b + 2*z*h)+b)*h))/43560
-fvol <- (clength * (0.5*(fsw+fw)*(fdepth-h)))/43560 + hvol
-
-vol <- c(cvol,fvol)
-
-# Discharge
-cdisch <- (1.49/n) * ((cdepth*(b+z*cdepth))/(b+2*cdepth*sqrt(1+z^2)))**(2/3) * 
-  cslope**0.5 * 0.5*(csw+b)*cdepth
-hdisch <- (1.49/n) * ((h*(b+z*h))/(b+2*h*sqrt(1+z^2)))**(2/3) * 
-  cslope**0.5 * 0.5*((b + 2*z*h)+b)*h
-fdisch <- (1.49/nf) * (((fdepth-h)*(fw+zf*(fdepth-h)))/(fw+2*(fdepth-h)*sqrt(1+zf^2)))**(2/3) * 
-  cslope**0.5 * 0.5*(fsw+fw)*(fdepth-h) + hdisch
-
-disch <- c(cdisch, fdisch)
-
-# Compile
-ftable_specific <- data.frame(depth, area, vol, disch)
-
-
-fn_make_trap_ftable <- function(cdepth, clength, b, z, cslope, n) { 
-  csw <- b + 2*z*cdepth
-  csw[cdepth == 0] <- 0
-  carea <- (csw * clength)/43560
-  cvol <- (clength * (0.5*(csw+b)*cdepth))/43560
-  cdisch <- (1.49/n) * ((cdepth*(b+z*cdepth))/(b+2*cdepth*sqrt(1+z^2)))**(2/3) * 
-    cslope**0.5 * 0.5*(csw+b)*cdepth
-  ftable <- data.frame(cdepth, carea, cvol, cdisch)
+#----Replacing Calculations w/ Function----
+fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n) { 
+  sw <- b + 2*z*depth
+  sw[depth == 0] <- 0
+  area <- (sw * clength)/43560
+  vol <- (clength * (0.5*(sw+b)*depth))/43560
+  disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * cslope**0.5 * 0.5*(sw+b)*depth
+  ftable <- data.frame(depth, area, vol, disch)
   return(ftable)
 }
 
-cftab <- fn_make_trap_ftable(cdepth, clength, b, z, cslope, n)
+cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n)
 
-fptab <- fn_make_trap_ftable(fdepth-h, clength, bf, zf, cslope, nf)
+fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, bf, zf, nf)
+
 # add values from below floodplain to floodplain ftab
-fptab$cdepth <- fptab$cdepth + h
-fptab$cvol <- fptab$cvol + max(cftab$cvol)
-fptab$cdisch <- fptab$cdisch + max(cftab$cdisch)
+fptab$depth <- fptab$depth + h
+fptab$vol <- fptab$vol + max(cftab$vol)
+fptab$disch <- fptab$disch + max(cftab$disch)
 
-ftab <- rbind(cftab, fptab)
-#saving 
-writeLines(sprintf("% 16s", as.list(round(ftab, 2))))
-
-model_features <- c(68210, 68123, 68183)
-sprintf("% 12s", model_features)
+ftable_specific <- rbind(cftab, fptab)
 
 #----
-#----Original Ftable:----
-# Depth
-depth <- c(ftable_uci$depth)
-
-# Surface Area
-# water surface width * length of channel
-sw <- b + 2*z*depth
-sw[depth == 0] <- 0 # zero depth = zero surface water width
-area = (sw * clength)/43560 #converting to acres
-
-# Volume
-# length * cross sectional area
-vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
-
-# Discharge
-A <- ((sw+b)/2)*depth
-P <- b + 2*depth*sqrt(z**2 +1)
-disch <- (1.49/n) * (A/P)**(2/3) * cslope**0.5 * A
-
-# Compile
-ftable_specific <- data.frame(depth, area, vol, disch)
-
-#----
-
 #----Generic Ftable----
-prov <- -1
-if (prov == -1){
+prov_g <- -1
+if (prov_g == -1){
   #Single/General Equation
   hc = 2.177
   he = 0.2293
@@ -276,38 +217,20 @@ if (prov == -1){
   bfe = 0.4432
   bc = 5.471
   be = 0.5103
-  n = 0.037 #avg of other n values
+  n_g = 0.037 #avg of other n values
 }
 # Regional Regression Eqn's:
 #bank full stage "max height before floodplain":
 h_g = hc * (da**he)
 #bank full width "max width before floodplain":
-bf = bfc * (da**bfe)
+bf_g = bfc * (da**bfe)
 #base width "width @ lowest stage":
-b = bc * (da**be)
+b_g = bc * (da**be)
 #side slope of channel:
-z = 0.5 * (bf - b ) / h_g
-
-# - - - - Ftable: - - - - 
-# Surface Area
-# water surface width * length of channel
-sw <- b + 2*z*depth
-sw[depth == 0] <- 0 # zero depth = zero surface water width
-area = (sw * clength)/43560 #converting to acres
-
-# Volume
-# length * cross sectional area
-vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
-
-# Discharge
-disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * 
-  cslope**0.5 * 0.5*(sw+b)*depth
-
-# Compile
-ftable_generic <- data.frame(depth, area, vol, disch)
+z_g = 0.5 * (bf - b ) / h_g
 
 
-
+ftable_generic <- fn_make_trap_ftable(depth, clength, cslope, b_g, z_g, n_g)
 
 #----Plotting----
 # Zoomed Out:
@@ -358,3 +281,61 @@ title(main = 'Discharge Just Past h')
 
 
 
+
+
+#Old or Misc Stuff----
+#----Saving to UCI----
+writeLines(sprintf("% 16s", as.list(round(ftab, 2))))
+
+model_features <- c(68210, 68123, 68183)
+sprintf("% 12s", model_features)
+
+#----Original Ftable:----
+# Depth
+depth <- c(ftable_uci$depth)
+
+# Surface Area
+# water surface width * length of channel
+sw <- b + 2*z*depth
+sw[depth == 0] <- 0 # zero depth = zero surface water width
+area = (sw * clength)/43560 #converting to acres
+
+# Volume
+# length * cross sectional area
+vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
+
+# Discharge
+A <- ((sw+b)/2)*depth
+P <- b + 2*depth*sqrt(z**2 +1)
+disch <- (1.49/n) * (A/P)**(2/3) * cslope**0.5 * A
+
+# Compile
+ftable_specific <- data.frame(depth, area, vol, disch)
+
+#----Original FP Calculations----
+# Surface Area
+csw <- b + 2*z*cdepth
+fsw <- fw + 2*zf*(fdepth-h)
+sw <- c(csw, fsw)
+sw[depth == 0] <- 0 # zero depth = zero surface water width
+area = (sw * clength)/43560 #converting to acres
+
+# Volume
+cvol <- (clength * (0.5*(csw+b)*cdepth))/43560
+hvol <- (clength * (0.5*((b + 2*z*h)+b)*h))/43560
+fvol <- (clength * (0.5*(fsw+fw)*(fdepth-h)))/43560 + hvol
+
+vol <- c(cvol,fvol)
+
+# Discharge
+cdisch <- (1.49/n) * ((cdepth*(b+z*cdepth))/(b+2*cdepth*sqrt(1+z^2)))**(2/3) * 
+  cslope**0.5 * 0.5*(csw+b)*cdepth
+hdisch <- (1.49/n) * ((h*(b+z*h))/(b+2*h*sqrt(1+z^2)))**(2/3) * 
+  cslope**0.5 * 0.5*((b + 2*z*h)+b)*h
+fdisch <- (1.49/nf) * (((fdepth-h)*(fw+zf*(fdepth-h)))/(fw+2*(fdepth-h)*sqrt(1+zf^2)))**(2/3) * 
+  cslope**0.5 * 0.5*(fsw+fw)*(fdepth-h) + hdisch
+
+disch <- c(cdisch, fdisch)
+
+# Compile
+ftable_specific <- data.frame(depth, area, vol, disch)
