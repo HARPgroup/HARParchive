@@ -40,7 +40,7 @@ Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file
 # converting ROVOL in hydr csv to cfs 
 ## can be later modified within the Rscript to convert ps_flow and divr to mgd!
 
-Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_conversion.R $basin $scenario_name $output_path/hydr/$basin'_hydr.csv'
+Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_conversion.R $basin $scenario_name $output_path
   echo 'Qout converted to cfs in hydr.csv'
 
 # exporting a csv in the wdm format from hydr (year, month, day, hour, [wanted col])
