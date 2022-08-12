@@ -1,6 +1,4 @@
-# creating a csv with just OVOL3 and ROVOL in the hspf file format
-# in hspf (correct order): year, month, day, hour, OVOL3/ROVOL
-# in hydr.csv: date, week, month, year, Qout (ROVOL_cfs), OVOL3
+# creating a csv with wanted col and wdm format
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
