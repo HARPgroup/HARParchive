@@ -45,6 +45,6 @@ Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_conversion.R $b
 
 # exporting a csv in the wdm format from hydr (year, month, day, hour, [wanted col])
 
-Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/csv_export_wdm_format.R $output_path/hydr/$basin'_hydr.csv' $output_path/rovol/$basin'_rovol.csv' $'Qout'
+Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/csv_export_wdm_format.R $output_path/hydr/$basin'_hydr.csv' $output_path/rovol/$basin'_rovol.csv' 'Qout'
   echo 'wdm format csv with ROVOL exported'
 
