@@ -43,5 +43,5 @@ hour_comma <- paste0(as.character(hydr$hour), ',')
 hydr_df <- data.frame(year_comma, month_comma, day_comma, hour_comma, hydr_column)
 
 # exporting the tables
-write.table(hydr_df, file = rovol_path, row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(hydr_df, file = rovol_path, sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
 
