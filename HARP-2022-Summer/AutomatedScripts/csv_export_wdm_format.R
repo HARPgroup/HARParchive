@@ -17,7 +17,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 argst <- commandArgs(trailingOnly = T)
 hydr_path <- argst[1]
 #hydr_file <- ('OR1_7700_7980_hydr.csv')
-rovol_file <- argst[2]
+rovol_path <- argst[2]
 #rovol_file <- ('OR1_7700_7980_rovol.csv')
 column <- argst[3]
 #column <- 'ROVOL'
