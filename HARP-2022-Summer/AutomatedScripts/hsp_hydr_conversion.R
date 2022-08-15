@@ -23,23 +23,19 @@ omsite = "http://deq1.bse.vt.edu:81"
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
-river_segment_name <- argst[1]
-#river_segment_name <-'OR1_7700_7980' #for testing only 
-scenario_name <- argst[2]
-output_file_path <- argst[3]  
-#output_file_path='/media/model/p532/out/river/hsp2_2022/' # for testing only 
+hydr_file_path <- argst[1]  
+#output_file_path='/media/model/p532/out/river/hsp2_2022/'
 
-hydr_file_path=paste(output_file_path,'hydr/', river_segment_name, '_hydr.csv', sep = '')
 #divr_file_path=paste(output_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
 #ps_file_path=paste(output_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
 
-# Reading in the tables
 hydr <- fread(hydr_file_path)
 #divr <- fread(divr_file_path) # divr in units of cfs
 #ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
 
 hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
-hydr$week <- week(hydr$date)
+hydr$hour <- hour(hydr$date)
+hydr$day <- day(hydr$date)
 hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
@@ -53,11 +49,7 @@ hydr$Qout= hydr$ROVOL*12.1 #Qout in units of cfs
 #divr$divr_mgd=divr$divr_achfth*7.820434
 #ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
 
-
-
 # Exporting the modified csv files into the output_file_path:
-
 write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
 #write.table(divr,file = divr_file_path, sep = ",", row.names = FALSE)
 #write.table(ps_flow,file = ps_file_path, sep = ",", row.names = FALSE)
-
