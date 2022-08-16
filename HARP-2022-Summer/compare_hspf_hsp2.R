@@ -65,18 +65,18 @@ png(image_path2)
 plot((hydr_f_warm$Qout_cfs+hydr_f_warm$Qout2),hydr_f_warm$diff, xlab = 'Magnitude of Flow (cfs)', ylab = '% Difference') +
 title(main='% difference as a function of Outflow (HSPF - HSP2)')
 
-#New:
+# High difference and low flow analysis: 
 
-diff_95 <- quantile(hydr_f_warm$diff, probs = .95)
-hydr_highpd <- filter(hydr_f_warm, diff > diff_95)
+#diff_95 <- quantile(hydr_f_warm$diff, probs = .95)
+#hydr_highpd <- filter(hydr_f_warm, diff > diff_95)
 
-ggplot(hydr_highpd, aes(date,Qout_cfs, color=diff)) + 
-  geom_point()  +
-  scale_colour_continuous(low = 'cyan', high='blue2')
+#ggplot(hydr_highpd, aes(date,Qout_cfs, color=diff)) + 
+#  geom_point()  +
+#  scale_colour_continuous(low = 'cyan', high='blue2')
 
-flow_10 <- quantile(hydr_f_warm$Qout_cfs, probs = .1)
-hydr_lowflow <- filter(hydr_f_warm, Qout_cfs < flow_10)
+#flow_10 <- quantile(hydr_f_warm$Qout_cfs, probs = .1)
+#hydr_lowflow <- filter(hydr_f_warm, Qout_cfs < flow_10)
 
-plot((hydr_lowflow$Qout_cfs+hydr_lowflow$Qout2),hydr_lowflow$diff, xlab = 'Magnitude of Flow (cfs)', ylab = '% Difference') +
-  title(main='% difference as a function of Outflow (Lowest 10% of flows)')
+#plot((hydr_lowflow$Qout_cfs+hydr_lowflow$Qout2),hydr_lowflow$diff, xlab = 'Magnitude of Flow (cfs)', ylab = '% Difference') +
+#  title(main='% difference as a function of Outflow (Lowest 10% of flows)')
 
