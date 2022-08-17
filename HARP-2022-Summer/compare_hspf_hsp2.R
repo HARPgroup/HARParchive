@@ -18,8 +18,8 @@ suppressPackageStartupMessages(library(R.utils))
 omsite = "http://deq1.bse.vt.edu:81"
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only
-#hydr_2 <- fread("JL2_6850_6890_hydr.csv") # for testing only #
-#hydr_f <- fread("JL2_6850_6890_0111.csv") # for testing only 
+#hydr_2 <- fread("JL1_6770_6850_hydr.csv") # for testing only #
+#hydr_f <- fread("JL1_6770_6850_0111.csv") # for testing only 
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -32,6 +32,8 @@ path_to_hsp2 <- argst[3]
 
 image_path <- paste('/media/model/p532/out/river/hsp2_2022/', 'images','/',riverseg,'_compare.pd.box.png', sep='')
 image_path2 <- paste('/media/model/p532/out/river/hsp2_2022/', 'images','/',riverseg,'_compare.pd.flow.png', sep='')
+image_path3 <- paste('/media/model/p532/out/river/hsp2_2022/', 'images','/',riverseg,'_compare.summer.png', sep='')
+image_path4 <- paste('/media/model/p532/out/river/hsp2_2022/', 'images','/',riverseg,'_compare.may.png', sep='')
 
 hydr_f <- fread(path_to_hspf) # Hydr table from hspf (ac-ft/hr)
 hydr_2 <- fread(path_to_hsp2) # Hydr table from hsp2 - ROVOL in ac-ft/hr
@@ -67,20 +69,19 @@ title(main='% difference as a function of Outflow (HSPF - HSP2)')
 
 #Detailed hydrographs - currently not being exported 
 hydr_85 <- filter(hydr_f_warm, year == 1985)
-plot(hydr_85$date, hydr_85$Qout2, type = 'l', col = 'red', xlab = 'Date', ylab='Qout(cfs)') +
-  lines(hydr_85$date, hydr_85$Qout_cfs, col = 'blue') +
-  title(main = 'hsp2 vs hspf for 1985 (JL2_6850_6890)')
   
 hydr_85_summ <- filter(hydr_85, month == 5 | month == 6 | month ==7)
+png(image_path3)
 plot(hydr_85_summ$date, hydr_85_summ$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') +
   lines(hydr_85_summ$date, hydr_85_summ$Qout_cfs, col = 'red') +
-  title(main = 'hsp2 vs hspf for 1985 summer (JL2_6850_6890)') +
+  title(main = c('hsp2 vs hspf for 1985 summer - ', riverseg)) +
   legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 
 hydr_85_may <- filter(hydr_85, month == 5)
+png(image_path4)
 plot(hydr_85_may$date, hydr_85_may$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') +
   lines(hydr_85_may$date, hydr_85_may$Qout_cfs, col = 'red') +
-  title(main = 'hsp2 vs hspf for May, 1985 (JL2_6850_6890)') +
+  title(main = c('hsp2 vs hspf for May, 1985 - ', riverseg)) +
   legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 
 # High difference and low flow analysis: 
