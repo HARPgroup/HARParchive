@@ -23,7 +23,7 @@ if  [ -f $uci ]; then
 echo 'River seg uci:' $uci
 fi
 if  [ ! -f $uci ]; then
-echo 'River seg uci does not exists at' $CBP_ROOT/tmp/uci/$segvar/$scenario_name/ ; fi
+echo 'River seg uci does not exist at' $CBP_ROOT/tmp/uci/$segvar/$scenario_name/ ; fi
 fi
 
 if [ "$segvar" == "land" ]; then
@@ -32,5 +32,5 @@ if  [ -f $uci_land ]; then
 echo 'Land seg uci:' $uci_land
 fi
 if  [ ! -f $uci_land ]; then
-echo 'Land seg uci does not exists at' $CBP_ROOT/tmp/uci/$segvar/$landuse/$scenario_name/ ; fi
+echo 'Land seg uci does not exist at' $CBP_ROOT/tmp/uci/$segvar/$landuse/$scenario_name/ ; fi
 fi
