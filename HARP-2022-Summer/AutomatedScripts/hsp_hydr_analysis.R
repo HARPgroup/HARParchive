@@ -30,21 +30,15 @@ river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
 input_file_path <- argst[3] 
-#input_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
-image_directory_path <- paste(input_file_path, '/', 'images', sep='')
-#image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
+#input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/' #for testing 
+image_directory_path <- argst[4]
+#image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images/' # for testing only 
 
-dir.create(file.path(image_directory_path)) #creates 'images' directory if one does not yet exists
-
-image_path_split <- strsplit(image_directory_path, split = '/')
-
-path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
-path_string_m2 <- paste(path_list_m2, collapse = "/")
-
+dir.create(file.path(input_file_path)) #creates directory if one does not yet exists
 
 # need to change since trying to save the modified csvs into the directory? 
 # Accessing CSVs
-hydr_file_path=paste(input_file_path,'/hydr/', river_segment_name, '_hydr.csv', sep = '')
+hydr_file_path=paste(input_file_path, river_segment_name, '_hydr.csv', sep = '')
 #divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
 #ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
       
