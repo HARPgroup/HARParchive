@@ -18,8 +18,8 @@ suppressPackageStartupMessages(library(R.utils))
 omsite = "http://deq1.bse.vt.edu:81"
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only
-#hydr_2 <- fread("OR1_7700_7980_hydr.csv") # for testing only #
-#hydr_f <- fread("OR1_7700_7980_0111.csv") # for testing only 
+#hydr_2 <- fread("JL2_6850_6890_hydr.csv") # for testing only #
+#hydr_f <- fread("JL2_6850_6890_0111.csv") # for testing only 
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -64,6 +64,24 @@ title(main='Percent difference of Outflow (HSPF - HSP2)')
 png(image_path2)
 plot((hydr_f_warm$Qout_cfs+hydr_f_warm$Qout2),hydr_f_warm$diff, xlab = 'Magnitude of Flow (cfs)', ylab = '% Difference') +
 title(main='% difference as a function of Outflow (HSPF - HSP2)')
+
+#Detailed hydrographs - currently not being exported 
+hydr_85 <- filter(hydr_f_warm, year == 1985)
+plot(hydr_85$date, hydr_85$Qout2, type = 'l', col = 'red', xlab = 'Date', ylab='Qout(cfs)') +
+  lines(hydr_85$date, hydr_85$Qout_cfs, col = 'blue') +
+  title(main = 'hsp2 vs hspf for 1985 (JL2_6850_6890)')
+  
+hydr_85_summ <- filter(hydr_85, month == 5 | month == 6 | month ==7)
+plot(hydr_85_summ$date, hydr_85_summ$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') +
+  lines(hydr_85_summ$date, hydr_85_summ$Qout_cfs, col = 'red') +
+  title(main = 'hsp2 vs hspf for 1985 summer (JL2_6850_6890)') +
+  legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
+
+hydr_85_may <- filter(hydr_85, month == 5)
+plot(hydr_85_may$date, hydr_85_may$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') +
+  lines(hydr_85_may$date, hydr_85_may$Qout_cfs, col = 'red') +
+  title(main = 'hsp2 vs hspf for May, 1985 (JL2_6850_6890)') +
+  legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 
 # High difference and low flow analysis: 
 
