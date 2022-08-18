@@ -32,7 +32,7 @@ scenario_name <- argst[2]
 landuse <- as.character(argst[3]) # don't need quotes around landuse argument anymore
 pwater_file_path <- argst[4] 
 image_directory_path <- argst[5] # '/media/model/p532/out/land/p532sova_2021/images'
-#image_directory_path <- '/media/model/p532/out/land/hsp2_2022/images' # needs to be commented when running on the server 
+model_version <- argst[6]
 
 
 image_path_split <- strsplit(image_directory_path, split = '/')
@@ -119,7 +119,7 @@ model <- RomProperty$new(
     propname=landseg$name,
     featureid=landseg$hydroid, 
     entity_type="dh_feature", 
-    propcode="cbp-5.3.2" 
+    propcode=model_version 
   ), 
   TRUE
 )
