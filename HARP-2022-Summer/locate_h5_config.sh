@@ -1,5 +1,15 @@
-#!/bin/bash
-#this script should be run from directory: /opt/model/p53/p532c-sova
+# function for locating h5 files for river or land segments
+# cbp variables must be generated using hspf_config before using this function
+function h5_file_retrieve {
+if [ ${#argv} != 4 ]; then
+    if [ ${#argv} != 3 ]; then
+      echo ' '
+      echo 'usage:  h5_file_retrieve river scenario riverseg'
+      echo ' or     h5_file_retrieve land scenario landseg landuse'
+      echo ' '
+exit
+fi
+fi
 
 segvar=$1
 
@@ -14,16 +24,13 @@ scenario_name=$2
 riverseg=$3
 fi
 
-. hspf_config #Loads version-specific cbp variables
-
-
 if [ "$segvar" == "river" ]; then
 h5=$CBP_EXPORT_DIR/river/$scenario_name/h5/$riverseg'.h5'
 if  [ -f $h5 ]; then
 echo 'River seg h5:' $h5
 fi
 if  [ ! -f $h5 ]; then
-echo 'River seg h5 does not exists at' $CBP_EXPORT_DIR/river/$scenario_name/h5 ; fi
+echo 'River seg h5 does not exist at' $CBP_EXPORT_DIR/river/$scenario_name/h5 ; fi
 fi
 
 if [ "$segvar" == "land" ]; then
@@ -39,8 +46,5 @@ if  [ ! -f $h5_land ] && [ ! -f $h5_land_root ]; then
 echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name ;
 fi
 fi
-
-
-
-
-
+}
+ echo 'Loading h5_file_retrieve function'
