@@ -1,13 +1,11 @@
 #!/bin/bash
 #this script should be run from directory: /opt/model/p53/p532c-sova
 #support for arguments:
-if [ ${#argv} -ne 4 ] && [ ${#argv} -ne 3 ]; then
+if [ $# -ne 4 ] && [ $# -ne 3 ]; then
       echo ' '
       echo 'usage:  locate_uci.sh river scenario riverseg'
       echo ' or     locate_uci.sh land scenario landseg landuse'
       echo ' '
-exit
-fi
 fi
 
 segvar=$1
