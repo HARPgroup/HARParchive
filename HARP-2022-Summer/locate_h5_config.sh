@@ -1,16 +1,7 @@
 # function for locating h5 files for river or land segments
 # cbp variables must be generated using hspf_config before using this function
-function h5_file_retrieve {
-if [ ${#argv} != 4 ]; then
-    if [ ${#argv} != 3 ]; then
-      echo ' '
-      echo 'usage:  h5_file_retrieve river scenario riverseg'
-      echo ' or     h5_file_retrieve land scenario landseg landuse'
-      echo ' '
-exit
-fi
-fi
 
+function h5_file_retrieve {
 segvar=$1
 
 if [ "$segvar" == "land" ]; then
@@ -43,7 +34,8 @@ if  [ -f $h5_land_root ]; then
 echo 'Land seg h5:' $h5_land_root
 fi
 if  [ ! -f $h5_land ] && [ ! -f $h5_land_root ]; then
-echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' $CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name ;
+echo 'Land seg h5 does not exist at' $CBP_EXPORT_DIR/land/$scenario_name/h5 'or' 
+$CBP_ROOT/output/hspf/land/out/$landuse/$scenario_name ;
 fi
 fi
 }
