@@ -15,16 +15,16 @@ omsite = "http://deq1.bse.vt.edu:81"
 #hydr <- fread("OR1_7700_7980_hydr.csv") #for testing
 
 argst <- commandArgs(trailingOnly = T)
-hydr_path <- argst[1]
-rovol_path <- argst[2]
+input_path <- argst[1]
+output_path <- argst[2]
 column <- argst[3]
 
-hydr <- fread(hydr_path)
+hydr <- fread(input_path)
 hydr %>% select(column) -> hydr_column
 
 # creating tables with OVOL3 and ROVOL
 hydr_df <- data.frame(hydr$year, hydr$month, hydr$day, hydr$hour, hydr_column)
 
 # exporting the tables
-write.table(hydr_df, file = rovol_path, sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(hydr_df, file = output_path, sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
 
