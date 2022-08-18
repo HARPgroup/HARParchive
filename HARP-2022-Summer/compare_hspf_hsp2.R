@@ -1,6 +1,6 @@
 # Script to compare hydr tables from hspf and hsp2
-basepath='/var/www/R';
-source("/var/www/R/config.R")
+#basepath='/var/www/R';
+#source("/var/www/R/config.R")
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
