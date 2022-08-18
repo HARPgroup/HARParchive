@@ -19,17 +19,17 @@ segments=`cbp get_riversegs $basin`
 
   for riverseg in $segments; do
 
-output_file_path=$CBP_EXPORT_DIR/river/$scenario_name/hydr/$basin'_hydr.csv' #list of all possible pwater csv file paths
+output_file_path=$CBP_EXPORT_DIR/river/$scenario_name/hydr/$riverseg'_hydr.csv' #list of all possible pwater csv file paths
 
  if [ -f $output_file_path ]  ; then #executes next commands if the hydr csv exists
 
-Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_analysis.R $basin $scenario_name $CBP_EXPORT_DIR/river/$scenario_name/hydr/ $CBP_EXPORT_DIR/river/$scenario_name/images/ $model_version
+Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_analysis.R $riverseg $scenario_name $CBP_EXPORT_DIR/river/$scenario_name/hydr/ $CBP_EXPORT_DIR/river/$scenario_name/images/ $model_version
 
-echo 'R analysis scripts were run for' $basin'_hydr.csv'
+echo 'R analysis scripts were run for' $riverseg'_hydr.csv'
 
  elif [ ! -f $output_file_path ]  ; then #executes next command if hydr csv doesn't exist
 
-echo 'No analysis performed, no flow data for' $basin
+echo 'No analysis performed, no flow data for' $riverseg
 
 fi
 done
