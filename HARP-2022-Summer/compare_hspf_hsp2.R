@@ -1,6 +1,6 @@
 # Script to compare hydr tables from hspf and hsp2
-basepath='/var/www/R';
-source("/var/www/R/config.R")
+#basepath='/var/www/R';
+#source("/var/www/R/config.R")
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
@@ -52,12 +52,14 @@ hydr_f_$date <- seq(ymd_hm("1984-1-1 1:00"), ymd_hm("2020-12-31 23:00"), by = "h
 
 #Removing the 1st 9 months of data because of hsp2 'warm up period'
 hydr_f_warm <- hydr_f_[6577:nrow(hydr_f_)]
-avg_diff <- mean(hydr_f_warm$diff)
 
+#Printing avg Q:
+avg_Q <- mean((hydr_f_warm$Qout2 + hydr_f_warm$Qout_cfs)/2)
+print(paste('Avg Q: ', round(avg_Q, digits = 2), ' cfs', sep = ''))
 
 #Percent differences:
-
-print(paste('Avg % difference:', round(avg_diff, digits = 7)))
+avg_diff <- mean(hydr_f_warm$diff)
+print(paste('Avg % difference:', round(avg_diff, digits = 6)))
 
 png(image_path)
 boxplot(hydr_f_warm$diff, ylab = '% Difference')  # Not useful for hourly data
