@@ -31,5 +31,6 @@ echo 'R analysis scripts were run for' $riverseg'_hydr.csv'
 
 echo 'No analysis performed, no flow data for' $riverseg
 
+
 fi
 done
