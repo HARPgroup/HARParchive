@@ -72,17 +72,17 @@ hydr_85 <- filter(hydr_f_warm, year == 1985)
 
 hydr_85_summ <- filter(hydr_85, month == 5 | month == 6 | month ==7)
 png(image_path3)
-plot(hydr_85_summ$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') +
-  lines(hydr_85_summ$Qout_cfs, col = 'red') +
-  title(main = c('hsp2 vs hspf for 1985 summer - ', riverseg)) +
-  legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
+plot(hydr_85_summ$date,hydr_85_summ$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') 
+lines(hydr_85_summ$date,hydr_85_summ$Qout_cfs, col = 'red') 
+title(main = 'hsp2 vs hspf for 1985 summer') 
+legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 
 hydr_85_may <- filter(hydr_85, month == 5)
 png(image_path4)
-plot(hydr_85_may$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') +
-  lines(hydr_85_may$Qout_cfs, col = 'red') +
-  title(main = c('hsp2 vs hspf for May, 1985 - ', riverseg)) +
-  legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
+plot(hydr_85_may$date,hydr_85_may$Qout2, type = 'l', col = 'blue', xlab = 'Date', ylab='Qout(cfs)') 
+lines(hydr_85_may$date,hydr_85_may$Qout_cfs, col = 'red')
+title(main = 'hsp2 vs hspf for May, 1985')
+legend(x = "topright", legend = c('HSP2', 'HSPF'), fill = c('blue','red'), bty = 'n')
 
 # High difference and low flow analysis: 
 
