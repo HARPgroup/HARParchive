@@ -6,6 +6,7 @@ if [ $# -ne 4 ] && [ $# -ne 3 ]; then
       echo 'usage:  locate_uci.sh river scenario riverseg'
       echo ' or     locate_uci.sh land scenario landseg landuse'
       echo ' '
+exit
 fi
 
 segvar=$1
