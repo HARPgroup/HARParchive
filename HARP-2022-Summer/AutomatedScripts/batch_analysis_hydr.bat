@@ -23,7 +23,7 @@ output_file_path=$CBP_EXPORT_DIR/river/$scenario_name/hydr/$riverseg'_hydr.csv' 
 
  if [ -f $output_file_path ]  ; then #executes next commands if the hydr csv exists
 
-Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_analysis.R $riverseg $scenario_name $CBP_EXPORT_DIR/river/$scenario_name/hydr/ $CBP_EXPORT_DIR/river/$scenario_name/images/ $model_version
+Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_analysis.R $riverseg $scenario_name $CBP_EXPORT_DIR/river/$scenario_name/hydr/ $image_file_path $model_version
 
 echo 'R analysis scripts were run for' $riverseg'_hydr.csv'
 
