@@ -33,6 +33,7 @@ input_file_path <- argst[3]
 #input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/' #for testing 
 image_directory_path <- argst[4]
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images/' # for testing only 
+model_version <- argst[5]
 
 dir.create(file.path(input_file_path)) #creates directory if one does not yet exists
 
@@ -156,7 +157,7 @@ model <- RomProperty$new(
     propname=riverseg$name,
     featureid=riverseg$hydroid, 
     entity_type="dh_feature", 
-    propcode="cbp-5.3.2" 
+    propcode=model_version
   ), 
   TRUE
 )
