@@ -53,13 +53,19 @@ hydr_f_$date <- seq(ymd_hm("1984-1-1 1:00"), ymd_hm("2020-12-31 23:00"), by = "h
 #Removing the 1st 9 months of data because of hsp2 'warm up period'
 hydr_f_warm <- hydr_f_[6577:nrow(hydr_f_)]
 
-#Printing avg Q:
-avg_Q <- mean((hydr_f_warm$Qout2 + hydr_f_warm$Qout_cfs)/2)
-print(paste('Avg Q: ', round(avg_Q, digits = 2), ' cfs', sep = ''))
+#avg Q:
+avg_Qf <- mean(hydr_f_warm$Qout_cfs)
+avg_Q2 <- mean(hydr_f_warm$Qout2)
+print(paste('Avg Q for hspf: ', round(avg_Qf, digits = 2), ' cfs', sep = ''))
+print(paste('Avg Q for hsp2: ', round(avg_Q2, digits = 2), ' cfs', sep = ''))
 
 #Percent differences:
-avg_diff <- mean(hydr_f_warm$diff)
-print(paste('Avg % difference:', round(avg_diff, digits = 6)))
+#avg_diff <- mean(hydr_f_warm$diff)
+#print(paste('Avg % difference:', round(avg_diff, digits = 6)))
+
+#corrected % error calc using avg Q values:
+avg_error <- (abs(avg_Qf - avg_Q2))/((avg_Qf + avg_Q2)/2)*100
+print(paste('% error in mean flow: ', round(avg_error, digits = 3)))
 
 png(image_path)
 boxplot(hydr_f_warm$diff, ylab = '% Difference')  # Not useful for hourly data
