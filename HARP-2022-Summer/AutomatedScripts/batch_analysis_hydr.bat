@@ -19,14 +19,16 @@ segments=`cbp get_riversegs $basin`
 
   for riverseg in $segments; do
 
-output_file_path=$CBP_EXPORT_DIR/river/$scenario_name/hydr/$riverseg'_hydr.csv' #list of all possible pwater csv file paths
+output_file_path=$CBP_EXPORT_DIR/river/$scenario_name/hydr/$riverseg'_hydr.csv' 
 
  if [ -f $output_file_path ]  ; then #executes next commands if the hydr csv exists
-line=$(head -n 1 $output_file_path) #creates a var of column names
-var=$(echo "$line" | grep -o Qout) #searches column names for Qout
-if [ $var == "Qout" ] ; then  #checks if Qout column exists
-echo 'Qout already exists for' $riverseg'_hydr.csv'
-else #if Qout column does not exist:
+
+line=$(head -n 1 $output_file_path) #
+var=$(echo "$line" | grep -o Qout) 
+
+if [ $var == "Qout" ] ; then  
+echo 'Qout already exists for' $riverseg'_hydr.csv' ', no conversion needed'
+else 
 Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_conversion.R $output_file_path
 echo 'Conversion ran for' $riverseg'_hydr.csv'
 fi
