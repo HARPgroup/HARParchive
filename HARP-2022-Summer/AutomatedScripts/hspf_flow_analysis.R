@@ -103,12 +103,12 @@ model_scenario$save(TRUE)
 
 # Uploading constants
 
-model_constant_hydr_path <- RomProperty$new(
+model_constant_file_path <- RomProperty$new(
   ds, list(
     varkey="om_class_textField", 
     featureid=model_scenario$pid,
     entity_type='dh_properties',
-    propname = 'hydr_file_path'
+    propname = 'file_path'
   ),
   TRUE
 )
