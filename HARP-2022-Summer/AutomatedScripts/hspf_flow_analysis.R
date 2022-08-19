@@ -37,7 +37,8 @@ model_version <- argst[4]
 file_path=paste(input_file_path, river_segment_name, '_0111.csv', sep ='')
 
 flow <- fread(file_path)
-colnames(flow) <- c('year','month','day','hour','Qout')
+colnames(flow) <- c('year','month','day','hour','flow')
+flow$Qout <- flow$flow*12.1
 
 # Calculating the mean flow
 Qout_mean <- mean(as.numeric(flow$Qout)) # cfs
