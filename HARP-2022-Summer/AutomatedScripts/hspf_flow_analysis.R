@@ -112,8 +112,8 @@ model_constant_file_path <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_hydr_path$propcode <- as.character(hydr_file_path)
-model_constant_hydr_path$save(TRUE)
+model_constant_file_path$propcode <- as.character(file_path)
+model_constant_file_path$save(TRUE)
 
 
 model_constant_Qout <- RomProperty$new(
