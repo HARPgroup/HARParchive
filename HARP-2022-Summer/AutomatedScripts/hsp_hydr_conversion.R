@@ -40,7 +40,7 @@ hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
 # Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
-hydr$Qout= hydr$ROVOL*12.1 #Qout in units of cfs
+hydr$Qout= hydr$OVOL3*12.1 #Qout in units of cfs
 
 # Converting to mgd:
 #colnames(divr) = c('date','divr_achfth')
