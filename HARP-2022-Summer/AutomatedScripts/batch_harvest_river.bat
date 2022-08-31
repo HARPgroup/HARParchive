@@ -21,7 +21,7 @@ echo 'CBP_EXPORT_DIR:' $CBP_EXPORT_DIR
 # file paths
 h5_file_path=$CBP_EXPORT_DIR/river/$scenario_name/h5/$basin'.h5'
 
-output_path=$CBP_EXPORT_DIR/river/$scenario_name/
+output_path=$CBP_EXPORT_DIR/river/$scenario_name
 
 data_source_hydr=/RESULTS/RCHRES_R001/HYDR
 data_source_divr=/TIMESERIES/TS3007
