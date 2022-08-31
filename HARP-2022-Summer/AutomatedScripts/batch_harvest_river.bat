@@ -13,7 +13,7 @@ basin=$2
  if [ ! -d $CBP_EXPORT_DIR/river/$scenario_name/hydr ] ; then mkdir $CBP_EXPORT_DIR/river/$scenario_name/hydr; fi
  if [ ! -d $CBP_EXPORT_DIR/river/$scenario_name/divr ] ; then mkdir $CBP_EXPORT_DIR/river/$scenario_name/divr; fi
  if [ ! -d $CBP_EXPORT_DIR/river/$scenario_name/ps_flow ] ; then mkdir $CBP_EXPORT_DIR/river/$scenario_name/ps_flow; fi
- if [ ! -d $CBP_EXPORT_DIR/river/$scenario_name/rovol ] ; then mkdir $CBP_EXPORT_DIR/river/$scenario_name/rovol; fi
+ if [ ! -d $CBP_EXPORT_DIR/river/$scenario_name/ovol ] ; then mkdir $CBP_EXPORT_DIR/river/$scenario_name/ovol; fi
 
 echo 'CBP_ROOT:' $CBP_ROOT
 echo 'CBP_EXPORT_DIR:' $CBP_EXPORT_DIR
@@ -37,7 +37,7 @@ Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/export_hsp_h5.R $h5_file
   echo 'ps csv created'
 
 
-# converting ROVOL in hydr csv to cfs 
+# converting OVOL in hydr csv to cfs 
 ## can be later modified within the Rscript to convert ps_flow and divr to mgd!
 
 Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_conversion.R $output_path/hydr/$basin'_hydr.csv'
@@ -45,6 +45,6 @@ Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/hsp_hydr_conversion.R $o
 
 # exporting a csv in the wdm format from hydr (year, month, day, hour, [wanted col])
 
-Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/csv_export_wdm_format.R $output_path/hydr/$basin'_hydr.csv' $output_path/rovol/$basin'_rovol.csv' 'Qout'
-  echo 'wdm format csv with ROVOL exported'
+Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/csv_export_wdm_format.R $output_path/hydr/$basin'_hydr.csv' $output_path/ovol/$basin'_ovol.csv' 'Qout'
+  echo 'wdm format csv with OVOL exported'
 
