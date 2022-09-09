@@ -23,15 +23,16 @@ omsite = "http://deq1.bse.vt.edu:81"
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
-hydr_file_path <- argst[1]  
-#output_file_path='/media/model/p532/out/river/hsp2_2022/'
-
-#divr_file_path=paste(output_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
-#ps_file_path=paste(output_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
+hydr_file_path <- argst[1]
+#riverseg <- 'OR1_7700_7980' #for testing
+#output_file_path='/media/model/p532/out/river/hsp2_2022' #for testing
+#hydr_file_path=paste(output_file_path,'/hydr/', riverseg, '_hydr.csv', sep = '')
+#divr_file_path=paste(output_file_path,'/divr/', riverseg, '_divr.csv', sep = '')
+#ps_file_path=paste(output_file_path,'/ps_flow/', riverseg, '_psflow.csv', sep = '')
 
 hydr <- fread(hydr_file_path)
-#divr <- fread(divr_file_path) # divr in units of cfs
-#ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
+#divr <- fread(divr_file_path) #divr in units of cfs
+#ps_flow <- fread(ps_file_path) #ps in units of ac-ft/hr
 
 hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
 hydr$hour <- hour(hydr$date)
@@ -39,15 +40,18 @@ hydr$day <- day(hydr$date)
 hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
-# Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
-hydr$Qout= hydr$OVOL3*12.1 #Qout in units of cfs
-
-# Converting to mgd:
 #colnames(divr) = c('date','divr_achfth')
 #colnames(ps_flow) = c('date','ps_cfs')
 
+# Converting to mgd:
 #divr$divr_mgd=divr$divr_achfth*7.820434
 #ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
+
+# Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
+hydr$Qout= hydr$OVOL3*12.1 #Qout in units of cfs
+#hydr$wd_mgd= divr$divr_mgd
+#hydr$ps_mgd= ps_flow$ps_mgd
+  
 
 # Exporting the modified csv files into the output_file_path:
 write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
