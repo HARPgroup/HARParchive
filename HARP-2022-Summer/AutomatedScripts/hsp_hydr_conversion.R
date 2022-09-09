@@ -47,6 +47,13 @@ hydr$year <- year(hydr$date)
 #divr$divr_mgd=divr$divr_achfth*7.820434
 #ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
 
+#Removing Qout if it already exists to ensure overwrite:
+Qoutvar <- "Qout" %in% colnames(hydr)
+if (Qoutvar==TRUE) {
+  hydr = subset(hydr, select = -c(Qout))
+}
+
+
 # Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
 hydr$Qout= hydr$OVOL3*12.1 #Qout in units of cfs
 #hydr$wd_mgd= divr$divr_mgd
