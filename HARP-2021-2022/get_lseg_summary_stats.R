@@ -53,7 +53,7 @@ while(i<=length(AllLandsegList)){
   
   # create and save PET file as csv
   message(paste("Exporting ",paste0(outdir,"/",landseg,"SummaryStats.csv")))
-  write.table(summaryStats,paste0(outdir,"/",landseg,"SummaryStats.csv"), 
+  write.table(summaryStats,paste0(outdir,"/out/qa/",landseg,"SummaryStats.csv"), 
               row.names = FALSE, col.names = TRUE, sep = ",")
   i<-i+1
 }
