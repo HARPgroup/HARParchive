@@ -27,12 +27,12 @@ output_file_path <- argst[2]
 #output_file_path='/media/model/p532/out/river/hsp2_2022' #for testing
 
 hydr_file_path=paste(output_file_path,'/hydr/', riverseg, '_hydr.csv', sep = '')
-divr_file_path=paste(output_file_path,'/divr/', riverseg, '_divr.csv', sep = '')
+#divr_file_path=paste(output_file_path,'/divr/', riverseg, '_divr.csv', sep = '')
 ps_file_path=paste(output_file_path,'/ps_flow/', riverseg, '_psflow.csv', sep = '')
 
 hydr <- fread(hydr_file_path)
-divr <- fread(divr_file_path) #divr in units of cfs ?
-ps <- fread(ps_file_path) #ps in units of ac-ft/day ? (check units)
+#divr <- fread(divr_file_path) #divr in units of cfs 
+ps <- fread(ps_file_path) #ps in units of ac-ft/day 
 
 colnames(divr) = c('date', 'divr_cfs')
 colnames(ps) = c('date', 'ps_afd')
@@ -43,29 +43,32 @@ hydr$day <- day(hydr$date)
 hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
-divr$date <- as.Date(divr$date, format = "%m-%d-%Y")
-divr$day <- day(divr$date)
-divr$month <- month(divr$date)
-divr$year <- year(divr$date)
+#divr$date <- as.Date(divr$date, format = "%m-%d-%Y")
+#divr$day <- day(divr$date)
+#divr$month <- month(divr$date)
+#divr$year <- year(divr$date)
 
 ps$date <- as.Date(ps$date, format = "%m-%d-%Y")
 ps$day <- day(ps$date)
 ps$month <- month(ps$date)
 ps$year <- year(ps$date)
 
+#Converting ps from ac-ft/d to mgd 
+ps$ps_mgd <- ps$ps_afd*0.3258
+
 #final units for joining need to be mgd
 #Using sqldf to join tables
-hydr <- sqldf( #adding divr
-  "select a.*, b.divr_cfs 
-from hydr as a
-left outer join divr as b
-on (  
-a.year = b.year
-and a.month = b.month
-and a.day = b.day
-)
-order by a.year,a.month,a.day,a.hour
-")
+#hydr <- sqldf( #adding divr
+#  "select a.*, b.divr_cfs 
+#from hydr as a
+#left outer join divr as b
+#on (  
+#a.year = b.year
+#and a.month = b.month
+#and a.day = b.day
+#)
+#order by a.year,a.month,a.day,a.hour
+#")
 
 hydr <- sqldf( #adding ps
   "select a.*, b.ps_afd 
