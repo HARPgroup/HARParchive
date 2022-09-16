@@ -34,7 +34,7 @@ hydr <- fread(hydr_file_path)
 #divr <- fread(divr_file_path) #divr in units of cfs 
 ps <- fread(ps_file_path) #ps in units of ac-ft/day 
 
-colnames(divr) = c('date', 'divr_cfs')
+#colnames(divr) = c('date', 'divr_cfs')
 colnames(ps) = c('date', 'ps_afd')
 
 hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
