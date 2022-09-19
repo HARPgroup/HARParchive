@@ -27,53 +27,73 @@ output_file_path <- argst[2]
 #output_file_path='/media/model/p532/out/river/hsp2_2022' #for testing
 
 hydr_file_path=paste(output_file_path,'/hydr/', riverseg, '_hydr.csv', sep = '')
-#divr_file_path=paste(output_file_path,'/divr/', riverseg, '_divr.csv', sep = '')
 ps_file_path=paste(output_file_path,'/ps_flow/', riverseg, '_psflow.csv', sep = '')
+divr_file_path=paste(output_file_path,'/divr/', riverseg, '_divr.csv', sep = '')
+diva_file_path=paste(output_file_path,'/diva/', riverseg, '_divr.csv', sep = '')
 
 hydr <- fread(hydr_file_path)
-#divr <- fread(divr_file_path) #divr in units of cfs 
 ps <- fread(ps_file_path) #ps in units of ac-ft/day 
+divr <- fread(divr_file_path) #divr in units of cfs 
+diva <- fread(diva_file_path) #diva in units of cfs 
 
-#colnames(divr) = c('date', 'divr_cfs')
 colnames(ps) = c('date', 'ps_afd')
+colnames(divr) = c('date', 'divr_cfs')
+colnames(diva) = c('date', 'diva_cfs')
 
+#Adding date information to the tables:
 hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
 hydr$hour <- hour(hydr$index)
 hydr$day <- day(hydr$date)
 hydr$month <- month(hydr$date)
 hydr$year <- year(hydr$date)
 
-#divr$date <- as.Date(divr$date, format = "%m-%d-%Y")
-#divr$day <- day(divr$date)
-#divr$month <- month(divr$date)
-#divr$year <- year(divr$date)
-
 ps$date <- as.Date(ps$date, format = "%m-%d-%Y")
 ps$day <- day(ps$date)
 ps$month <- month(ps$date)
 ps$year <- year(ps$date)
 
+divr$date <- as.Date(divr$date, format = "%m-%d-%Y")
+divr$day <- day(divr$date)
+divr$month <- month(divr$date)
+divr$year <- year(divr$date)
+
+diva$date <- as.Date(diva$date, format = "%m-%d-%Y")
+diva$day <- day(diva$date)
+diva$month <- month(diva$date)
+diva$year <- year(diva$date)
+
 #Converting ps from ac-ft/d to mgd 
 ps$ps_mgd <- ps$ps_afd*0.3258
 
-#final units for joining need to be mgd
-#Using sqldf to join tables
-#hydr <- sqldf( #adding divr
-#  "select a.*, b.divr_cfs 
-#from hydr as a
-#left outer join divr as b
-#on (  
-#a.year = b.year
-#and a.month = b.month
-#and a.day = b.day
-#)
-#order by a.year,a.month,a.day,a.hour
-#")
-
+#Using sqldf to join ps with hydr:
 hydr <- sqldf( #adding ps
-  "select a.*, b.ps_afd 
+  "select a.*, b.ps_mgd 
 from hydr as a
 left outer join ps as b
+on (  
+a.year = b.year
+and a.month = b.month
+and a.day = b.day
+)
+order by a.year,a.month,a.day,a.hour
+")
+
+
+#Summing divr and diva together as demand
+  #Adding a new 'demand' column to the divr table in order to merge that column
+  #with the hydr table later
+
+divr$demand <- (as.numeric(divr$divr_cfs)) + (as.numeric(diva$diva_cfs))
+
+#Converting demand from cfs to mgd
+
+divr$demand_mgd <- divr$demand*0.64632
+
+#Using sqldf to join demand with hydr:
+hydr <- sqldf( #adding divr
+  "select a.*, b.demand_mgd 
+from hydr as a
+left outer join demand as b
 on (  
 a.year = b.year
 and a.month = b.month
