@@ -93,7 +93,7 @@ divr$demand_mgd <- divr$demand*0.64632
 hydr <- sqldf( #adding divr
   "select a.*, b.demand_mgd 
 from hydr as a
-left outer join demand as b
+left outer join divr as b
 on (  
 a.year = b.year
 and a.month = b.month
