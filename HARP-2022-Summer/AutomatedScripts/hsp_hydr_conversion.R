@@ -29,7 +29,7 @@ output_file_path <- argst[2]
 hydr_file_path=paste(output_file_path,'/hydr/', riverseg, '_hydr.csv', sep = '')
 ps_file_path=paste(output_file_path,'/ps_flow/', riverseg, '_psflow.csv', sep = '')
 divr_file_path=paste(output_file_path,'/divr/', riverseg, '_divr.csv', sep = '')
-diva_file_path=paste(output_file_path,'/diva/', riverseg, '_divr.csv', sep = '')
+diva_file_path=paste(output_file_path,'/diva/', riverseg, '_diva.csv', sep = '')
 
 hydr <- fread(hydr_file_path)
 ps <- fread(ps_file_path) #ps in units of ac-ft/day 
