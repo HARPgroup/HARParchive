@@ -34,16 +34,15 @@ df2 <- fread(csv2)
 
 names(df2)[names(df2) == old_col] <- 'join_col' #Renames column of interest to join_col for sqldf function 
 
-df1 <- sqldf( 
-  "select a.*, b.'join_col' 
-from df1 as a
-left outer join df2 as b
-on (  
-a.year = b.year
-and a.month = b.month
-and a.day = b.day
-)
-order by a.year,a.month,a.day,a.hour
-")
+df1 <- sqldf(
+  paste0("select a.*, b.", old_col, " as ", join_col, 
+         "from df1 as a left outer join df2 as b
+         on (  
+         a.year = b.year
+         and a.month = b.month
+         and a.day = b.day)
+         order by a.year,a.month,a.day,a.hour"
+         )
+  )
 
 names(df1)[names(df1) == 'join_col'] <- new_col #Renames joined column to what is given as an argument
