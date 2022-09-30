@@ -27,13 +27,12 @@ df2 <- fread(csv2)
 #df1$day <- day(df1$date)
 #df1$month <- month(df1$date)
 #df1$year <- year(df1$date)
-#df2$date <- as.Date(df2$index, format = "%m-%d-%Y")
-#df2$day <- day(df2$index)
-#df2$month <- month(df2$index)
-#df2$year <- year(df2$index)
+df2$day <- day(df2$index)
+df2$month <- month(df2$index)
+df2$year <- year(df2$index)
 
 # selecting a as primary table 
-#capitalized sqldf operators 
+# capitalized sqldf operators 
 
 df1 <- sqldf(
   paste0("SELECT a.*, b.'", old_col,"' AS '", new_col, "'
