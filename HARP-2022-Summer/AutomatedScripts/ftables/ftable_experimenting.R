@@ -11,8 +11,8 @@ ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
 # Arguments:
-#riverseg <- "OR1_7700_7980"
-riverseg <- "JL2_6850_6890"
+riverseg <- "OR1_7700_7980"
+#riverseg <- "JL2_6850_6890"
 channel<- "0. River Channel"
 
 # Load the UCI Table:
@@ -180,9 +180,12 @@ depth <- c(cdepth, fdepth)
 # Floodplain Parameters
 ym <- h/1.25 # mean channel depth
 wm <- b + 2*z*ym # mean channel width
-fw <- bf #2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
-zf <- 6*z #for Rockfish
+#fw <- bf #2*wm + bf # "the flood plain width, on each side of the reach, is equal to the mean channel width" -BASINS tech note 1
+#zf <- 6*z #for Rockfish
 #zf <- 9.25*z #for Roanoke
+#zf <- 0.5 * (4*bf - bf)/(h)
+zf <- 0
+fw <- 5*bf
 
 #----Replacing Calculations w/ Function----
 fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n) { 
