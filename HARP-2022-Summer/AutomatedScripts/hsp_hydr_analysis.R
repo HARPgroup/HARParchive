@@ -35,7 +35,12 @@ image_directory_path <- argst[4]
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images/' # for testing only 
 model_version <- argst[5]
 
-dir.create(file.path(input_file_path)) #creates directory if one does not yet exists
+if (!file.exists(input_file_path)) {
+  dir.create(file.path(input_file_path)) #creates directory if one does not yet exists
+}
+if (!file.exists(image_directory_path)) {
+  dir.create(file.path(image_directory_path)) #creates directory if one does not yet exists
+}
 
 image_path_split <- strsplit(image_directory_path, split = '/')
 
