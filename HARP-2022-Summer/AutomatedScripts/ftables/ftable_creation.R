@@ -145,7 +145,8 @@ fdepth <- seq(h+1, h*4 ,length=9) #floodplain
 depth <- c(cdepth, fdepth)
 
 #floodplain side slope where base = bankfull width & top width = 5x that:
-zf <- 0.5 * (5*bf - bf)/(h) 
+#zf <- 0.5 * (5*bf - bf)/(h) 
+zf <- z
 
 #--function:
 fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n) { 
@@ -159,7 +160,7 @@ fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n) {
 }
 
 cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n) #in-channel
-fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, bf, zf, nf) #floodplain
+fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, zf, nf) #floodplain
 
 # add values from below floodplain to fptab
 fptab$depth <- fptab$depth + h
