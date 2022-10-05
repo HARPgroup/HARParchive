@@ -209,6 +209,54 @@ fptab$disch <- fptab$disch + max(cftab$disch)
 
 ftable_specific <- rbind(cftab, fptab)
 
+#----Plotting----
+# Zoomed Out:
+# Area
+par(mfrow = c(2,3))
+plot(ftable_uci$depth, ftable_uci$area, type='l', col = 'red', ylim=c(0, max(ftable_uci$area)), xlab = "Depth (ft)", ylab = "Water Surface Area (acres)")
+lines(ftable_specific$depth, ftable_specific$area, type='l', col='dark green')
+lines(ftable_generic$depth, ftable_generic$area, type='l', col='blue')
+title(main = 'Ftable Area')
+legend(x=0 , y=max(ftable_uci$area) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+
+# Volume
+plot(ftable_uci$depth, ftable_uci$vol, type='l', col = 'red', ylim=c(0, max(ftable_uci$vol)), xlab = "Depth (ft)", ylab = "Volume (acre-ft)")
+lines(ftable_specific$depth, ftable_specific$vol, type='l', col='dark green')
+lines(ftable_generic$depth, ftable_generic$vol, type='l', col='blue')
+title(main = 'Ftable Volume')
+legend(x=0 , y=max(ftable_uci$vol) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex = 0.85)
+
+# Discharge
+plot(ftable_uci$depth, ftable_uci$disch, type='l', col = 'red', ylim=c(0, max(ftable_uci$disch)), xlab = "Depth (ft)", ylab = "Discharge (cfs)")
+lines(ftable_specific$depth, ftable_specific$disch, type='l', col='dark green')
+lines(ftable_generic$depth, ftable_generic$disch, type='l', col='blue')
+title(main = 'Ftable Discharge')
+legend(x=0 , y=max(ftable_uci$disch) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+
+# Zooming In:
+# Area
+plot(ftable_uci$depth, ftable_uci$area, type='l', col = 'red', xlim=c(0,h+3), ylim=c(0,ftable_uci$area[11]), xlab = "Depth (ft)", ylab = "Water Surface Area (acres)")
+lines(ftable_specific$depth, ftable_specific$area, type='l', col='dark green')
+lines(ftable_generic$depth, ftable_generic$area, type='l', col='blue')
+title(main = 'Area Just Past h')
+#legend(x=h-5 , y=ftable_uci$area[2] , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+
+# Volume
+plot(ftable_uci$depth, ftable_uci$vol, type='l', col = 'red', xlim=c(0,h+3), ylim=c(0,ftable_uci$vol[11]), xlab = "Depth (ft)", ylab = "Volume (acre-ft)")
+lines(ftable_specific$depth, ftable_specific$vol, type='l', col='dark green')
+lines(ftable_generic$depth, ftable_generic$vol, type='l', col='blue')
+title(main = 'Volume Just Past h')
+#legend(x=0 , y=median(ftable_uci$vol), legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex = 0.85)
+
+# Discharge
+plot(ftable_uci$depth, ftable_uci$disch, type='l', col = 'red', xlim=c(0,h+3), ylim=c(0,ftable_uci$disch[11]), xlab = "Depth (ft)", ylab = "Discharge (cfs)")
+lines(ftable_specific$depth, ftable_specific$disch, type='l', col='dark green')
+lines(ftable_generic$depth, ftable_generic$disch, type='l', col='blue')
+title(main = 'Discharge Just Past h')
+#legend(x=0 , y=median(ftable_uci$disch) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+
+#----
+#Old or Misc Stuff----
 #----Pulling from NHDplus----
 #install.packages("nhdplusTools")
 library(nhdplusTools)
@@ -224,7 +272,6 @@ library(nhdplusTools)
 COMID <- c(8545673,8548041,8545773,8545771,8545765,8545713,8547533,8545537,8545493,8547479,8545397,8545399,8545389,8545381,8545369,8545377,8545351,8545321,8545293,8545181,8545165,8545111,8545109,8545055,8547471,8545069,8545079,8545089,8545091,8545093,8545083,8545009,8544987,8544985,8544943,8544925,8544859,8544833,8547459,8544805,8544751,8544683,8544663,8544639,8544631)
 rockfish_data_flow <- get_nhdplus(comid=COMID, realization="flowline")
 
-#----
 #----Generic Ftable----
 prov_g <- -1
 if (prov_g == -1){
@@ -250,58 +297,6 @@ z_g = 0.5 * (bf - b ) / h_g
 
 ftable_generic <- fn_make_trap_ftable(depth, clength, cslope, b_g, z_g, n_g)
 
-#----Plotting----
-# Zoomed Out:
-  # Area
-par(mfrow = c(2,3))
-plot(ftable_uci$depth, ftable_uci$area, type='l', col = 'red', ylim=c(0, max(ftable_uci$area)), xlab = "Depth (ft)", ylab = "Water Surface Area (acres)")
-lines(ftable_specific$depth, ftable_specific$area, type='l', col='dark green')
-lines(ftable_generic$depth, ftable_generic$area, type='l', col='blue')
-title(main = 'Ftable Area')
-legend(x=0 , y=max(ftable_uci$area) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
-
-  # Volume
-plot(ftable_uci$depth, ftable_uci$vol, type='l', col = 'red', ylim=c(0, max(ftable_uci$vol)), xlab = "Depth (ft)", ylab = "Volume (acre-ft)")
-lines(ftable_specific$depth, ftable_specific$vol, type='l', col='dark green')
-lines(ftable_generic$depth, ftable_generic$vol, type='l', col='blue')
-title(main = 'Ftable Volume')
-legend(x=0 , y=max(ftable_uci$vol) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex = 0.85)
-
-  # Discharge
-plot(ftable_uci$depth, ftable_uci$disch, type='l', col = 'red', ylim=c(0, max(ftable_uci$disch)), xlab = "Depth (ft)", ylab = "Discharge (cfs)")
-lines(ftable_specific$depth, ftable_specific$disch, type='l', col='dark green')
-lines(ftable_generic$depth, ftable_generic$disch, type='l', col='blue')
-title(main = 'Ftable Discharge')
-legend(x=0 , y=max(ftable_uci$disch) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
-
-# Zooming In:
-  # Area
-plot(ftable_uci$depth, ftable_uci$area, type='l', col = 'red', xlim=c(0,h+3), ylim=c(0,ftable_uci$area[11]), xlab = "Depth (ft)", ylab = "Water Surface Area (acres)")
-lines(ftable_specific$depth, ftable_specific$area, type='l', col='dark green')
-lines(ftable_generic$depth, ftable_generic$area, type='l', col='blue')
-title(main = 'Area Just Past h')
-#legend(x=h-5 , y=ftable_uci$area[2] , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
-
-  # Volume
-plot(ftable_uci$depth, ftable_uci$vol, type='l', col = 'red', xlim=c(0,h+3), ylim=c(0,ftable_uci$vol[11]), xlab = "Depth (ft)", ylab = "Volume (acre-ft)")
-lines(ftable_specific$depth, ftable_specific$vol, type='l', col='dark green')
-lines(ftable_generic$depth, ftable_generic$vol, type='l', col='blue')
-title(main = 'Volume Just Past h')
-#legend(x=0 , y=median(ftable_uci$vol), legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex = 0.85)
-
-  # Discharge
-plot(ftable_uci$depth, ftable_uci$disch, type='l', col = 'red', xlim=c(0,h+3), ylim=c(0,ftable_uci$disch[11]), xlab = "Depth (ft)", ylab = "Discharge (cfs)")
-lines(ftable_specific$depth, ftable_specific$disch, type='l', col='dark green')
-lines(ftable_generic$depth, ftable_generic$disch, type='l', col='blue')
-title(main = 'Discharge Just Past h')
-#legend(x=0 , y=median(ftable_uci$disch) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
-
-
-
-
-
-
-#Old or Misc Stuff----
 #----Saving to UCI----
 writeLines(sprintf("% 16s", as.list(round(ftab, 2))))
 
