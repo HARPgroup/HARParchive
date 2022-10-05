@@ -137,8 +137,7 @@ b = bc * (da**be)
 z = 0.5 * (bf - b ) / h
 
 
-#----Calculating FTABLE----
-#--additional parameters:
+#----Additional Parameters----
 #depth
 cdepth <- seq(0,h,length=10) #channel
 fdepth <- seq(h+1, h*4 ,length=9) #floodplain
@@ -148,26 +147,46 @@ depth <- c(cdepth, fdepth)
 #zf <- 0.5 * (5*bf - bf)/(h) 
 zf <- z
 
-#--function:
-fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n) { 
+#cross-sect. areas
+Ac <- (depth*(b+z*depth)) #channel
+Ah <- (0.5*((b+ 2*z*h + b)*h)) #channel @ bankfull
+Af <- Ah + (0.5*(2*(5*bf) + 2*z*fdepth) *fdepth) #full channel + fp only
+
+#wetted perimeters
+Pc <- (b+2*depth*sqrt(1+z^2)) #channel
+Ph <- (b + h*sqrt(z**2 +1)) #channel @ bankfull
+Pf <- Ph + fdepth*sqrt(zf**2 +1) #full channel + fp only
+
+#----Calculating FTABLE----
+
+#--Discharge Calculation Info:
+# Q = V * A ; where A = cross sectional area (aka flow area)
+# Manning's Eqn: V = (1.49/n) * R^(2/3) * S^(1/2) 
+# (1.49/n) is English ; (1/n) is metric
+# Hydraulic Radius = (depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2))
+# OR Hydraulic R = (depth*(b + sw)/2)/(b + 2*(((sw-b)/2)**2 + depth**2)**0.5)
+
+fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n, A, P) { 
   sw <- b + 2*z*depth #surface width
   sw[depth == 0] <- 0
   area <- (sw * clength)/43560 #surface area
   vol <- (clength * (0.5*(sw+b)*depth))/43560
-  disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * cslope**0.5 * 0.5*(sw+b)*depth
+  #disch <- (1.49/n) * ((depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)))**(2/3) * cslope**0.5 * 0.5*(sw+b)*depth
+  disch <- (1.49/n) * (A/P)**(2/3) * cslope**0.5 * A
   ftable <- data.frame(depth, area, vol, disch)
   return(ftable)
 }
 
-cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n) #in-channel
-fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, zf, nf) #floodplain
+cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n, Ac, Pc) #in-channel
+fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, zf, nf, Af, Pf) #floodplain
+# !! just changed that FP base width = 5x channel base !! ^
 
 # add values from below floodplain to fptab
 fptab$depth <- fptab$depth + h
 fptab$vol <- fptab$vol + max(cftab$vol)
 fptab$disch <- fptab$disch + max(cftab$disch)
 
-ftable_specific <- rbind(cftab, fptab)
+ftable_specific <- rbind(cftab, fptab) #only named "specific" temporarily -- test plotting purposes
 
 #----Exporting----
 
