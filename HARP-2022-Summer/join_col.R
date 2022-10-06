@@ -41,3 +41,5 @@ df1 <- sqldf(
          ORDER BY a.year,a.month,a.day,a.hour"
          )
   ) 
+
+write.table(df1,file = csv1, sep = ",", row.names = FALSE)
