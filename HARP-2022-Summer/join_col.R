@@ -31,10 +31,10 @@ df2$day <- day(df2$index)
 df2$month <- month(df2$index)
 df2$year <- year(df2$index)
 
-# selecting a as primary table 
-# capitalized sqldf operators 
+# this syntax selects a as primary table and b to be joined 
+# we capitalized sqldf operator words to exclude syntax errors
 
-df1 <- sqldf(
+df1_joined <- sqldf(
   paste0("SELECT a.*, b.'", old_col,"' AS '", new_col, "'
         FROM df1 AS a 
          LEFT OUTER JOIN df2 AS b ON (a.year = b.year AND a.month = b.month AND a.day = b.day)
@@ -42,4 +42,12 @@ df1 <- sqldf(
          )
   ) 
 
+rows_df1 <- nrow(df1)
+rows_df1j <- nrow(df1_joined)
+
+if (rows_df1 != rows_df1j) {
+  stop('Table and column are different lengths, unable to join')
+}
+
 write.table(df1,file = csv1, sep = ",", row.names = FALSE)
+
