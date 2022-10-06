@@ -47,14 +47,9 @@ image_path_split <- strsplit(image_directory_path, split = '/')
 path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 
-# need to change since trying to save the modified csvs into the directory? 
-# Accessing CSVs
-hydr_file_path=paste(input_file_path, river_segment_name, '_hydr.csv', sep = '')
-#divr_file_path=paste(input_file_path,'/divr/', river_segment_name, '_divr.csv', sep = '')
-#ps_file_path=paste(input_file_path,'/ps_flow/', river_segment_name, '_psflow.csv', sep = '')
-      
 # Reading in the tables
-hydr <- fread(hydr_file_path)
+message(paste("loading", input_file_path))
+hydr <- fread(input_file_path)
 #divr <- fread(divr_file_path) # divr in units of mgd
 #ps_flow <- fread(ps_file_path) # ps in units of mgd
 
@@ -134,9 +129,6 @@ fn_iha_7q10 <- function(zoots) {
 }
 x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period 
 
-#For graphing purposes:
-len_Qmon <- length(monthlyQout$year)
-
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
@@ -193,7 +185,7 @@ model_constant_hydr_path <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_hydr_path$propcode <- as.character(hydr_file_path)
+model_constant_hydr_path$propcode <- as.character(input_file_path)
 model_constant_hydr_path$save(TRUE)
 
 
@@ -270,6 +262,8 @@ model_constant_x7q10$propvalue <- as.numeric(x7q10)
 model_constant_x7q10$save(TRUE)
 
 #Exporting graph of Qout to Vahydro
+#For graphing purposes:
+len_Qmon <- length(monthlyQout$year)
 save_url = paste(omsite, '/', path_string_m2, sep ='')
 fname <- paste(
   image_directory_path,paste0( river_segment_name, '.','fig.Qout','.png'), # building file name
