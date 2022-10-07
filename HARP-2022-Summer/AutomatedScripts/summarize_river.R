@@ -31,17 +31,9 @@ hydr_file_path <- argst[3]
 image_dir <- argst[4]
 model_version <- argst[5]
 
-# create a place to save an image if it does not exist
-# note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
-#       we would have nothing to analyze
-if (!file.exists(image_dir)) {
-  dir.create(file.path(image_dir)) #creates directory if one does not yet exists
-}
-
 # The hydr file columns have been modifed with a conversion script, 
 # and ps and demand were added from the 'timeseries' in the h5
 hydr <- fread(hydr_file_path)
-
 
 ### Exporting to VAHydro
 ## Set up currently to output all the Qout values & the graph
