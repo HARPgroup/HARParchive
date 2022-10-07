@@ -136,6 +136,7 @@ colnames(dailyQout_wy) <- c('date','Qout')
   # Qout
   # Qbaseline
   # wd_mgd
+hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 
   # ps_mgd
   # wd_cumulative_mgd
   # ps_cumulative_mgd
