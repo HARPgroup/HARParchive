@@ -19,7 +19,7 @@ suppressPackageStartupMessages(library(R.utils))
 omsite = "http://deq1.bse.vt.edu:81"
 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
-# hydr <- fread(" PL3_5250_0001_hydr.csv") # for testing only
+# hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
 # river_seg <- 'PL3_5250_0001'
 # input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/'
 
