@@ -1,7 +1,8 @@
 # This script will take in our hydr csv as an argument and perform analysis on 
 # variables Qout, ps, wd, and demand and pushes to VAhydro.
-
 # The values calculated are based on waterSupplyModelNode.R
+basepath='/var/www/R';
+source("/var/www/R/config.R")
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
@@ -137,8 +138,6 @@ len_Qmon <- length(monthlyQout$year)
 
 
 
-
-
 ### Exporting to VAHydro
   ## Set up currently to output all the Qout values & the graph
   ## From hsp_hydr_analysis
@@ -146,7 +145,6 @@ len_Qmon <- length(monthlyQout$year)
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
-
 rseg_name=river_segment_name
 rseg_ftype='vahydro'
 
