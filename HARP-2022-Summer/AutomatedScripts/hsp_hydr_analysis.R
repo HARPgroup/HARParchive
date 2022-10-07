@@ -14,6 +14,7 @@ suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
+suppressPackageStartupMessages(library(ggplot2))
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 #hydr <- fread("OR2_7650_8070_hydr.csv") # for testing only 
@@ -60,7 +61,8 @@ dailyQout <- aggregate(hydr$Qout, by = list(hydr$date), FUN='mean')
 colnames(dailyQout) <- c('date','Qout') # Qout in units of cfs
 monthlyQout <- aggregate(hydr$Qout, by = list(hydr$month, hydr$year), FUN = "mean")
 colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of cfs
-
+#Adding date col to monthly data for plotting 
+monthlyQout$date <- as.Date(paste0(monthlyQout$month,'/15/',monthlyQout$year), format = "%m/%d/%Y")
 
 # From: waterSupplyModelNode.R
 
@@ -68,7 +70,7 @@ syear = min(hydr$year)
 eyear = max(hydr$year)
 model_run_start <- min(hydr$date)   
 model_run_end <- max(hydr$date)
-years <- seq(1984,2021)
+#years <- seq(1984,2021)
 
 if (syear < (eyear - 2)) {
   sdate <- as.Date(paste0(syear,"-10-01"))
@@ -276,9 +278,8 @@ furl <- paste(
   sep = '/'
 )
 png(fname) 
-plot(monthlyQout$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)', xaxt = 'n', xlab = NA,)
-title(main = 'Outflow from the River Segment', sub = 'Monthly average values are plotted')
-axis(1, at = seq(0,len_Qmon,12), labels = years)
+ggplot(monthlyQout) + geom_line(aes(date,Qout), col = 'blue') +
+  labs(y='Qout (cfs)',x=NULL)
 dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
 model_graph1 <- RomProperty$new(
