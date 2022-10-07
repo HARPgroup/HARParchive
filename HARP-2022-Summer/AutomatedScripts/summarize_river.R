@@ -21,23 +21,20 @@ omsite = "http://deq1.bse.vt.edu:81"
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 river_seg <- argst[1]
-scenario <- argst[2]
-input_path <- argst[3]
+scenario_name <- argst[2]
+hydr_file_path <- argst[3]
 image_dir <- argst[4]
 model_version <- argst[5]
 
-dir.create(file.path(input_file_path)) #creates directory if one does not yet exists
-
-image_path_split <- strsplit(image_directory_path, split = '/')
-
-path_list_m2 <- as.list(image_path_split[[1]][-c(1,2,3)])
-path_string_m2 <- paste(path_list_m2, collapse = "/")
+# create a place to save an image if it does not exist
+# note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
+#       we would have nothing to analyze
+if (!file.exists(image_dir)) {
+  dir.create(file.path(image_dir)) #creates directory if one does not yet exists
+}
 
 # The hydr file columns have been modifed with a conversion script, 
 # and ps and demand were added from the 'timeseries' in the h5
-
-hydr_file_path=paste(input_file_path, river_segment_name, '_hydr.csv', sep = '')
-
 hydr <- fread(hydr_file_path)
 
 
@@ -49,7 +46,7 @@ hydr <- fread(hydr_file_path)
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
-rseg_name=river_segment_name
+rseg_name=river_seg
 rseg_ftype='vahydro'
 
 riverseg<- RomFeature$new(
