@@ -1,9 +1,12 @@
 ### This is copied from waterSupplyModelNode.R and is all the code needed for plotting figures
 ### and pushing them to VAHydro
 
-
-
-
+# create a place to save an image if it does not exist
+# note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
+#       we would have nothing to analyze
+if (!file.exists(image_dir)) {
+  dir.create(file.path(image_dir)) #creates directory if one does not yet exists
+}
 
 message("Plotting critical flow periods")
 # does this have an active impoundment sub-comp
