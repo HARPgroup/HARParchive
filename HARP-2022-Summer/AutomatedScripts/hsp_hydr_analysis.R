@@ -16,9 +16,11 @@ suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
-#hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only 
+#hydr <- fread("OR2_7650_8070_hydr.csv") # for testing only 
 #divr <- fread("OR1_7700_7980_divr.csv") # for testing only
 #ps_flow <- fread("OR1_7700_7980_psflow.csv") # for testing only
+#hydr <- fread("PL3_5250_0001_hydr_hspf.csv") # hspf hydr csv, for testing only
+
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -66,7 +68,7 @@ syear = min(hydr$year)
 eyear = max(hydr$year)
 model_run_start <- min(hydr$date)   
 model_run_end <- max(hydr$date)
-years <- seq(syear,eyear)
+years <- seq(1984,2021)
 
 if (syear < (eyear - 2)) {
   sdate <- as.Date(paste0(syear,"-10-01"))
