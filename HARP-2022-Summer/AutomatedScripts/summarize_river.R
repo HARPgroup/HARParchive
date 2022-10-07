@@ -1,7 +1,8 @@
 # This script will take in our hydr csv as an argument and perform analysis on 
 # variables Qout, ps, wd, and demand and pushes to VAhydro.
-
 # The values calculated are based on waterSupplyModelNode.R
+basepath='/var/www/R';
+source("/var/www/R/config.R")
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
@@ -273,91 +274,3 @@ if (syear <= 1990 && eyear >= 2000) {
     l30_year_trim = 0
   }
 }
-
-
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_Qout', l90_Qout_trim, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_year', l90_year_trim, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_Qout', l30_Qout_trim, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_year', l30_year_trim, ds)
-
-
-
-## From hsp_hydr_analysis:
-# # Pushing values to VAhydro
-# 
-# model_constant_Qout <- RomProperty$new(
-#   ds, list(
-#     varkey="om_class_Constant",
-#     featureid=model_scenario$pid,
-#     entity_type='dh_properties',
-#     propname = 'Qout'
-#   ),
-#   TRUE
-# )
-# model_constant_Qout$propvalue <- as.numeric(Qout_mean)
-# model_constant_Qout$save(TRUE)
-# 
-# #vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qout', Qout, ds)
-# 
-# model_constant_l90_Qout <- RomProperty$new(
-#   ds, list(
-#     varkey="om_class_Constant",
-#     featureid=model_scenario$pid,
-#     entity_type='dh_properties',
-#     propname = 'l90_Qout'
-#   ),
-#   TRUE
-# )
-# model_constant_l90_Qout$propvalue <- as.numeric(l90_Qout)
-# model_constant_l90_Qout$save(TRUE)
-# 
-# model_constant_l30_Qout <- RomProperty$new(
-#   ds, list(
-#     varkey="om_class_Constant",
-#     featureid=model_scenario$pid,
-#     entity_type='dh_properties',
-#     propname = 'l30_Qout'
-#   ),
-#   TRUE
-# )
-# model_constant_l30_Qout$propvalue <- as.numeric(l30_Qout)
-# model_constant_l30_Qout$save(TRUE)
-# 
-# model_constant_sept10 <- RomProperty$new(
-#   ds, list(
-#     varkey="om_class_Constant",
-#     featureid=model_scenario$pid,
-#     entity_type='dh_properties',
-#     propname = 'sept_10'
-#   ),
-#   TRUE
-# )
-# model_constant_sept10$propvalue <- as.numeric(sept_10)
-# model_constant_sept10$save(TRUE)
-# 
-# model_constant_alf <- RomProperty$new(
-#   ds, list(
-#     varkey="om_class_Constant",
-#     featureid=model_scenario$pid,
-#     entity_type='dh_properties',
-#     propname = 'alf'
-#   ),
-#   TRUE
-# )
-# model_constant_alf$propvalue <- as.numeric(alf)
-# model_constant_alf$save(TRUE)
-# 
-# model_constant_x7q10 <- RomProperty$new(
-#   ds, list(
-#     varkey="om_class_Constant",
-#     featureid=model_scenario$pid,
-#     entity_type='dh_properties',
-#     propname = 'x7q10'
-#   ),
-#   TRUE
-# )
-# model_constant_x7q10$propvalue <- as.numeric(x7q10)
-# model_constant_x7q10$save(TRUE)
-# 
-# 
-# 
