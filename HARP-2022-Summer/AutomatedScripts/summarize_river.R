@@ -210,10 +210,10 @@ if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
 
 # The total flow method of consumptive use calculation
 consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
-dat$consumptive_use_frac <- 1.0 - (dat$Qout / dat$Qbaseline)
+hydr$consumptive_use_frac <- 1.0 - (hydr$Qout / hydr$Qbaseline)
 # This method is more appropriate for impoundments that have long
 # periods of zero outflow... but the math is not consistent with elfgen
-daily_consumptive_use_frac <-  mean(as.numeric(dat$consumptive_use_frac) )
+daily_consumptive_use_frac <-  mean(as.numeric(hydr$consumptive_use_frac) )
 if (is.na(daily_consumptive_use_frac)) {
   daily_consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
 }
