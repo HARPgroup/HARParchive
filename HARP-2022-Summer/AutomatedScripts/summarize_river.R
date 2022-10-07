@@ -18,6 +18,11 @@ suppressPackageStartupMessages(library(R.utils))
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
+# setwd("/Users/VT_SA/Documents/HARP") # for testing only
+# hydr <- fread(" PL3_5250_0001_hydr.csv") # for testing only
+# river_seg <- 'PL3_5250_0001'
+# input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/'
+
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 river_seg <- argst[1]
@@ -87,7 +92,7 @@ model_scenario$save(TRUE)
 
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
-                                  # Edit to more compact version???
+# Edit to more compact version???
 
 model_constant_hydr_path <- RomProperty$new(
   ds, list(
@@ -123,54 +128,125 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
-hydr_wy <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
+hydr <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
 
-dailyQout_wy <- aggregate(hydr_wy$Qout, by = list(hydr_wy$date), FUN='mean')
-colnames(dailyQout_wy) <- c('date','Qout')
+# dailyQout_wy <- aggregate(hydr$Qout, by = list(hydr$date), FUN='mean')
+# colnames(dailyQout_wy) <- c('date','Qout')
 
+
+# There is no impoundment, so it will be set to 0:
+
+imp_off = 0
+cols <- names(hydr)
 
 ## Primary Analysis on Qout, ps and wd:
-  # Qout
-  # Qbaseline
-  # wd_mgd
-hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 
-  # ps_mgd
-  # wd_cumulative_mgd
-  # ps_cumulative_mgd
-  # ps_nextdown_mgd
-  # consumptive_use_frac
-  # daily_consumptive_use_frac
-  # net_consumption_mgd
+# Qout
+# Qbaseline
+# wd_mgd
+# ps_mgd
+# wd_cumulative_mgd
+# ps_cumulative_mgd
+# ps_nextdown_mgd
+# consumptive_use_frac
+# daily_consumptive_use_frac
+# net_consumption_mgd
 
-Qout_mean <- mean(as.numeric(dailyQout$Qout)) # cfs
-paste('Qout_mean:', Qout_mean)
+# wd
+wd_mgd <- mean(as.numeric(hydr$wd_mgd))
+
+wd_imp_child_mgd <- mean(as.numeric(hydr$wd_imp_child_mgd) )
+if (is.na(wd_imp_child_mgd)) {   # setting this to zero since it doesn't exist
+  wd_imp_child_mgd = 0.0
+}
+
+wd_mgd <- wd_mgd + wd_imp_child_mgd   # the official wd_mgd
+
+wd_cumulative_mgd <- mean(as.numeric(hydr$wd_cumulative_mgd) )
+if (is.na(wd_cumulative_mgd)) {   # setting this to zero since it doesn't exist
+  wd_cumulative_mgd = 0.0
+}
+
+# ps
+ps_mgd <- mean(as.numeric(hydr$ps_mgd) )
+
+ps_cumulative_mgd <- mean(as.numeric(hydr$ps_cumulative_mgd) )
+if (is.na(ps_cumulative_mgd)) {   # setting this to zero since it doesn't exist
+  ps_cumulative_mgd = 0.0
+}
+ps_nextdown_mgd <- mean(as.numeric(hydr$ps_nextdown_mgd) )
+if (is.na(ps_nextdown_mgd)) {   # setting this to zero since it doesn't exist
+  ps_nextdown_mgd = 0.0
+}
+
+# net consumption
+net_consumption_mgd <- wd_cumulative_mgd - ps_cumulative_mgd
+if (is.na(net_consumption_mgd)) {
+  net_consumption_mgd = 0.0
+}
+
+# Qout, Q baseline
+Qout <- mean(as.numeric(hydr$Qout))
+
+hydr$Qbaseline <- hydr$Qout +
+  (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd ) * 1.547
+# alter calculation to account for pump store
+if (imp_off == 0) {
+  if("impoundment_Qin" %in% cols) {
+    if (!("ps_cumulative_mgd" %in% cols)) {
+      hydr$ps_cumulative_mgd <- 0.0
+    }
+    hydr$Qbaseline <- hydr$impoundment_Qin +
+      (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd) * 1.547
+  }
+}
+
+Qbaseline <- mean(as.numeric(hydr$Qbaseline) )
+if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
+  Qbaseline = Qout +
+    (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
+}
+
+# Our Qout will equal Qbaseline, since we don't have cumulative wd/ps values
+
+# The total flow method of consumptive use calculation
+consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
+dat$consumptive_use_frac <- 1.0 - (dat$Qout / dat$Qbaseline)
+# This method is more appropriate for impoundments that have long
+# periods of zero outflow... but the math is not consistent with elfgen
+daily_consumptive_use_frac <-  mean(as.numeric(dat$consumptive_use_frac) )
+if (is.na(daily_consumptive_use_frac)) {
+  daily_consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
+}
+# Since Qout = Qbaseline, these fractions will equal 1
+
+# datdf <- as.data.frame(dat)
+# modat <- sqldf("select month, avg(wd_cumulative_mgd) as wd_mgd, avg(ps_cumulative_mgd) as ps_mgd from datdf group by month")
+# barplot(wd_mgd ~ month, data=modat)
+# the creation of this barplot was commented out, do we include it??
 
 
-
-
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'net_consumption_mgd', net_consumption_mgd, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'wd_mgd', wd_mgd, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'wd_cumulative_mgd', wd_cumulative_mgd, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_mgd', ps_mgd, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_cumulative_mgd', ps_cumulative_mgd, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qout', Qout, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qbaseline', Qbaseline, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_nextdown_mgd', ps_nextdown_mgd, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'consumptive_use_frac', consumptive_use_frac, ds)
-# vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'daily_consumptive_use_frac', daily_consumptive_use_frac, ds)
-
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'net_consumption_mgd', net_consumption_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'wd_mgd', wd_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'wd_cumulative_mgd', wd_cumulative_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_mgd', ps_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_cumulative_mgd', ps_cumulative_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qout', Qout, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qbaseline', Qbaseline, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_nextdown_mgd', ps_nextdown_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'consumptive_use_frac', consumptive_use_frac, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'daily_consumptive_use_frac', daily_consumptive_use_frac, ds)
 
 
 
 ## Secondary Analysis that require Zoo (IHA)
-  # l30_Qout
-  # l30_year
-  # l90_Qout
-  # l90_year
-  # 7q10
-  # ml8 (alf)
-  # mne9_10 (sept_10) 
-  # unmet_demand
+# l30_Qout
+# l30_year
+# l90_Qout
+# l90_year
+# 7q10
+# ml8 (alf)
+# mne9_10 (sept_10) 
+# unmet_demand
 
 Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
 Qout_g2 <- data.frame(group2(Qout_zoo))
@@ -227,10 +303,10 @@ x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period
 
 
 ## Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
-  # l90_cc_Qout
-  # l90_cc_year
-  # l30_cc_Qout
-  # l30_cc_year
+# l90_cc_Qout
+# l90_cc_year
+# l30_cc_Qout
+# l30_cc_year
 
 if (syear <= 1990 && eyear >= 2000) {
   sdate_trim <- as.Date(paste0(1990,"-10-01"))
