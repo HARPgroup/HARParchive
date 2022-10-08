@@ -6,14 +6,14 @@ suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(sqldf))
 suppressPackageStartupMessages(library(lubridate))
 
-setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only (Glenn)
-df1<- fread("OR1_7700_7980_hydr.csv") # for testing only 
-df2 <- fread("PL1_5370_5470_0111.csv") # for testing only
+#setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only (Glenn)
+#df1<- fread("OR1_7700_7980_hydr.csv") # for testing only 
+#df2 <- fread("PL1_5370_5470_0111.csv") # for testing only
 
 argst <- commandArgs(trailingOnly = T)
 csv1 <- argst[1] #table/csv to have the column added 
 csv2 <- argst[2] #wdm-format csv
-new_col <- argst[3] #iname of new col 
+new_col <- argst[3] #name of new col 
 timestep <- argst[4] # either 'hour' or 'day'
 
 new_col <- 'ROVOL'
