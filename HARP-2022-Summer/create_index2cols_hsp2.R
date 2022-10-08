@@ -4,8 +4,8 @@
 library(lubridate)
 library(data.table)
 
-setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
-df1 <- fread("OR1_7700_7980_hydr.csv") # for testing only
+#setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
+#df1 <- fread("OR1_7700_7980_hydr.csv") # for testing only
 
 index2cols_hsp2 <- function(df) {
   df$date <- as.Date(df$index, format = "%m/%d/%Y %H:%M")
@@ -16,4 +16,4 @@ index2cols_hsp2 <- function(df) {
   return(df)
 }
 
-df_ <- as.data.frame(index2cols_hsp2(df1))
+#df_ <- as.data.frame(index2cols_hsp2(df1))

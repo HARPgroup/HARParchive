@@ -23,11 +23,11 @@ df1 <- fread(csv1)
 df2 <- fread(csv2)
 
 #for testing, this script assumes these columns will already exist, needs commenting before use 
-#df1$date <- as.Date(df1$index, format = "%m/%d/%Y %H:%M")
-#df1$hour <- hour(df1$index)
-#df1$day <- day(df1$date)
-#df1$month <- month(df1$date)
-#df1$year <- year(df1$date)
+df1$date <- as.Date(df1$index, format = "%m/%d/%Y %H:%M")
+df1$hour <- hour(df1$index)
+df1$day <- day(df1$date)
+df1$month <- month(df1$date)
+df1$year <- year(df1$date)
 
 #Adding temporary column headers to the wdm format table for joining 
 if (timestep == 'hour') {
