@@ -18,8 +18,10 @@ suppressPackageStartupMessages(library(R.utils))
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
+# setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
+#hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only
 # river_seg <- 'PL3_5250_0001'
 # input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/'
 
@@ -36,8 +38,7 @@ model_version <- argst[5]
 hydr <- fread(hydr_file_path)
 
 ### Exporting to VAHydro
-## Set up currently to output all the Qout values & the graph
-## From hsp_hydr_analysis
+## Set up currently to output all the Qout values & the Qout
 
 # Set up our data source
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
@@ -98,11 +99,7 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(hydr_file_path)
 model_constant_hydr_path$save(TRUE)
 
-
-
-
 ### ANALYSIS
-
 ## water year:
 syear = min(hydr$year)
 eyear = max(hydr$year)
@@ -125,11 +122,14 @@ hydr <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table 
 # dailyQout_wy <- aggregate(hydr$Qout, by = list(hydr$date), FUN='mean')
 # colnames(dailyQout_wy) <- c('date','Qout')
 
+#Placeholder columns for testing 
 
-# There is no impoundment, so it will be set to 0:
-
-imp_off = 0
-cols <- names(hydr)
+imp_off = 1
+hydr$imp_off = 1 # There is no impoundment, so it will be set to 0:
+hydr$wd_imp_child_mgd = 0
+hydr$wd_cumulative_mgd = 0
+hydr$ps_cumulative_mgd = 0 
+hydr$ps_nextdown_mgd = 0 
 
 ## Primary Analysis on Qout, ps and wd:
 # Qout
@@ -143,7 +143,6 @@ cols <- names(hydr)
 # daily_consumptive_use_frac
 # net_consumption_mgd
 
-# wd
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
 wd_imp_child_mgd <- mean(as.numeric(hydr$wd_imp_child_mgd) )
@@ -160,11 +159,14 @@ if (is.na(wd_cumulative_mgd)) {   # setting this to zero since it doesn't exist
 
 # ps
 ps_mgd <- mean(as.numeric(hydr$ps_mgd) )
+#ps_mgd to be added to the hydr table using the conversion script,
+# after ps_afd is added to hydr using the join_col script 
 
 ps_cumulative_mgd <- mean(as.numeric(hydr$ps_cumulative_mgd) )
 if (is.na(ps_cumulative_mgd)) {   # setting this to zero since it doesn't exist
   ps_cumulative_mgd = 0.0
 }
+
 ps_nextdown_mgd <- mean(as.numeric(hydr$ps_nextdown_mgd) )
 if (is.na(ps_nextdown_mgd)) {   # setting this to zero since it doesn't exist
   ps_nextdown_mgd = 0.0
@@ -240,7 +242,7 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'daily_
 # mne9_10 (sept_10) 
 # unmet_demand
 
-Qout_zoo <- zoo(dailyQout$Qout, order.by = dailyQout$date)
+Qout_zoo <- zoo(hydr$Qout, order.by = hydr$date)
 Qout_g2 <- data.frame(group2(Qout_zoo))
 l90_Qout <- min(Qout_g2$X90.Day.Min) # cfs
 l30_Qout <- min(Qout_g2$X30.Day.Min)
@@ -256,19 +258,16 @@ fn_iha_mlf <- function(zoots, targetmo) {
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
 }
-Qout_wy_z <- zoo(dailyQout_wy$Qout, order.by = dailyQout_wy$date)
+Qout_wy_z <- zoo(hydr$Qout, order.by = hydr$date)
 alf <- fn_iha_mlf(Qout_wy_z,'August') #The median flow of the annual minumum flows in august 
 
 # Sept. 10%
-dailyQout$month <- month(dailyQout$date)
-sept_flows <- subset(dailyQout, month == '9')
+sept_flows <- subset(hydr, month == '9')
 sept_10 <- as.numeric(round(quantile(sept_flows$Qout, 0.10),6)) # September 10th percentile value of Qout flows with quantile 
 
 fn_iha_7q10 <- function(zoots) {
   g2 <- group2(zoots) 
-  
   x <- as.vector(as.matrix(g2["7 Day Min"]))
-  
   for (k in 1:length(x)) {
     if (x[k] <= 0) {
       x[k] <- 0.00000001
@@ -282,7 +281,6 @@ fn_iha_7q10 <- function(zoots) {
 }
 x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period 
 
-
 # vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_Qout', l90_Qout, ds)
 # vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_year', l90_year, ds)
 # vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_Qout', l30_Qout, ds)
@@ -292,13 +290,14 @@ x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period
 # vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'mne9_10', sept_10, ds)
 # vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
-
-
 ## Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
+#^ Let's ask about this if we haven't yet 
 # l90_cc_Qout
 # l90_cc_year
 # l30_cc_Qout
 # l30_cc_year
+
+#Testing successful up to here - Glenn 10/10
 
 if (syear <= 1990 && eyear >= 2000) {
   sdate_trim <- as.Date(paste0(1990,"-10-01"))
