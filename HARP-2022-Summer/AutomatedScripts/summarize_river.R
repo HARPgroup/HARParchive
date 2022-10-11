@@ -30,8 +30,7 @@ argst <- commandArgs(trailingOnly = T)
 river_seg <- argst[1]
 scenario_name <- argst[2]
 hydr_file_path <- argst[3]
-image_dir <- argst[4]
-model_version <- argst[5]
+model_version <- argst[4]
 
 # The hydr file columns have been modifed with a conversion script, 
 # and ps and demand were added from the 'timeseries' in the h5
