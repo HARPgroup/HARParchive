@@ -27,9 +27,9 @@ df2 <- fread(csv2)
 #df1$day <- day(df1$date)
 #df1$month <- month(df1$date)
 #df1$year <- year(df1$date)
-#df2$day <- day(df2$index)
-#df2$month <- month(df2$index)
-#df2$year <- year(df2$index)
+df2$day <- day(df2$index)
+df2$month <- month(df2$index)
+df2$year <- year(df2$index)
 
 # this syntax selects a as primary table and b to be joined 
 # we capitalized sqldf operator words to exclude syntax errors
