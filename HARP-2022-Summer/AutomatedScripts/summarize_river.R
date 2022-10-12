@@ -63,10 +63,11 @@ model <- RomProperty$new(
     propname=riverseg$name,
     featureid=riverseg$hydroid, 
     entity_type="dh_feature", 
+    propcode=model_version
   ), 
   TRUE
 )
-model$propcode <- as.character(model_version)
+#model$propcode <- as.character(model_version)
 model$save(TRUE)
 
 model_scenario <- RomProperty$new( 
