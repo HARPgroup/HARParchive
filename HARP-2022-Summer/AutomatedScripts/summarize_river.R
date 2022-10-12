@@ -82,6 +82,18 @@ model_scenario <- RomProperty$new(
 )
 model_scenario$save(TRUE)
 
+    #this was missing earlier and resulted in an error... 
+scenprop <- RomProperty$new( ds, model_scenario, TRUE)
+scenprop$startdate <- model_run_start
+scenprop$enddate <- model_run_end
+
+# POST PROPERTY IF IT IS NOT YET CREATED
+if (is.na(scenprop$pid) | is.null(scenprop$pid) ) {
+  # create
+  scenprop$save(TRUE)
+}
+
+
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
 # Edit to more compact version???
