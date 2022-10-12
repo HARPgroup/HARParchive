@@ -35,6 +35,7 @@ model_version <- argst[4]
 # The hydr file columns have been modifed with a conversion script, 
 # and ps and demand were added from the 'timeseries' in the h5
 hydr <- fread(hydr_file_path)
+input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/'
 
 ### Exporting to VAHydro
 ## Set up currently to output all the Qout values & the Qout
@@ -67,7 +68,6 @@ model <- RomProperty$new(
   ), 
   TRUE
 )
-#model$propcode <- as.character(model_version)
 model$save(TRUE)
 
 model_scenario <- RomProperty$new( 
@@ -81,19 +81,7 @@ model_scenario <- RomProperty$new(
   ), 
   TRUE
 )
-#model_scenario$propcode <- as.character(scenario_name)
 model_scenario$save(TRUE)
-
-    #this was missing earlier and resulted in an error... 
-scenprop <- RomProperty$new( ds, model_scenario, TRUE)
-scenprop$startdate <- model_run_start
-scenprop$enddate <- model_run_end
-
-# POST PROPERTY IF IT IS NOT YET CREATED
-if (is.na(scenprop$pid) | is.null(scenprop$pid) ) {
-  # create
-  scenprop$save(TRUE)
-}
 
 
 # Uploading constants to VaHydro:
@@ -109,7 +97,7 @@ model_constant_hydr_path <- RomProperty$new(
   ),
   TRUE
 )
-model_constant_hydr_path$propcode <- as.character(hydr_file_path)
+model_constant_hydr_path$propcode <- as.character(input_file_path)
 model_constant_hydr_path$save(TRUE)
 
 ### ANALYSIS
