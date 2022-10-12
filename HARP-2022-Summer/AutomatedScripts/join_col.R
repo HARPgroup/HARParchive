@@ -22,25 +22,37 @@ df1 <- fread(csv1)
 df2 <- fread(csv2)
 
 #for testing, this script assumes these columns will already exist, needs commenting before use 
-df1$date <- as.Date(df1$index, format = "%m/%d/%Y %H:%M")
-df1$hour <- hour(df1$index)
-df1$day <- day(df1$date)
-df1$month <- month(df1$date)
-df1$year <- year(df1$date)
-df2$day <- day(df2$index)
-df2$month <- month(df2$index)
-df2$year <- year(df2$index)
+#df1$date <- as.Date(df1$index, format = "%m/%d/%Y %H:%M")
+#df1$hour <- hour(df1$index)
+#df1$day <- day(df1$date)
+#df1$month <- month(df1$date)
+#df1$year <- year(df1$date)
+#df2$day <- day(df2$index)
+#df2$month <- month(df2$index)
+#df2$year <- year(df2$index)
+
+df1$date <- as.Date(df1$date) # as.Date(df1$index) would also work
+df2$date <- as.Date(df2$index)
 
 # this syntax selects a as primary table and b to be joined 
 # we capitalized sqldf operator words to exclude syntax errors
 
+#df1_joined <- sqldf(
+#  paste0("SELECT a.*, b.'", old_col,"' AS '", new_col, "'
+#        FROM df1 AS a 
+#         LEFT OUTER JOIN df2 AS b ON (a.year = b.year AND a.month = b.month AND a.day = b.day)
+#         ORDER BY a.year,a.month,a.day,a.hour"
+#         )
+#  ) 
+
+#Simpler join by only date column:
 df1_joined <- sqldf(
   paste0("SELECT a.*, b.'", old_col,"' AS '", new_col, "'
         FROM df1 AS a 
-         LEFT OUTER JOIN df2 AS b ON (a.year = b.year AND a.month = b.month AND a.day = b.day)
-         ORDER BY a.year,a.month,a.day,a.hour"
-         )
-  ) 
+         LEFT OUTER JOIN df2 AS b ON (a.date = b.date)
+         ORDER BY a.date"
+  )
+)
 
 rows_df1 <- nrow(df1)
 rows_df1j <- nrow(df1_joined)
