@@ -35,7 +35,12 @@ model_version <- argst[4]
 # The hydr file columns have been modifed with a conversion script, 
 # and ps and demand were added from the 'timeseries' in the h5
 hydr <- fread(hydr_file_path)
-input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/'
+
+# This removes the hydr file from the end of the hydr_file_path, so that later
+# we can use input_file_path in order to post it on VAhydro
+file_path_text = paste(hydr_file_path)
+split <- strsplit(file_path_text, split = "/")
+input_file_path <- gsub(split[[1]][[9]],'',file_path_text)
 
 ### Exporting to VAHydro
 ## Set up currently to output all the Qout values & the Qout
