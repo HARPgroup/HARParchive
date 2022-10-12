@@ -61,5 +61,5 @@ if (rows_df1 != rows_df1j) {
   stop('Table and column are different lengths, unable to join')
 }
 
-write.table(df1,file = csv1, sep = ",", row.names = FALSE)
+write.table(df1_joined,file = csv1, sep = ",", row.names = FALSE)
 
