@@ -131,16 +131,16 @@ hydr$ps_cumulative_mgd = 0
 hydr$ps_nextdown_mgd = 0 
 
 ## Primary Analysis on Qout, ps and wd:
-# Qout
-# Qbaseline
-# wd_mgd
-# ps_mgd
-# wd_cumulative_mgd
-# ps_cumulative_mgd
-# ps_nextdown_mgd
-# consumptive_use_frac
-# daily_consumptive_use_frac
-# net_consumption_mgd
+  # Qout
+  # Qbaseline
+  # wd_mgd
+  # ps_mgd
+  # wd_cumulative_mgd
+  # ps_cumulative_mgd
+  # ps_nextdown_mgd
+  # consumptive_use_frac
+  # daily_consumptive_use_frac
+  # net_consumption_mgd
 
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
@@ -232,19 +232,41 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'daily_
 
 
 ## Secondary Analysis that require Zoo (IHA)
-# l30_Qout
-# l30_year
 # l90_Qout
 # l90_year
+# l30_Qout
+# l30_year
 # 7q10
 # ml8 (alf)
 # mne9_10 (sept_10) 
 # unmet_demand
 
-Qout_zoo <- zoo(hydr$Qout, order.by = hydr$date)
+
+# L90 and l30
+Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
 Qout_g2 <- data.frame(group2(Qout_zoo))
-l90_Qout <- min(Qout_g2$X90.Day.Min) # cfs
-l30_Qout <- min(Qout_g2$X30.Day.Min)
+
+Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
+Qout_g2 <- data.frame(group2(Qout_zoo));
+l90 <- Qout_g2["X90.Day.Min"];
+ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
+l90_Qout = Qout_g2[ndx,]$"X90.Day.Min";
+l90_year = Qout_g2[ndx,]$"year";
+
+if (is.na(l90)) {
+  l90_Runit = 0.0
+  l90_year = 0
+}
+
+l30 <- Qout_g2["X30.Day.Min"];
+ndx = which.min(as.numeric(l30[,"X30.Day.Min"]));
+l30_Qout = Qout_g2[ndx,]$"X30.Day.Min";
+l30_year = Qout_g2[ndx,]$"year";
+
+if (is.na(l30)) {
+  l30_Runit = 0.0
+  l30_year = 0
+}
 
 # alf
 fn_iha_mlf <- function(zoots, targetmo) {
@@ -276,7 +298,16 @@ fn_iha_7q10 <- function(zoots) {
   x7q10 <- exp(qpearsonIII(0.1, params = pars$par))
   return(x7q10);
 }
-x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period 
+
+# Avg 7-day low flow over a year period
+x7q10 <- fn_iha_7q10(Qout_zoo)  
+
+# Unmet demand
+unmet_demand_mgd <- mean(as.numeric(hydr$unmet_demand_mgd) )
+if (is.na(unmet_demand_mgd)) {
+  unmet_demand_mgd = 0.0
+}
+
 
  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_Qout', l90_Qout, ds)
  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_year', l90_year, ds)
@@ -295,50 +326,50 @@ x7q10 <- fn_iha_7q10(Qout_zoo) # Avg 7-day low flow over a year period
 # l30_cc_year
 
 #Testing successful up to here - Glenn 10/10
+ # Successful for me as well - Julia 10/12 (added the l90/30_year calculations)
 
-#dat = hydr
-#if (syear <= 1990 && eyear >= 2000) {
-#  sdate_trim <- as.Date(paste0(1990,"-10-01"))
-#  edate_trim <- as.Date(paste0(2000,"-09-30"))
-  
-#  dat_trim <- window(hydr, start = sdate_trim, end = edate_trim);
-  # convert to daily
-#  dat_trim <- aggregate(
-#    dat_trim,
-#    as.POSIXct(
-#      format(
-#        time(dat_trim),
-#        format='%Y/%m/%d'),
-#      tz='UTC'
-#    ),
-#    'mean'
-#  )
-#  mode(dat_trim) <- 'numeric'
  
-# flows_trim <- zoo(as.numeric(as.character(dat_trim$Qout )), order.by = index(dat_trim));
-#  loflows_trim <- group2(flows_trim);
-#  l90_trim <- loflows_trim["90 Day Min"];
-#  ndx_trim = which.min(as.numeric(l90_trim[,"90 Day Min"]));
-#  l90_Qout_trim = round(loflows_trim[ndx_trim,]$"90 Day Min",6);
-#  l90_year_trim = loflows_trim[ndx_trim,]$"year";
-  
-#  if (is.na(l90_trim)) {
-#    l90_Qout_trim = 0.0
-#    l90_year_trim = 0
-#  }
-  
-#  l30_trim <- loflows_trim["30 Day Min"];
-#  ndx_trim = which.min(as.numeric(l30_trim[,"30 Day Min"]));
-#  l30_Qout_trim = round(loflows_trim[ndx_trim,]$"30 Day Min",6);
-#  l30_year_trim = loflows_trim[ndx_trim,]$"year";
-  
-#  if (is.na(l30_trim)) {
-#    l30_Qout_trim = 0.0
-#    l30_year_trim = 0
-#  }
-#}
+if (syear <= 1990 && eyear >= 2000) {
+ sdate_trim <- as.Date(paste0(1990,"-10-01"))
+ edate_trim <- as.Date(paste0(2000,"-09-30"))
 
-#vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_Qout', l90_Qout_trim, ds)
-#vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_year', l90_year_trim, ds)
-#vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_Qout', l30_Qout_trim, ds)
-#vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_year', l30_year_trim, ds)
+ hydr_trim <- window(hydr, start = sdate_trim, end = edate_trim);
+ hydr_trim <- aggregate(
+   hydr_trim,
+   as.POSIXct(
+     format(
+       time(hydr_trim),
+       format='%Y/%m/%d'),
+     tz='UTC'
+   ),
+   'mean'
+ )
+ mode(hydr_trim) <- 'numeric'
+
+flows_trim <- zoo(as.numeric(as.character(hydr_trim$Qout )), order.by = index(hydr_trim));
+ loflows_trim <- group2(flows_trim);
+ l90_trim <- loflows_trim["X90.Day.Min"];
+ ndx_trim = which.min(as.numeric(l90_trim[,"X90.Day.Min"]));
+ l90_Qout_trim = round(loflows_trim[ndx_trim,]$"X90.Day.Min",6);
+ l90_year_trim = loflows_trim[ndx_trim,]$"year";
+
+ if (is.na(l90_trim)) {
+   l90_Qout_trim = 0.0
+   l90_year_trim = 0
+ }
+
+ l30_trim <- loflows_trim["X30.Day.Min"];
+ ndx_trim = which.min(as.numeric(l30_trim[,"X30.Day.Min"]));
+ l30_Qout_trim = round(loflows_trim[ndx_trim,]$"X30.Day.Min",6);
+ l30_year_trim = loflows_trim[ndx_trim,]$"year";
+
+ if (is.na(l30_trim)) {
+   l30_Qout_trim = 0.0
+   l30_year_trim = 0
+ }
+}
+
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_Qout', l90_Qout_trim, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_year', l90_year_trim, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_Qout', l30_Qout_trim, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_year', l30_year_trim, ds)
