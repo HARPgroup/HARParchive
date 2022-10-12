@@ -76,11 +76,12 @@ model_scenario <- RomProperty$new(
     varkey="om_scenario", 
     featureid=model$pid, 
     entity_type="dh_properties", 
-    propname=scenario_name, 
+    propname=scenario_name,
+    propcode=scenario_name
   ), 
   TRUE
 )
-model_scenario$propcode <- as.character(scenario_name)
+#model_scenario$propcode <- as.character(scenario_name)
 model_scenario$save(TRUE)
 
     #this was missing earlier and resulted in an error... 
