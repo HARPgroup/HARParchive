@@ -217,21 +217,21 @@ plot(ftable_uci$depth, ftable_uci$area, type='l', col = 'red', ylim=c(0, max(fta
 lines(ftable_specific$depth, ftable_specific$area, type='l', col='dark green')
 lines(ftable_generic$depth, ftable_generic$area, type='l', col='blue')
 title(main = 'Ftable Area')
-legend(x=0 , y=max(ftable_uci$area) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+legend(x=0 , y=max(ftable_uci$area) , legend= c("uci", "specific equations"), col=c('red', 'dark green'),bty='n',lty=1, cex=0.85)
 
 # Volume
 plot(ftable_uci$depth, ftable_uci$vol, type='l', col = 'red', ylim=c(0, max(ftable_uci$vol)), xlab = "Depth (ft)", ylab = "Volume (acre-ft)")
 lines(ftable_specific$depth, ftable_specific$vol, type='l', col='dark green')
 lines(ftable_generic$depth, ftable_generic$vol, type='l', col='blue')
 title(main = 'Ftable Volume')
-legend(x=0 , y=max(ftable_uci$vol) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex = 0.85)
+legend(x=0 , y=max(ftable_uci$vol) , legend= c("uci", "specific equations"), col=c('red', 'dark green'),bty='n',lty=1, cex = 0.85)
 
 # Discharge
 plot(ftable_uci$depth, ftable_uci$disch, type='l', col = 'red', ylim=c(0, max(ftable_uci$disch)), xlab = "Depth (ft)", ylab = "Discharge (cfs)")
 lines(ftable_specific$depth, ftable_specific$disch, type='l', col='dark green')
 lines(ftable_generic$depth, ftable_generic$disch, type='l', col='blue')
 title(main = 'Ftable Discharge')
-legend(x=0 , y=max(ftable_uci$disch) , legend= c("uci", "specific equations", "generic equations"), col=c('red', 'dark green', 'blue'),bty='n',lty=1, cex=0.85)
+legend(x=0 , y=max(ftable_uci$disch) , legend= c("uci", "specific equations"), col=c('red', 'dark green'),bty='n',lty=1, cex=0.85)
 
 # Zooming In:
 # Area
@@ -316,6 +316,12 @@ area = (sw * clength)/43560 #converting to acres
 # Volume
 # length * cross sectional area
 vol <- (clength * (0.5*(sw+b)*depth))/43560 #converting to ft-acre
+
+# Q = V * A ; where A = cross sectional area (aka flow area)
+# Manning's Eqn: V = (1.49/n) * R^(2/3) * S^(1/2) 
+# (1.49/n) is English ; (1/n) is metric
+# Hydraulic Radius = (depth*(b+z*depth))/(b+2*depth*sqrt(1+z^2)) 
+# OR Hydraulic R = (depth*(b + sw)/2)/(b + 2*(((sw-b)/2)**2 + depth**2)**0.5)
 
 # Discharge
 A <- ((sw+b)/2)*depth
