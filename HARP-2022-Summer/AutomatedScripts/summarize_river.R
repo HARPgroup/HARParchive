@@ -220,16 +220,16 @@ if (is.na(daily_consumptive_use_frac)) {
 # the creation of this barplot was commented out, do we include it??
 
 
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'net_consumption_mgd', net_consumption_mgd, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'wd_mgd', wd_mgd, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'wd_cumulative_mgd', wd_cumulative_mgd, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_mgd', ps_mgd, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_cumulative_mgd', ps_cumulative_mgd, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qout', Qout, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qbaseline', Qbaseline, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ps_nextdown_mgd', ps_nextdown_mgd, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'consumptive_use_frac', consumptive_use_frac, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'daily_consumptive_use_frac', daily_consumptive_use_frac, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'net_consumption_mgd', net_consumption_mgd, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'wd_mgd', wd_mgd, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'wd_cumulative_mgd', wd_cumulative_mgd, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'ps_mgd', ps_mgd, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'ps_cumulative_mgd', ps_cumulative_mgd, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'Qout', Qout, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'Qbaseline', Qbaseline, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'ps_nextdown_mgd', ps_nextdown_mgd, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'consumptive_use_frac', consumptive_use_frac, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'daily_consumptive_use_frac', daily_consumptive_use_frac, ds)
 
 
 
@@ -311,14 +311,14 @@ if (is.na(unmet_demand_mgd)) {
 }
 
 
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_Qout', l90_Qout, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_year', l90_year, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_Qout', l30_Qout, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_year', l30_year, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, '7q10', NULL, '7q10', x7q10, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'ml8', alf, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'mne9_10', sept_10, ds)
- vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l90_Qout', l90_Qout, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l90_year', l90_year, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l30_Qout', l30_Qout, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l30_year', l30_year, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, '7q10', NULL, '7q10', x7q10, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'ml8', alf, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'mne9_10', sept_10, ds)
+ vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
 ## Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
 #^ Let's ask about this if we haven't yet 
@@ -371,7 +371,7 @@ flows_trim <- zoo(as.numeric(as.character(hydr_trim$Qout )), order.by = index(hy
  }
 }
 
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_Qout', l90_Qout_trim, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l90_cc_year', l90_year_trim, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_Qout', l30_Qout_trim, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'l30_cc_year', l30_year_trim, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l90_cc_Qout', l90_Qout_trim, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l90_cc_year', l90_year_trim, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l30_cc_Qout', l30_Qout_trim, ds)
+vahydro_post_metric_to_model_scenario(model_scenario$pid, 'om_class_Constant', NULL, 'l30_cc_year', l30_year_trim, ds)
