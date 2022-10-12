@@ -63,10 +63,10 @@ model <- RomProperty$new(
     propname=riverseg$name,
     featureid=riverseg$hydroid, 
     entity_type="dh_feature", 
-    propcode=model_version
   ), 
   TRUE
 )
+model$propcode <- as.character(model_version)
 model$save(TRUE)
 
 model_scenario <- RomProperty$new( 
@@ -76,10 +76,10 @@ model_scenario <- RomProperty$new(
     featureid=model$pid, 
     entity_type="dh_properties", 
     propname=scenario_name, 
-    propcode=scenario_name 
   ), 
   TRUE
 )
+model_scenario$propcode <- as.character(scenario_name)
 model_scenario$save(TRUE)
 
     #this was missing earlier and resulted in an error... 
