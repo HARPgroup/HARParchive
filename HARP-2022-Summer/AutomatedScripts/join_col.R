@@ -7,12 +7,14 @@ suppressPackageStartupMessages(library(lubridate))
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only (Glenn)
 #df1<- fread("OR1_7700_7980_hydr.csv") # for testing only 
 #df2 <- fread("OR1_7700_7980_divr.csv") # for testing only
+#add a file path in wdm format for testing (daily)
 
 argst <- commandArgs(trailingOnly = T)
 csv1 <- argst[1]
 csv2 <- argst[2]
-old_col <- argst[3]
+old_col <- argst[3] #should be 'values' when wdm is used 
 new_col <- argst[4]
+format <- argst[5] # either wdm or header depending on csv2
 
 #for testing, should be commented before actual use 
 #old_col <- 'values'
@@ -21,18 +23,17 @@ new_col <- argst[4]
 df1 <- fread(csv1)
 df2 <- fread(csv2)
 
-#for testing, this script assumes these columns will already exist, needs commenting before use 
-#df1$date <- as.Date(df1$index, format = "%m/%d/%Y %H:%M")
-#df1$hour <- hour(df1$index)
-#df1$day <- day(df1$date)
-#df1$month <- month(df1$date)
-#df1$year <- year(df1$date)
-#df2$day <- day(df2$index)
-#df2$month <- month(df2$index)
-#df2$year <- year(df2$index)
+df1$date <- as.Date(df1$index) 
 
-df1$date <- as.Date(df1$date) # as.Date(df1$index) would also work
-df2$date <- as.Date(df2$index)
+#df2 can have headers or be in wdm format (no headers)
+if (format == 'header') {
+  df2$date <- as.Date(df2$index)
+}
+
+if (format == 'wdm') {
+  colnames(df2) <- c('year','month','day','values')
+  df2$date = as.Date(paste0(df2$year,'-',df2$month,'-',df2$day))
+}
 
 # this syntax selects a as primary table and b to be joined 
 # we capitalized sqldf operator words to exclude syntax errors
