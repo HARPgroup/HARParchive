@@ -32,7 +32,8 @@ if (format == 'header') {
 
 if (format == 'wdm') {
   colnames(df2) <- c('year','month','day','values')
-  df2$date = as.Date(paste0(df2$year,'-',df2$month,'-',df2$day))
+  origin <- "1970-01-01"
+  df2$date = as.Date(paste0(df2$year,'-',df2$month,'-',df2$day), origin = origin, tz = "UTC")
 }
 
 # this syntax selects a as primary table and b to be joined 
