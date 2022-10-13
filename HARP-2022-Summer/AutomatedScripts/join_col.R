@@ -23,16 +23,17 @@ format <- argst[5] # either wdm or header depending on csv2
 df1 <- fread(csv1)
 df2 <- fread(csv2)
 
-df1$date <- as.Date(df1$index) 
+origin <- "1970-01-01"
+df1$date <- as.Date(df1$index, origin = origin, tz = "UTC") 
 
 #df2 can have headers or be in wdm format (no headers)
 if (format == 'header') {
-  df2$date <- as.Date(df2$index)
+  df2$date <- as.Date(df2$index, origin = origin, tz = "UTC")
 }
 
 if (format == 'wdm') {
   colnames(df2) <- c('year','month','day','values')
-  origin <- "1970-01-01"
+  
   df2$date = as.Date(paste0(df2$year,'-',df2$month,'-',df2$day), origin = origin, tz = "UTC")
 }
 
