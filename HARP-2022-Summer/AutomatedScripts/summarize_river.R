@@ -23,7 +23,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
 # hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only, includes wd_mgd - Glenn
 # river_seg <- 'PL3_5250_0001'
-# input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/'
+# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -315,7 +315,6 @@ if (is.na(unmet_demand_mgd)) {
   unmet_demand_mgd = 0.0
 }
 
-
  vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l90_Qout', l90_Qout, ds)
  vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l90_year', l90_year, ds)
  vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l30_Qout', l30_Qout, ds)
@@ -325,58 +324,3 @@ if (is.na(unmet_demand_mgd)) {
  vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'mne9_10', sept_10, ds)
  vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
-## Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
-#^ Let's ask about this if we haven't yet 
-# l90_cc_Qout
-# l90_cc_year
-# l30_cc_Qout
-# l30_cc_year
-
-#Testing successful up to here - Glenn 10/10
- # Successful for me as well - Julia 10/12 (added the l90/30_year calculations)
-
- 
-if (syear <= 1990 && eyear >= 2000) {
- sdate_trim <- as.Date(paste0(1990,"-10-01"))
- edate_trim <- as.Date(paste0(2000,"-09-30"))
-
- hydr_trim <- window(hydr, start = sdate_trim, end = edate_trim);
- hydr_trim <- aggregate(
-   hydr_trim,
-   as.POSIXct(
-     format(
-       time(hydr_trim),
-       format='%Y/%m/%d'),
-     tz='UTC'
-   ),
-   'mean'
- )
- mode(hydr_trim) <- 'numeric'
-
-flows_trim <- zoo(as.numeric(as.character(hydr_trim$Qout )), order.by = index(hydr_trim));
- loflows_trim <- group2(flows_trim);
- l90_trim <- loflows_trim["X90.Day.Min"];
- ndx_trim = which.min(as.numeric(l90_trim[,"X90.Day.Min"]));
- l90_Qout_trim = round(loflows_trim[ndx_trim,]$"X90.Day.Min",6);
- l90_year_trim = loflows_trim[ndx_trim,]$"year";
-
- if (is.na(l90_trim)) {
-   l90_Qout_trim = 0.0
-   l90_year_trim = 0
- }
-
- l30_trim <- loflows_trim["X30.Day.Min"];
- ndx_trim = which.min(as.numeric(l30_trim[,"X30.Day.Min"]));
- l30_Qout_trim = round(loflows_trim[ndx_trim,]$"X30.Day.Min",6);
- l30_year_trim = loflows_trim[ndx_trim,]$"year";
-
- if (is.na(l30_trim)) {
-   l30_Qout_trim = 0.0
-   l30_year_trim = 0
- }
-}
-
-vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l90_cc_Qout', l90_Qout_trim, ds)
-vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l90_cc_year', l90_year_trim, ds)
-vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l30_cc_Qout', l30_Qout_trim, ds)
-vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l30_cc_year', l30_year_trim, ds)
