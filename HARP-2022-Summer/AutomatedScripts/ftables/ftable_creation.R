@@ -8,7 +8,6 @@ library("hydrotools") #needed to pull values from VAHydro
 basepath='/var/www/R';
 source("/var/www/R/config.R") #will need file in same folder/directory
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
-rest_pw <- "rest3$Besta"
 ds$get_token(rest_pw)
 
 # Accepting command arguments:
