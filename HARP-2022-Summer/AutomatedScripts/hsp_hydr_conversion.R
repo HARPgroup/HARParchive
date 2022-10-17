@@ -30,8 +30,8 @@ hydr_file_path <- argst[1]
 hydr <- fread(hydr_file_path)
 #divr <- fread(divr_file_path) # divr in units of cfs
 #ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
-
-hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M")
+origin <- "1970-01-01"
+hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M", origin = origin)
 hydr$hour <- hour(hydr$index)
 hydr$day <- day(hydr$date)
 hydr$month <- month(hydr$date)
