@@ -32,10 +32,10 @@ hydr <- fread(hydr_file_path)
 #ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
 origin <- "1970-01-01"
 hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M", origin = origin)
-hydr$hour <- hour(hydr$index)
-hydr$day <- day(hydr$date)
-hydr$month <- month(hydr$date)
-hydr$year <- year(hydr$date)
+#hydr$hour <- hour(hydr$index)
+#hydr$day <- day(hydr$date)
+#hydr$month <- month(hydr$date)
+#hydr$year <- year(hydr$date)
 
 # Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
 hydr$Qout <- hydr$OVOL3*12.1 #Qout in units of cfs
