@@ -8,7 +8,6 @@ library("hydrotools") #needed to pull values from VAHydro
 basepath='/var/www/R';
 source("/var/www/R/config.R") #will need file in same folder/directory
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
-rest_pw <- "rest3$Besta"
 ds$get_token(rest_pw)
 
 # Accepting command arguments:
@@ -153,14 +152,14 @@ fdepth <- seq(h+1, h*4 ,length=9) #floodplain
 fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n, h, bf, fp) { 
   sw <- b + 2*z*depth #surface width
   sw[depth == 0] <- 0
-  A <- ((sw+b)/2)*depth
-  P <- b + 2*depth*sqrt(z**2 +1)
+  A <- ((sw+b)/2)*depth #cross-sect. area (trapezoid)
+  P <- b + 2*depth*sqrt(z**2 +1) #wetted perimeter (trapezoid)
   
   if (fp == TRUE) {
     A <- A + ((sw+b)/2)*h #combine fp and channel@bankfull trapezoidal areas
     P <- P + b + 2*h*sqrt(z**2 +1) - bf
     # ^ combine fp and channel@bankfull wetted perim. - bf width of channel
-    #depth <- depth + h
+    depth <- depth + h
   }
   
   area <- (sw * clength)/43560 #surface area
@@ -175,10 +174,12 @@ fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE
 # ^base of floodplain = 5x bankfull width
 
 # add values from below floodplain to fptab
-fptab$depth <- fptab$depth + h
-fptab$vol <- fptab$vol + max(cftab$vol)
+#fptab$depth <- fptab$depth + h
+#fptab$vol <- fptab$vol + max(cftab$vol)
 
 ftable_specific <- rbind(cftab, fptab) #only named "specific" temporarily -- test plotting purposes
 
 #----Exporting----
-
+path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
+ftable <- write.csv(ftable_specific, file=paste(path, riverseg, '.ftable', sep=''), 
+                   sep='       ')
