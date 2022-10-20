@@ -14,11 +14,13 @@ ds$get_token(rest_pw)
 argst <- commandArgs(trailingOnly = T)
 riverseg <- argst[1] 
 channel <- argst[2]
+path <- argst[3]
 
 #Testing: comment these out later
 #riverseg <- "OR1_7700_7980"
 riverseg <- "JL2_6850_6890"
 channel<- '0. River Channel'
+path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
 
 #----Pulling from VAHydro----
 rseg<- RomFeature$new(ds,list(
@@ -173,13 +175,27 @@ cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n, h, bf, FALSE) #in
 fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE) #floodplain 
 # ^base of floodplain = 5x bankfull width
 
-# add values from below floodplain to fptab
-#fptab$depth <- fptab$depth + h
-#fptab$vol <- fptab$vol + max(cftab$vol)
-
-ftable_specific <- rbind(cftab, fptab) #only named "specific" temporarily -- test plotting purposes
+ftable <- rbind(cftab, fptab) #only named "specific" temporarily -- test plotting purposes
 
 #----Exporting----
-path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
-ftable <- write.csv(ftable_specific, file=paste(path, riverseg, '.ftable', sep=''), 
-                   sep='       ')
+file <- paste(path, riverseg, '.ftable', sep='')
+
+riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
+
+header1 <- paste("FTABLE", riverseg_pieces[2], sep="\t")
+header2 <- paste("ROWS","COLS","***", sep="\t")
+header3 <- paste(19,4, sep="\t")
+header4 <- paste("DEPTH","AREA","VOLUME","DISCH","***", sep="\t")
+header5 <- paste("(FT)","(ACRES)","(AC-FT)","(CFS)", "***","\n", sep="\t")
+
+cat(paste(header1,header2,header3,header4,header5,sep="\n"), file = file, append=FALSE)
+
+uci_form <- write.table(ftable,
+                        file=file,
+                        append = TRUE,
+                        sep = "\t", #tab separated
+                        dec = ".", #decimals indicated by "."
+                        row.names = FALSE,
+                        col.names = FALSE)
+
+cat(paste("\nEND","FTABLE",sep="\t"), file=file, append=TRUE)
