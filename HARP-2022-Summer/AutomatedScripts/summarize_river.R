@@ -257,7 +257,7 @@ Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
 Qout_g2 <- data.frame(group2(Qout_zoo));
 l90 <- Qout_g2["X90.Day.Min"];
 ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
-l90_Qout = Qout_g2[ndx,]$"X90.Day.Min";
+l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);
 l90_year = Qout_g2[ndx,]$"year";
 
 if (is.na(l90)) {
@@ -267,7 +267,7 @@ if (is.na(l90)) {
 
 l30 <- Qout_g2["X30.Day.Min"];
 ndx = which.min(as.numeric(l30[,"X30.Day.Min"]));
-l30_Qout = Qout_g2[ndx,]$"X30.Day.Min";
+l30_Qout = round(Qout_g2[ndx,]$"X30.Day.Min",6);
 l30_year = Qout_g2[ndx,]$"year";
 
 if (is.na(l30)) {
