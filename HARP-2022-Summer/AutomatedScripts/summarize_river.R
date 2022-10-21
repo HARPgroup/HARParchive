@@ -22,7 +22,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
 # hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only, includes wd_mgd - Glenn
-# river_seg <- 'PL3_5250_0001'
+# river_seg <- 'JL1_6770_6850'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
 
 # Accepting command arguments:
@@ -107,8 +107,9 @@ model_constant_hydr_path$save(TRUE)
 
 ### ANALYSIS
 ## water year:
-syear = min(hydr$year)
-eyear = max(hydr$year)
+
+syear = as.integer(min(hydr$year))
+eyear = as.integer(max(hydr$year))
 model_run_start <- min(hydr$date)   
 model_run_end <- max(hydr$date)
 years <- seq(syear,eyear)
@@ -124,9 +125,6 @@ if (syear < (eyear - 2)) {
 }
 
 hydr <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
-
-# dailyQout_wy <- aggregate(hydr$Qout, by = list(hydr$date), FUN='mean')
-# colnames(dailyQout_wy) <- c('date','Qout')
 
 #Assumptions and placeholders columns 
 imp_off = 1
