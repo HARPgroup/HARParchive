@@ -43,6 +43,7 @@ hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 # withdrawal cfs converted to mgd
 
 hydr$ps_mgd <- hydr$ps_afd*0.32585
 
+hydr$demand_mgd <- (hydr$divr_cfs + hydr$diva_cfs)/1.5472 #demand cfs summed and coverted to mgd 
 # Converting to mgd:
 #colnames(divr) = c('date','divr_achfth')
 #colnames(ps_flow) = c('date','ps_cfs')
