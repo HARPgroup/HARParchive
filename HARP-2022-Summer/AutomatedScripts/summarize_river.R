@@ -12,8 +12,9 @@ suppressPackageStartupMessages(library(caTools))
 suppressPackageStartupMessages(library(RColorBrewer))
 suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
-suppressPackageStartupMessages(library(dplyr))
+#suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
+suppressPackageStartupMessages(library(stats))
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -115,7 +116,7 @@ model_run_end <- max(hydr$date)
 years <- seq(syear,eyear)
 
 if (syear < (eyear - 2)) {
-  sdate <- as.Date(paste0(syear,"-10-01"))
+  sdate <- as.Date(paste0(syear,"-10-01 00:00"))
   edate <- as.Date(paste0((eyear-1),"-09-30")) 
   flow_year_type <- 'water'
 } else {
@@ -124,7 +125,7 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
-hydr <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
+hydr <- with(hydr, hydr[(date >= sdate & date <= edate)]) #replaced filter()
 
 #Assumptions and placeholders columns 
 imp_off = 1
