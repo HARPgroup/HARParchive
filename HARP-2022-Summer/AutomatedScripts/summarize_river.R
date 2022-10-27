@@ -21,7 +21,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
-# hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only, includes wd_mgd - Glenn
+# hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only, final hydr csv with wd, demand, ps - Glenn
 # river_seg <- 'JL1_6770_6850'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
 
@@ -140,14 +140,16 @@ hydr$ps_nextdown_mgd = 0
   # Qbaseline
   # wd_mgd
   # ps_mgd
-  # wd_cumulative_mgd
-  # ps_cumulative_mgd
+wd_cumulative_mgd
+ps_cumulative_mgd
   # ps_nextdown_mgd
   # consumptive_use_frac
   # daily_consumptive_use_frac
   # net_consumption_mgd
 
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
+wd_cumulative_mgd <- hydr$wd_mgd
+ps_cumulative_mgd <- hydr$ps_mgd
 
 wd_imp_child_mgd <- mean(as.numeric(hydr$wd_imp_child_mgd) )
 if (is.na(wd_imp_child_mgd)) {   # setting this to zero since it doesn't exist
