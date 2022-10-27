@@ -2,7 +2,7 @@
 # script that generates FTABLEs from existing river segments in VAHydro
 
 # Setup
-library("hydrotools") #needed to pull values from VAHydro 
+suppressPackageStartupMessages(library("hydrotools")) #needed to pull values from VAHydro 
 
 # Link data source (ds) to VAHydro
 basepath='/var/www/R';
@@ -17,8 +17,8 @@ channel <- argst[2]
 path <- argst[3]
 
 #Testing: comment these out later
-riverseg <- "OR1_7700_7980"
-#riverseg <- "JL2_6850_6890"
+#riverseg <- "OR1_7700_7980"
+riverseg <- "JL2_6850_6890"
 channel<- '0. River Channel'
 path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
 
@@ -192,8 +192,8 @@ riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
 header1 <- paste("FTABLE   ",riverseg_pieces[2])
 header2 <- paste(" ROWS COLS ***")
 header3 <- paste("   19    4")
-header4 <- paste("     DEPTH","     AREA","   VOLUME","    DISCH","***", sep="\t")
-header5 <- paste("      (FT)","  (ACRES)","  (AC-FT)","    (CFS)", "***","\n", sep="\t")
+header4 <- paste(sprintf("%10s %9s %9s %9s %4s","DEPTH","AREA","VOLUME","DISCH","***"))
+header5 <- paste(sprintf("%10s %9s %9s %9s %4s","(FT)","(ACRES)","(AC-FT)","(CFS)","***"),"\n")
 cat(paste(header1,header2,header3,header4, header5, sep="\n"), file = file, append=FALSE)
 
 #make table:

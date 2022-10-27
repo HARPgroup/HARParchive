@@ -1,8 +1,8 @@
 FTABLE    6850
  ROWS COLS ***
    19    4
-     DEPTH	     AREA	   VOLUME	    DISCH	***
-      (FT)	  (ACRES)	  (AC-FT)	    (CFS)	***	
+     DEPTH      AREA    VOLUME     DISCH  ***
+      (FT)   (ACRES)   (AC-FT)     (CFS)  *** 
      0.000     0.000      0.00      0.00
      0.975   254.505    239.25    138.26
      1.949   272.500    496.05    444.43
