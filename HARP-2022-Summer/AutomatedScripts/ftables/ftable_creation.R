@@ -2,7 +2,7 @@
 # script that generates FTABLEs from existing river segments in VAHydro
 
 # Setup
-library("hydrotools") #needed to pull values from VAHydro 
+suppressPackageStartupMessages(library("hydrotools")) #needed to pull values from VAHydro 
 
 # Link data source (ds) to VAHydro
 basepath='/var/www/R';
@@ -178,24 +178,31 @@ fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE
 ftable <- rbind(cftab, fptab) #only named "specific" temporarily -- test plotting purposes
 
 #----Exporting----
+#format data:
+DEPTH <- sprintf("%10.3f", ftable$depth) # %Space_per_num.num_of_decimal_placesf
+AREA <- sprintf("%9.3f", ftable$area)
+VOLUME <- sprintf("%9.2f", ftable$vol)
+DISCH <- sprintf("%9.2f", ftable$disch)
+
+ftable_formatted <- data.frame(DEPTH,AREA,VOLUME,DISCH)
+
+#format header:
 file <- paste(path, riverseg, '.ftable', sep='')
-
 riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
+header1 <- paste("FTABLE   ",riverseg_pieces[2])
+header2 <- paste(" ROWS COLS ***")
+header3 <- paste("   19    4")
+header4 <- paste(sprintf("%10s %9s %9s %9s %4s","DEPTH","AREA","VOLUME","DISCH","***"))
+header5 <- paste(sprintf("%10s %9s %9s %9s %4s","(FT)","(ACRES)","(AC-FT)","(CFS)","***"),"\n")
+cat(paste(header1,header2,header3,header4, header5, sep="\n"), file = file, append=FALSE)
 
-header1 <- paste("FTABLE", riverseg_pieces[2], sep="\t")
-header2 <- paste("ROWS","COLS","***", sep="\t")
-header3 <- paste(19,4, sep="\t")
-header4 <- paste("DEPTH","AREA","VOLUME","DISCH","***", sep="\t")
-header5 <- paste("(FT)","(ACRES)","(AC-FT)","(CFS)", "***","\n", sep="\t")
-
-cat(paste(header1,header2,header3,header4,header5,sep="\n"), file = file, append=FALSE)
-
-uci_form <- write.table(ftable,
+#make table:
+uci_form <- write.table(ftable_formatted,
                         file=file,
                         append = TRUE,
-                        sep = "\t", #tab separated
+                        quote = FALSE,
                         dec = ".", #decimals indicated by "."
                         row.names = FALSE,
                         col.names = FALSE)
-
-cat(paste("\nEND","FTABLE",sep="\t"), file=file, append=TRUE)
+#footer
+cat(paste("  END FTABLE"), file=file, append=TRUE)

@@ -3,6 +3,8 @@
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
+save_directory <- "/var/www/html/data/proj3/out" 
+# ^want this to correspond to our image directory path
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
@@ -18,24 +20,29 @@ suppressPackageStartupMessages(library(R.utils))
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
-# setwd("/Users/glenncampagna/Desktop/HARPteam22/data") # for testing only 
+
+# setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
 # hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only, includes wd_mgd - Glenn
 # river_seg <- 'PL3_5250_0001'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
-
+# scenario_name <- 'hsp_2022'
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 river_seg <- argst[1]
 scenario_name <- argst[2]
 hydr_file_path <- argst[3]
 model_version <- argst[4]
+image_dir <- argst[5]
+#image_dir <- '/media/model/p532/out/river/hsp2_2022/images' #for testing
 
-# The hydr file columns have been modifed with a conversion script, 
-# and ps and demand were added from the 'timeseries' in the h5
+split <- strsplit(image_dir, split = "/")
+path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
+path_string_m2 <- paste(path_list_m2, collapse = "/")
+save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
+
 hydr <- fread(hydr_file_path)
-
 
 # create a place to save an image if it does not exist
 # note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
@@ -152,17 +159,18 @@ if (imp_off == 0) {
     # this has an impoundment.  Plot it up.
     # Now zoom in on critical drought period
     pdstart = as.Date(paste0(l90_year,"-06-01") )
-    pdend = as.Datee(paste0(l90_year, "-11-15") )
+    pdend = as.Date(paste0(l90_year, "-11-15") )
+
     hydrpd <- window(
       hydr,
       start = pdstart,
       end = pdend
     );                   # setting the fname and furl for pushing graphs to vahydro
     fname <- paste(
-      save_directory,
+      image_dir,
       paste0(
         'l90_imp_storage.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -170,7 +178,7 @@ if (imp_off == 0) {
       save_url,
       paste0(
         'l90_imp_storage.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -210,10 +218,10 @@ if (imp_off == 0) {
       end = pdend
     );
     fname <- paste(
-      save_directory,
+      image_dir,
       paste0(
         'l90_imp_storage.2yr.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -221,7 +229,7 @@ if (imp_off == 0) {
       save_url,
       paste0(
         'l90_imp_storage.2yr.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -255,10 +263,10 @@ if (imp_off == 0) {
     # Full period Flow duration curve
     hydrpd <- hydr
     fname <- paste(
-      save_directory,
+      image_dir,
       paste0(
         'fig.fdc.all.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -266,7 +274,7 @@ if (imp_off == 0) {
       save_url,
       paste0(
         'fig.fdc.all.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -279,10 +287,10 @@ if (imp_off == 0) {
     
     # Full period inflow/outflow, res level
     fname <- paste(
-      save_directory,
+      image_dir,
       paste0(
         'fig.imp_storage.all.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -290,7 +298,7 @@ if (imp_off == 0) {
       save_url,
       paste0(
         'fig.imp_storage.all.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -335,10 +343,10 @@ if (imp_off == 0) {
     );
     hydrpd <- elevhydrpd
     fname <- paste(
-      save_directory,
+      image_dir,
       paste0(
         'elev90_imp_storage.all.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -346,7 +354,7 @@ if (imp_off == 0) {
       save_url,
       paste0(
         'elev90_imp_storage.all.',
-        elid, '.', runid, '.png'
+        river_seg, '.', scenario_name, '.png'
       ),
       sep = '/'
     )
@@ -387,16 +395,14 @@ if (imp_off == 0) {
   # Now zoom in on critical drought period
   pdstart = as.Date(paste0(l90_year,"-06-01") )
   pdend = as.Date(paste0(l90_year, "-11-15") )
-  hydrpd <- window(
-    hydr,
-    start = pdstart,
-    end = pdend
-  );
+
+  hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
+
   fname <- paste(
-    save_directory,
+    image_dir,
     paste0(
       'l90_flows.2yr.',
-      elid, '.', runid, '.png'
+      river_seg, '.', scenario_name, '.png'
     ),
     sep = '/'
   )
@@ -404,7 +410,7 @@ if (imp_off == 0) {
     save_url,
     paste0(
       'l90_flows.2yr.',
-      elid, '.', runid, '.png'
+      river_seg, '.', scenario_name, '.png'
     ),
     sep = '/'
   )
@@ -439,10 +445,10 @@ if (imp_off == 0) {
   
   hydrpd <- hydr
   fname <- paste(
-    save_directory,
+    image_dir,
     paste0(
       'flows.all.',
-      elid, '.', runid, '.png'
+      river_seg, '.', scenario_name, '.png'
     ),
     sep = '/'
   )
@@ -450,7 +456,7 @@ if (imp_off == 0) {
     save_url,
     paste0(
       'flows.all.',
-      elid, '.', runid, '.png'
+      river_seg, '.', scenario_name, '.png'
     ),
     sep = '/'
   )
@@ -483,15 +489,15 @@ if (imp_off == 0) {
 ###############################################
 base_var <- "Qbaseline" #BASE VARIABLE USED IN FDCs AND HYDROGRAPHS
 comp_var <- "Qout" #VARIABLE TO COMPARE AGAINST BASE VARIABLE, DEFAULT Qout
-
+## ^^ Currently equal so comparison is pointless
 # FOR TESTING 
 # save_directory <- 'C:/Users/nrf46657/Desktop/GitHub/om/R/summarize'
-hydrpd <- hydrdf
+#hydrpd <- hydrdf
 fname <- paste(
-  save_directory,
+  image_dir,
   paste0(
     'fdc.',
-    elid, '.', runid, '.png'
+    river_seg, '.', scenario_name, '.png'
   ),
   sep = '/'
 )
@@ -501,11 +507,12 @@ furl <- paste(
   save_url,
   paste0(
     'fdc.',
-    elid, '.', runid, '.png'
+    river_seg, '.', scenario_name, '.png'
   ),
   sep = '/'
 )
 
+# Glenn and Julia tested up to here 10/21/22
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
@@ -538,19 +545,17 @@ print(paste("Saved file: ", fname, "with URL", furl))
 # Zoom in on critical drought period
 pdstart = as.Date(paste0(l90_year,"-06-01") )
 pdend = as.Date(paste0(l90_year, "-11-15") )
-hydrpd <- window(
-  hydr,
-  start = pdstart,
-  end = pdend
-);
+
+hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
 hydrpd <- data.frame(hydrpd)
-hydrpd$date <- rownames(hydrpd)
+#hydrpd$Date <- rownames(hydrpd)
+
 
 fname <- paste(
-  save_directory,
+  image_dir,
   paste0(
     'hydrograph_dry.',
-    elid, '.', runid, '.png'
+    river_seg, '.', scenario_name, '.png'
   ),
   sep = '/'
 )
@@ -558,7 +563,7 @@ furl <- paste(
   save_url,
   paste0(
     'hydrograph_dry.',
-    elid, '.', runid, '.png'
+    river_seg, '.', scenario_name, '.png'
   ),
   sep = '/'
 )
@@ -572,21 +577,22 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
-hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.hydre(hydrpd$date),
-                       type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
-                       ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
-                       main = "Hydrograph: Dry Period",
-                       cex.main=1.75,
-                       cex.axis=1.50,
-                       cex.lab=1.50
-)
-par(new = TRUE)
-plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.hydre(hydrpd$Date),
-     type = "l",col='brown3', lwd = 2, 
-     axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
-legend("topright",legend=legend_text,col=c("black","brown3"), 
-       lty=c(2,1), lwd=c(1,2), cex=1.5)
-dev.off()
+
+#hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$Date),
+#                       type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
+#                       ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
+#                       main = "Hydrograph: Dry Period",
+#                       cex.main=1.75,
+#                       cex.axis=1.50,
+#                       cex.lab=1.50
+#)
+#par(new = TRUE)
+#plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$Date),
+#     type = "l",col='brown3', lwd = 2, 
+#    axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
+#legend("topright",legend=legend_text,col=c("black","brown3"), 
+#       lty=c(2,1), lwd=c(1,2), cex=1.5)
+#dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
 # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.hydrograph_dry', 0.0, ds)
@@ -603,7 +609,7 @@ rseg <- RomProperty$new(ds, list(pid=pid), TRUE)
 rseg_hydroid<-rseg$featureid
 
 huc_level <- 'huc8'
-hydraset <- 'VAHydro-EDAS'
+Dataset <- 'VAHydro-EDAS'
 
-elfgen_huc(runid, rseg_hydroid, huc_level, hydraset, scenprop, ds, save_directory, save_url, site)
+#elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, scenprop, ds, image_dir, save_url, site)
     
