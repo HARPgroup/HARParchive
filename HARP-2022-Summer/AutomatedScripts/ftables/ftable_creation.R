@@ -2,7 +2,7 @@
 # script that generates FTABLEs from existing river segments in VAHydro
 
 # Setup
-library("hydrotools") #needed to pull values from VAHydro 
+suppressPackageStartupMessages(library("hydrotools")) #needed to pull values from VAHydro 
 
 # Link data source (ds) to VAHydro
 basepath='/var/www/R';
