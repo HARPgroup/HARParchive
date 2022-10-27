@@ -12,7 +12,7 @@ suppressPackageStartupMessages(library(caTools))
 suppressPackageStartupMessages(library(RColorBrewer))
 suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
-suppressPackageStartupMessages(library(dplyr))
+#suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 
 # establishing location on server for storing images
@@ -124,7 +124,7 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
-hydr <- hydr %>% filter(date > sdate) %>% filter(date < edate) # New hydr table with water year start and end dates 
+hydr <- with(hydr, hydr[(date >= sdate & date <= edate)]) #replaced filter()
 
 #Assumptions and placeholders columns 
 imp_off = 1
