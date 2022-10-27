@@ -20,6 +20,7 @@ suppressPackageStartupMessages(library(R.utils))
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
+
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
@@ -55,7 +56,7 @@ if (!file.exists(image_dir)) {
 ## Set up currently to output all the Qout values & the Qout
 
 # Set up our hydra source
-ds <- RomhydraSource$new(site, rest_uname = rest_uname)
+ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
 rseg_name=river_seg
@@ -159,6 +160,7 @@ if (imp_off == 0) {
     # Now zoom in on critical drought period
     pdstart = as.Date(paste0(l90_year,"-06-01") )
     pdend = as.Date(paste0(l90_year, "-11-15") )
+
     hydrpd <- window(
       hydr,
       start = pdstart,
@@ -208,8 +210,8 @@ if (imp_off == 0) {
     # l90 2 year
     # this has an impoundment.  Plot it up.
     # Now zoom in on critical drought period
-    pdstart = as.hydre(paste0( (as.integer(l90_year) - 1),"-01-01") )
-    pdend = as.hydre(paste0(l90_year, "-12-31") )
+    pdstart = as.Date(paste0( (as.integer(l90_year) - 1),"-01-01") )
+    pdend = as.Date(paste0(l90_year, "-12-31") )
     hydrpd <- window(
       hydr,
       start = pdstart,
@@ -308,7 +310,7 @@ if (imp_off == 0) {
       hydrpd$storage_pct * 100.0,
       ylim=c(ymn,ymx),
       ylab="Reservoir Storage (%)",
-      xlab=paste("Storage and Flows",shydre,"to",ehydre)
+      xlab=paste("Storage and Flows",sdate,"to",edate)
     )
     par(new = TRUE)
     plot(hydrpd$impoundment_Qin,col='blue', axes=FALSE, xlab="", ylab="")
@@ -332,8 +334,8 @@ if (imp_off == 0) {
     ndx = which.min(as.numeric(l90[,"90 Day Min"]));
     l90_elev = round(loelevs[ndx,]$"90 Day Min",6);
     l90_elevyear = loelevs[ndx,]$"year";
-    l90_elev_start = as.hydre(paste0(l90_elevyear - 2,"-01-01"))
-    l90_elev_end = as.hydre(paste0(l90_elevyear,"-12-31"))
+    l90_elev_start = as.Date(paste0(l90_elevyear - 2,"-01-01"))
+    l90_elev_end = as.Date(paste0(l90_elevyear,"-12-31"))
     elevhydrpd <- window(
       hydr,
       start = l90_elev_start,
@@ -384,7 +386,7 @@ if (imp_off == 0) {
   }
 } else {
 
-## End of the if-loop; this is what we will plot since imp_off is 0!!!!!!!!!!  
+## End of the if-loop; this is what we will plot since imp_off is 1!!!!!!!!!!  
   
   # plot Qin, Qout of mainstem, and wd_mgd, and wd_cumulative_mgd
   # TBD
@@ -393,7 +395,9 @@ if (imp_off == 0) {
   # Now zoom in on critical drought period
   pdstart = as.Date(paste0(l90_year,"-06-01") )
   pdend = as.Date(paste0(l90_year, "-11-15") )
+
   hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
+
   fname <- paste(
     image_dir,
     paste0(
@@ -541,9 +545,11 @@ print(paste("Saved file: ", fname, "with URL", furl))
 # Zoom in on critical drought period
 pdstart = as.Date(paste0(l90_year,"-06-01") )
 pdend = as.Date(paste0(l90_year, "-11-15") )
+
 hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
+
 
 fname <- paste(
   image_dir,
@@ -571,6 +577,7 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
+
 #hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$Date),
 #                       type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
 #                       ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
