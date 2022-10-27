@@ -4,8 +4,8 @@
 basepath='/var/www/R';
 source("/var/www/R/config.R")
 
-suppressPackageStartupMessages(library(hydra.table)) 
-suppressPackageStartupMessages(library(lubrihydre))
+suppressPackageStartupMessages(library(data.table)) 
+suppressPackageStartupMessages(library(lubridate))
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(caTools))
@@ -18,7 +18,7 @@ suppressPackageStartupMessages(library(R.utils))
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
-# setwd("/Users/glenncampagna/Desktop/HARPteam22/hydra") # for testing only 
+# setwd("/Users/glenncampagna/Desktop/HARPteam22/data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
 # hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only, includes wd_mgd - Glenn
@@ -49,7 +49,7 @@ if (!file.exists(image_dir)) {
 ## Set up currently to output all the Qout values & the Qout
 
 # Set up our hydra source
-ds <- RomhydraSource$new(site, rest_uname = rest_uname)
+ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
 rseg_name=river_seg
@@ -151,8 +151,8 @@ if (imp_off == 0) {
     # 
     # this has an impoundment.  Plot it up.
     # Now zoom in on critical drought period
-    pdstart = as.hydre(paste0(l90_year,"-06-01") )
-    pdend = as.hydre(paste0(l90_year, "-11-15") )
+    pdstart = as.Date(paste0(l90_year,"-06-01") )
+    pdend = as.Datee(paste0(l90_year, "-11-15") )
     hydrpd <- window(
       hydr,
       start = pdstart,
@@ -202,8 +202,8 @@ if (imp_off == 0) {
     # l90 2 year
     # this has an impoundment.  Plot it up.
     # Now zoom in on critical drought period
-    pdstart = as.hydre(paste0( (as.integer(l90_year) - 1),"-01-01") )
-    pdend = as.hydre(paste0(l90_year, "-12-31") )
+    pdstart = as.Date(paste0( (as.integer(l90_year) - 1),"-01-01") )
+    pdend = as.Date(paste0(l90_year, "-12-31") )
     hydrpd <- window(
       hydr,
       start = pdstart,
@@ -302,7 +302,7 @@ if (imp_off == 0) {
       hydrpd$storage_pct * 100.0,
       ylim=c(ymn,ymx),
       ylab="Reservoir Storage (%)",
-      xlab=paste("Storage and Flows",shydre,"to",ehydre)
+      xlab=paste("Storage and Flows",sdate,"to",edate)
     )
     par(new = TRUE)
     plot(hydrpd$impoundment_Qin,col='blue', axes=FALSE, xlab="", ylab="")
@@ -326,8 +326,8 @@ if (imp_off == 0) {
     ndx = which.min(as.numeric(l90[,"90 Day Min"]));
     l90_elev = round(loelevs[ndx,]$"90 Day Min",6);
     l90_elevyear = loelevs[ndx,]$"year";
-    l90_elev_start = as.hydre(paste0(l90_elevyear - 2,"-01-01"))
-    l90_elev_end = as.hydre(paste0(l90_elevyear,"-12-31"))
+    l90_elev_start = as.Date(paste0(l90_elevyear - 2,"-01-01"))
+    l90_elev_end = as.Date(paste0(l90_elevyear,"-12-31"))
     elevhydrpd <- window(
       hydr,
       start = l90_elev_start,
@@ -378,15 +378,15 @@ if (imp_off == 0) {
   }
 } else {
 
-## End of the if-loop; this is what we will plot since imp_off is 0!!!!!!!!!!  
+## End of the if-loop; this is what we will plot since imp_off is 1!!!!!!!!!!  
   
   # plot Qin, Qout of mainstem, and wd_mgd, and wd_cumulative_mgd
   # TBD
   # l90 2 year
   # this has an impoundment.  Plot it up.
   # Now zoom in on critical drought period
-  pdstart = as.hydre(paste0(l90_year,"-06-01") )
-  pdend = as.hydre(paste0(l90_year, "-11-15") )
+  pdstart = as.Date(paste0(l90_year,"-06-01") )
+  pdend = as.Date(paste0(l90_year, "-11-15") )
   hydrpd <- window(
     hydr,
     start = pdstart,
@@ -459,7 +459,7 @@ if (imp_off == 0) {
   plot(
     hydrpd$Qbaseline, ylim = c(0,ymx),
     ylab="Flow/WD/PS (cfs)",
-    xlab=paste("Model Flow Period",shydre,"to",ehydre)
+    xlab=paste("Model Flow Period",sdate,"to",edate)
   )
   lines(hydrpd$Qout,col='blue')
   par(new = TRUE)
@@ -515,7 +515,7 @@ fdc_plot <- hydroTSM::fdc(
   # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
   yat = seq(round(min(hydrpd),0),round(max(hydrpd),0), by = 500),
   leg.txt = legend_text,
-  main=paste("Flow Duration Curve","\n","(Model Flow Period ",shydre," to ",ehydre,")",sep=""),
+  main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
   ylab = "Flow (cfs)",
   # ylim=c(1.0, 5000),
   ylim=c(min(hydrpd), max(hydrpd)),
@@ -536,15 +536,15 @@ print(paste("Saved file: ", fname, "with URL", furl))
 # RSEG Hydrograph (Drought Period)
 ###############################################
 # Zoom in on critical drought period
-pdstart = as.hydre(paste0(l90_year,"-06-01") )
-pdend = as.hydre(paste0(l90_year, "-11-15") )
+pdstart = as.Date(paste0(l90_year,"-06-01") )
+pdend = as.Date(paste0(l90_year, "-11-15") )
 hydrpd <- window(
   hydr,
   start = pdstart,
   end = pdend
 );
 hydrpd <- data.frame(hydrpd)
-hydrpd$hydre <- rownames(hydrpd)
+hydrpd$date <- rownames(hydrpd)
 
 fname <- paste(
   save_directory,
@@ -565,14 +565,14 @@ furl <- paste(
 
 png(fname, width = 900, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
-xmn <- as.hydre(pdstart)
-xmx <- as.hydre(pdend)
+xmn <- as.Date(pdstart)
+xmx <- as.Date(pdend)
 ymn <- 0
 #ymx <- 1000
 ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
-hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.hydre(hydrpd$hydre),
+hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.hydre(hydrpd$date),
                        type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
                        ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
                        main = "Hydrograph: Dry Period",
@@ -581,7 +581,7 @@ hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.h
                        cex.lab=1.50
 )
 par(new = TRUE)
-plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.hydre(hydrpd$hydre),
+plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.hydre(hydrpd$Date),
      type = "l",col='brown3', lwd = 2, 
      axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
 legend("topright",legend=legend_text,col=c("black","brown3"), 
