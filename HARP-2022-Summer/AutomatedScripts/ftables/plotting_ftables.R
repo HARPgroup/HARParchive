@@ -8,6 +8,8 @@ riverseg1 <- argst[2]
 riverseg2 <- argst[3]
 
 #Testing: delete later
+path_uci <- 'http://deq1.bse.vt.edu:81/p532/input/param/river/hsp2_2022/ftables/'
+
 path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
 riverseg1 <- "JL2_6850_6890" #Rockfish
 riverseg2 <- "OR1_7700_7980" #Roanoke
@@ -16,15 +18,16 @@ riverseg2 <- "OR1_7700_7980" #Roanoke
 ftable1 <- read.csv(paste(path, riverseg1, '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
-                    col.names = c('depth','area','vol', 'disch'),
+                    col.names = c('depth','area','vol', 'disch','flo-thru'),
                     nrows = 19, skip= 5)
 
 ftable2 <- read.csv(paste(path, riverseg2, '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
-                    col.names = c('depth','area','vol', 'disch'),
+                    col.names = c('depth','area','vol', 'disch','flo-thru'),
                     nrows = 19, skip= 5)
 
+#take out flo-thru when done with old uci's ^^
 
 par(mfrow = c(2,3)) #to arrange plots in 2x3 grid
 #----Full Plots----
