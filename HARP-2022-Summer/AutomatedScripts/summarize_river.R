@@ -140,8 +140,8 @@ hydr$ps_nextdown_mgd = 0
   # Qbaseline
   # wd_mgd
   # ps_mgd
-wd_cumulative_mgd
-ps_cumulative_mgd
+  # wd_cumulative_mgd
+  # ps_cumulative_mgd
   # ps_nextdown_mgd
   # consumptive_use_frac
   # daily_consumptive_use_frac
