@@ -42,14 +42,10 @@ hydr$Qout <- hydr$OVOL3*12.1 #Qout in units of cfs
 hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 # withdrawal cfs converted to mgd
 
 hydr$ps_mgd <- hydr$ps_afd*0.32585
-
 hydr$demand_mgd <- (hydr$divr_cfs + hydr$diva_cfs)/1.5472 #demand cfs summed and coverted to mgd 
-# Converting to mgd:
-#colnames(divr) = c('date','divr_achfth')
-#colnames(ps_flow) = c('date','ps_cfs')
 
-#divr$divr_mgd=divr$divr_achfth*7.820434
-#ps_flow$ps_mgd=ps_flow$ps_cfs*1.547
+#Qbaseline = Qout + (wd_cum_mgd - ps_cum_mgd)*1.547
+hydr$Qbaseline <- hydr$Qout + (hydr$wd_mgd - hydr$ps_mgd)*1.5472
 
 # Exporting the modified csv files into the output_file_path:
 write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
