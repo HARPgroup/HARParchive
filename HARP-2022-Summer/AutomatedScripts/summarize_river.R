@@ -131,8 +131,8 @@ imp_off = 1
 hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
 
 hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
-hydr$wd_cumulative_mgd = 0 #cumulative vars used in hspf 
-hydr$ps_cumulative_mgd = 0 
+hydr$wd_cumulative_mgd = hydr$wd_mgd  
+hydr$ps_cumulative_mgd = hydr$ps_mgd
 hydr$ps_nextdown_mgd = 0 
 
 ## Primary Analysis on Qout, ps and wd:
@@ -148,8 +148,6 @@ hydr$ps_nextdown_mgd = 0
   # net_consumption_mgd
 
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
-wd_cumulative_mgd <- hydr$wd_mgd
-ps_cumulative_mgd <- hydr$ps_mgd
 
 wd_imp_child_mgd <- mean(as.numeric(hydr$wd_imp_child_mgd) )
 if (is.na(wd_imp_child_mgd)) {   # setting this to zero since it doesn't exist

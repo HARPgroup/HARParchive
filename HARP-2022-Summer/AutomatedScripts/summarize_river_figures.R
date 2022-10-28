@@ -3,7 +3,7 @@
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
-save_directory <- "/var/www/html/data/proj3/out" 
+#save_directory <- "/var/www/html/data/proj3/out" 
 # ^want this to correspond to our image directory path
 
 suppressPackageStartupMessages(library(data.table)) 
@@ -14,9 +14,9 @@ suppressPackageStartupMessages(library(caTools))
 suppressPackageStartupMessages(library(RColorBrewer))
 suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
-suppressPackageStartupMessages(library(dplyr))
+#suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
-
+suppressPackageStartupMessages(library(hydroTSM))
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
@@ -395,9 +395,11 @@ if (imp_off == 0) {
   # Now zoom in on critical drought period
   pdstart = as.Date(paste0(l90_year,"-06-01") )
   pdend = as.Date(paste0(l90_year, "-11-15") )
-
-  hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
-
+  
+  #Replaced filter()
+  # hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
+  hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
+  
   fname <- paste(
     image_dir,
     paste0(
@@ -430,7 +432,6 @@ if (imp_off == 0) {
   # Because these are zoo timeseries, they will throw an error if you use a normal DF
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
-  # ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
   ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
@@ -514,10 +515,15 @@ furl <- paste(
 
 # Glenn and Julia tested up to here 10/21/22
 
+#var_df <- as.data.frame(hydrpd[base_var], row.names = NULL)
+#var_df$comp_var <- hydrpd[comp_var]
+#colnames(var_df) <- c(base_var, comp_var)
+#^This was created to replace the cbind - Glenn
+
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
 fdc_plot <- hydroTSM::fdc(
-  cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
+  cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]), #this line is giving the first error
   # yat = c(0.10,1,5,10,25,100,400),
   # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
   yat = seq(round(min(hydrpd),0),round(max(hydrpd),0), by = 500),
@@ -535,18 +541,15 @@ dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
 # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
-###############################################
-###############################################
 
-
-###############################################
 # RSEG Hydrograph (Drought Period)
-###############################################
 # Zoom in on critical drought period
 pdstart = as.Date(paste0(l90_year,"-06-01") )
 pdend = as.Date(paste0(l90_year, "-11-15") )
 
+#Replace filter()
 hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
+
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
 
@@ -578,14 +581,14 @@ ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
 
-#hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$Date),
-#                       type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
-#                       ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
-#                       main = "Hydrograph: Dry Period",
-#                       cex.main=1.75,
-#                       cex.axis=1.50,
-#                       cex.lab=1.50
-#)
+hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$Date),
+                       type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
+                       ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
+                       main = "Hydrograph: Dry Period",
+                       cex.main=1.75,
+                       cex.axis=1.50,
+                       cex.lab=1.50
+)
 #par(new = TRUE)
 #plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$Date),
 #     type = "l",col='brown3', lwd = 2, 
