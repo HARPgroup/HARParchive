@@ -22,7 +22,8 @@ omsite = "http://deq1.bse.vt.edu:81"
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
 # hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only, final hydr csv with wd, demand, ps - Glenn
-# river_seg <- 'JL1_6770_6850'
+# river_seg <- 'OR1_7700_7980'
+# scenario_name <- 'hsp2_2022'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
 
 # Accepting command arguments:
