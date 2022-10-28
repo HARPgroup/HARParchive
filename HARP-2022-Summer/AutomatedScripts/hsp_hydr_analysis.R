@@ -33,10 +33,16 @@ river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
 input_file_path <- argst[3] 
+<<<<<<< HEAD
 #input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/' #for testing 
 image_directory_path <- argst[4]
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images/' # for testing only 
 model_version <- argst[5]
+=======
+#input_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
+image_directory_path <- paste(input_file_path, '/', 'images', sep='')
+#image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
+>>>>>>> e10554fd520dc5fa007a1e8778e539e272c25a07
 
 if (!file.exists(input_file_path)) {
   dir.create(file.path(input_file_path)) #creates directory if one does not yet exists

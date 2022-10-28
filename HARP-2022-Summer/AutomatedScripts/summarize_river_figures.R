@@ -23,11 +23,13 @@ omsite = "http://deq1.bse.vt.edu:81"
 
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
-# hydr <- fread("PL3_5250_0001_hydr.csv") # for testing only
-# hydr <- fread("JL1_6770_6850_hydr.csv") # for testing only, includes wd_mgd - Glenn
-# river_seg <- 'PL3_5250_0001'
-# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
+# hydr <- fread("OR1_7700_7980_hydr.csv")
+# river_seg <- 'OR1_7700_7980'
+# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
 # scenario_name <- 'hsp_2022'
+# model_version <- 'cbp-5.3.2'
+# source("/Users/VT_SA/Documents/GitHUB/HARParchive/HARP-2022-Summer/AutomatedScripts/summarize_river_values.R") #testing
+
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 river_seg <- argst[1]
@@ -42,7 +44,10 @@ path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
 
-hydr <- fread(hydr_file_path)
+hydr <- fread("hydr_file_path")
+hydr <- as.data.frame(hydr)
+source("summarize_river_values.R")
+hydr <- summarize_river_values(hydr)
 
 # create a place to save an image if it does not exist
 # note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
@@ -548,7 +553,8 @@ pdstart = as.Date(paste0(l90_year,"-06-01") )
 pdend = as.Date(paste0(l90_year, "-11-15") )
 
 #Replace filter()
-hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
+#hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
+hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
 
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
