@@ -257,6 +257,23 @@ title(main = 'Discharge Just Past h')
 
 #----
 #Old or Misc Stuff----
+#----Alternate Pulling from VAHydro (JSON)----
+hydrocode <- paste("vahydrosw_wshed",riverseg,sep = "_")
+
+feature <- RomFeature$new(ds,list(hydrocode=hydrocode, bundle="watershed",ftype="vahydro"),TRUE)
+model <- RomProperty$new(ds,list(featureid=feature$hydroid, propcode="vahydro-1.0"),TRUE)
+
+#using new json:
+library(jsonlite)
+model_obj_url <- paste(json_obj_url, model$pid, sep="/")
+model_info <- ds$auth_read(model_obj_url, "text/json", "")
+model <- fromJSON(model_info)
+#get values:
+da <- as.numeric(model[[1]][[channel]]$drainage_area$value) #106.052
+prov <- as.numeric(model[[1]][[channel]]$province$value)
+clength <- as.numeric(model[[1]][[channel]]$length$value) #channel length
+cslope <- as.numeric(model[[1]][[channel]]$slope$value) #longitudinal channel slope
+
 #----Pulling from NHDplus----
 #install.packages("nhdplusTools")
 library(nhdplusTools)

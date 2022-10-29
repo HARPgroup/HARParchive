@@ -11,11 +11,11 @@ riverseg2 <- argst[3]
 path_uci <- 'http://deq1.bse.vt.edu:81/p532/input/param/river/hsp2_2022/ftables/'
 
 path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
-riverseg1 <- "JL2_6850_6890" #Rockfish
-riverseg2 <- "OR1_7700_7980" #Roanoke
+riverseg1 <- "JL2_6850_6890" #Rockfish 
+riverseg2 <- "OR1_7700_7980" #Roanoke 
 
 #reading ftables from .uci format
-ftable1 <- read.csv(paste(path, riverseg1, '.ftable', sep=''), 
+ftable1 <- read.csv(paste(path_uci, riverseg1, '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
                     col.names = c('depth','area','vol', 'disch','flo-thru'),

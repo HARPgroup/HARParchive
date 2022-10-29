@@ -37,7 +37,7 @@ model <- RomProperty$new(ds,list(
   TRUE)
 
 channel_prop <- RomProperty$new(ds,list(
-    varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
+    #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
     featureid=model$pid,
     entity_type='dh_properties',
     propname = channel),
@@ -143,7 +143,9 @@ z = 0.5 * (bf - b ) / h
 #depth
 cdepth <- seq(0,h,length=10) #channel
 fdepth <- seq(h+1, h*4 ,length=9) #floodplain
-#depth <- c(cdepth, fdepth)
+
+Abf <- ((sw+b)/2)*h #channel cross-sect area @ bankfull
+Pbf <- b + 2*h*sqrt(z**2 +1) #channel wetted perimeter @ bankfull
 
 #--Discharge Calculation Info:
 # Q = V * A ; where A = cross sectional area (aka flow area)
@@ -151,16 +153,15 @@ fdepth <- seq(h+1, h*4 ,length=9) #floodplain
 # (1.49/n) is English ; (1/n) is metric
 # Hydraulic Radius = A/P , cross-sect.area/wetted perim.
 
-fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n, h, bf, fp) { 
+fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n, h, bf, fp, Abf, Pbf) { 
   sw <- b + 2*z*depth #surface width
   sw[depth == 0] <- 0
   A <- ((sw+b)/2)*depth #cross-sect. area (trapezoid)
   P <- b + 2*depth*sqrt(z**2 +1) #wetted perimeter (trapezoid)
   
   if (fp == TRUE) {
-    A <- A + ((sw+b)/2)*h #combine fp and channel@bankfull trapezoidal areas
-    P <- P + b + 2*h*sqrt(z**2 +1) - bf
-    # ^ combine fp and channel@bankfull wetted perim. - bf width of channel
+    A <- A + Abf #combine fp and channel@bankfull trapezoidal areas
+    P <- P + Pbf - bf #fp + wetted perim.@bankfull - bf width of channel
     depth <- depth + h
   }
   
@@ -171,11 +172,11 @@ fn_make_trap_ftable <- function(depth, clength, cslope, b, z, n, h, bf, fp) {
   return(ftable)
 }
 
-cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n, h, bf, FALSE) #in-channel
-fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE) #floodplain 
+cftab <- fn_make_trap_ftable(cdepth, clength, cslope, b, z, n, h, bf, FALSE, Abf, Pbf) #in-channel
+fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE, Abf, Pbf) #floodplain 
 # ^base of floodplain = 5x bankfull width
 
-ftable <- rbind(cftab, fptab) #only named "specific" temporarily -- test plotting purposes
+ftable <- rbind(cftab, fptab)
 
 #----Exporting----
 #format data:
@@ -189,12 +190,14 @@ ftable_formatted <- data.frame(DEPTH,AREA,VOLUME,DISCH)
 #format header:
 file <- paste(path, riverseg, '.ftable', sep='')
 riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
-header1 <- paste("FTABLE   ",riverseg_pieces[2])
-header2 <- paste(" ROWS COLS ***")
-header3 <- paste("   19    4")
-header4 <- paste(sprintf("%10s %9s %9s %9s %4s","DEPTH","AREA","VOLUME","DISCH","***"))
-header5 <- paste(sprintf("%10s %9s %9s %9s %4s","(FT)","(ACRES)","(AC-FT)","(CFS)","***"),"\n")
-cat(paste(header1,header2,header3,header4, header5, sep="\n"), file = file, append=FALSE)
+header1 <- paste(sprintf("%-8s %4s","FTABLE",riverseg_pieces[2])) # "-" = left-aligned text
+header2 <- paste("NOTE: FLOODPLAIN BASE = 5*BANKFULL WIDTH ***")
+header3 <- paste(sprintf("%5s %s","", "FLOODPLAIN SIDE-SLOPE = SAME AS CHANNEL'S ***"))
+header4 <- paste(" ROWS COLS ***")
+header5 <- paste("   19    4")
+header6 <- paste(sprintf("%10s %9s %9s %9s %4s","DEPTH","AREA","VOLUME","DISCH","***"))
+header7 <- paste(sprintf("%10s %9s %9s %9s %4s","(FT)","(ACRES)","(AC-FT)","(CFS)","***"),"\n")
+cat(paste(header1,header2,header3,header4,header5,header6,header7, sep="\n"), file = file, append=FALSE)
 
 #make table:
 uci_form <- write.table(ftable_formatted,
