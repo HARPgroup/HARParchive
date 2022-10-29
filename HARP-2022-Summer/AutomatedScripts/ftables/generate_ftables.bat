@@ -2,13 +2,13 @@
 
 riverseg_list=$1 #input a list of riversegments ?
 channel=$2
+scenario=$3
 
-cd /opt/model/p6/vadeq
+cd /opt/model/p6/vadeq #or just run batch from this Dir.
 
-scenario = cbp get_config vadeq_2021 river PARAMETERS 
+parameters=`cbp get_config vadeq_2021 river PARAMETERS`
 
 # check the directory where ftables will be stored
-if [ ! -d $CBP_ROOT] ; then mkdir $CBP_ROOT; fi
 if [ ! -d $CBP_ROOT/input/param/river/$scenario] ; then mkdir $CBP_ROOT/input/param/river/$scenario; fi
 if [ ! -d $CBP_ROOT/input/param/river/$scenario/ftables ] ; then mkdir $CBP_ROOT/input/param/river/$scenario/ftables; fi
 
