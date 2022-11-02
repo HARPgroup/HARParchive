@@ -10,7 +10,7 @@ parameters=`cbp get_config vadeq_2021 river PARAMETERS`
 
 # check the directory where ftables will be stored
 if [ ! -d $CBP_ROOT/input/param/river/$scenario] ; then mkdir $CBP_ROOT/input/param/river/$scenario; fi
-if [ ! -d $CBP_ROOT/input/param/river/$scenario/ftables ] ; then mkdir $CBP_ROOT/input/param/river/$scenario/ftables; fi
+if [ ! -d $CBP_ROOT/input/param/river/$scenario/ftables] ; then mkdir $CBP_ROOT/input/param/river/$scenario/ftables; fi
 
 
 # running the R script: 
@@ -21,3 +21,4 @@ for %%i in ($riverseg_list) do
   ftable= ($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R %%i $channel $output_path))
   
 done
+
