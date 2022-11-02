@@ -128,31 +128,17 @@ summarize_river_values <- function (hydr) {
   
   values <- list(hydr$index, hydr$date, hydr$hour, hydr$day, hydr$month, hydr$year, 
                  hydr$Qout, hydr$Qbaseline, hydr$wd_mgd, hydr$wd_cumulative_mgd, 
-                 hydr$ps_mgd, hydr$ps_cumulative_mgd, hydr$ps_nextdown_mgd,
-                 hydr$net_consumption_mgd, hydr$unmet_demand_mgd)
+                 hydr$ps_mgd, hydr$ps_cumulative_mgd, hydr$ps_nextdown_mgd)
   names(values) <- c("index", "date", "hour", "day", "month", 'year', "Qout", 
                      "Qbaseline", "wd_mgd", "wd_cumulative_mgd", "ps_mgd", "ps_cumulative_mgd", 
-                     "ps_nextdown_mgd",
-                     "net_consumption_mgd", "unmet_demand_mgd")
+                     "ps_nextdown_mg")
   
-  values2 <- list(l90_Qout, l90_year, l30_Qout, l30_year, imp_off)
-  names(values2) <- c("l90_Qout", "l90_year", "l30_Qout", "l30_year","imp_off")
+  values2 <- list(l90_Qout, l90_year, l30_Qout, l30_year, imp_off, net_consumption_mgd, unmet_demand_mgd)
+  names(values2) <- c("l90_Qout", "l90_year", "l30_Qout", "l30_year","imp_off", 
+                      "net_consumption_mgd", "unmet_demand_mgd")
   
   values3 <- list(values, values2)
   
   return(values3)
  }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
