@@ -47,7 +47,23 @@ save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
 hydr <- fread("hydr_file_path")
 hydr <- as.data.frame(hydr)
 source("summarize_river_values.R")
+  #need to run the source above
+  #have to check if it will find the Rscript in HARParhive automatically or not
+  #NOTE: when making changes to the function, have to run the source again to activate the changes
 hydr <- summarize_river_values(hydr)
+
+#setting the values out of the list
+l90_Qout <- hydr[[2]][["l90_Qout"]]
+l90_year <- hydr[[2]][["l90_year"]]
+l30_Qout <- hydr[[2]][["l30_Qout"]]
+l30_year <- hydr[[2]][["l30_Qout"]]
+imp_off <- hydr[[2]][["imp_off"]]
+net_consumption_mgd <- hydr[[2]][["net_consumption_mgd"]]
+unmet_demand_mgd <- hydr[[2]][["unmet_demand_mgd"]]
+
+#transforming hydr to a data frame again
+hydr <- as.data.frame(hydr[[1]])
+
 
 # create a place to save an image if it does not exist
 # note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
