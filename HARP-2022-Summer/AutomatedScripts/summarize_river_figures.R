@@ -428,7 +428,7 @@ if (imp_off == 0) {
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
   ymx <- max(cbind(hydrpd$Qbaseline, hydrpd$Qout))
   plot(
-    hydrpd$Qbaseline, ylim = c(0,ymx),
+    hydrpd$Qbaseline, ylim = c(0,ymx), xlim = c(0, 4100),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
@@ -437,18 +437,26 @@ if (imp_off == 0) {
   # Because these are zoo timeseries, they will throw an error if you use a normal DF
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
-  ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
-  plot(
-    hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
-  )
-  lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
-  axis(side = 4)
-  mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
-  dev.off()
-  print(paste("Saved file: ", fname, "with URL", furl))
-  # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
   
+  
+  
+
+  ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
+  if (ymx == 0) {
+    print('No withdrawal or point source for this segment')
+  } else {
+    plot(
+      hydrpd$wd_cumulative_mgd * 1.547,col='red',
+      axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
+    )
+    lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
+    axis(side = 4)
+    mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
+    dev.off()
+    print(paste("Saved file: ", fname, "with URL", furl))
+    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
+  }
+ 
   hydrpd <- hydr
   fname <- paste(
     image_dir,
@@ -475,7 +483,11 @@ if (imp_off == 0) {
   )
   lines(hydrpd$Qout,col='blue')
   par(new = TRUE)
+  
   ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
+  if (ymx == 0) {
+    print('No withdrawal or point source for this segment')
+  } else {  
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
     axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
@@ -486,7 +498,7 @@ if (imp_off == 0) {
   dev.off()
   print(paste("Saved file: ", fname, "with URL", furl))
   # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.flows.all', 0.0, ds)
-  
+  }
 }
 
 
@@ -527,6 +539,10 @@ furl <- paste(
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
+#ncol_comp <- which(colnames(hydrpd)==comp_var)
+#ncol_base <- which(colnames(hydrpd)==base_var)
+#Temporarily using cbind:
+df_comp <- as.data.frame(cbind(hydrpd$Qbaseline, hydrpd$Qout)) #For testing only 
 fdc_plot <- hydroTSM::fdc(
   cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]), #this line is giving the first error
   # yat = c(0.10,1,5,10,25,100,400),
