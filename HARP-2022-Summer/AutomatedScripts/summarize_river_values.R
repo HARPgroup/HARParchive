@@ -87,12 +87,6 @@ summarize_river_values <- function (hydr) {
         (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd) * 1.547
     }
   }
-
-  Qbaseline <- mean(as.numeric(hydr$Qbaseline) )
-  if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
-    Qbaseline = Qout +
-      (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
-  }
   
   # L90 and l30
   Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
