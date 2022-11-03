@@ -144,7 +144,7 @@ z = 0.5 * (bf - b ) / h
 cdepth <- seq(0,h,length=10) #channel
 fdepth <- seq(h+1, h*4 ,length=9) #floodplain
 
-Abf <- ((sw+b)/2)*h #channel cross-sect area @ bankfull
+Abf <- ((b + 2*z*depth+b)/2)*h #channel cross-sect area @ bankfull
 Pbf <- b + 2*h*sqrt(z**2 +1) #channel wetted perimeter @ bankfull
 
 #--Discharge Calculation Info:
