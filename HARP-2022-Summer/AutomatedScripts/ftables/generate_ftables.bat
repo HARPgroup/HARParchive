@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. hspf_config #Loads version-specific cbp variables
+
 riverseg_list=$1 #input a list of riversegments ?
 channel=$2
 scenario=$3
