@@ -499,6 +499,8 @@ if (imp_off == 0) {
   lines(hydrpd$Qout,col='blue')
   par(new = TRUE)
   
+  #Revert these changes (loop), the graphic could be expected even if 'meaningless'
+  #Have message be a part of the figure (main title of plot)
   ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
   if (ymx == 0) {
     print('No withdrawal or point source for this segment')
@@ -556,10 +558,11 @@ png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
 #ncol_comp <- which(colnames(hydrpd)==comp_var)
 #ncol_base <- which(colnames(hydrpd)==base_var)
-#Temporarily using cbind:
-df_comp <- as.data.frame(cbind(hydrpd$Qbaseline, hydrpd$Qout)) #For testing only 
+#Temporary alternative to cbind (unsuccessful):
+#df_comp <- as.data.frame(cbind(hydrpd$Qbaseline, hydrpd$Qout)) #For testing only 
 fdc_plot <- hydroTSM::fdc(
-  cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]), #this line is giving the first error
+  cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]), #this line is giving the first error, test with zoo
+  #Otherwise, may need to summarize data first, or sqldf
   # yat = c(0.10,1,5,10,25,100,400),
   # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
   yat = seq(round(min(hydrpd),0),round(max(hydrpd),0), by = 500),
