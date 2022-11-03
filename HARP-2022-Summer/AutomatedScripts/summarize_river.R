@@ -126,6 +126,10 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
+# Use window() instead 
+hydr_ts <- ts(hydr)
+hydr <- window(hydr_ts,start = pdstart,end = pdend)
+
 hydr <- with(hydr, hydr[(date >= sdate & date <= edate)]) #replaced filter()
 
 #Assumptions and placeholders columns 
