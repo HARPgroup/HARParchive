@@ -14,7 +14,7 @@ if [ ! -d $CBP_ROOT/input/param/river/$scenario/ftables] ; then mkdir $CBP_ROOT/
 
 
 # running the R script: 
-for %%i in ($riverseg_list) do
+for %%i in $riverseg_list do
  
  output_path= $CBP_ROOT/input/param/river/$scenario/ftables/%%i.ftable
  
