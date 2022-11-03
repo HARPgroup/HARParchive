@@ -12,9 +12,9 @@ ds$get_token(rest_pw)
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
-riverseg <- argst[1] 
-channel <- argst[2]
-path <- argst[3]
+riverseg <- as.character(argst[1]) 
+channel <- as.character(argst[2])
+path <- as.character(argst[3])
 
 #Testing: comment these out later
 #riverseg <- "OR1_7700_7980"
