@@ -56,14 +56,13 @@ hydr <- summarize_river_values(hydr)
 l90_Qout <- hydr[[2]][["l90_Qout"]]
 l90_year <- hydr[[2]][["l90_year"]]
 l30_Qout <- hydr[[2]][["l30_Qout"]]
-l30_year <- hydr[[2]][["l30_Qout"]]
+l30_year <- hydr[[2]][["l30_year"]]
 imp_off <- hydr[[2]][["imp_off"]]
 net_consumption_mgd <- hydr[[2]][["net_consumption_mgd"]]
 unmet_demand_mgd <- hydr[[2]][["unmet_demand_mgd"]]
 
 #transforming hydr to a data frame again
 hydr <- as.data.frame(hydr[[1]])
-
 
 # create a place to save an image if it does not exist
 # note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
@@ -414,8 +413,8 @@ if (imp_off == 0) {
   # l90 2 year
   # this has an impoundment.  Plot it up.
   # Now zoom in on critical drought period
-  pdstart = as.Date(paste0(l90_year,"-06-01") )
-  pdend = as.Date(paste0(l90_year, "-11-15") )
+  pdstart = as.IDate(paste0(l90_year,"-06-01"))
+  pdend = as.IDate(paste0(l90_year, "-11-15") )
   
   #Replaced filter()
   # hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
