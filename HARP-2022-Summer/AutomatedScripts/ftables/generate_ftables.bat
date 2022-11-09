@@ -25,7 +25,7 @@ for i in ${riverseg_list} ; do
  
 output_path="$CBP_ROOT/input/param/river/$scenario/$parameters/ftables/"
 
-Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R $i $channel $output_path
+#Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R $i $channel $output_path
 
 done
 
