@@ -5,7 +5,7 @@
 
 summarize_river_values <- function (hydr) {
   
-  #hydr <- as.data.frame(hydr)
+  hydr <- zoo(hydr, order.by = hydr$index)
   
   ### ANALYSIS
   ## water year:
@@ -26,7 +26,8 @@ summarize_river_values <- function (hydr) {
     flow_year_type <- 'calendar'
   }
   
-  hydr <- with(hydr, hydr[(date >= sdate & date <= edate),]) #replaced filter()
+  #hydr <- with(hydr, hydr[(date >= sdate & date <= edate),])
+  hydr <- window(hydr, start = sdate, end = edate)
   
   #Assumptions and placeholders columns 
   imp_off = 1
@@ -71,12 +72,7 @@ summarize_river_values <- function (hydr) {
   if (is.na(net_consumption_mgd)) {
     net_consumption_mgd = 0.0
   }
-  
-  # Qout, Q baseline
-  Qout <- mean(as.numeric(hydr$Qout))
 
-  hydr$Qbaseline <- hydr$Qout +
-    (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd ) * 1.547
   # alter calculation to account for pump store
   if (imp_off == 0) {
     if("impoundment_Qin" %in% cols) {
@@ -89,11 +85,9 @@ summarize_river_values <- function (hydr) {
   }
   
   # L90 and l30
-  Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
-  Qout_g2 <- data.frame(group2(Qout_zoo))
-  
-  Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
-  Qout_g2 <- data.frame(group2(Qout_zoo));
+  #Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
+  #Qout_g2 <- data.frame(group2(Qout_zoo));
+  Qout_g2 <- data.frame(group2(hydr$Qout));
   l90 <- Qout_g2["X90.Day.Min"];
   ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
   l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);

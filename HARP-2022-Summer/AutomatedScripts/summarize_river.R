@@ -14,6 +14,7 @@ suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
 #suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
+suppressPackageStartupMessages(library(hydroTSM))
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -24,7 +25,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only, final hydr csv with wd, demand, ps - Glenn
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
-# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/PL3_5250_0001_hydr.csv'
+# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -124,6 +125,10 @@ if (syear < (eyear - 2)) {
   edate <- as.Date(paste0(eyear,"-12-31"))
   flow_year_type <- 'calendar'
 }
+
+# Use window() instead 
+hydr_ts <- ts(hydr)
+hydr <- window(hydr_ts,start = pdstart,end = pdend)
 
 hydr <- with(hydr, hydr[(date >= sdate & date <= edate)]) #replaced filter()
 
