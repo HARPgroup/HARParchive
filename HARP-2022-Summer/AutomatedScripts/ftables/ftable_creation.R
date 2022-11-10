@@ -17,10 +17,10 @@ channel <- as.character(argst[2])
 path <- as.character(argst[3])
 
 #Testing: comment these out later
-#riverseg <- "OR1_7700_7980"
+riverseg <- "OR1_7700_7980"
 #riverseg <- "JL2_6850_6890"
-#channel<- '0. River Channel'
-#path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
+channel<- '0. River Channel'
+path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
 
 #----Pulling from VAHydro----
 rseg<- RomFeature$new(ds,list(
@@ -144,7 +144,7 @@ z = 0.5 * (bf - b ) / h
 cdepth <- seq(0,h,length=10) #channel
 fdepth <- seq(h+1, h*4 ,length=9) #floodplain
 
-Abf <- ((b + 2*z*depth+b)/2)*h #channel cross-sect area @ bankfull
+Abf <- ((b + 2*z*cdepth+b)/2)*h #channel cross-sect area @ bankfull
 Pbf <- b + 2*h*sqrt(z**2 +1) #channel wetted perimeter @ bankfull
 
 #--Discharge Calculation Info:
