@@ -15,6 +15,7 @@ suppressPackageStartupMessages(library(PearsonDS))
 #suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 suppressPackageStartupMessages(library(hydroTSM))
+suppressPackageStartupMessages(library(stats)) #for window()
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -107,6 +108,15 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(input_file_path)
 model_constant_hydr_path$save(TRUE)
 
+#Assumptions and placeholders columns 
+imp_off = 1
+hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
+
+hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
+hydr$wd_cumulative_mgd = hydr$wd_mgd  
+hydr$ps_cumulative_mgd = hydr$ps_mgd
+hydr$ps_nextdown_mgd = 0 
+
 ### ANALYSIS
 ## water year:
 
@@ -126,33 +136,14 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
-# Use window() instead 
-hydr_ts <- ts(hydr)
-hydr <- window(hydr_ts,start = pdstart,end = pdend)
+#Reverted back to using window(), which requires a ts or zoo:
+hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
+hydrz <- window(hydrz, start = sdate, end = edate)
 
-hydr <- with(hydr, hydr[(date >= sdate & date <= edate)]) #replaced filter()
-
-#Assumptions and placeholders columns 
-imp_off = 1
-hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
-
-hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
-hydr$wd_cumulative_mgd = hydr$wd_mgd  
-hydr$ps_cumulative_mgd = hydr$ps_mgd
-hydr$ps_nextdown_mgd = 0 
+#Converting hydr back to a regular df for manipulation 
+hydr <- fortify.zoo(hydrz)
 
 ## Primary Analysis on Qout, ps and wd:
-  # Qout
-  # Qbaseline
-  # wd_mgd
-  # ps_mgd
-  # wd_cumulative_mgd
-  # ps_cumulative_mgd
-  # ps_nextdown_mgd
-  # consumptive_use_frac
-  # daily_consumptive_use_frac
-  # net_consumption_mgd
-
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
 wd_imp_child_mgd <- mean(as.numeric(hydr$wd_imp_child_mgd) )
@@ -167,7 +158,6 @@ if (is.na(wd_cumulative_mgd)) {   # setting this to zero since it doesn't exist
   wd_cumulative_mgd = 0.0
 }
 
-# ps
 ps_mgd <- mean(as.numeric(hydr$ps_mgd) )
 #ps_mgd to be added to the hydr table using the conversion script,
 # after ps_afd is added to hydr using the join_col script 
@@ -191,8 +181,8 @@ if (is.na(net_consumption_mgd)) {
 # Qout, Q baseline
 Qout <- mean(as.numeric(hydr$Qout))
 
-hydr$Qbaseline <- hydr$Qout +
-  (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd ) * 1.547
+hydr$Qbaseline <- as.numeric(hydr$Qout) +
+  (as.numeric(hydr$wd_cumulative_mgd) - as.numeric(hydr$ps_cumulative_mgd)) * 1.547
 # alter calculation to account for pump store
 if (imp_off == 0) {
   if("impoundment_Qin" %in% cols) {
@@ -253,10 +243,7 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 # unmet_demand
 
 
-# L90 and l30
-Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
-Qout_g2 <- data.frame(group2(Qout_zoo))
-
+# L90 and l30 -- move this? 
 Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
 Qout_g2 <- data.frame(group2(Qout_zoo));
 l90 <- Qout_g2["X90.Day.Min"];
@@ -279,7 +266,7 @@ if (is.na(l30)) {
   l30_year = 0
 }
 
-# alf
+# alf -- Move this? 
 fn_iha_mlf <- function(zoots, targetmo) {
   modat <- group1(zoots,'water','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
   print(paste("Grabbing ", targetmo, " values ", sep=''))
@@ -288,7 +275,7 @@ fn_iha_mlf <- function(zoots, targetmo) {
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
 }
-Qout_wy_z <- zoo(hydr$Qout, order.by = hydr$date)
+Qout_wy_z <- zoo(hydr$Qout, order.by = hydr$date) # Can be removed when chunk is moved 
 alf <- fn_iha_mlf(Qout_wy_z,'August') #The median flow of the annual minumum flows in august 
 
 # Sept. 10%
@@ -310,7 +297,7 @@ fn_iha_7q10 <- function(zoots) {
   return(x7q10);
 }
 
-# Avg 7-day low flow over a year period
+# Avg 7-day low flow over a year period -- Move this? 
 x7q10 <- fn_iha_7q10(Qout_zoo)  
 
 # Unmet demand
