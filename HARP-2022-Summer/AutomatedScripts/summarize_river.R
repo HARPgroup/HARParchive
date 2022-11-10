@@ -243,10 +243,7 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 # unmet_demand
 
 
-# L90 and l30
-Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
-Qout_g2 <- data.frame(group2(Qout_zoo))
-
+# L90 and l30 -- move this? 
 Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
 Qout_g2 <- data.frame(group2(Qout_zoo));
 l90 <- Qout_g2["X90.Day.Min"];
@@ -269,7 +266,7 @@ if (is.na(l30)) {
   l30_year = 0
 }
 
-# alf
+# alf -- Move this? 
 fn_iha_mlf <- function(zoots, targetmo) {
   modat <- group1(zoots,'water','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
   print(paste("Grabbing ", targetmo, " values ", sep=''))
@@ -278,7 +275,7 @@ fn_iha_mlf <- function(zoots, targetmo) {
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
 }
-Qout_wy_z <- zoo(hydr$Qout, order.by = hydr$date)
+Qout_wy_z <- zoo(hydr$Qout, order.by = hydr$date) # Can be removed when chunk is moved 
 alf <- fn_iha_mlf(Qout_wy_z,'August') #The median flow of the annual minumum flows in august 
 
 # Sept. 10%
@@ -300,7 +297,7 @@ fn_iha_7q10 <- function(zoots) {
   return(x7q10);
 }
 
-# Avg 7-day low flow over a year period
+# Avg 7-day low flow over a year period -- Move this? 
 x7q10 <- fn_iha_7q10(Qout_zoo)  
 
 # Unmet demand
