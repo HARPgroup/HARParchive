@@ -17,10 +17,10 @@ channel <- as.character(argst[2])
 path <- as.character(argst[3])
 
 #Testing: comment these out later
-riverseg <- "OR1_7700_7980"
+#riverseg <- "OR1_7700_7980"
 #riverseg <- "JL2_6850_6890"
-channel<- '0. River Channel'
-path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
+#channel<- '0. River Channel'
+#path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
 
 #----Pulling from VAHydro----
 rseg<- RomFeature$new(ds,list(
