@@ -4,26 +4,26 @@
 
 riverseg_list=$1 #input a list of riversegments ?
 channel=$2
-scenario=$3
+scenario=$3 #subsheds
 
 cd /opt/model/p6/vadeq #or just run batch from this Dir.
 
-parameters=`cbp get_config vadeq_2021 river PARAMETERS`
-echo 'parameters:' $parameters
-
-# check the directory where ftables will be stored
-if [ ! -d $CBP_ROOT/input/param/river/$scenario ] ; then mkdir $CBP_ROOT/input/param/river/$scenario; fi
-if [ ! -d $CBP_ROOT/input/param/river/$scenario/$parameters ] ; then mkdir $CBP_ROOT/input/param/river/$scenario/$parameters; fi
-if [ ! -d $CBP_ROOT/input/param/river/$scenario/$parameters/ftables ] ; then mkdir $CBP_ROOT/input/param/river/$scenario/$parameters/ftables; fi
-
-echo 'CBP_ROOT:' $CBP_ROOT
+parameters=`cbp get_config $scenario river PARAMETERS`
 
 # running the R script: 
-for i in "${riverseg_list[@]}" do
+for i in ${riverseg_list} ; do
  
-output_path= $CBP_ROOT/input/param/river/$scenario/$parameters/ftables/$i.ftable
- 
-ftable= ($(Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R $i $channel $output_path))
-  
+  output_path="$CBP_ROOT/input/param/river/$parameters/ftables/"
+
+  Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
+
+  echo "${i}"
 done
 
+# for debugging purposes: 
+echo 'riversegs:' $riverseg_list
+echo 'channel:' $channel
+echo 'scenario:' $scenario
+echo 'parameters:' $parameters
+echo 'CBP_ROOT:' $CBP_ROOT
+echo 'ftable outputs:' $output_path

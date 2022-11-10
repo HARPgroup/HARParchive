@@ -5,7 +5,17 @@
 
 summarize_river_values <- function (hydr) {
   
-  #hydr <- as.data.frame(hydr)
+  if (is.logical(use_tz)) {
+    hydr$timestamp <- as.POSIXct(hydr$timestamp,origin="1984-01-01")
+  } else {
+    hydr$timestamp <- as.POSIXct(hydr$timestamp,origin="1984-01-01", tz = use_tz)
+  }
+  
+  hydr$timestamp <- as.POSIXct(hydr$timestamp,origin="1984-01-01")
+  
+  hydr$timestamp <- as.POSIXct(paste0(hydr$year,"-",hydr$month, "-", hydr$day, " ", hydr$hr, ":00:00")\,origin="1984-01-01")
+  
+  hydr <- zoo::zoo(hydr, order.by = hydr$timestamp)
   
   ### ANALYSIS
   ## water year:
@@ -26,7 +36,8 @@ summarize_river_values <- function (hydr) {
     flow_year_type <- 'calendar'
   }
   
-  hydr <- with(hydr, hydr[(date >= sdate & date <= edate),]) #replaced filter()
+  #hydr <- with(hydr, hydr[(date >= sdate & date <= edate),])
+  hydr <- window(hydr, start = sdate, end = edate)
   
   #Assumptions and placeholders columns 
   imp_off = 1
@@ -71,12 +82,7 @@ summarize_river_values <- function (hydr) {
   if (is.na(net_consumption_mgd)) {
     net_consumption_mgd = 0.0
   }
-  
-  # Qout, Q baseline
-  Qout <- mean(as.numeric(hydr$Qout))
 
-  hydr$Qbaseline <- hydr$Qout +
-    (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd ) * 1.547
   # alter calculation to account for pump store
   if (imp_off == 0) {
     if("impoundment_Qin" %in% cols) {
@@ -87,19 +93,15 @@ summarize_river_values <- function (hydr) {
         (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd) * 1.547
     }
   }
-
-  Qbaseline <- mean(as.numeric(hydr$Qbaseline) )
-  if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
-    Qbaseline = Qout +
-      (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
-  }
   
   # L90 and l30
-  Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
-  Qout_g2 <- data.frame(group2(Qout_zoo))
+  #Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
+  #Qout_g2 <- data.frame(group2(Qout_zoo));
   
-  Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
+  Qout_zoo <- hydr$Qout
+  
   Qout_g2 <- data.frame(group2(Qout_zoo));
+  
   l90 <- Qout_g2["X90.Day.Min"];
   ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
   l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);
