@@ -29,7 +29,6 @@ output_path="~/$scenario/$parameters/ftables/"
 Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
 
 echo "${i}"
-
 done
 
 # for debugging purposes: 
