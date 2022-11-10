@@ -5,7 +5,17 @@
 
 summarize_river_values <- function (hydr) {
   
-  hydr <- zoo(hydr, order.by = hydr$index)
+  if (is.logical(use_tz)) {
+    hydr$timestamp <- as.POSIXct(hydr$timestamp,origin="1984-01-01")
+  } else {
+    hydr$timestamp <- as.POSIXct(hydr$timestamp,origin="1984-01-01", tz = use_tz)
+  }
+  
+  hydr$timestamp <- as.POSIXct(hydr$timestamp,origin="1984-01-01")
+  
+  hydr$timestamp <- as.POSIXct(paste0(hydr$year,"-",hydr$month, "-", hydr$day, " ", hydr$hr, ":00:00")\,origin="1984-01-01")
+  
+  hydr <- zoo::zoo(hydr, order.by = hydr$timestamp)
   
   ### ANALYSIS
   ## water year:
@@ -87,7 +97,11 @@ summarize_river_values <- function (hydr) {
   # L90 and l30
   #Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
   #Qout_g2 <- data.frame(group2(Qout_zoo));
-  Qout_g2 <- data.frame(group2(hydr$Qout));
+  
+  Qout_zoo <- hydr$Qout
+  
+  Qout_g2 <- data.frame(group2(Qout_zoo));
+  
   l90 <- Qout_g2["X90.Day.Min"];
   ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
   l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);
