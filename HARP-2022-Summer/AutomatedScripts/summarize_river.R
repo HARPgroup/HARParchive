@@ -15,6 +15,7 @@ suppressPackageStartupMessages(library(PearsonDS))
 #suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 suppressPackageStartupMessages(library(hydroTSM))
+suppressPackageStartupMessages(library(stats)) #for window()
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -107,6 +108,15 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(input_file_path)
 model_constant_hydr_path$save(TRUE)
 
+#Assumptions and placeholders columns 
+imp_off = 1
+hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
+
+hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
+hydr$wd_cumulative_mgd = hydr$wd_mgd  
+hydr$ps_cumulative_mgd = hydr$ps_mgd
+hydr$ps_nextdown_mgd = 0 
+
 ### ANALYSIS
 ## water year:
 
@@ -126,29 +136,14 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
-hydr <- with(hydr, hydr[(date >= sdate & date <= edate)]) #replaced filter()
+#Reverted back to using window(), which requires a ts or zoo:
+hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
+hydrz <- window(hydrz, start = sdate, end = edate)
 
-#Assumptions and placeholders columns 
-imp_off = 1
-hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
-
-hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
-hydr$wd_cumulative_mgd = hydr$wd_mgd  
-hydr$ps_cumulative_mgd = hydr$ps_mgd
-hydr$ps_nextdown_mgd = 0 
+#Converting hydr back to a regular df for manipulation 
+hydr <- fortify.zoo(hydrz)
 
 ## Primary Analysis on Qout, ps and wd:
-  # Qout
-  # Qbaseline
-  # wd_mgd
-  # ps_mgd
-  # wd_cumulative_mgd
-  # ps_cumulative_mgd
-  # ps_nextdown_mgd
-  # consumptive_use_frac
-  # daily_consumptive_use_frac
-  # net_consumption_mgd
-
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
 wd_imp_child_mgd <- mean(as.numeric(hydr$wd_imp_child_mgd) )
@@ -163,7 +158,6 @@ if (is.na(wd_cumulative_mgd)) {   # setting this to zero since it doesn't exist
   wd_cumulative_mgd = 0.0
 }
 
-# ps
 ps_mgd <- mean(as.numeric(hydr$ps_mgd) )
 #ps_mgd to be added to the hydr table using the conversion script,
 # after ps_afd is added to hydr using the join_col script 
@@ -187,8 +181,8 @@ if (is.na(net_consumption_mgd)) {
 # Qout, Q baseline
 Qout <- mean(as.numeric(hydr$Qout))
 
-hydr$Qbaseline <- hydr$Qout +
-  (hydr$wd_cumulative_mgd - hydr$ps_cumulative_mgd ) * 1.547
+hydr$Qbaseline <- as.numeric(hydr$Qout) +
+  (as.numeric(hydr$wd_cumulative_mgd) - as.numeric(hydr$ps_cumulative_mgd)) * 1.547
 # alter calculation to account for pump store
 if (imp_off == 0) {
   if("impoundment_Qin" %in% cols) {
