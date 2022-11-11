@@ -157,11 +157,11 @@ hydr = aggregate(
   ),
   'mean')
 
-hydr <- window(hydrz, start = sdate, end = edate)
+hydr <- window(hydr, start = sdate, end = edate)
 #### Convert hydr to a zoo and keep it that way thorughout 
 
 #Convert hydr to numeric: mode(dat) <- 'numeric'
-mode(hydrz) <- 'numeric'
+mode(hydr) <- 'numeric'
 
 #hydr <- fortify.zoo(hydrz) #Want to be able to remove 
 
