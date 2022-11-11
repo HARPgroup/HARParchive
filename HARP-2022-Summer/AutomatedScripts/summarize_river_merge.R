@@ -147,11 +147,23 @@ if (syear < (eyear - 2)) {
 }
 
 #Reverted back to using window(), which requires a ts or zoo:
-hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
-hydrz <- window(hydrz, start = sdate, end = edate)
+hydr <- zoo(hydr, order.by = hydr$index) #Takes a little while
+hydr = aggregate(
+  hydr,
+  as.POSIXct(
+    format(
+      date(hydr), 
+      format='%Y/%m/%d UTC')
+  ),
+  'mean')
 
-#Converting hydr back to a regular df for manipulation 
-hydr <- fortify.zoo(hydrz)
+hydr <- window(hydrz, start = sdate, end = edate)
+#### Convert hydr to a zoo and keep it that way thorughout 
+
+#Convert hydr to numeric: mode(dat) <- 'numeric'
+mode(hydrz) <- 'numeric'
+
+#hydr <- fortify.zoo(hydrz) #Want to be able to remove 
 
 ## Primary Analysis on Qout, ps and wd:
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
@@ -202,7 +214,7 @@ if (imp_off == 0) {
   }
 }
 
-Qbaseline <- mean(as.numeric(hydr$Qbaseline) )
+Qbaseline <- mean(as.numeric(hydr$Qbaseline))
 if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
   Qbaseline = Qout +
     (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
@@ -227,7 +239,6 @@ if (is.na(daily_consumptive_use_frac)) {
 # barplot(wd_mgd ~ month, data=modat)
 # the creation of this barplot was commented out, do we include it??
 
-
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'net_consumption_mgd', net_consumption_mgd, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'wd_mgd', wd_mgd, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'wd_cumulative_mgd', wd_cumulative_mgd, ds)
@@ -239,22 +250,9 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'consumptive_use_frac', consumptive_use_frac, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'daily_consumptive_use_frac', daily_consumptive_use_frac, ds)
 
-
-
-## Secondary Analysis that require Zoo (IHA)
-# l90_Qout
-# l90_year
-# l30_Qout
-# l30_year
-# 7q10
-# ml8 (alf)
-# mne9_10 (sept_10) 
-# unmet_demand
-
-
 # L90 and l30 -- move this? 
-Qout_zoo <- zoo(as.numeric(hydr$Qout), order.by = hydr$index)
-Qout_g2 <- data.frame(group2(Qout_zoo)); #Fixed non-numeric arg.error by ensuring data is numeric before becoming zoo
+#Qout_zoo <- zoo(as.numeric(hydr$Qout), order.by = hydr$index)
+Qout_g2 <- data.frame(group2(hydr$Qout))
 l90 <- Qout_g2["X90.Day.Min"];
 ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
 l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);
@@ -275,7 +273,7 @@ if (is.na(l30)) {
   l30_year = 0
 }
 
-# alf -- Move this? 
+# alf
 fn_iha_mlf <- function(zoots, targetmo) {
   modat <- group1(zoots,'water','min')  # IHA function that calculates minimum monthly statistics for our data by water year	 
   print(paste("Grabbing ", targetmo, " values ", sep=''))
@@ -284,10 +282,10 @@ fn_iha_mlf <- function(zoots, targetmo) {
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
 }
-alf <- fn_iha_mlf(Qout_zoo,'August') #The median flow of the annual minumum flows in august 
+alf <- fn_iha_mlf(hydr$Qout,'August') #The median flow of the annual minumum flows in august 
 
 # Sept. 10%
-sept_flows <- subset(hydr, month = '9') #Changed to single = because month was non-numeric
+sept_flows <- subset(hydr, month == '9') 
 sept_10 <- as.numeric(round(quantile(as.numeric(sept_flows$Qout), 0.10),6)) # September 10th percentile value of Qout flows with quantile 
 
 fn_iha_7q10 <- function(zoots) {
@@ -306,7 +304,7 @@ fn_iha_7q10 <- function(zoots) {
 }
 
 # Avg 7-day low flow over a year period -- Move this? 
-x7q10 <- fn_iha_7q10(Qout_zoo)  
+x7q10 <- fn_iha_7q10(hydr$Qout)  
 
 # Unmet demand
 unmet_demand_mgd <- mean(as.numeric(hydr$unmet_demand_mgd)) #Need to add unmet_demand col to hydr
@@ -608,8 +606,8 @@ if (imp_off == 0) {
   #Replace with window()
   #hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
   
-  hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
-  hydrpd <- window(hydrz, start = pdstart, end = pdend)
+  #hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
+  hydrpd <- window(hydr, start = pdstart, end = pdend)
   
   fname <- paste(
     image_dir,
@@ -634,7 +632,7 @@ if (imp_off == 0) {
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
   ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)))
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim = c(0, 4100),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
@@ -648,9 +646,6 @@ if (imp_off == 0) {
   
   
   ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
-  if (ymx == 0) {
-    print('No withdrawal or point source for this segment')
-  } else {
     plot(
       hydrpd$wd_cumulative_mgd * 1.547,col='red',
       axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
@@ -658,12 +653,12 @@ if (imp_off == 0) {
     lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
     axis(side = 4)
     mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
+    #Add title to inform why graph is blank
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
     vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
-  }
   
-  hydrpd <- hydr #turns hydrpd back into a regular df
+  hydrpd <- hydr 
   fname <- paste(
     image_dir,
     paste0(
@@ -693,12 +688,14 @@ if (imp_off == 0) {
   #Revert these changes (loop), the graphic could be expected even if 'meaningless'
   #Have message be a part of the figure (main title of plot)
   ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
+  plot_label='WD and PS Timeseries'
   if (ymx == 0) {
-    print('No withdrawal or point source for this segment')
-  } else {  
-    plot(
+    plot_label='No withdrawal or point source for this segment'
+  }
+
+  plot(
       hydrpd$wd_cumulative_mgd * 1.547,col='red',
-      axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
+      axes=FALSE, xlab="", ylab="", ylim=c(0,ymx), main = plot_label
     )
     lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
     axis(side = 4)
@@ -706,7 +703,7 @@ if (imp_off == 0) {
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
     vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.flows.all', 0.0, ds)
-  }
+  
 }
 
 
@@ -743,21 +740,10 @@ furl <- paste(
 #var_df$comp_var <- hydrpd[comp_var]
 #colnames(var_df) <- c(base_var, comp_var)
 #^This was created to replace the cbind - Glenn
-
+hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
-#ncol_comp <- which(colnames(hydrpd)==comp_var)
-#ncol_base <- which(colnames(hydrpd)==base_var)
-#Temporary alternative to cbind (unsuccessful):
-#df_comp <- as.data.frame(cbind(hydrpd$Qbaseline, hydrpd$Qout)) #For testing only 
-comp_bind <- cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var], hydrpd$month, hydrpd$year)
-comp_bind[,1] <- as.numeric(comp_bind[,1])
-comp_bind[,2] <- as.numeric(comp_bind[,2])
-comp_bind[,3] <- as.numeric(comp_bind[,3])
-comp_bind[,4] <- as.numeric(comp_bind[,4])
-comp_bind <- aggregate(comp_bind, list(comp_bind$`hydrpd$month`, comp_bind$`hydrpd$year`), FUN = 'mean')
-hydrpd$Qout <- as.numeric(hydrpd$Qout)
-fdc_plot <- hydroTSM::fdc(comp_bind,
+fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
                           #this line is giving the first error, test with zoo
                           #Otherwise, may need to summarize data first, or sqldf
                           # yat = c(0.10,1,5,10,25,100,400),
@@ -782,12 +768,10 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.
 
 # RSEG Hydrograph (Drought Period)
 # Zoom in on critical drought period
-pdstart = as.Date(paste0(l90_year,"-06-01") )
-pdend = as.Date(paste0(l90_year, "-11-15") )
+pdstart = as.Date(paste0(l90_year,"-06-01"))
+pdend = as.Date(paste0(l90_year, "-11-15"))
 
-hydrz <- zoo(hydrpd, order.by = hydr$index) #Takes a little while
-hydrz <- window(hydrz, start = sdate, end = edate)
-hydrpd <- fortify.zoo(hydrz)
+hydrpd <- window(hydr, start = pdstart, end = pdend)
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
 
@@ -818,8 +802,8 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
-
-hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$date),
+hydrpd$index <- as.Date(paste0(hydrpd$year,'-',hydrpd$month,'-',hydrpd$day))
+hydrograph_dry <- plot(unlist(hydrpd[names(hydrpd)== base_var])~as.Date(hydrpd$index),
                        type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
                        ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
                        main = "Hydrograph: Dry Period",
@@ -827,14 +811,15 @@ hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.D
                        cex.axis=1.50,
                        cex.lab=1.50
 )
-#par(new = TRUE)
-#plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$Date),
-#     type = "l",col='brown3', lwd = 2, 
-#    axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
-#legend("topright",legend=legend_text,col=c("black","brown3"), 
-#       lty=c(2,1), lwd=c(1,2), cex=1.5)
-#dev.off()
 
+par(new = TRUE)
+plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$index),
+     type = "l",col='brown3', lwd = 2, 
+axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
+legend("topright",legend=legend_text,col=c("black","brown3"), 
+       lty=c(2,1), lwd=c(1,2), cex=1.5)
+dev.off()
+# Is this supposed to 
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.hydrograph_dry', 0.0, ds)
 ###############################################

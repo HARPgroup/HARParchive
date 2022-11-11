@@ -457,11 +457,7 @@ if (imp_off == 0) {
   
 #as.numeric() used often because data within zoo df is of class character   
   
-
-  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
-  if (ymx == 0) {
-    print('No withdrawal or point source for this segment')
-  } else {
+ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
     plot(
       hydrpd$wd_cumulative_mgd * 1.547,col='red',
       axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
@@ -504,9 +500,6 @@ if (imp_off == 0) {
   #Revert these changes (loop), the graphic could be expected even if 'meaningless'
   #Have message be a part of the figure (main title of plot)
   ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
-  if (ymx == 0) {
-    print('No withdrawal or point source for this segment')
-  } else {  
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
     axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
@@ -517,8 +510,7 @@ if (imp_off == 0) {
   dev.off()
   print(paste("Saved file: ", fname, "with URL", furl))
   # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.flows.all', 0.0, ds)
-  }
-}
+
 
 
 ###############################################
@@ -526,10 +518,6 @@ if (imp_off == 0) {
 ###############################################
 base_var <- "Qbaseline" #BASE VARIABLE USED IN FDCs AND HYDROGRAPHS
 comp_var <- "Qout" #VARIABLE TO COMPARE AGAINST BASE VARIABLE, DEFAULT Qout
-## ^^ Currently equal so comparison is pointless
-# FOR TESTING 
-# save_directory <- 'C:/Users/nrf46657/Desktop/GitHub/om/R/summarize'
-#hydrpd <- hydrdf
 fname <- paste(
   image_dir,
   paste0(
@@ -538,8 +526,7 @@ fname <- paste(
   ),
   sep = '/'
 )
-# FOR TESTING 
-# save_url <- save_directory
+
 furl <- paste(
   save_url,
   paste0(
@@ -548,13 +535,6 @@ furl <- paste(
   ),
   sep = '/'
 )
-
-# Glenn and Julia tested up to here 10/21/22
-
-#var_df <- as.data.frame(hydrpd[base_var], row.names = NULL)
-#var_df$comp_var <- hydrpd[comp_var]
-#colnames(var_df) <- c(base_var, comp_var)
-#^This was created to replace the cbind - Glenn
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
