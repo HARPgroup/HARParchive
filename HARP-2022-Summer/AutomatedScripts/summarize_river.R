@@ -182,7 +182,7 @@ if (is.na(net_consumption_mgd)) {
 Qout <- mean(as.numeric(hydr$Qout))
 
 hydr$Qbaseline <- as.numeric(hydr$Qout) +
-  (as.numeric(hydr$wd_cumulative_mgd) - as.numeric(hydr$ps_cumulative_mgd)) * 1.547
+  (as.numeric(hydr$wd_cumulative_mgd) - as.numeric(hydr$ps_cumulative_mgd)) * 1.547 #Moved to conversion script, can remove when ready
 # alter calculation to account for pump store
 if (imp_off == 0) {
   if("impoundment_Qin" %in% cols) {
