@@ -44,7 +44,7 @@ path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
 
-hydr <- fread("hydr_file_path")
+hydr <- fread(hydr_file_path)
 hydr <- as.data.frame(hydr)
 source("summarize_river_values.R")
   #need to run the source above
@@ -416,9 +416,11 @@ if (imp_off == 0) {
   pdstart = as.IDate(paste0(l90_year,"-06-01"))
   pdend = as.IDate(paste0(l90_year, "-11-15") )
   
-  #Replaced filter()
-  # hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
-  hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
+  #Replace with window()
+  #hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
+  
+  hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
+  hydrpd <- window(hydrz, start = pdstart, end = pdend)
   
   fname <- paste(
     image_dir,
@@ -441,22 +443,22 @@ if (imp_off == 0) {
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
-  ymx <- max(cbind(hydrpd$Qbaseline, hydrpd$Qout))
+  ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)))
   plot(
-    hydrpd$Qbaseline, ylim = c(0,ymx), xlim = c(0, 4100),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim = c(0, 4100),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
-  lines(hydrpd$Qout,col='blue')
+  lines(as.numeric(hydrpd$Qout,col='blue'))
   par(new = TRUE)
   # Because these are zoo timeseries, they will throw an error if you use a normal DF
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
   
-  
+#as.numeric() used often because data within zoo df is of class character   
   
 
-  ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
+  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
   if (ymx == 0) {
     print('No withdrawal or point source for this segment')
   } else {
@@ -472,7 +474,7 @@ if (imp_off == 0) {
     # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
   }
  
-  hydrpd <- hydr
+  hydrpd <- hydr #turns hydrpd back into a regular df
   fname <- paste(
     image_dir,
     paste0(
@@ -490,18 +492,18 @@ if (imp_off == 0) {
     sep = '/'
   )
   png(fname)
-  ymx <- max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout)))
+  ymx <- as.numeric(max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout))))
   plot(
-    hydrpd$Qbaseline, ylim = c(0,ymx),
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Model Flow Period",sdate,"to",edate)
   )
-  lines(hydrpd$Qout,col='blue')
+  lines(as.numeric(hydrpd$Qout,col='blue'))
   par(new = TRUE)
   
   #Revert these changes (loop), the graphic could be expected even if 'meaningless'
   #Have message be a part of the figure (main title of plot)
-  ymx <- max(cbind(hydrpd$wd_cumulative_mgd * 1.547, hydrpd$ps_cumulative_mgd * 1.547))
+  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
   if (ymx == 0) {
     print('No withdrawal or point source for this segment')
   } else {  
@@ -560,23 +562,32 @@ legend_text = c("Baseline Flow","Scenario Flow")
 #ncol_base <- which(colnames(hydrpd)==base_var)
 #Temporary alternative to cbind (unsuccessful):
 #df_comp <- as.data.frame(cbind(hydrpd$Qbaseline, hydrpd$Qout)) #For testing only 
-fdc_plot <- hydroTSM::fdc(
-  cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]), #this line is giving the first error, test with zoo
+comp_bind <- cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var], hydrpd$month, hydrpd$year)
+comp_bind[,1] <- as.numeric(comp_bind[,1])
+comp_bind[,2] <- as.numeric(comp_bind[,2])
+comp_bind[,3] <- as.numeric(comp_bind[,3])
+comp_bind[,4] <- as.numeric(comp_bind[,4])
+comp_bind <- aggregate(comp_bind, list(comp_bind$`hydrpd$month`, comp_bind$`hydrpd$year`), FUN = 'mean')
+hydrpd$Qout <- as.numeric(hydrpd$Qout)
+fdc_plot <- hydroTSM::fdc(comp_bind,
+  #this line is giving the first error, test with zoo
   #Otherwise, may need to summarize data first, or sqldf
   # yat = c(0.10,1,5,10,25,100,400),
   # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
-  yat = seq(round(min(hydrpd),0),round(max(hydrpd),0), by = 500),
+  yat = seq(round(min(hydrpd$Qout),0),round(max(hydrpd$Qout),0), by = 500),
   leg.txt = legend_text,
   main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
   ylab = "Flow (cfs)",
   # ylim=c(1.0, 5000),
-  ylim=c(min(hydrpd), max(hydrpd)),
+  ylim=c(min(hydrpd$Qout), max(hydrpd$Qout)),
   cex.main=1.75,
   cex.axis=1.50,
   leg.cex=2,
   cex.sub = 1.2
 )
 dev.off()
+#Takes forever... converting to monthly data and seeing how that changes time 
+
 
 print(paste("Saved file: ", fname, "with URL", furl))
 # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
@@ -586,10 +597,9 @@ print(paste("Saved file: ", fname, "with URL", furl))
 pdstart = as.Date(paste0(l90_year,"-06-01") )
 pdend = as.Date(paste0(l90_year, "-11-15") )
 
-#Replace filter()
-#hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
-hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
-
+hydrz <- zoo(hydrpd, order.by = hydr$index) #Takes a little while
+hydrz <- window(hydrz, start = sdate, end = edate)
+hydrpd <- fortify.zoo(hydrz)
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
 
@@ -621,7 +631,7 @@ ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
 
-hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$Date),
+hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$date),
                        type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
                        ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
                        main = "Hydrograph: Dry Period",

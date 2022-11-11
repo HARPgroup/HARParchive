@@ -182,7 +182,7 @@ if (is.na(net_consumption_mgd)) {
 Qout <- mean(as.numeric(hydr$Qout))
 
 hydr$Qbaseline <- as.numeric(hydr$Qout) +
-  (as.numeric(hydr$wd_cumulative_mgd) - as.numeric(hydr$ps_cumulative_mgd)) * 1.547
+  (as.numeric(hydr$wd_cumulative_mgd) - as.numeric(hydr$ps_cumulative_mgd)) * 1.547 #Moved to conversion script, can remove when ready
 # alter calculation to account for pump store
 if (imp_off == 0) {
   if("impoundment_Qin" %in% cols) {
@@ -200,11 +200,12 @@ if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
     (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
 }
 
-# Our Qout will equal Qbaseline, since we don't have cumulative wd/ps values
+#Adding unmet demand:
+hydr$unmet_demand_mgd = as.numeric(hydr$demand_mgd) - as.numeric(hydr$wd_mgd)
 
 # The total flow method of consumptive use calculation
 consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
-hydr$consumptive_use_frac <- 1.0 - (hydr$Qout / hydr$Qbaseline)
+hydr$consumptive_use_frac <- 1.0 - (as.numeric(hydr$Qout) / as.numeric(hydr$Qbaseline))
 # This method is more appropriate for impoundments that have long
 # periods of zero outflow... but the math is not consistent with elfgen
 daily_consumptive_use_frac <-  mean(as.numeric(hydr$consumptive_use_frac) )
@@ -244,8 +245,8 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 
 
 # L90 and l30 -- move this? 
-Qout_zoo <- zoo(hydr$Qout, order.by = hydr$index)
-Qout_g2 <- data.frame(group2(Qout_zoo));
+Qout_zoo <- zoo(as.numeric(hydr$Qout), order.by = hydr$index)
+Qout_g2 <- data.frame(group2(Qout_zoo)); #Fixed non-numeric arg.error by ensuring data is numeric before becoming zoo
 l90 <- Qout_g2["X90.Day.Min"];
 ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
 l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);
@@ -275,12 +276,11 @@ fn_iha_mlf <- function(zoots, targetmo) {
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
 }
-Qout_wy_z <- zoo(hydr$Qout, order.by = hydr$date) # Can be removed when chunk is moved 
-alf <- fn_iha_mlf(Qout_wy_z,'August') #The median flow of the annual minumum flows in august 
+alf <- fn_iha_mlf(Qout_zoo,'August') #The median flow of the annual minumum flows in august 
 
 # Sept. 10%
-sept_flows <- subset(hydr, month == '9')
-sept_10 <- as.numeric(round(quantile(sept_flows$Qout, 0.10),6)) # September 10th percentile value of Qout flows with quantile 
+sept_flows <- subset(hydr, month = '9') #Changed to single = because month was non-numeric
+sept_10 <- as.numeric(round(quantile(as.numeric(sept_flows$Qout), 0.10),6)) # September 10th percentile value of Qout flows with quantile 
 
 fn_iha_7q10 <- function(zoots) {
   g2 <- group2(zoots) 
@@ -301,7 +301,7 @@ fn_iha_7q10 <- function(zoots) {
 x7q10 <- fn_iha_7q10(Qout_zoo)  
 
 # Unmet demand
-unmet_demand_mgd <- mean(as.numeric(hydr$unmet_demand_mgd) )
+unmet_demand_mgd <- mean(as.numeric(hydr$unmet_demand_mgd)) #Need to add unmet_demand col to hydr
 if (is.na(unmet_demand_mgd)) {
   unmet_demand_mgd = 0.0
 }
