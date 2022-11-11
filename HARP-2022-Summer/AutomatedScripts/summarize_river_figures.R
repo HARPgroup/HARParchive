@@ -597,10 +597,9 @@ print(paste("Saved file: ", fname, "with URL", furl))
 pdstart = as.Date(paste0(l90_year,"-06-01") )
 pdend = as.Date(paste0(l90_year, "-11-15") )
 
-#Replace filter()
-#hydrpd <- hydr %>% filter(date > pdstart) %>% filter(date < pdend)
-hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
-
+hydrz <- zoo(hydrpd, order.by = hydr$index) #Takes a little while
+hydrz <- window(hydrz, start = sdate, end = edate)
+hydrpd <- fortify.zoo(hydrz)
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
 
@@ -632,7 +631,7 @@ ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
 
-hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$Date),
+hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$date),
                        type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
                        ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
                        main = "Hydrograph: Dry Period",
