@@ -282,7 +282,19 @@ fn_iha_mlf <- function(zoots, targetmo) {
   x <- quantile(g1vec, 0.5, na.rm = TRUE);
   return(as.numeric(x));
 }
-alf <- fn_iha_mlf(hydr$Qout,'August') #The median flow of the annual minumum flows in august 
+Qout_zoo <- zoo(hydr$Qout)
+alf <- fn_iha_mlf(Qout_zoo,'August') #The median flow of the annual minumum flows in august 
+
+#From original script:
+#alf_data <- data.frame(matrix(data = NA, nrow = length(dat$thisdate), ncol = 5))
+#colnames(alf_data) <- c('Qout', 'thisdate', 'year', 'month', 'day')
+#alf_data$Qout <- dat$Qout
+#alf_data$thisdate <- index(dat)
+#alf_data$year <- year(ymd(alf_data$thisdate))
+#alf_data$month <- month(ymd(alf_data$thisdate))
+#alf_data$day <- day(ymd(alf_data$thisdate))
+#zoo.alf_data <- zoo(alf_data$Qout, order.by = alf_data$thisdate)
+#alf <- fn_iha_mlf(zoo.alf_data,'August')
 
 # Sept. 10%
 sept_flows <- subset(hydr, month == '9') 
