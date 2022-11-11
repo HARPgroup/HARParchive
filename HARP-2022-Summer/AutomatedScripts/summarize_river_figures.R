@@ -44,7 +44,7 @@ path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
 
-hydr <- fread("hydr_file_path")
+hydr <- fread(hydr_file_path)
 hydr <- as.data.frame(hydr)
 source("summarize_river_values.R")
   #need to run the source above
