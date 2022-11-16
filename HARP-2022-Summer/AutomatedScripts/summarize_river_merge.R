@@ -146,24 +146,17 @@ if (syear < (eyear - 2)) {
   flow_year_type <- 'calendar'
 }
 
+#Converting to daily data for use in IHA metrics and faster plotting 
+hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') 
+
 #Reverted back to using window(), which requires a ts or zoo:
 hydr <- zoo(hydr, order.by = hydr$index) #Takes a little while
-hydr = aggregate(
-  hydr,
-  as.POSIXct(
-    format(
-      date(hydr), 
-      format='%Y/%m/%d UTC')
-  ),
-  'mean')
 
+#Convert hydr to a zoo and keep it that way throughout
 hydr <- window(hydr, start = sdate, end = edate)
-#### Convert hydr to a zoo and keep it that way thorughout 
 
-#Convert hydr to numeric: mode(dat) <- 'numeric'
+#Convert hydr to numeric
 mode(hydr) <- 'numeric'
-
-#hydr <- fortify.zoo(hydrz) #Want to be able to remove 
 
 ## Primary Analysis on Qout, ps and wd:
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
@@ -772,8 +765,6 @@ fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(h
                           cex.sub = 1.2
 )
 dev.off()
-#Takes forever... converting to monthly data and seeing how that changes time 
-
 
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
