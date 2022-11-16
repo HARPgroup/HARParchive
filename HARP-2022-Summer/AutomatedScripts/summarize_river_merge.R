@@ -155,9 +155,10 @@ hydr <- zoo(hydr, order.by = hydr$index) #Takes a little while
 #Convert hydr to a zoo and keep it that way throughout
 hydr <- window(hydr, start = sdate, end = edate)
 
+index <- hydr$index
 #Convert hydr to numeric
 mode(hydr) <- 'numeric'
-
+hydr$index <- index
 ## Primary Analysis on Qout, ps and wd:
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
