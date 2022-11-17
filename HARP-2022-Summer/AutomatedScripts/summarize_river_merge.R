@@ -147,10 +147,10 @@ if (syear < (eyear - 2)) {
 }
 
 #Converting to daily data for use in IHA metrics and faster plotting 
-hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') 
+hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') #Adds 'Group.1' col of class date
 
 #Reverted back to using window(), which requires a ts or zoo:
-hydr <- zoo(hydr, order.by = hydr$date) #Takes a little while
+hydr <- zoo(hydr, order.by = hydr$Group.1) #Takes a little while
 
 #Convert hydr to a zoo and keep it that way throughout
 hydr <- window(hydr, start = sdate, end = edate)
