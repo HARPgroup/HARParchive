@@ -150,7 +150,7 @@ if (syear < (eyear - 2)) {
 hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') 
 
 #Reverted back to using window(), which requires a ts or zoo:
-hydr <- zoo(hydr, order.by = hydr$index) #Takes a little while
+hydr <- zoo(hydr, order.by = hydr$date) #Takes a little while
 
 #Convert hydr to a zoo and keep it that way throughout
 hydr <- window(hydr, start = sdate, end = edate)
