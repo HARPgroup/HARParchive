@@ -21,7 +21,8 @@ omsite = "http://deq1.bse.vt.edu:81"
 
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
-# hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only, final hydr csv with wd, demand, ps - Glenn
+# hydr <- fread("OR1_7700_7980_hydr.csv") # no wd or ps 
+# hydr <- fread("JL1_6770_6850_hydr.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
@@ -701,8 +702,7 @@ if (imp_off == 0) {
 
   plot(
       hydrpd$wd_cumulative_mgd * 1.547,col='red',
-      axes=FALSE, xlab="", ylab="", ylim=c(0,ymx), main = plot_label
-    )
+      xlab="", ylab="", ylim=c(0,ymx), main = plot_label)
     lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
     axis(side = 4)
     mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
@@ -835,12 +835,13 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.
 ###############################################
 #GET RSEG HYDROID FROM RSEG MODEL PID
 #rseg <-getProperty(list(pid=pid), site)
+
 #Retrieving pid of model because it is missing: 
-pid <- model$pid #Verify this is the correct pid that is wanted
-rseg <- RomProperty$new(ds, list(pid=pid), TRUE)
+
+rseg <- RomProperty$new(ds, list(pid=model$pid), TRUE)
 rseg_hydroid<-rseg$featureid
 
 huc_level <- 'huc8'
 Dataset <- 'VAHydro-EDAS'
 
-#elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, scenprop, ds, image_dir, save_url, site)
+elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, scenprop, ds, image_dir, save_url, site)
