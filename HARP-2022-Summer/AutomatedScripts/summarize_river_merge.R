@@ -147,18 +147,18 @@ if (syear < (eyear - 2)) {
 }
 
 #Converting to daily data for use in IHA metrics and faster plotting 
-hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') 
+hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') #Adds 'Group.1' col of class date
 
 #Reverted back to using window(), which requires a ts or zoo:
-hydr <- zoo(hydr, order.by = hydr$index) #Takes a little while
+hydr <- zoo(hydr, order.by = as.Date(hydr$Group.1)) 
 
 #Convert hydr to a zoo and keep it that way throughout
 hydr <- window(hydr, start = sdate, end = edate)
 
-index <- hydr$index
+#index <- hydr$index
 #Convert hydr to numeric
 mode(hydr) <- 'numeric'
-hydr$index <- index
+#hydr$index <- index #replaced NAs in index caused by numeric conversion, but this broke Group2 IHA function 
 ## Primary Analysis on Qout, ps and wd:
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
@@ -246,7 +246,7 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 
 # L90 and l30 -- move this? 
 #Qout_zoo <- zoo(as.numeric(hydr$Qout), order.by = hydr$index)
-Qout_g2 <- data.frame(group2(hydr$Qout))
+Qout_g2 <- data.frame(group2(hydr$Qout)) #doesn't work when index of hydr is non-numeric 
 l90 <- Qout_g2["X90.Day.Min"];
 ndx = which.min(as.numeric(l90[,"X90.Day.Min"]));
 l90_Qout = round(Qout_g2[ndx,]$"X90.Day.Min",6);
@@ -835,6 +835,8 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.
 ###############################################
 #GET RSEG HYDROID FROM RSEG MODEL PID
 #rseg <-getProperty(list(pid=pid), site)
+#Retrieving pid of model because it is missing: 
+pid <- model$pid #Verify this is the correct pid that is wanted
 rseg <- RomProperty$new(ds, list(pid=pid), TRUE)
 rseg_hydroid<-rseg$featureid
 
