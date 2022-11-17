@@ -835,6 +835,8 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.
 ###############################################
 #GET RSEG HYDROID FROM RSEG MODEL PID
 #rseg <-getProperty(list(pid=pid), site)
+#Retrieving pid of model because it is missing: 
+pid <- model$pid #Verify this is the correct pid that is wanted
 rseg <- RomProperty$new(ds, list(pid=pid), TRUE)
 rseg_hydroid<-rseg$featureid
 
