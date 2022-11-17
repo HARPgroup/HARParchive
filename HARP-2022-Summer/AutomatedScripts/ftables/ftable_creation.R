@@ -16,70 +16,89 @@ riverseg <- as.character(argst[1])
 channel <- as.character(argst[2])
 path <- as.character(argst[3])
 
-#Testing: comment these out later
+#TESTING: comment these out later!
 #riverseg <- "OR1_7700_7980"
 #riverseg <- "JL2_6850_6890"
+riverseg <- 'subsheds'
 #channel<- '0. River Channel'
 #path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
+#rsegs_hydrocode_df <- c('vahydrosw_wshed_JL2_6850_6890','vahydrosw_wshed_OR1_7700_7980')
 
-#----Pulling from VAHydro----
-rseg<- RomFeature$new(ds,list(
-    hydrocode= paste("vahydrosw_wshed",riverseg,sep = "_"), 
+#----Get Hydrocodes: List All or Singular----
+if (riverseg=='subsheds'){
+  # retrieve all vahydro rseg features (this method is optimal b/c it allows retrieval of >100 records)
+  rsegs <- RomFeature$new(ds,list(ftype='vahydro',bundle='watershed'),TRUE)
+  
+  # generate dataframe of rseg hydrocodes
+  rsegs_hydrocode_df <- data.frame("hydrocode"=character(),stringsAsFactors=FALSE)
+  for (i in 1:length(rsegs$hydrocode)){
+    rsegs_hydrocode_df <- rbind(rsegs_hydrocode_df,rsegs$hydrocode[i])
+  }
+  subsheds_hydrocodes <- subset(rsegs_hydrocode_df, nchar(rsegs_hydrocode_df)>29)
+  
+} else {
+  rsegs_hydrocode_df <- paste("vahydrosw_wshed",riverseg,sep = "_")
+}
+
+#----FTABLE Generation for Each----
+for (i in rsegs_hydrocode_df) { #loop goes all the way to end
+  #----Pulling from VAHydro----
+  rseg<- RomFeature$new(ds,list(
+    hydrocode= i, 
     ftype='vahydro',
     bundle='watershed'), 
-  TRUE)
-
-model <- RomProperty$new(ds,list(
+    TRUE)
+  
+  model <- RomProperty$new(ds,list(
     varkey="om_water_model_node",
     featureid=rseg$hydroid,
     entity_type="dh_feature", 
     propcode="vahydro-1.0"), 
   TRUE)
 
-channel_prop <- RomProperty$new(ds,list(
+  channel_prop <- RomProperty$new(ds,list(
     #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
     featureid=model$pid,
     entity_type='dh_properties',
     propname = channel),
   TRUE)
 
-drainage_area <- RomProperty$new(channel_prop[["datasource"]],list(
+  drainage_area <- RomProperty$new(channel_prop[["datasource"]],list(
     varkey="om_class_Constant",
     featureid=channel_prop$pid,
     entity_type='dh_properties',
     propname='drainage_area'),
   TRUE)
-da <- drainage_area$propvalue
-
-
-province <- RomProperty$new(channel_prop[["datasource"]],list(
+  da <- drainage_area$propvalue
+  
+  
+  province <- RomProperty$new(channel_prop[["datasource"]],list(
     varkey="om_class_Constant",
     featureid=channel_prop$pid,
     entity_type='dh_properties',
     propname='province'),
   TRUE)
-prov <- province$propvalue
+  prov <- province$propvalue
 
 
-length <- RomProperty$new(channel_prop[["datasource"]],list(
+  length <- RomProperty$new(channel_prop[["datasource"]],list(
     varkey="om_class_Constant",
     featureid=channel_prop$pid,
     entity_type='dh_properties',
     propname='length'),
   TRUE)
-clength <- length$propvalue #channel length
+  clength <- length$propvalue #channel length
 
 
-slope <- RomProperty$new(channel_prop[["datasource"]],list(
+  slope <- RomProperty$new(channel_prop[["datasource"]],list(
     varkey="om_class_Constant",
     featureid=channel_prop$pid,
     entity_type='dh_properties',
     propname='slope'),
   TRUE)
-cslope <-  slope$propvalue #longitudinal channel slope
+  cslope <-  slope$propvalue #longitudinal channel slope
 
-
-#----Provincial Channel Geometry----
+  #----Provincial Channel Geometry----
 if (prov == 1){
   #Appalachian Plateau
   hc = 2.030 # "c" = coefficient for regional regression eqn
@@ -139,7 +158,7 @@ b = bc * (da**be)
 z = 0.5 * (bf - b ) / h
 
 
-#----Calculating FTABLE----
+  #----Calculating FTABLE----
 #depth
 cdepth <- seq(0,h,length=10) #channel
 fdepth <- seq(h+1, h*4 ,length=9) #floodplain
@@ -178,7 +197,7 @@ fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE
 
 ftable <- rbind(cftab, fptab)
 
-#----Exporting----
+  #----Exporting----
 #format data:
 DEPTH <- sprintf("%10.3f", ftable$depth) # %Space_per_num.num_of_decimal_placesf
 AREA <- sprintf("%9.3f", ftable$area)
@@ -188,9 +207,11 @@ DISCH <- sprintf("%9.2f", ftable$disch)
 ftable_formatted <- data.frame(DEPTH,AREA,VOLUME,DISCH)
 
 #format header:
-file <- paste(path, riverseg, '.ftable', sep='')
-riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
-header1 <- paste(sprintf("%-8s %4s","FTABLE",riverseg_pieces[2])) # "-" = left-aligned text
+riverseg_i <- as.vector(str_split(i, "_", n = Inf, simplify = TRUE))
+
+file <- paste(path, paste(riverseg_i[3],riverseg_i[4],riverseg_i[5],sep='_'), '.ftable', sep='')
+#riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
+header1 <- paste(sprintf("%-8s %4s","FTABLE",riverseg_i[4])) # "-" = left-aligned text
 header2 <- paste("NOTE: FLOODPLAIN BASE = 5*BANKFULL WIDTH ***")
 header3 <- paste(sprintf("%5s %s","", "FLOODPLAIN SIDE-SLOPE = SAME AS CHANNEL'S ***"))
 header4 <- paste(" ROWS COLS ***")
@@ -209,3 +230,5 @@ uci_form <- write.table(ftable_formatted,
                         col.names = FALSE)
 #footer
 cat(paste("  END FTABLE"), file=file, append=TRUE)
+
+} #end of loop

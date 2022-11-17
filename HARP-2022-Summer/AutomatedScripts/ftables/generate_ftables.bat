@@ -26,4 +26,4 @@ echo 'channel:' $channel
 echo 'scenario:' $scenario
 echo 'parameters:' $parameters
 echo 'CBP_ROOT:' $CBP_ROOT
-echo 'ftable outputs:' $output_path
+echo 'ftable outputs here:' $output_path
