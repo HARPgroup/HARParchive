@@ -51,3 +51,46 @@ hydr$Qbaseline <- hydr$Qout + (hydr$wd_mgd - hydr$ps_mgd)*1.5472
 write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
 #write.table(divr,file = divr_file_path, sep = ",", row.names = FALSE)
 #write.table(ps_flow,file = ps_file_path, sep = ",", row.names = FALSE)
+
+
+## Creating a DAILY dataset for analysis:
+
+# syear = as.integer(min(hydr$year))
+# eyear = as.integer(max(hydr$year))
+# model_run_start <- min(hydr$date)   
+# model_run_end <- max(hydr$date)
+# years <- seq(syear,eyear)
+# 
+# if (syear < (eyear - 2)) {
+#   sdate <- as.Date(paste0(syear,"-10-01"))
+#   edate <- as.Date(paste0((eyear-1),"-09-30")) 
+#   flow_year_type <- 'water'
+# } else {
+#   sdate <- as.Date(paste0(syear,"-02-01"))
+#   edate <- as.Date(paste0(eyear,"-12-31"))
+#   flow_year_type <- 'calendar'
+# }
+# 
+# #Reverted back to using window(), which requires a ts or zoo:
+# hydr <- zoo(hydr, order.by = hydr$index) #Takes a little while
+# hydr = aggregate(
+#   hydr,
+#   as.POSIXct(
+#     format(
+#       date(hydr), 
+#       format='%Y/%m/%d UTC')
+#   ),
+#   'mean')
+# 
+# hydr <- window(hydr, start = sdate, end = edate)
+# #### Convert hydr to a zoo and keep it that way thorughout 
+# 
+# #Convert hydr to numeric: mode(dat) <- 'numeric'
+# mode(hydr) <- 'numeric'
+# 
+# file_text = paste(hydr_file_path)
+# split <- strsplit(file_text, split = "_")
+# name <- paste0(split[[1]][[1]],"_",split[[1]][[2]],"_",split[[1]][[3]],"_",
+#                "daily","_",split[[1]][[4]], collapse = ",")
+# 
+# write.table(hydr, file = name, sep = ",", row.names = FALSE)
