@@ -35,9 +35,9 @@ seg <- paste(segment[1], segment[2], segment[3], sep = '_')
 split_list <- as.list(split)
 length <- (length(split_list[[1]]) - 1)
 daily <- split_list[[1]][(2:length)]
-daily_path <- paste0('/',daily[1], '/',daily[2],'/',daily[3],'/',daily[4],'/',daily[5],
-                     '/',daily[6],'/',daily[7],'/',seg,'_hydrd.csv')
-#^Try and find a way to generate this path without writing the whole thing out 
+#More robust method of creating daily path:
+daily_path1 <- paste(daily, collapse= '/')
+daily_path <- paste0('/', daily_path1, '/', seg, '_hydrd.csv')
 
 hydr <- fread(hydr_file_path)
 #divr <- fread(divr_file_path) # divr in units of cfs
