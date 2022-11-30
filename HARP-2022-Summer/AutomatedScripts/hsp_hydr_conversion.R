@@ -15,7 +15,6 @@ suppressPackageStartupMessages(library(stringr))
 #setwd("/Users/VT_SA/Documents/HARP") # for testing only (Julia)
 #hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only 
 #divr <- fread("OR1_7700_7980_divr.csv") # for testing only
-#ps_flow <- fread("OR1_7700_7980_psflow.csv") # for testing only
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -26,14 +25,6 @@ hydr_file_path <- argst[1]
 #hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
 
 hydr <- fread(hydr_file_path)
-#divr <- fread(divr_file_path) # divr in units of cfs
-#ps_flow <- fread(ps_file_path) # ps in units of ac-ft/hr
-origin <- "1970-01-01"
-hydr$date <- as.Date(hydr$index, format = "%m/%d/%Y %H:%M", origin = origin)
-hydr$hour <- hour(hydr$index)
-hydr$day <- day(hydr$index)
-hydr$month <- month(hydr$index)
-hydr$year <- year(hydr$index)
 
 # Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
 hydr$Qout <- hydr$OVOL3*12.1 #Qout in units of cfs
