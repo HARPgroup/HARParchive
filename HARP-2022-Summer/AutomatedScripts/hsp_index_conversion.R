@@ -3,6 +3,7 @@ suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(lubridate))
 suppressPackageStartupMessages(library(R.utils))
 
+argst <- commandArgs(trailingOnly = T)
 hydr_file_path <- argst[1]
 
 hydr <- fread(hydr_file_path)
