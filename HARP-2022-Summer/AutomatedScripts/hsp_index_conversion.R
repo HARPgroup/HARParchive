@@ -1,6 +1,7 @@
 #Adds columns for year, month, day, and hour to a csv with an 'index' column
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(R.utils))
 
 hydr_file_path <- argst[1]
 
