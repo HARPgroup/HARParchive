@@ -1,10 +1,7 @@
-### This is copied from waterSupplyModelNode.R and is all the code needed for plotting figures
-### and pushing them to VAHydro
+# Graph generation from the values generated in summarize_river.R
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
-#save_directory <- "/var/www/html/data/proj3/out" 
-# ^want this to correspond to our image directory path
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
@@ -14,21 +11,21 @@ suppressPackageStartupMessages(library(caTools))
 suppressPackageStartupMessages(library(RColorBrewer))
 suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
-#suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
 suppressPackageStartupMessages(library(hydroTSM))
+suppressPackageStartupMessages(library(stats)) #for window()
+suppressPackageStartupMessages(library(jsonlite)) #for extracting values as json
+
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
 
-
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
-# hydr <- fread("OR1_7700_7980_hydr.csv")
+# hydr <- fread("OR1_7700_7980_hydr.csv") # no wd or ps 
+# hydr <- fread("JL1_6770_6850_hydr.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
+# scenario_name <- 'hsp2_2022'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
-# scenario_name <- 'hsp_2022'
-# model_version <- 'cbp-5.3.2'
-# source("/Users/VT_SA/Documents/GitHUB/HARParchive/HARP-2022-Summer/AutomatedScripts/summarize_river_values.R") #testing
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
@@ -37,32 +34,11 @@ scenario_name <- argst[2]
 hydr_file_path <- argst[3]
 model_version <- argst[4]
 image_dir <- argst[5]
-#image_dir <- '/media/model/p532/out/river/hsp2_2022/images' #for testing
 
 split <- strsplit(image_dir, split = "/")
 path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
 path_string_m2 <- paste(path_list_m2, collapse = "/")
 save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
-
-hydr <- fread(hydr_file_path)
-hydr <- as.data.frame(hydr)
-source("summarize_river_values.R")
-  #need to run the source above
-  #have to check if it will find the Rscript in HARParhive automatically or not
-  #NOTE: when making changes to the function, have to run the source again to activate the changes
-hydr <- summarize_river_values(hydr)
-
-#setting the values out of the list
-l90_Qout <- hydr[[2]][["l90_Qout"]]
-l90_year <- hydr[[2]][["l90_year"]]
-l30_Qout <- hydr[[2]][["l30_Qout"]]
-l30_year <- hydr[[2]][["l30_year"]]
-imp_off <- hydr[[2]][["imp_off"]]
-net_consumption_mgd <- hydr[[2]][["net_consumption_mgd"]]
-unmet_demand_mgd <- hydr[[2]][["unmet_demand_mgd"]]
-
-#transforming hydr to a data frame again
-hydr <- as.data.frame(hydr[[1]])
 
 # create a place to save an image if it does not exist
 # note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
@@ -71,6 +47,22 @@ if (!file.exists(image_dir)) {
   dir.create(file.path(image_dir)) #creates directory if one does not yet exists
 }
 
+
+# Calling in the data from summarize_values.R from the temp directory
+# the data is in a json format txt file
+
+hydr <- unserializeJSON(summarize_values.txt)
+
+# extract the data from the list
+l90_year <- unlist(hydr[[2]][[1]])
+imp_off <- unlist(hydr[[2]][[2]])
+hydr <- unlist(hydr[[1]])
+
+# This removes the hydr file from the end of the hydr_file_path, so that later
+# we can use input_file_path in order to post it on VAhydro
+file_path_text = paste(hydr_file_path)
+split <- strsplit(file_path_text, split = "/")
+input_file_path <- gsub(split[[1]][[9]],'',file_path_text)
 
 ### Exporting to VAHydro
 ## Set up currently to output all the Qout values & the Qout
@@ -168,19 +160,19 @@ if (imp_off == 0) {
     }
     
     # post em up
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'usable_pct_p0', usable_pct_p0, ds)
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'usable_pct_p10', usable_pct_p10, ds)
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'usable_pct_p50', usable_pct_p50, ds)
-    # 
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'remaining_days_p0', remaining_days_p0, ds)
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'remaining_days_p10', remaining_days_p10, ds)
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'remaining_days_p50', remaining_days_p50, ds)
-    # 
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'usable_pct_p0', usable_pct_p0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'usable_pct_p10', usable_pct_p10, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'usable_pct_p50', usable_pct_p50, ds)
+    
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'remaining_days_p0', remaining_days_p0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'remaining_days_p10', remaining_days_p10, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'remaining_days_p50', remaining_days_p50, ds)
+    
     # this has an impoundment.  Plot it up.
     # Now zoom in on critical drought period
     pdstart = as.Date(paste0(l90_year,"-06-01") )
     pdend = as.Date(paste0(l90_year, "-11-15") )
-
+    
     hydrpd <- window(
       hydr,
       start = pdstart,
@@ -225,7 +217,7 @@ if (imp_off == 0) {
            bg='white',cex=0.8) #ADD LEGEND
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_imp_storage', 0.0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_imp_storage', 0.0, ds)
     
     # l90 2 year
     # this has an impoundment.  Plot it up.
@@ -275,7 +267,7 @@ if (imp_off == 0) {
            bg='white',cex=0.8) #ADD LEGEND
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_imp_storage.2yr', 0.0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_imp_storage.2yr', 0.0, ds)
     
     # All Periods
     # this has an impoundment.  Plot it up.
@@ -302,7 +294,7 @@ if (imp_off == 0) {
     hydroTSM::fdc(cbind(hydrpd$impoundment_Qin, hydrpd$impoundment_Qout),ylab="Q (cfs)")
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc.all.', 0.0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc.all.', 0.0, ds)
     
     
     # Full period inflow/outflow, res level
@@ -344,7 +336,7 @@ if (imp_off == 0) {
            bg='white',cex=0.8) #ADD LEGEND
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.imp_storage.all', 0.0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.imp_storage.all', 0.0, ds)
     
     # Low Elevation Period
     # hydr for Critical Period
@@ -401,12 +393,12 @@ if (imp_off == 0) {
            bg='white',cex=0.8) #ADD LEGEND
     dev.off()
     print(paste("Saved file: ", fname, "with URL", furl))
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'elev90_imp_storage.all', 0.0, ds)
+    vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'elev90_imp_storage.all', 0.0, ds)
     
   }
 } else {
-
-## End of the if-loop; this is what we will plot since imp_off is 1!!!!!!!!!!  
+  
+  ## End of the if-loop; this is what we will plot since imp_off is 1!!!!!!!!!!  
   
   # plot Qin, Qout of mainstem, and wd_mgd, and wd_cumulative_mgd
   # TBD
@@ -419,8 +411,8 @@ if (imp_off == 0) {
   #Replace with window()
   #hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
   
-  hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
-  hydrpd <- window(hydrz, start = pdstart, end = pdend)
+  #hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
+  hydrpd <- window(hydr, start = pdstart, end = pdend)
   
   fname <- paste(
     image_dir,
@@ -445,7 +437,7 @@ if (imp_off == 0) {
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
   ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)))
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim = c(0, 4100),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
@@ -455,22 +447,23 @@ if (imp_off == 0) {
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
   
-#as.numeric() used often because data within zoo df is of class character   
+  #as.numeric() used often because data within zoo df is of class character   
   
-ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
-    plot(
-      hydrpd$wd_cumulative_mgd * 1.547,col='red',
-      axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
-    )
-    lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
-    axis(side = 4)
-    mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
-    dev.off()
-    print(paste("Saved file: ", fname, "with URL", furl))
-    # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
-  }
- 
-  hydrpd <- hydr #turns hydrpd back into a regular df
+  
+  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
+  plot(
+    hydrpd$wd_cumulative_mgd * 1.547,col='red',
+    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
+  )
+  lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
+  axis(side = 4)
+  mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
+  #Add title to inform why graph is blank
+  dev.off()
+  print(paste("Saved file: ", fname, "with URL", furl))
+  vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
+  
+  hydrpd <- hydr 
   fname <- paste(
     image_dir,
     paste0(
@@ -500,17 +493,22 @@ ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd
   #Revert these changes (loop), the graphic could be expected even if 'meaningless'
   #Have message be a part of the figure (main title of plot)
   ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
+  plot_label='WD and PS Timeseries'
+  if (ymx == 0) {
+    plot_label='No withdrawal or point source for this segment'
+  }
+  
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
-  )
+    xlab="", ylab="", ylim=c(0,ymx), main = plot_label)
   lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
   dev.off()
   print(paste("Saved file: ", fname, "with URL", furl))
-  # vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.flows.all', 0.0, ds)
-
+  vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.flows.all', 0.0, ds)
+  
+}
 
 
 ###############################################
@@ -518,6 +516,10 @@ ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd
 ###############################################
 base_var <- "Qbaseline" #BASE VARIABLE USED IN FDCs AND HYDROGRAPHS
 comp_var <- "Qout" #VARIABLE TO COMPARE AGAINST BASE VARIABLE, DEFAULT Qout
+## ^^ Currently equal so comparison is pointless
+# FOR TESTING 
+# save_directory <- 'C:/Users/nrf46657/Desktop/GitHub/om/R/summarize'
+#hydrpd <- hydrdf
 fname <- paste(
   image_dir,
   paste0(
@@ -526,7 +528,8 @@ fname <- paste(
   ),
   sep = '/'
 )
-
+# FOR TESTING 
+# save_url <- save_directory
 furl <- paste(
   save_url,
   paste0(
@@ -536,50 +539,41 @@ furl <- paste(
   sep = '/'
 )
 
+
+#var_df <- as.data.frame(hydrpd[base_var], row.names = NULL)
+#var_df$comp_var <- hydrpd[comp_var]
+#colnames(var_df) <- c(base_var, comp_var)
+#^This was created to replace the cbind - Glenn
+hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
-#ncol_comp <- which(colnames(hydrpd)==comp_var)
-#ncol_base <- which(colnames(hydrpd)==base_var)
-#Temporary alternative to cbind (unsuccessful):
-#df_comp <- as.data.frame(cbind(hydrpd$Qbaseline, hydrpd$Qout)) #For testing only 
-comp_bind <- cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var], hydrpd$month, hydrpd$year)
-comp_bind[,1] <- as.numeric(comp_bind[,1])
-comp_bind[,2] <- as.numeric(comp_bind[,2])
-comp_bind[,3] <- as.numeric(comp_bind[,3])
-comp_bind[,4] <- as.numeric(comp_bind[,4])
-comp_bind <- aggregate(comp_bind, list(comp_bind$`hydrpd$month`, comp_bind$`hydrpd$year`), FUN = 'mean')
-hydrpd$Qout <- as.numeric(hydrpd$Qout)
-fdc_plot <- hydroTSM::fdc(comp_bind,
-  #this line is giving the first error, test with zoo
-  #Otherwise, may need to summarize data first, or sqldf
-  # yat = c(0.10,1,5,10,25,100,400),
-  # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
-  yat = seq(round(min(hydrpd$Qout),0),round(max(hydrpd$Qout),0), by = 500),
-  leg.txt = legend_text,
-  main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
-  ylab = "Flow (cfs)",
-  # ylim=c(1.0, 5000),
-  ylim=c(min(hydrpd$Qout), max(hydrpd$Qout)),
-  cex.main=1.75,
-  cex.axis=1.50,
-  leg.cex=2,
-  cex.sub = 1.2
+fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
+                          #this line is giving the first error, test with zoo
+                          #Otherwise, may need to summarize data first, or sqldf
+                          # yat = c(0.10,1,5,10,25,100,400),
+                          # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
+                          yat = seq(round(min(hydrpd$Qout),0),round(max(hydrpd$Qout),0), by = 500),
+                          leg.txt = legend_text,
+                          main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
+                          ylab = "Flow (cfs)",
+                          # ylim=c(1.0, 5000),
+                          ylim=c(min(hydrpd$Qout), max(hydrpd$Qout)),
+                          cex.main=1.75,
+                          cex.axis=1.50,
+                          leg.cex=2,
+                          cex.sub = 1.2
 )
 dev.off()
-#Takes forever... converting to monthly data and seeing how that changes time 
-
 
 print(paste("Saved file: ", fname, "with URL", furl))
-# vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
+vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
 
 # RSEG Hydrograph (Drought Period)
 # Zoom in on critical drought period
-pdstart = as.Date(paste0(l90_year,"-06-01") )
-pdend = as.Date(paste0(l90_year, "-11-15") )
+pdstart = as.Date(paste0(l90_year,"-06-01"))
+pdend = as.Date(paste0(l90_year, "-11-15"))
 
-hydrz <- zoo(hydrpd, order.by = hydr$index) #Takes a little while
-hydrz <- window(hydrz, start = sdate, end = edate)
-hydrpd <- fortify.zoo(hydrz)
+hydrpd <- window(hydr, start = pdstart, end = pdend)
 hydrpd <- data.frame(hydrpd)
 #hydrpd$Date <- rownames(hydrpd)
 
@@ -610,8 +604,8 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
-
-hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.Date(hydrpd$date),
+hydrpd$index <- as.Date(paste0(hydrpd$year,'-',hydrpd$month,'-',hydrpd$day))
+hydrograph_dry <- plot(unlist(hydrpd[names(hydrpd)== base_var])~as.Date(hydrpd$index),
                        type = "l", lty=2, lwd = 1,ylim=c(ymn,ymx),xlim=c(xmn,xmx),
                        ylab="Flow (cfs)",xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend),
                        main = "Hydrograph: Dry Period",
@@ -619,16 +613,17 @@ hydrograph_dry <- plot(as.numeric(unlist(hydrpd[names(hydrpd)== base_var]))~as.D
                        cex.axis=1.50,
                        cex.lab=1.50
 )
-#par(new = TRUE)
-#plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$Date),
-#     type = "l",col='brown3', lwd = 2, 
-#    axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
-#legend("topright",legend=legend_text,col=c("black","brown3"), 
-#       lty=c(2,1), lwd=c(1,2), cex=1.5)
-#dev.off()
 
+par(new = TRUE)
+plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$index),
+     type = "l",col='brown3', lwd = 2, 
+     axes=FALSE,ylim=c(ymn,ymx),xlim=c(xmn,xmx),ylab="",xlab="")
+legend("topright",legend=legend_text,col=c("black","brown3"), 
+       lty=c(2,1), lwd=c(1,2), cex=1.5)
+dev.off()
+# Is this supposed to 
 print(paste("Saved file: ", fname, "with URL", furl))
-# vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.hydrograph_dry', 0.0, ds)
+vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.hydrograph_dry', 0.0, ds)
 ###############################################
 ###############################################
 
@@ -638,11 +633,13 @@ print(paste("Saved file: ", fname, "with URL", furl))
 ###############################################
 #GET RSEG HYDROID FROM RSEG MODEL PID
 #rseg <-getProperty(list(pid=pid), site)
-rseg <- RomProperty$new(ds, list(pid=pid), TRUE)
+
+#Retrieving pid of model because it is missing: 
+
+rseg <- RomProperty$new(ds, list(pid=model$pid), TRUE)
 rseg_hydroid<-rseg$featureid
 
 huc_level <- 'huc8'
 Dataset <- 'VAHydro-EDAS'
 
-#elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, scenprop, ds, image_dir, save_url, site)
-    
+elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, scenprop, ds, image_dir, save_url, site)
