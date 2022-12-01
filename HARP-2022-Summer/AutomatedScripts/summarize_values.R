@@ -281,16 +281,6 @@ fn_iha_mlf <- function(zoots, targetmo) {
 Qout_zoo <- zoo(hydr$Qout)
 alf <- fn_iha_mlf(Qout_zoo,'August') #The median flow of the annual minumum flows in august 
 
-#From original script:
-#alf_data <- data.frame(matrix(data = NA, nrow = length(dat$thisdate), ncol = 5))
-#colnames(alf_data) <- c('Qout', 'thisdate', 'year', 'month', 'day')
-#alf_data$Qout <- dat$Qout
-#alf_data$thisdate <- index(dat)
-#alf_data$year <- year(ymd(alf_data$thisdate))
-#alf_data$month <- month(ymd(alf_data$thisdate))
-#alf_data$day <- day(ymd(alf_data$thisdate))
-#zoo.alf_data <- zoo(alf_data$Qout, order.by = alf_data$thisdate)
-#alf <- fn_iha_mlf(zoo.alf_data,'August')
 
 # Sept. 10%
 sept_flows <- subset(hydr, month == '9') 
@@ -333,17 +323,23 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 # Saving data to the temp directory in order to generate graphs
 # in summarize_figures.R
 
+# creating a date column
+
+hydr$date <- as.Date(paste0(hydr$year, "-", hydr$month, "-", hydr$day), format="%Y-%m-%d")
+    # the date column is needed for the figure generation
+
 # creating 2 data frames
-values <- list(hydr$index, hydr$date, hydr$day, hydr$month, hydr$year, 
+values <- list(hydr$date, hydr$day, hydr$month, hydr$year, 
                hydr$Qout, hydr$Qbaseline, hydr$wd_mgd, 
                hydr$ps_mgd, hydr$wd_cumulative_mgd, hydr$ps_cumulative_mgd, 
-               hydr$ps_nextdown_mgd, hydr$net_consumption_mgd, hydr$unmet_demand_mgd)
-names(values) <- c("index", "date", "day", "month", 'year', "Qout", 
+               hydr$ps_nextdown_mgd, hydr$net_consumption_mgd, hydr$unmet_demand_mgd, 
+               hydr$imp_off)
+names(values) <- c("date", "day", "month", 'year', "Qout", 
                    "Qbaseline", "wd_mgd", "ps_mgd", "wd_cumulative_mgd", "ps_cumulative_mgd", 
-                   "ps_nextdown_mgd", "net_consumption_mgd", "unmet_demand_mgd")
+                   "ps_nextdown_mgd", "net_consumption_mgd", "unmet_demand_mgd", "imp_off")
 
-values2 <- list(l90_year, imp_off)
-names(values2) <- c("l90_year", "imp_off")
+values2 <- list(l90_year)
+names(values2) <- c("l90_year")
 
 values3 <- list(values, values2)
 
