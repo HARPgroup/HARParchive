@@ -47,7 +47,6 @@ if (!file.exists(image_dir)) {
   dir.create(file.path(image_dir)) #creates directory if one does not yet exists
 }
 
-
 # Calling in the data from summarize_values.R from the temp directory
 # the data is in a json format txt file
 
@@ -55,7 +54,6 @@ hydr <- unserializeJSON(summarize_values.txt)
 
 # extract the data from the list
 l90_year <- unlist(hydr[[2]][[1]])
-imp_off <- unlist(hydr[[2]][[2]])
 hydr <- unlist(hydr[[1]])
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
