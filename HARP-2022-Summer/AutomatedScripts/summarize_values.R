@@ -34,7 +34,7 @@ river_seg <- argst[1]
 scenario_name <- argst[2]
 hydr_file_path <- argst[3]
 model_version <- argst[4]
-image_dir <- argst[5]
+json_dir <- argst[5] #including / @ end of path
 
 split <- strsplit(image_dir, split = "/")
 path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
@@ -151,13 +151,19 @@ if (syear < (eyear - 2)) {
 #Converting to daily data for use in IHA metrics and faster plotting 
 hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') #Adds 'Group.1' col of class date
 
+#Creating vectors for index and date to be passed in later before writing 
+
+
 #Reverted back to using window(), which requires a ts or zoo:
 hydr <- zoo(hydr, order.by = as.Date(hydr$Group.1)) 
 
 #Convert hydr to a zoo and keep it that way throughout
 hydr <- window(hydr, start = sdate, end = edate)
 
-#index <- hydr$index
+#Creating vectors for index and date to be passed in later before writing
+index <- hydr$index
+date <- hydr$date
+
 #Convert hydr to numeric
 mode(hydr) <- 'numeric'
 #hydr$index <- index #replaced NAs in index caused by numeric conversion, but this broke Group2 IHA function 
@@ -180,12 +186,12 @@ ps_mgd <- mean(as.numeric(hydr$ps_mgd) )
 #ps_mgd to be added to the hydr table using the conversion script,
 # after ps_afd is added to hydr using the join_col script 
 
-ps_cumulative_mgd <- mean(as.numeric(hydr$ps_cumulative_mgd) )
+ps_cumulative_mgd <- mean(as.numeric(hydr$ps_cumulative_mgd))
 if (is.na(ps_cumulative_mgd)) {   # setting this to zero since it doesn't exist
   ps_cumulative_mgd = 0.0
 }
 
-ps_nextdown_mgd <- mean(as.numeric(hydr$ps_nextdown_mgd) )
+ps_nextdown_mgd <- mean(as.numeric(hydr$ps_nextdown_mgd))
 if (is.na(ps_nextdown_mgd)) {   # setting this to zero since it doesn't exist
   ps_nextdown_mgd = 0.0
 }
@@ -320,19 +326,22 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
 
-# Saving data to the temp directory in order to generate graphs
-# in summarize_figures.R
+#For JSON:
+values <- list(l90_year, imp_off)
+names(values) <- c("l90_year","imp_off")
 
-# creating a date column
+values_json <- serializeJSON(values) # converting to a json
 
-hydr$date <- as.Date(paste0(hydr$year, "-", hydr$month, "-", hydr$day), format="%Y-%m-%d")
-    # the date column is needed for the figure generation
+# exporting as text file 
+write(values_json, file= paste0(json_dir, "summarize_json.txt"), sep = ",")
 
-values <- list(l90_year)
-names(values) <- c("l90_year")
+#Writing the updated csv for figures, but DONT replace OG hydr file 
+hydr <- as.data.frame(hydr) #conv from zoo back to df
+hydr <- subset(hydr, select = -c(Group.1)) #rmoving col that was added by aggregation
+hydr$index <- index
+hydr$date <- date
 
-# converting to a json
-values_json <- serializeJSON(values)
+#New path for new hydr file 
+hydr_path <- str_replace(hydr_file_path, 'hydr.csv', 'hydr_summ.csv') #hydr_summ will be called by figures script 
 
-# exporting as text file into the temp directory
-write(values_json, file="summarize_json.txt", sep = ",")
+write.table(hydr,file = hydr_path, sep = ",", row.names = FALSE)
