@@ -36,11 +36,6 @@ hydr_file_path <- argst[3]
 model_version <- argst[4]
 json_dir <- argst[5] #including / @ end of path
 
-split <- strsplit(image_dir, split = "/")
-path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
-path_string_m2 <- paste(path_list_m2, collapse = "/")
-save_url <- paste0('http://deq1.bse.vt.edu:81/', path_string_m2)
-
 # create a place to save an image if it does not exist
 # note: we do NOT create a path for the hydr_file because it MUST exist, otherwise,
 #       we would have nothing to analyze
