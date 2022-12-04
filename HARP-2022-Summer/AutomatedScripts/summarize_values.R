@@ -315,8 +315,9 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 
 
 #For JSON:
-values <- list(l90_year, imp_off)
-names(values) <- c("l90_year","imp_off")
+values <- matrix(nrow = 2, ncol = 2)
+values[1,] <- c('imp_off', imp_off)
+values[2,] <- c('l90_year', l90_year)
 
 values_json <- serializeJSON(values) # converting to a json
 
