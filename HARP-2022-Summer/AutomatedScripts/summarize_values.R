@@ -328,23 +328,11 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 hydr$date <- as.Date(paste0(hydr$year, "-", hydr$month, "-", hydr$day), format="%Y-%m-%d")
     # the date column is needed for the figure generation
 
-# creating 2 data frames
-values <- list(hydr$date, hydr$day, hydr$month, hydr$year, 
-               hydr$Qout, hydr$Qbaseline, hydr$wd_mgd, 
-               hydr$ps_mgd, hydr$wd_cumulative_mgd, hydr$ps_cumulative_mgd, 
-               hydr$ps_nextdown_mgd, hydr$net_consumption_mgd, hydr$unmet_demand_mgd, 
-               hydr$imp_off)
-names(values) <- c("date", "day", "month", 'year', "Qout", 
-                   "Qbaseline", "wd_mgd", "ps_mgd", "wd_cumulative_mgd", "ps_cumulative_mgd", 
-                   "ps_nextdown_mgd", "net_consumption_mgd", "unmet_demand_mgd", "imp_off")
-
-values2 <- list(l90_year)
-names(values2) <- c("l90_year")
-
-values3 <- list(values, values2)
+values <- list(l90_year)
+names(values) <- c("l90_year")
 
 # converting to a json
-values_json <- serializeJSON(values3)
+values_json <- serializeJSON(values)
 
 # exporting as text file into the temp directory
-write(values_json, file="summarize_values_temp.txt", sep = ",")
+write(values_json, file="summarize_json.txt", sep = ",")

@@ -50,11 +50,13 @@ if (!file.exists(image_dir)) {
 # Calling in the data from summarize_values.R from the temp directory
 # the data is in a json format txt file
 
-hydr <- unserializeJSON(summarize_values.txt)
+hydr <- fread(hydr_file_path)
+
+values <- unserializeJSON(summarize_json.txt)
 
 # extract the data from the list
-l90_year <- unlist(hydr[[2]][[1]])
-hydr <- unlist(hydr[[1]])
+l90_year <- unlist(hydr[[1]][[1]])
+
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
 # we can use input_file_path in order to post it on VAhydro
