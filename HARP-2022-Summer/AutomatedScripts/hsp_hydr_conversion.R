@@ -13,7 +13,8 @@ suppressPackageStartupMessages(library(stringr))
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only (Glenn) 
 #setwd("/Users/VT_SA/Documents/HARP") # for testing only (Julia)
-#hydr <- fread("PL2_5470_5360_hydr.csv") # for testing only 
+#hydr <- fread("PL2_5470_5360_hydr.csv") # for testing only
+#hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only
 #divr <- fread("OR1_7700_7980_divr.csv") # for testing only
 
 # establishing location on server for storing images

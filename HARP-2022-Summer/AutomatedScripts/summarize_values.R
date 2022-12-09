@@ -40,6 +40,17 @@ json_dir <- argst[5] #including / @ end of path
 # and ps and demand were added from the 'timeseries' in the h5
 hydr <- fread(hydr_file_path)
 
+#Creating vectors for index and date to be passed in later before writing
+index <- hydr$index
+date <- hydr$date
+
+#Convert hydr to numeric
+mode(hydr) <- 'numeric'
+
+#Add the removed columns back to the hydr zoo (removed by setting zoo to numeric)
+hydr$index <- index
+hydr$date <- date
+
 # This removes the hydr file from the end of the hydr_file_path, so that later
 # we can use input_file_path in order to post it on VAhydro
 file_path_text = paste(hydr_file_path)
@@ -300,11 +311,6 @@ fn_iha_7q10 <- function(zoots) {
 # Avg 7-day low flow over a year period -- Move this? 
 x7q10 <- fn_iha_7q10(hydr$Qout)  
 
-# Unmet demand
-unmet_demand_mgd <- mean(as.numeric(hydr$unmet_demand_mgd)) #Need to add unmet_demand col to hydr
-if (is.na(unmet_demand_mgd)) {
-  unmet_demand_mgd = 0.0
-}
 
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l90_Qout', l90_Qout, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'l90_year', l90_year, ds)
