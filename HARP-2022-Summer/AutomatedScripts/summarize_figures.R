@@ -25,13 +25,13 @@ omsite = "http://deq1.bse.vt.edu:81"
 # hydr <- fread("JL1_6770_6850_hydr.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
-# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
+# hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr_summ.csv'
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
 river_seg <- argst[1]
 scenario_name <- argst[2]
-hydr_file_path <- argst[3]
+hydr_file_path <- argst[3] #call for the hydr_summ.csv!
 model_version <- argst[4]
 image_dir <- argst[5]
 
@@ -54,9 +54,8 @@ hydr <- fread(hydr_file_path)
 
 values <- unserializeJSON(summarize_json.txt)
 
-# extract the data from the list
-l90_year <- unlist(hydr[[1]][[1]])
-
+l90_year <- as.numeric(values[2,2])
+imp_off <- as.numeric(values[1,2])
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
 # we can use input_file_path in order to post it on VAhydro

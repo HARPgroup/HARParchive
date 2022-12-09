@@ -22,7 +22,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
-# hydr <- fread("OR1_7700_7980_hydr.csv") # no wd or ps 
+# hydr <- fread("OR1_7700_7980_hydrd.csv") # no wd or ps 
 # hydr <- fread("JL1_6770_6850_hydr.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
