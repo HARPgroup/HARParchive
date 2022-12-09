@@ -23,7 +23,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("OR1_7700_7980_hydrd.csv") # no wd or ps 
-# hydr <- fread("JL1_6770_6850_hydr.csv") # has wd but no ps 
+# hydr <- fread("JL1_6770_6850_hydrd.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr.csv'
@@ -185,7 +185,7 @@ if (is.na(ps_nextdown_mgd)) {   # setting this to zero since it doesn't exist
 }
 
 # net consumption
-hydr$net_consumption_mgd <- mean(as.numeric(wd_cumulative_mgd - ps_cumulative_mgd))
+net_consumption_mgd <- mean(as.numeric(wd_cumulative_mgd - ps_cumulative_mgd))
 if (is.na(net_consumption_mgd)) {
   net_consumption_mgd = 0.0
 }
@@ -315,22 +315,25 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 
 
 #For JSON:
-values <- matrix(nrow = 2, ncol = 2)
-values[1,] <- c('imp_off', imp_off)
-values[2,] <- c('l90_year', l90_year)
+#values <- matrix(nrow = 2, ncol = 2)
+#values[1,] <- c('imp_off', imp_off)
+#values[2,] <- c('l90_year', l90_year)
+
+values <- list(imp_off,l90_year)
+names(values) <- c("imp_off", "l90_year")
 
 values_json <- serializeJSON(values) # converting to a json
 
-# exporting as text file 
-write(values_json, file= paste0(json_dir, "summarize_json.txt"), sep = ",")
+# exporting as json file 
+write(values_json, file= paste0(json_dir, river_seg, "_summ.json"), sep = ",")
 
 #Writing the updated csv for figures, but DONT replace OG hydr file 
-hydr <- as.data.frame(hydr) #conv from zoo back to df
-hydr <- subset(hydr, select = -c(Group.1)) #rmoving col that was added by aggregation
-hydr$index <- index
-hydr$date <- date
+#hydr <- as.data.frame(hydr) #conv from zoo back to df
+#hydr <- subset(hydr, select = -c(Group.1)) #rmoving col that was added by aggregation
+#hydr$index <- index
+#hydr$date <- date
 
 #New path for new hydr file 
-hydr_path <- str_replace(hydr_file_path, 'hydr.csv', 'hydr_summ.csv') #hydr_summ will be called by figures script 
+#hydr_path <- str_replace(hydr_file_path, 'hydr.csv', 'hydr_summ.csv') #hydr_summ will be called by figures script 
 
-write.table(hydr,file = hydr_path, sep = ",", row.names = FALSE)
+#write.table(hydr,file = hydr_path, sep = ",", row.names = FALSE)
