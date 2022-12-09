@@ -34,6 +34,7 @@ scenario_name <- argst[2]
 hydr_file_path <- argst[3] #call for the hydr_summ.csv!
 model_version <- argst[4]
 image_dir <- argst[5]
+json_dir <- argst[6]
 
 split <- strsplit(image_dir, split = "/")
 path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
@@ -52,10 +53,12 @@ if (!file.exists(image_dir)) {
 
 hydr <- fread(hydr_file_path)
 
-values <- unserializeJSON(summarize_json.txt)
+values <- unserializeJSON(json_dir)
 
-l90_year <- as.numeric(values[2,2])
-imp_off <- as.numeric(values[1,2])
+# unlisting the two values from the json file
+
+imp_off <- as.numeric(values[[1]])
+l90_year <- as.numeric(values[[2]])
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
 # we can use input_file_path in order to post it on VAhydro
