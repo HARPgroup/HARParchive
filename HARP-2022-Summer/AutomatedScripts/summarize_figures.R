@@ -56,7 +56,6 @@ hydr <- fread(hydr_file_path)
 values <- unserializeJSON(json_dir)
 
 # unlisting the two values from the json file
-
 imp_off <- as.numeric(values[[1]])
 l90_year <- as.numeric(values[[2]])
 

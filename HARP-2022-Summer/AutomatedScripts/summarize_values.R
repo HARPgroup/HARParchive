@@ -108,53 +108,53 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(input_file_path)
 model_constant_hydr_path$save(TRUE)
 
-#Assumptions and placeholders columns 
+#Assumption
 imp_off = 1
 hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
 
-hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
-hydr$wd_cumulative_mgd = hydr$wd_mgd  
-hydr$ps_cumulative_mgd = hydr$ps_mgd
-hydr$ps_nextdown_mgd = 0 
+# hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
+# hydr$wd_cumulative_mgd = hydr$wd_mgd  
+# hydr$ps_cumulative_mgd = hydr$ps_mgd
+# hydr$ps_nextdown_mgd = 0 
 
 
 ### ANALYSIS
 ## water year:
-syear = as.integer(min(hydr$year))
-eyear = as.integer(max(hydr$year))
-model_run_start <- min(hydr$date)   
-model_run_end <- max(hydr$date)
-years <- seq(syear,eyear)
-
-if (syear < (eyear - 2)) {
-  sdate <- as.Date(paste0(syear,"-10-01"))
-  edate <- as.Date(paste0((eyear-1),"-09-30")) 
-  flow_year_type <- 'water'
-} else {
-  sdate <- as.Date(paste0(syear,"-02-01"))
-  edate <- as.Date(paste0(eyear,"-12-31"))
-  flow_year_type <- 'calendar'
-}
+# syear = as.integer(min(hydr$year))
+# eyear = as.integer(max(hydr$year))
+# model_run_start <- min(hydr$date)   
+# model_run_end <- max(hydr$date)
+# years <- seq(syear,eyear)
+# 
+# if (syear < (eyear - 2)) {
+#   sdate <- as.Date(paste0(syear,"-10-01"))
+#   edate <- as.Date(paste0((eyear-1),"-09-30")) 
+#   flow_year_type <- 'water'
+# } else {
+#   sdate <- as.Date(paste0(syear,"-02-01"))
+#   edate <- as.Date(paste0(eyear,"-12-31"))
+#   flow_year_type <- 'calendar'
+# }
 
 #Converting to daily data for use in IHA metrics and faster plotting 
-hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') #Adds 'Group.1' col of class date
+# hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') #Adds 'Group.1' col of class date
 
 #Creating vectors for index and date to be passed in later before writing 
 
 
-#Reverted back to using window(), which requires a ts or zoo:
-hydr <- zoo(hydr, order.by = as.Date(hydr$Group.1)) 
+# #Reverted back to using window(), which requires a ts or zoo:
+# hydr <- zoo(hydr, order.by = as.Date(hydr$Group.1)) 
+# 
+# #Convert hydr to a zoo and keep it that way throughout
+# hydr <- window(hydr, start = sdate, end = edate)
+# 
+# #Creating vectors for index and date to be passed in later before writing
+# index <- hydr$index
+# date <- hydr$date
+# 
+# #Convert hydr to numeric
+# mode(hydr) <- 'numeric'
 
-#Convert hydr to a zoo and keep it that way throughout
-hydr <- window(hydr, start = sdate, end = edate)
-
-#Creating vectors for index and date to be passed in later before writing
-index <- hydr$index
-date <- hydr$date
-
-#Convert hydr to numeric
-mode(hydr) <- 'numeric'
-#hydr$index <- index #replaced NAs in index caused by numeric conversion, but this broke Group2 IHA function 
 ## Primary Analysis on Qout, ps and wd:
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
 
@@ -205,13 +205,19 @@ if (imp_off == 0) {
 }
 
 Qbaseline <- mean(as.numeric(hydr$Qbaseline))
-if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
-  Qbaseline = Qout +
-    (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
-}
+# if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
+#   Qbaseline = Qout +
+#     (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
+# }
 
 #Adding unmet demand:
 hydr$unmet_demand_mgd = as.numeric(hydr$demand_mgd) - as.numeric(hydr$wd_mgd)
+
+# Unmet demand
+unmet_demand_mgd <- mean(as.numeric(hydr$unmet_demand_mgd)) #Need to add unmet_demand col to hydr
+if (is.na(unmet_demand_mgd)) {
+  unmet_demand_mgd = 0.0
+}
 
 # The total flow method of consumptive use calculation
 consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
@@ -224,11 +230,6 @@ if (is.na(daily_consumptive_use_frac)) {
 }
 # Since Qout = Qbaseline, these fractions will equal 1
 
-# datdf <- as.data.frame(dat)
-# modat <- sqldf("select month, avg(wd_cumulative_mgd) as wd_mgd, avg(ps_cumulative_mgd) as ps_mgd from datdf group by month")
-# barplot(wd_mgd ~ month, data=modat)
-# the creation of this barplot was commented out, do we include it??
-
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'net_consumption_mgd', net_consumption_mgd, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'wd_mgd', wd_mgd, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'wd_cumulative_mgd', wd_cumulative_mgd, ds)
@@ -239,6 +240,7 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'ps_nextdown_mgd', ps_nextdown_mgd, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'consumptive_use_frac', consumptive_use_frac, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'daily_consumptive_use_frac', daily_consumptive_use_frac, ds)
+vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
 # L90 and l30 -- move this? 
 #Qout_zoo <- zoo(as.numeric(hydr$Qout), order.by = hydr$index)
@@ -311,14 +313,9 @@ vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, '
 vahydro_post_metric_to_scenprop(model_scenario$pid, '7q10', NULL, '7q10', x7q10, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'ml8', alf, ds)
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'mne9_10', sept_10, ds)
-vahydro_post_metric_to_scenprop(model_scenario$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
 
 #For JSON:
-#values <- matrix(nrow = 2, ncol = 2)
-#values[1,] <- c('imp_off', imp_off)
-#values[2,] <- c('l90_year', l90_year)
-
 values <- list(imp_off,l90_year)
 names(values) <- c("imp_off", "l90_year")
 
