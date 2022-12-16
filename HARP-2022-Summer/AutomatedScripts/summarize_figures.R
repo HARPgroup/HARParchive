@@ -53,7 +53,9 @@ if (!file.exists(image_dir)) {
 
 hydr <- fread(hydr_file_path)
 
-values <- unserializeJSON(json_dir)
+json <- fread(json_dir)
+
+values <- unserializeJSON(json)
 
 # unlisting the two values from the json file
 imp_off <- as.numeric(values[[1]])
