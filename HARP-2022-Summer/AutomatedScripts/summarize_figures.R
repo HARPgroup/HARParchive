@@ -54,7 +54,8 @@ if (!file.exists(image_dir)) {
 hydr <- fread(hydr_file_path)
 
 json_split <- strsplit(json_dir, split = '/')
-json_file <- json_split[[1]][[6]]   # selecting just the json file name
+last_element <- as.numeric(length(json_split[[1]]))
+json_file <- json_split[[1]][[last_element]]  # selecting just the json file name
 
 values <- unserializeJSON(readLines(json_file))
 
