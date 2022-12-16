@@ -34,7 +34,7 @@ scenario_name <- argst[2]
 hydr_file_path <- argst[3] #call for the hydr_summ.csv!
 model_version <- argst[4]
 image_dir <- argst[5]
-json_dir <- argst[6]
+json_dir <- argst[6] #include file at the end!
 
 split <- strsplit(image_dir, split = "/")
 path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
@@ -53,9 +53,10 @@ if (!file.exists(image_dir)) {
 
 hydr <- fread(hydr_file_path)
 
-json <- fread(json_dir)
+json_split <- strsplit(json_dir, split = '/')
+json_file <- json_split[[1]][[6]]   # selecting just the json file name
 
-values <- unserializeJSON(json)
+values <- unserializeJSON(readLines(json_file))
 
 # unlisting the two values from the json file
 imp_off <- as.numeric(values[[1]])
