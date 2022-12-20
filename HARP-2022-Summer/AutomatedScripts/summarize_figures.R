@@ -443,7 +443,7 @@ if (imp_off == 0) {
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
   xmn <- as.Date(pdstart)
   xmx <- as.Date(pdend)
-  ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)))
+  ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)), na.rm = TRUE)
   plot(
     as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim=c(xmn,xmx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
