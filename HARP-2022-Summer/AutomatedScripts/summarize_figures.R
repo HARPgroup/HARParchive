@@ -60,7 +60,7 @@ json_file <- json_split[[1]][[last_element]]  # selecting just the json file nam
 values <- unserializeJSON(readLines(json_file))
 
 # unlisting the two values from the json file
-imp_off <- as.factor(values[[1]])
+imp_off <- (values[[1]])
 l90_year <- as.numeric(values[[2]])
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
