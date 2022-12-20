@@ -52,6 +52,7 @@ if (!file.exists(image_dir)) {
 # the data is in a json format txt file
 
 hydr <- fread(hydr_file_path)
+hydr <- zoo(hydr, order.by = hydr$index)
 
 json_split <- strsplit(json_dir, split = '/')
 last_element <- as.numeric(length(json_split[[1]]))
@@ -60,7 +61,7 @@ json_file <- json_split[[1]][[last_element]]  # selecting just the json file nam
 values <- unserializeJSON(readLines(json_file))
 
 # unlisting the two values from the json file
-imp_off <- (values[[1]])
+imp_off <- as.numeric(values[[1]])
 l90_year <- as.numeric(values[[2]])
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
