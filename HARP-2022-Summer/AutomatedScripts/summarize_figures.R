@@ -135,7 +135,7 @@ model_constant_hydr_path$save(TRUE)
 
 message("Plotting critical flow periods")
 # does this have an active impoundment sub-comp
-if (imp_off == 0) {
+if (hydr$imp_off == 0) {
   
   if("impoundment" %in% cols) {
     # Plot and analyze impoundment sub-comps
@@ -460,6 +460,9 @@ if (imp_off == 0) {
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
     axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
   )
+  if (ymx == 0) {
+    plot_label='No withdrawal or point source for this segment'
+  }
   lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
