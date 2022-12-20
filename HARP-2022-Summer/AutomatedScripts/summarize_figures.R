@@ -53,6 +53,11 @@ if (!file.exists(image_dir)) {
 
 hydr <- fread(hydr_file_path)
 hydr <- zoo(hydr, order.by = hydr$index)
+mode(hydr) <- 'numeric'
+index <- hydr$index
+date <- hydr$date
+hydr$index <- index
+hydr$date <- date
 
 json_split <- strsplit(json_dir, split = '/')
 last_element <- as.numeric(length(json_split[[1]]))
