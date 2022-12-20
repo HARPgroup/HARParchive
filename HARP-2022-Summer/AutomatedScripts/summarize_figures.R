@@ -441,9 +441,11 @@ if (imp_off == 0) {
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
+  xmn <- as.Date(pdstart)
+  xmx <- as.Date(pdend)
   ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)))
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim=c(xmn,xmx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
@@ -459,7 +461,7 @@ if (imp_off == 0) {
   ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
+    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx), xlim=c(xmn,xmx)
   )
   if (ymx == 0) {
     plot_label='No withdrawal or point source for this segment'
@@ -492,7 +494,7 @@ if (imp_off == 0) {
   png(fname)
   ymx <- as.numeric(max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout))))
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim=c(xmn,xmx),
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Model Flow Period",sdate,"to",edate)
   )
@@ -509,7 +511,7 @@ if (imp_off == 0) {
   
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    xlab="", ylab="", ylim=c(0,ymx), main = plot_label)
+    xlab="", ylab="", ylim=c(0,ymx), xlim=c(xmn,xmx), main = plot_label)
   lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
