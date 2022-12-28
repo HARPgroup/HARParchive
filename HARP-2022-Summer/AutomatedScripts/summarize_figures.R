@@ -52,11 +52,19 @@ if (!file.exists(image_dir)) {
 # the data is in a json format txt file
 
 hydr <- fread(hydr_file_path)
+
+sdate <- min(hydr$date) #the right time span has been set in a previous script already
+edate <- max(hydr$date)
+
 hydr <- zoo(hydr, order.by = hydr$index)
-mode(hydr) <- 'numeric'
+hydr <- window(hydr, start = sdate, end = edate)
+
 index <- hydr$index
 date <- hydr$date
-hydr$index <- index
+
+mode(hydr) <- 'numeric'
+
+hydr$index <- index #making sure the index and date are NOT removed by 'numeric'
 hydr$date <- date
 
 json_split <- strsplit(json_dir, split = '/')
