@@ -105,7 +105,6 @@ model_scenario$save(TRUE)
 
 # Uploading constants to VaHydro:
 # entity-type specifies what we are attaching the constant to 
-# Edit to more compact version???
 
 model_constant_hydr_path <- RomProperty$new(
   ds, list(
@@ -123,48 +122,6 @@ model_constant_hydr_path$save(TRUE)
 imp_off = 1
 hydr$imp_off = 1 # set to 1 meaning there will be no impoundment 
 
-# hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
-# hydr$wd_cumulative_mgd = hydr$wd_mgd  
-# hydr$ps_cumulative_mgd = hydr$ps_mgd
-# hydr$ps_nextdown_mgd = 0 
-
-
-### ANALYSIS
-## water year:
-# syear = as.integer(min(hydr$year))
-# eyear = as.integer(max(hydr$year))
-# model_run_start <- min(hydr$date)   
-# model_run_end <- max(hydr$date)
-# years <- seq(syear,eyear)
-# 
-# if (syear < (eyear - 2)) {
-#   sdate <- as.Date(paste0(syear,"-10-01"))
-#   edate <- as.Date(paste0((eyear-1),"-09-30")) 
-#   flow_year_type <- 'water'
-# } else {
-#   sdate <- as.Date(paste0(syear,"-02-01"))
-#   edate <- as.Date(paste0(eyear,"-12-31"))
-#   flow_year_type <- 'calendar'
-# }
-
-#Converting to daily data for use in IHA metrics and faster plotting 
-# hydr = aggregate(hydr, list(hydr$date),FUN = 'mean') #Adds 'Group.1' col of class date
-
-#Creating vectors for index and date to be passed in later before writing 
-
-
-# #Reverted back to using window(), which requires a ts or zoo:
-# hydr <- zoo(hydr, order.by = as.Date(hydr$Group.1)) 
-# 
-# #Convert hydr to a zoo and keep it that way throughout
-# hydr <- window(hydr, start = sdate, end = edate)
-# 
-# #Creating vectors for index and date to be passed in later before writing
-# index <- hydr$index
-# date <- hydr$date
-# 
-# #Convert hydr to numeric
-# mode(hydr) <- 'numeric'
 
 ## Primary Analysis on Qout, ps and wd:
 wd_mgd <- mean(as.numeric(hydr$wd_mgd))
@@ -182,8 +139,7 @@ if (is.na(wd_cumulative_mgd)) {   # setting this to zero since it doesn't exist
 }
 
 ps_mgd <- mean(as.numeric(hydr$ps_mgd) )
-#ps_mgd to be added to the hydr table using the conversion script,
-# after ps_afd is added to hydr using the join_col script 
+
 
 ps_cumulative_mgd <- mean(as.numeric(hydr$ps_cumulative_mgd))
 if (is.na(ps_cumulative_mgd)) {   # setting this to zero since it doesn't exist
@@ -330,13 +286,3 @@ values_json <- serializeJSON(values) # converting to a json
 # exporting as json file 
 write(values_json, file= paste0(json_dir, river_seg, "_summ.json"), sep = ",")
 
-#Writing the updated csv for figures, but DONT replace OG hydr file 
-#hydr <- as.data.frame(hydr) #conv from zoo back to df
-#hydr <- subset(hydr, select = -c(Group.1)) #rmoving col that was added by aggregation
-#hydr$index <- index
-#hydr$date <- date
-
-#New path for new hydr file 
-#hydr_path <- str_replace(hydr_file_path, 'hydr.csv', 'hydr_summ.csv') #hydr_summ will be called by figures script 
-
-#write.table(hydr,file = hydr_path, sep = ",", row.names = FALSE)
