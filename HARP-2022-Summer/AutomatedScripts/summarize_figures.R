@@ -51,7 +51,7 @@ if (!file.exists(image_dir)) {
 # Calling in the data from summarize_values.R from the temp directory
 # the data is in a json format txt file
 
-hydr <- fread(hydr_file_path)
+hydr <- fread(hydr_file_path) #file is a data frame
 
 sdate <- min(hydr$date) #the right time span has been set in a previous script already
 edate <- max(hydr$date)
