@@ -454,6 +454,12 @@ if (imp_off == 0) {
   # max() syntax which is OK with max(c(df1, df2))
   # instead, we cbind them instead of the default which is an implicit rbind
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
+      # overwriting the error with ylim
+      # if a column has NAs, at least one row is zeros
+  for(y in 1:ncol(hydr)){
+    if (is.na(hydr[1,y])) hydr[1,y] = 0
+    }
+      
   xmn <- as.Date(pdstart)
   xmx <- as.Date(pdend)
   ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)), na.rm = TRUE)
