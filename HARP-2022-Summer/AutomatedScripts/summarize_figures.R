@@ -53,8 +53,8 @@ if (!file.exists(image_dir)) {
 
 hydr <- fread(hydr_file_path) #file is a data frame
 
-sdate <- min(hydr$date) #the right time span has been set in a previous script already
-edate <- max(hydr$date)
+sdate <- as.Date(min(hydr$date)) #the right time span has been set in a previous script already
+edate <- as.Date(max(hydr$date))
 
 hydr <- zoo(hydr, order.by = hydr$index)
 hydr <- window(hydr, start = sdate, end = edate)
