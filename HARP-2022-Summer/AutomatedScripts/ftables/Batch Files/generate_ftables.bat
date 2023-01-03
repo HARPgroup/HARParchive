@@ -17,7 +17,7 @@ output_path="$CBP_ROOT/input/param/river/$parameters/ftables/"
 if riverseg_list== subsheds
   @ECHO OFF
   :choice
-  set /P c=Would you like to refresh the list of subsheds? (This is time-consuming) [Y/N]?
+  set /P c=Would you like to refresh the list of subsheds? This is time-consuming. [Y/N]?
   if /I "%c%" EQU "Y" goto :regen
   if /I "%c%" EQU "N" goto :use
   goto :choice
@@ -31,9 +31,9 @@ if riverseg_list== subsheds
   :use
     echo "Using last redition of subshed_riversegs.csv ..."
     pause
-    for /F "tokens=1 delims= " %i in (${output_path}subshed_riversegs.csv) ; do 
-      @echo %i
-    done
+    #for /F "tokens=1 delims= " %i in (${output_path}subshed_riversegs.csv) ; do 
+     # @echo %i
+    #done
   exit
   
   
