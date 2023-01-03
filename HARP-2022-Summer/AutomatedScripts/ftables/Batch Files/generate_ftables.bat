@@ -31,9 +31,9 @@ if riverseg_list== subsheds
   :use
     echo "Using last redition of subshed_riversegs.csv ..."
     pause
-    for /F "tokens=1 delims= " %i in (${output_path}subshed_riversegs.csv) ; do 
-      @echo %i
-    done
+    #for /F "tokens=1 delims= " %i in (${output_path}subshed_riversegs.csv) ; do 
+     # @echo %i
+    #done
   exit
   
   
