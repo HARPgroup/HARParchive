@@ -38,14 +38,13 @@ goto :choice
   
   
 :selections #for a select list of riversegs:
-# running the R script: 
-for i in ${riverseg_list} ; do
+  for i in ${riverseg_list} ; do
+    #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
+    echo "${i}"
+  done
+exit
 
-  #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
-
-  echo "${i}"
-done
-
+fi
 # for debugging purposes: 
 #echo 'riversegs:' $riverseg_list
 #echo 'channel:' $channel
@@ -54,4 +53,3 @@ done
 #echo 'CBP_ROOT:' $CBP_ROOT
 #echo 'ftable outputs here:' $output_path
 
-exit
