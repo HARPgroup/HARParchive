@@ -54,5 +54,4 @@ done
 #echo 'CBP_ROOT:' $CBP_ROOT
 #echo 'ftable outputs here:' $output_path
 
-
-
+exit
