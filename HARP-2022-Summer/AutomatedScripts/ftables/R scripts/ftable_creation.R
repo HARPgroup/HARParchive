@@ -15,36 +15,17 @@ argst <- commandArgs(trailingOnly = T)
 riverseg <- as.character(argst[1]) 
 channel <- as.character(argst[2])
 path <- as.character(argst[3])
+subs <- argst[4]
 
 #TESTING: comment these out later!
 #riverseg <- "OR1_7700_7980"
 #riverseg <- "JL2_6850_6890"
-riverseg <- 'subsheds'
-#channel<- '0. River Channel'
+#channel<- '0. River Channel' 
 #path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/'
-#rsegs_hydrocode_df <- c('vahydrosw_wshed_JL2_6850_6890','vahydrosw_wshed_OR1_7700_7980')
 
-#----Get Hydrocodes: List All or Singular----
-if (riverseg=='subsheds'){
-  # retrieve all vahydro rseg features (this method is optimal b/c it allows retrieval of >100 records)
-  rsegs <- RomFeature$new(ds,list(ftype='vahydro',bundle='watershed'),TRUE)
-  
-  # generate dataframe of rseg hydrocodes
-  rsegs_hydrocode_df <- data.frame("hydrocode"=character(),stringsAsFactors=FALSE)
-  for (i in 1:length(rsegs$hydrocode)){
-    rsegs_hydrocode_df <- rbind(rsegs_hydrocode_df,rsegs$hydrocode[i])
-  }
-  subsheds_hydrocodes <- subset(rsegs_hydrocode_df, nchar(rsegs_hydrocode_df)>29)
-  
-} else {
-  rsegs_hydrocode_df <- paste("vahydrosw_wshed",riverseg,sep = "_")
-}
-
-#----FTABLE Generation for Each----
-for (i in rsegs_hydrocode_df) { #loop goes all the way to end
-  #----Pulling from VAHydro----
+#----Pulling from VAHydro----
   rseg<- RomFeature$new(ds,list(
-    hydrocode= i, 
+    hydrocode= paste("vahydrosw_wshed",riverseg,sep = "_"), 
     ftype='vahydro',
     bundle='watershed'), 
     TRUE)
@@ -98,7 +79,7 @@ for (i in rsegs_hydrocode_df) { #loop goes all the way to end
   TRUE)
   cslope <-  slope$propvalue #longitudinal channel slope
 
-  #----Provincial Channel Geometry----
+#----Provincial Channel Geometry----
 if (prov == 1){
   #Appalachian Plateau
   hc = 2.030 # "c" = coefficient for regional regression eqn
@@ -158,7 +139,7 @@ b = bc * (da**be)
 z = 0.5 * (bf - b ) / h
 
 
-  #----Calculating FTABLE----
+#----Calculating FTABLE----
 #depth
 cdepth <- seq(0,h,length=10) #channel
 fdepth <- seq(h+1, h*4 ,length=9) #floodplain
@@ -197,7 +178,7 @@ fptab <- fn_make_trap_ftable(fdepth-h, clength, cslope, 5*bf, z, nf, h, bf, TRUE
 
 ftable <- rbind(cftab, fptab)
 
-  #----Exporting----
+#----Exporting----
 #format data:
 DEPTH <- sprintf("%10.3f", ftable$depth) # %Space_per_num.num_of_decimal_placesf
 AREA <- sprintf("%9.3f", ftable$area)
@@ -230,5 +211,3 @@ uci_form <- write.table(ftable_formatted,
                         col.names = FALSE)
 #footer
 cat(paste("  END FTABLE"), file=file, append=TRUE)
-
-} #end of loop
