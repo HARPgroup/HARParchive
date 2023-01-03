@@ -14,13 +14,13 @@ output_path="$CBP_ROOT/input/param/river/$parameters/ftables/"
 
 
 #for ALL subsheds:
-if riverseg_list== subsheds
-  @ECHO OFF
-  :choice
-  set /P c=Would you like to refresh the list of subsheds? This is time-consuming. [Y/N]?
-  if /I "%c%" EQU "Y" goto :regen
-  if /I "%c%" EQU "N" goto :use
-  goto :choice
+if riverseg_list== subsheds goto :choice else goto :selections
+
+:choice
+set /P c=Would you like to refresh the list of subsheds? This is time-consuming. [Y/N]?
+if /I "%c%" EQU "Y" goto :regen
+if /I "%c%" EQU "N" goto :use
+goto :choice
 
   :regen
     echo "Re-generating subshed_riversegs.csv..."
@@ -37,8 +37,7 @@ if riverseg_list== subsheds
   exit
   
   
-#for a select list of riversegs:
-else 
+:selections #for a select list of riversegs:
 # running the R script: 
 for i in ${riverseg_list} ; do
 
