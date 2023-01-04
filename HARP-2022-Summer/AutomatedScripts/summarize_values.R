@@ -41,17 +41,19 @@ json_dir <- argst[5] #including / @ end of path
 hydr <- fread(hydr_file_path)
 
 #Creating vectors for index and date to be passed in later before writing
-index <- hydr$index
-date <- hydr$date
+# index <- hydr$index
+# date <- hydr$date
 
 hydr <- zoo(hydr, order.by = hydr$index)
+
+cols <- names(hydr)
 
 #Convert hydr to numeric
 mode(hydr) <- 'numeric'
 
 #Add the removed columns back to the hydr zoo (removed by setting zoo to numeric)
-hydr$index <- index
-hydr$date <- date
+# hydr$index <- index
+# hydr$date <- date
 
 # This removes the hydr file from the end of the hydr_file_path, so that later
 # we can use input_file_path in order to post it on VAhydro
