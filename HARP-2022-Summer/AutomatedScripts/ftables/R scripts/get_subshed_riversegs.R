@@ -23,7 +23,7 @@ subshed_riversegs <- gsub("vahydrosw_wshed_","",as.character(subshed_hydrocodes$
 subshed_riversegs <- data.frame(subshed_riversegs)
 
 #write to csv
-file <- paste(path, 'subshed_riversegs.csv', sep='')
-write.table(subshed_riversegs, file = file, row.names = FALSE)
+file <- paste(path, 'subshed_riversegs.txt', sep='')
+write.table(subshed_riversegs, file = file, row.names = FALSE, col.names = FALSE)
 
 #subsheds <- read.csv('/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/subshed_riversegs.csv', sep='')
