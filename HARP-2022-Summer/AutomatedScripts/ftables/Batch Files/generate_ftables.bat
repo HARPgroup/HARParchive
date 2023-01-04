@@ -12,27 +12,29 @@ parameters=`cbp get_config $scenario river PARAMETERS`
 
 output_path="$CBP_ROOT/input/param/river/$parameters/ftables/"
 
-
-if riverseg_list== subsheds (goto :subshed_rsegs) else (goto :selections)
-
-:subshed_rsegs #for ALL subsheds
-  subshed_rsegs= `cat ${output_path}subshed_riversegs.txt`
+if [[ ${riverseg_list} == subsheds ]]
+then
+  subshed_rsegs=`cat ${output_path}subshed_riversegs.txt`
   for i in ${subshed_rsegs} ; do
-    #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
+    Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
     echo "${i}"
   done
-  quit
-  
-:selections #for a select list of riversegs:
+  echo 'riversegs:' $subshed_rsegs
+  echo 'channel:' $channel
+  echo 'scenario:' $scenario
+  echo 'parameters:' $parameters
+  echo 'CBP_ROOT:' $CBP_ROOT
+  echo 'ftable outputs here:' $output_path
+    
+else
   for i in ${riverseg_list} ; do
-    #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
+    Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
     echo "${i}"
-    # for debugging purposes: 
-    #echo 'riversegs:' $riverseg_list
-    #echo 'channel:' $channel
-    #echo 'scenario:' $scenario
-    #echo 'parameters:' $parameters
-    #echo 'CBP_ROOT:' $CBP_ROOT
-    #echo 'ftable outputs here:' $output_path
   done
-  quit
+  echo 'riversegs:' $riverseg_list
+  echo 'channel:' $channel
+  echo 'scenario:' $scenario
+  echo 'parameters:' $parameters
+  echo 'CBP_ROOT:' $CBP_ROOT
+  echo 'ftable outputs here:' $output_path
+fi

@@ -15,7 +15,6 @@ argst <- commandArgs(trailingOnly = T)
 riverseg <- as.character(argst[1]) 
 channel <- as.character(argst[2])
 path <- as.character(argst[3])
-subs <- argst[4]
 
 #TESTING: comment these out later!
 #riverseg <- "OR1_7700_7980"
@@ -188,11 +187,10 @@ DISCH <- sprintf("%9.2f", ftable$disch)
 ftable_formatted <- data.frame(DEPTH,AREA,VOLUME,DISCH)
 
 #format header:
-riverseg_i <- as.vector(str_split(i, "_", n = Inf, simplify = TRUE))
+file <- paste(path, riverseg, '.ftable', sep='')
 
-file <- paste(path, paste(riverseg_i[3],riverseg_i[4],riverseg_i[5],sep='_'), '.ftable', sep='')
-#riverseg_pieces <- str_split(riverseg, "_", n = Inf, simplify = TRUE)
-header1 <- paste(sprintf("%-8s %4s","FTABLE",riverseg_i[4])) # "-" = left-aligned text
+rseg_split <- as.vector(str_split(riverseg, "_", n = Inf, simplify = TRUE))
+header1 <- paste(sprintf("%-8s %4s","FTABLE",rseg_split[2])) # "-" = left-aligned text
 header2 <- paste("NOTE: FLOODPLAIN BASE = 5*BANKFULL WIDTH ***")
 header3 <- paste(sprintf("%5s %s","", "FLOODPLAIN SIDE-SLOPE = SAME AS CHANNEL'S ***"))
 header4 <- paste(" ROWS COLS ***")
