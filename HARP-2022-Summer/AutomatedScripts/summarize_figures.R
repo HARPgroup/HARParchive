@@ -22,7 +22,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("OR1_7700_7980_hydr.csv") # no wd or ps 
-# hydr <- fread("JL1_6770_6850_hydr.csv") # has wd but no ps 
+# hydr <- fread("JL1_6770_6850_hydrd.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr_summ.csv'
@@ -52,6 +52,8 @@ if (!file.exists(image_dir)) {
 # the data is in a json format txt file
 
 hydr <- fread(hydr_file_path) #file is a data frame
+
+hydr <- replace(hydr, is.na(hydr), 0)
 
 sdate <- as.Date(min(hydr$date)) #the right time span has been set in a previous script already
 edate <- as.Date(max(hydr$date))
