@@ -13,46 +13,27 @@ parameters=`cbp get_config $scenario river PARAMETERS`
 output_path="$CBP_ROOT/input/param/river/$parameters/ftables/"
 
 
-#for ALL subsheds:
-if riverseg_list== subsheds goto :choice else goto :selections
+if riverseg_list== subsheds (goto :subshed_rsegs) else (goto :selections)
 
-:choice
-set /P c=Would you like to refresh the list of subsheds? This is time-consuming. [Y/N]?
-if /I "%c%" EQU "Y" goto :regen
-if /I "%c%" EQU "N" goto :use
-goto :choice
-
-  :regen
-    echo "Re-generating subshed_riversegs.csv..."
-    pause
-    #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/get_subshed_riversegs.R "${output_path}"
-    goto :use
-  
-  :use
-    echo "Using last redition of subshed_riversegs.csv ..."
-    pause
-    #for /F "tokens=1 delims= " %i in (${output_path}subshed_riversegs.csv) ; do 
-     # @echo %i
-    #done
-  exit
-  
+:subshed_rsegs #for ALL subsheds
+  subshed_rsegs= `cat ${output_path}subshed_riversegs.txt`
+  for i in ${subshed_rsegs} ; do
+    #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
+    echo "${i}"
+  done
   
 :selections #for a select list of riversegs:
-# running the R script: 
-for i in ${riverseg_list} ; do
-
-  #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
-
-  echo "${i}"
-done
-
-# for debugging purposes: 
-#echo 'riversegs:' $riverseg_list
-#echo 'channel:' $channel
-#echo 'scenario:' $scenario
-#echo 'parameters:' $parameters
-#echo 'CBP_ROOT:' $CBP_ROOT
-#echo 'ftable outputs here:' $output_path
+  for i in ${riverseg_list} ; do
+    #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
+    echo "${i}"
+    # for debugging purposes: 
+    #echo 'riversegs:' $riverseg_list
+    #echo 'channel:' $channel
+    #echo 'scenario:' $scenario
+    #echo 'parameters:' $parameters
+    #echo 'CBP_ROOT:' $CBP_ROOT
+    #echo 'ftable outputs here:' $output_path
+  done
 
 
 
