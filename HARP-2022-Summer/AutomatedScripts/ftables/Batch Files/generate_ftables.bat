@@ -37,4 +37,5 @@ else
   echo 'parameters:' $parameters
   echo 'CBP_ROOT:' $CBP_ROOT
   echo 'ftable outputs here:' $output_path
+
 fi

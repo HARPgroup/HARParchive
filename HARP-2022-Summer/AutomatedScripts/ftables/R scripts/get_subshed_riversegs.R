@@ -24,4 +24,4 @@ subshed_riversegs <- data.frame(subshed_riversegs)
 
 #write to csv
 file <- paste(path, 'subshed_riversegs.txt', sep='')
-write.table(subshed_riversegs, file = file, row.names = FALSE, col.names = FALSE)
+write.table(subshed_riversegs, file = file, quote = FALSE, row.names = FALSE, col.names = FALSE)
