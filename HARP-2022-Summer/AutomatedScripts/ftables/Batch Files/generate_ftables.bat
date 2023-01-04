@@ -21,6 +21,7 @@ if riverseg_list== subsheds (goto :subshed_rsegs) else (goto :selections)
     #Rscript ~/HARParchive/HARP-2022-Summer/AutomatedScripts/ftable_creation.R "${i}" "${channel}" "${output_path}"
     echo "${i}"
   done
+  quit
   
 :selections #for a select list of riversegs:
   for i in ${riverseg_list} ; do
@@ -34,6 +35,4 @@ if riverseg_list== subsheds (goto :subshed_rsegs) else (goto :selections)
     #echo 'CBP_ROOT:' $CBP_ROOT
     #echo 'ftable outputs here:' $output_path
   done
-
-
-
+  quit
