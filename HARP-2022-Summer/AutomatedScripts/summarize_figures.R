@@ -53,7 +53,7 @@ if (!file.exists(image_dir)) {
 
 hydr <- fread(hydr_file_path) #file is a data frame
 
-hydr <- replace(hydr, is.na(hydr), 0)
+cols <- names(hydr)
 
 sdate <- as.Date(min(hydr$date)) #the right time span has been set in a previous script already
 edate <- as.Date(max(hydr$date))
@@ -61,13 +61,13 @@ edate <- as.Date(max(hydr$date))
 hydr <- zoo(hydr, order.by = hydr$index)
 hydr <- window(hydr, start = sdate, end = edate)
 
-index <- hydr$index
-date <- hydr$date
+# index <- hydr$index
+# date <- hydr$date
 
 mode(hydr) <- 'numeric'
 
-hydr$index <- index #making sure the index and date are NOT removed by 'numeric'
-hydr$date <- date
+# hydr$index <- index #making sure the index and date are NOT removed by 'numeric'
+# hydr$date <- date
 
 json_split <- strsplit(json_dir, split = '/')
 last_element <- as.numeric(length(json_split[[1]]))
@@ -477,10 +477,10 @@ if (imp_off == 0) {
   #as.numeric() used often because data within zoo df is of class character   
   
   
-  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
+  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547), na.rm = TRUE)
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx), xlim=c(xmn,xmx)
+    axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
   )
   if (ymx == 0) {
     plot_label='No withdrawal or point source for this segment'
