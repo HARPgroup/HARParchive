@@ -25,5 +25,3 @@ subshed_riversegs <- data.frame(subshed_riversegs)
 #write to csv
 file <- paste(path, 'subshed_riversegs.txt', sep='')
 write.table(subshed_riversegs, file = file, quote = FALSE, row.names = FALSE, col.names = FALSE)
-
-#subsheds <- read.csv('/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ftables/subshed_riversegs.csv', sep='')
