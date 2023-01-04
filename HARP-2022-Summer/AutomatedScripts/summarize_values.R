@@ -44,6 +44,8 @@ hydr <- fread(hydr_file_path)
 index <- hydr$index
 date <- hydr$date
 
+hydr <- zoo(hydr, order.by = hydr$index)
+
 #Convert hydr to numeric
 mode(hydr) <- 'numeric'
 
