@@ -501,6 +501,7 @@ if (imp_off == 0) {
   # xmn <- as.Date(sdate)
   # xmx <- as.Date(edate)
   ymx <- max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout)))
+  plot_label='WD and PS Timeseries'
   plot(
     hydrpd$Qbaseline, ylim = c(0,ymx), #xlim = c(xmn, xmx),
     ylab="Flow/WD/PS (cfs)",
@@ -513,7 +514,6 @@ if (imp_off == 0) {
   #Revert these changes (loop), the graphic could be expected even if 'meaningless'
   #Have message be a part of the figure (main title of plot)
   ymx <- max(cbind((hydrpd$wd_cumulative_mgd) * 1.547, (hydrpd$ps_cumulative_mgd) * 1.547))
-  plot_label='WD and PS Timeseries'
   if (ymx == 0) {
     plot_label='No withdrawal or point source for this segment'
     } else {
