@@ -27,4 +27,4 @@ repeat {
 
 new_name <- paste(splits[[1]][[1]],ds,splits[[1]][[2]], sep = "_")
 
-write(new_name, file = paste0(path, new_name,".txt"), sep = ",")
+write(new_name, file = paste0(path,"/", new_name,".txt"), sep = ",")
