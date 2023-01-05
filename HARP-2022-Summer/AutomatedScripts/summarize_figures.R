@@ -22,7 +22,7 @@ omsite = "http://deq1.bse.vt.edu:81"
 # setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # hydr <- fread("OR1_7700_7980_hydr.csv") # no wd or ps 
-# hydr <- fread("JL1_6770_6850_hydrd.csv") # has wd but no ps 
+# hydr <- fread("JL1_6770_6850_hydrd_wy.csv") # has wd but no ps 
 # river_seg <- 'OR1_7700_7980'
 # scenario_name <- 'hsp2_2022'
 # hydr_file_path <- '/media/model/p532/out/river/hsp2_2022/hydr/OR1_7700_7980_hydr_summ.csv'
@@ -148,9 +148,6 @@ model_constant_hydr_path <- RomProperty$new(
 model_constant_hydr_path$propcode <- as.character(input_file_path)
 model_constant_hydr_path$save(TRUE)
 
-
-# Making sure all NA values are 0 in the data
-hydr[is.na(hydr)] <- 0
 
 message("Plotting critical flow periods")
 # does this have an active impoundment sub-comp
@@ -432,10 +429,6 @@ if (imp_off == 0) {
   pdstart = as.IDate(paste0(l90_year,"-06-01"))
   pdend = as.IDate(paste0(l90_year, "-11-15") )
   
-  #Replace with window()
-  #hydrpd <- with(hydr, hydr[(date >= pdstart & date <= pdend)])
-  
-  #hydrz <- zoo(hydr, order.by = hydr$index) #Takes a little while
   hydrpd <- window(hydr, start = pdstart, end = pdend)
   
   fname <- paste(
@@ -460,11 +453,11 @@ if (imp_off == 0) {
   # instead, we cbind them instead of the default which is an implicit rbind
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
       
-  xmn <- as.Date(pdstart)
-  xmx <- as.Date(pdend)
+  # xmn <- as.Date(pdstart)
+  # xmx <- as.Date(pdend)
   ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)), na.rm = TRUE)
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim=c(xmn,xmx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
@@ -513,7 +506,7 @@ if (imp_off == 0) {
   png(fname)
   ymx <- as.numeric(max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout))))
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx), xlim=c(xmn,xmx),
+    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Model Flow Period",sdate,"to",edate)
   )
@@ -530,7 +523,7 @@ if (imp_off == 0) {
   
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    xlab="", ylab="", ylim=c(0,ymx), xlim=c(xmn,xmx), main = plot_label)
+    xlab="", ylab="", ylim=c(0,ymx), main = plot_label)
   lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
@@ -546,10 +539,7 @@ if (imp_off == 0) {
 ###############################################
 base_var <- "Qbaseline" #BASE VARIABLE USED IN FDCs AND HYDROGRAPHS
 comp_var <- "Qout" #VARIABLE TO COMPARE AGAINST BASE VARIABLE, DEFAULT Qout
-## ^^ Currently equal so comparison is pointless
-# FOR TESTING 
-# save_directory <- 'C:/Users/nrf46657/Desktop/GitHub/om/R/summarize'
-#hydrpd <- hydrdf
+
 fname <- paste(
   image_dir,
   paste0(
@@ -570,10 +560,6 @@ furl <- paste(
 )
 
 
-#var_df <- as.data.frame(hydrpd[base_var], row.names = NULL)
-#var_df$comp_var <- hydrpd[comp_var]
-#colnames(var_df) <- c(base_var, comp_var)
-#^This was created to replace the cbind - Glenn
 hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
@@ -605,7 +591,6 @@ pdend = as.Date(paste0(l90_year, "-11-15"))
 
 hydrpd <- window(hydr, start = pdstart, end = pdend)
 hydrpd <- data.frame(hydrpd)
-#hydrpd$Date <- rownames(hydrpd)
 
 
 fname <- paste(
