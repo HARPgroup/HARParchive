@@ -61,13 +61,7 @@ edate <- as.Date(max(hydr$date))
 hydr <- zoo(hydr, order.by = hydr$index)
 hydr <- window(hydr, start = sdate, end = edate)
 
-# index <- hydr$index
-# date <- hydr$date
-
 mode(hydr) <- 'numeric'
-
-# hydr$index <- index #making sure the index and date are NOT removed by 'numeric'
-# hydr$date <- date
 
 json_split <- strsplit(json_dir, split = '/')
 last_element <- as.numeric(length(json_split[[1]]))
@@ -453,11 +447,9 @@ if (imp_off == 0) {
   # instead, we cbind them instead of the default which is an implicit rbind
   # ymx <- max(hydrpd$Qbaseline, hydrpd$Qout)
       
-  # xmn <- as.Date(pdstart)
-  # xmx <- as.Date(pdend)
-  ymx <- as.numeric(max(cbind(hydrpd$Qbaseline, hydrpd$Qout)), na.rm = TRUE)
+  ymx <- max(cbind(hydrpd$Qbaseline, hydrpd$Qout), na.rm = TRUE)
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
+    hydrpd$Qbaseline, ylim = c(0,ymx),  #Placeholders for xlim, come back to this and create xlim based on hydrpd
     ylab="Flow/WD/PS (cfs)",
     xlab=paste("Lowest 90 Day Flow Period",pdstart,"to",pdend)
   )
@@ -470,18 +462,20 @@ if (imp_off == 0) {
   #as.numeric() used often because data within zoo df is of class character   
   
   
-  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547), na.rm = TRUE)
+  ymx <- max(cbind((hydrpd$wd_cumulative_mgd) * 1.547, (hydrpd$ps_cumulative_mgd) * 1.547), na.rm = TRUE)
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
     axes=FALSE, xlab="", ylab="", ylim=c(0,ymx)
   )
   if (ymx == 0) {
     plot_label='No withdrawal or point source for this segment'
+   } else {
+      ymx <- 10
   }
   lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
-  #Add title to inform why graph is blank
+  
   dev.off()
   print(paste("Saved file: ", fname, "with URL", furl))
   vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
@@ -504,26 +498,33 @@ if (imp_off == 0) {
     sep = '/'
   )
   png(fname)
-  ymx <- as.numeric(max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout))))
+  
+  # xmn <- as.Date(sdate)
+  # xmx <- as.Date(edate)
+  ymx <- max(cbind(max(hydrpd$Qbaseline), max(hydrpd$Qout)))
   plot(
-    as.numeric(hydrpd$Qbaseline), ylim = c(0,ymx),
+    hydrpd$Qbaseline, ylim = c(0,ymx), #xlim = c(xmn, xmx),
     ylab="Flow/WD/PS (cfs)",
-    xlab=paste("Model Flow Period",sdate,"to",edate)
+    xlab=paste("Model Flow Period",sdate,"to",edate,
+    main = plot_label)
   )
   lines(as.numeric(hydrpd$Qout,col='blue'))
   par(new = TRUE)
   
   #Revert these changes (loop), the graphic could be expected even if 'meaningless'
   #Have message be a part of the figure (main title of plot)
-  ymx <- max(cbind(as.numeric(hydrpd$wd_cumulative_mgd) * 1.547, as.numeric(hydrpd$ps_cumulative_mgd) * 1.547))
+  ymx <- max(cbind((hydrpd$wd_cumulative_mgd) * 1.547, (hydrpd$ps_cumulative_mgd) * 1.547))
   plot_label='WD and PS Timeseries'
   if (ymx == 0) {
     plot_label='No withdrawal or point source for this segment'
-  }
+    } else {
+      ymx <- 10  # in order to plot the figure correctly 
+    }
+
   
   plot(
     hydrpd$wd_cumulative_mgd * 1.547,col='red',
-    xlab="", ylab="", ylim=c(0,ymx), main = plot_label)
+    xlab="", ylab="", ylim=c(0,ymx), axes = FALSE)
   lines(hydrpd$ps_cumulative_mgd * 1.547,col='green')
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
@@ -564,15 +565,12 @@ hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
 fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
-                          #this line is giving the first error, test with zoo
-                          #Otherwise, may need to summarize data first, or sqldf
                           # yat = c(0.10,1,5,10,25,100,400),
                           # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
                           yat = seq(round(min(hydrpd$Qout),0),round(max(hydrpd$Qout),0), by = 500),
                           leg.txt = legend_text,
                           main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
                           ylab = "Flow (cfs)",
-                          # ylim=c(1.0, 5000),
                           ylim=c(min(hydrpd$Qout), max(hydrpd$Qout)),
                           cex.main=1.75,
                           cex.axis=1.50,
@@ -615,7 +613,6 @@ legend_text = c("Baseline Flow","Scenario Flow")
 xmn <- as.Date(pdstart)
 xmx <- as.Date(pdend)
 ymn <- 0
-#ymx <- 1000
 ymx <- max(cbind(as.numeric(unlist(hydrpd[names(hydrpd)== base_var])),
                  as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))))
 par(mar = c(5,5,2,5))
@@ -636,7 +633,7 @@ plot(as.numeric(unlist(hydrpd[names(hydrpd)== comp_var]))~as.Date(hydrpd$index),
 legend("topright",legend=legend_text,col=c("black","brown3"), 
        lty=c(2,1), lwd=c(1,2), cex=1.5)
 dev.off()
-# Is this supposed to 
+
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(model_scenario$pid, 'dh_image_file', furl, 'fig.hydrograph_dry', 0.0, ds)
 ###############################################
