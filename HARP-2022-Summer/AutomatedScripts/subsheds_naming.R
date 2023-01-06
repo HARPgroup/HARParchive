@@ -4,8 +4,8 @@ argst <- commandArgs(trailingOnly = T)
 subshed <- argst[1]
 path <- argst[2]
 #testing:
-subshed <- 'PS2_5560_5100_linville_creek'
-path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/Subsheds'
+# subshed <- 'PS2_5560_5100_linville_creek'
+# path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/Subsheds'
 
 splits <- strsplit(subshed, "_") #creates a list of 1
 ds <- as.numeric(splits[[1:2]])
