@@ -145,6 +145,26 @@ if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
     splits <- strsplit(rseg$propcode, "_") #creates a list of 1
     sub_id <- as.numeric(splits[[1:2]])
     exist <- check_exist(sub_id,unique_ids)
-    if (exist == FALSE){message('rseg in VaHydro; not on master list')}
+    if (exist == FALSE){
+      message('rseg in VaHydro; not on master list')
+      
+      row <- data.frame(rseg$propcode, wordname)
+      colnames(row) <- colnames(full_list)
+      new_list <- rbind(head(full_list,-1), row)
+      new_list <- new_list[order(new_list$river), ]
+      end <- data.frame(tail(full_list,1))
+      new_list <- rbind(new_list, end)
+      colnames(new_list) <- c('river','name***')
+      
+      write.table(new_list,
+                  file=list,
+                  append = FALSE,
+                  quote = FALSE,
+                  sep = ",",
+                  row.names = FALSE,
+                  col.names = TRUE)
+      
+      message('added rseg to master list')
+      }
   }
 
