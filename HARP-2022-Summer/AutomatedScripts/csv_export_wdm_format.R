@@ -23,7 +23,8 @@ hydr <- fread(input_path)
 hydr %>% select(column) -> hydr_column
 
 # creating tables with OVOL3 and ROVOL
-hydr_df <- data.frame(hydr$year, hydr$month, hydr$day, hydr$hour, hydr_column)
+hydr_df <- data.frame(hydr$year, hydr$month, hydr$day, hydr_column)
+#Robustify by adding usage for hourly and daily data 
 
 # exporting the tables
 write.table(hydr_df, file = output_path, sep = ',', row.names = FALSE, col.names = FALSE, quote = FALSE)
