@@ -7,11 +7,11 @@ list <- argst[2] #rivernames.csv (the master list)
 model_version <- argst[3] #cbp-6.0
 
 #testing:----
-subshed <- 'PS2_5560_5100_linville_creek'
+#subshed <- 'PS2_5560_5100_linville_creek'
 #subshed <- 'OD3_8720_8900_ut_leatherwood' #!!! interesting: 8720 not in master list
 #subshed <- 'RU5_6030_0001_motts_run'
-list <- 'http://deq1.bse.vt.edu:81/p6/vadeq/config/catalog/geo/vahydro/rivernames.csv'
-model_version <- "cbp-6.0"
+#list <- 'http://deq1.bse.vt.edu:81/p6/vadeq/config/catalog/geo/vahydro/rivernames.csv'
+#model_version <- "cbp-6.0"
 #unique_ids <- as.character(seq(0002,9999,1))
 #sub_id <- 65
 
@@ -86,7 +86,7 @@ rseg <- RomProperty$new(
     varkey = "om_class_AlphanumericConstant",
     featureid = model6$pid,
     entity_type = "dh_properties",
-    propname = 'riverseg'
+    propname = 'riverseg',
   ),
   TRUE
 )
@@ -115,7 +115,6 @@ make_rseg_name <- function(subshed, unique_ids, wordname){
   return(new_name)
 }
 
-# for the following, you will get errors if taken==TRUE because then rseg was never loaded----
 if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
   # unique name doesn't exist yet
   new_name <- make_rseg_name(subshed, unique_ids, wordname)
@@ -139,8 +138,12 @@ if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
   #add new id to model6 as property riverseg:
   rseg$propcode <- new_name
   rseg$save(TRUE)
+  
+  message(new_name)
 
   } else {
+    splits <- strsplit(rseg$propcode, "_") #creates a list of 1
+    sub_id <- as.numeric(splits[[1:2]])
     exist <- check_exist(sub_id,unique_ids)
     if (exist == FALSE){message('rseg in VaHydro; not on master list')}
   }
