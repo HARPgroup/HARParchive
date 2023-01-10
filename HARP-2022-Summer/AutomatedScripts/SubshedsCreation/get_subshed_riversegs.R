@@ -11,7 +11,7 @@ ds$get_token(rest_pw)
 argst <- commandArgs(trailingOnly = T)
 path <- argst[1]
 #testing ! comment out later:
-#path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation'
+#path <- '/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/'
 
 #identify subsheds by a name longer than 29 characters
 rsegs <- RomFeature$new(ds,list(ftype='vahydro',bundle='watershed'),TRUE)
