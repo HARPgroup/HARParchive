@@ -86,7 +86,7 @@ rseg <- RomProperty$new(
     varkey = "om_class_AlphanumericConstant",
     featureid = model6$pid,
     entity_type = "dh_properties",
-    propname = 'riverseg',
+    propname = 'riverseg'
   ),
   TRUE
 )
