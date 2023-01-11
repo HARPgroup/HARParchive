@@ -14,28 +14,30 @@ file <- argst[3]
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # landuse_full <- read.csv('land_use_2013VAHYDRO2018615.csv', sep =',')
 
-#identify all land segments within original riverseg:---- 
+#proportion landuses for new subshed based on overall lang segment area:---- 
 landuse_full <- read.csv(file, sep=',')
+
+receiving_landuses <- sqldf("select * from landuse_full where riverseg = rseg")
+mainws_area <- sum(receiving_landuses[-1:-2])
+
+num_lseg <- as.numeric(length(receiving_landuses$landseg))
+lseg_search <- receiving_landuses[2]
+
+landsegments <- sqldf("select * from landuse_full where landseg = lseg_search")
+
 
 for (rseg in landuse_full$riverseg) {
   row <- as.numeric(match(rseg, landuse_full$riverseg))
   lseg <- landuse_full[row,] 
   landuse <- lseg[-1:-2]
-  prop <- 
-  lseg_prop <- cbind(lseg[2],prop)
-  new_row <- cbind(subshed, lseg_prop)
-  subtract 
+  
+  lseg_dec <- (landuse - landuse/area*100)
+  new_rseg <- cbind(rseg, lseg[2], lseg_dec)
+  colnames(new_rseg) <- colnames(landuse_full)
+  
+  lseg_inc <- (landuse/area*100)
+  new_subshed <- cbind(subshed, lseg[2], lseg_inc)
+  colnames(new_subshed) <- colnames(landuse_full)
+  
 } 
  
-#which(rseg %in% landuse_full$riverseg)
-
-#include all land segments with the new subshed 
-
-
-
-#proportion all land uses within each land segment:
-
-
-
-
-
