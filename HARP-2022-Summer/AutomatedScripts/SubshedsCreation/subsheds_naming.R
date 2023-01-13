@@ -186,3 +186,7 @@ if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
       } #otherwise, unique name is saved in both VAhydro & master list. We do nothing.
   }
 
+# print subshed new name
+# print main_seg aka downstream riverseg name
+splits <- strsplit(subshed, "_")
+print(paste(new_name),paste(splits[[1]][[1]],splits[[1]][[2]],splits[[1]][[3]], sep = "_"))
