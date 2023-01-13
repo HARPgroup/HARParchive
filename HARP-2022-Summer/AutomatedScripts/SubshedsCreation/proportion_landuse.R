@@ -9,11 +9,14 @@ area <- argst[3]
 file <- argst[4]
 
 #testing:----
-main_seg <- 'PS2_5560_5100'
-subshed <- 'PS2_5568_5560'
+#main_seg <- 'PS2_5560_5100'
+#subshed <- 'PS2_5568_5560'
 #main_seg <- 'OD3_8720_8900'
 #main_seg <- 'JB0_7050_0000'
 #subshed <- 'OD3_8723_8720'
+
+#vahydro_sub <- vahydro_subs[grep(main_seg, vahydro_subs$riverseg), ]
+#da <- vahydro_sub$da
 
 # file <- '/opt/model/p6/vadeq/input/scenario/river/land_use/land_use_2013VAHYDRO2018615.csv'
 # file <- '/Users/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
