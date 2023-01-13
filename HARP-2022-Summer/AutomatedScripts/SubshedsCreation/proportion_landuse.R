@@ -1,11 +1,12 @@
 #proportioning landuses of multiple land segments 
 #when adding a new subshed to a river segment
 suppressPackageStartupMessages(library("sqldf"))
+suppressPackageStartupMessages(library("stringr"))
 #----
 argst <- commandArgs(trailingOnly = T)
 main_seg <- argst[1]
 subshed <- argst[2]
-area <- argst[3]
+da <- as.numeric(argst[3])
 file <- argst[4]
 
 #testing:----
@@ -27,7 +28,6 @@ file <- argst[4]
 landuse_full <- read.csv(file, sep=',')
 
 receiving_landuses <- sqldf(paste0("select * from landuse_full where riverseg = '",main_seg,"'"))
-mainws_area <- sum(receiving_landuses[-1:-2])/640 #calculate the main ws total area
 
 subsheds <- sqldf(paste0("select * from landuse_full where riverseg = '",subshed,"'"))
 
@@ -42,9 +42,6 @@ if (empty %in% subsheds) {
 #--
 sub_area <- sum(subsheds[-1:-2])/640 #convert to sq mi
 
-#calculating the proportioning between main ws and subshed:
-propor <- da/mainws_area
-
 #--if existing subshed values are incorrect, add them back to main_seg to be re-proportioned--
 if (sub_area != 0) { # add subshed areas back into main riverseg as fail safe
   
@@ -55,11 +52,14 @@ if (sub_area != 0) { # add subshed areas back into main riverseg as fail safe
     lseg_receive <- sqldf(paste0("select * from receiving_landuses where landseg = '", receiving_landuses$landseg[i], "'"))
     
     if  (!(empty %in% lseg_subshed)) {
-      receiving_landuses[-1:-2] <- lseg_subshed[-1:-2] + lseg_receive[-1:-2]
+      receiving_landuses[i,-1:-2] <- lseg_subshed[-1:-2] + lseg_receive[-1:-2]
     }
     
   }
 }
+#calculating the proportioning between main ws and subshed:
+mainws_area <- sum(receiving_landuses[-1:-2])/640 #calculate the main ws total area
+propor <- da/mainws_area
 
 #-calculate subsheds and remove from main seg----
 new_landuses <- receiving_landuses #new as in creating subshed
@@ -68,7 +68,8 @@ new_landuses$riverseg <- subshed
 
 receiving_landuses[-1:-2] <- receiving_landuses[-1:-2] * (1-propor) #to "subtract" propor from main_seg
 
-remove <- subset(landuse_full, riverseg != main_seg) #remove old land use values
+#remove <- subset(landuse_full, riverseg != c(main_seg,subshed) ) #remove old land use values
+remove <- sqldf(str_interp("select * from landuse_full where riverseg not in ('${main_seg}', '${subshed}')"))
 new_list <- rbind(remove, new_landuses, receiving_landuses) #adding in revisions
 new_list <- new_list[order(new_list$landseg, new_list$riverseg),] #order by land seg first, then river seg
 
