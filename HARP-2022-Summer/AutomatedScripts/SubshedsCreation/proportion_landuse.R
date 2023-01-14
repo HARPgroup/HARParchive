@@ -5,7 +5,7 @@ suppressPackageStartupMessages(library("sqldf"))
 argst <- commandArgs(trailingOnly = T)
 main_seg <- argst[1]
 subshed <- argst[2]
-area <- argst[3]
+da <- as.numeric(argst[3])
 file <- argst[4]
 
 #testing:----
