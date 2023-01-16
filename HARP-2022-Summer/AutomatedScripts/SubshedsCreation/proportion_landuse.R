@@ -1,6 +1,7 @@
 #proportioning landuses of multiple land segments 
 #when adding a new subshed to a river segment
 suppressPackageStartupMessages(library("sqldf"))
+suppressPackageStartupMessages(library("stringr"))
 #----
 argst <- commandArgs(trailingOnly = T)
 main_seg <- argst[1]
@@ -57,6 +58,9 @@ if (sub_area != 0) { # add subshed areas back into main riverseg as fail safe
     
   }
 }
+#calculating the proportioning between main ws and subshed:
+mainws_area <- sum(receiving_landuses[-1:-2])/640 #calculate the main ws total area
+propor <- da/mainws_area
 
 #calculating the proportioning between main ws and subshed:
 mainws_area <- sum(receiving_landuses[-1:-2])/640 #calculate the main ws total area
@@ -69,8 +73,11 @@ new_landuses$riverseg <- subshed
 
 receiving_landuses[-1:-2] <- receiving_landuses[-1:-2] * (1-propor) #to "subtract" propor from main_seg
 
+
+#remove <- sqldf(str_interp("select * from landuse_full where riverseg not in ('${main_seg}', '${subshed}')"))
 remove <- subset(landuse_full, riverseg != main_seg) #remove old land use values
 remove <- subset(remove, riverseg != subshed) # remove any pre-existing subshed values
+
 new_list <- rbind(remove, new_landuses, receiving_landuses) #adding in revisions
 new_list <- new_list[order(new_list$landseg, new_list$riverseg),] #order by land seg first, then river seg
 
