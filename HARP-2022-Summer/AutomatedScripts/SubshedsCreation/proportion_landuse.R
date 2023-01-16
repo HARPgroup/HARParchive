@@ -10,17 +10,18 @@ da <- as.numeric(argst[3])
 file <- argst[4]
 
 #testing:----
-#main_seg <- 'PS2_5560_5100'
-#subshed <- 'PS2_5568_5560'
+# main_seg <- 'PS2_5560_5100'
+# subshed <- 'PS2_5568_5560'
 #main_seg <- 'OD3_8720_8900'
 #main_seg <- 'JB0_7050_0000'
 #subshed <- 'OD3_8723_8720'
 
 #vahydro_sub <- vahydro_subs[grep(main_seg, vahydro_subs$riverseg), ]
 #da <- vahydro_sub$da
+#da <- 46.04
 
 # file <- '/opt/model/p6/vadeq/input/scenario/river/land_use/land_use_2013VAHYDRO2018615.csv'
-# file <- '/Users/aa_HARP/aa_GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
+# file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
 # setwd("/Users/VT_SA/Documents/HARP") # for testing only
 # landuse_full <- read.csv('land_use_2013VAHYDRO2018615.csv', sep =',')
 
@@ -61,6 +62,10 @@ if (sub_area != 0) { # add subshed areas back into main riverseg as fail safe
 mainws_area <- sum(receiving_landuses[-1:-2])/640 #calculate the main ws total area
 propor <- da/mainws_area
 
+#calculating the proportioning between main ws and subshed:
+mainws_area <- sum(receiving_landuses[-1:-2])/640 #calculate the main ws total area
+propor <- da/mainws_area
+
 #-calculate subsheds and remove from main seg----
 new_landuses <- receiving_landuses #new as in creating subshed
 new_landuses[-1:-2] <- new_landuses[-1:-2] * propor
@@ -68,8 +73,11 @@ new_landuses$riverseg <- subshed
 
 receiving_landuses[-1:-2] <- receiving_landuses[-1:-2] * (1-propor) #to "subtract" propor from main_seg
 
-#remove <- subset(landuse_full, riverseg != c(main_seg,subshed) ) #remove old land use values
-remove <- sqldf(str_interp("select * from landuse_full where riverseg not in ('${main_seg}', '${subshed}')"))
+
+#remove <- sqldf(str_interp("select * from landuse_full where riverseg not in ('${main_seg}', '${subshed}')"))
+remove <- subset(landuse_full, riverseg != main_seg) #remove old land use values
+remove <- subset(remove, riverseg != subshed) # remove any pre-existing subshed values
+
 new_list <- rbind(remove, new_landuses, receiving_landuses) #adding in revisions
 new_list <- new_list[order(new_list$landseg, new_list$riverseg),] #order by land seg first, then river seg
 

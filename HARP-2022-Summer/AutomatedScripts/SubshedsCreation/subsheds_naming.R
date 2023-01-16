@@ -189,4 +189,5 @@ if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
 # print subshed new name
 # print main_seg aka downstream riverseg name
 splits <- strsplit(subshed, "_")
-print(paste(new_name),paste(splits[[1]][[1]],splits[[1]][[2]],splits[[1]][[3]], sep = "_"))
+downstream <- paste(splits[[1]][[1]],splits[[1]][[2]],splits[[1]][[3]], sep = "_")
+print(paste(new_name, downstream))
