@@ -15,8 +15,8 @@ main_seg <- argst[3]
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/river_met_wdm.csv'
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/river_prad_wdm.csv'
 #--
-subshed <- 'PS2_5568_5560'
-main_seg <- 'PS2_5560_5100'
+#subshed <- 'PS2_5568_5560'
+#main_seg <- 'PS2_5560_5100'
 
 #-load file & manipulate----
 table <- read.csv(file, sep=',') 
@@ -27,7 +27,7 @@ end_row <- as.numeric(rownames(table[grep('end', table[,1]), ])) #the row number
 
 if (length(end_row) != 0) { #there exists an 'end' and potentially NOTES
   last_row <- as.numeric(length(table[,1]))
-  table_end <- table[(end_row-1):last_row,] #this didn't work quite right with prad for some reason
+  table_end <- table[(end_row-1):last_row,]
   table <- table[-(end_row-1):-last_row,] #just the data of the table
 }
 
