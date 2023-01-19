@@ -1,4 +1,5 @@
 # This script generates new names for sub watersheds, and checks that the name is unique
+.libPaths( c( .libPaths(), "/var/www/R/x86_64-pc-linux-gnu-library/4.1", "/var/www/R/x86_64-pc-linux-gnu-library") )
 
 #----Receive Arguments----
 argst <- commandArgs(trailingOnly = T)
@@ -14,10 +15,14 @@ model_version <- argst[3] #e.g. cbp-6.0
 
 #----Load VAhydro models and Master List----
 suppressPackageStartupMessages(library("hydrotools")) #needed to pull values from VAHydro
+suppressPackageStartupMessages(library(httr))
+suppressPackageStartupMessages(library(lubridate))
 
 #link data source (ds) to VAHydro
 basepath='/var/www/R';
-source("/var/www/R/config.R") #will need file in same folder/directory
+site="http://deq1.bse.vt.edu/d.dh"
+#source("/var/www/R/config.R") #will need file in same folder/directory
+source("/var/www/R/auth.private") #will need file in same folder/directory
 ds <- RomDataSource$new(site, rest_uname = rest_uname)
 ds$get_token(rest_pw)
 
@@ -158,6 +163,7 @@ if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
   } else { #unique name has already been saved in VaHydro
     #retrieve unique #### id from propcode
     splits <- strsplit(rseg$propcode, "_")
+    new_name = rseg$propcode
     sub_id <- as.numeric(splits[[1:2]])
     exist <- check_exist(sub_id,unique_ids)
     
@@ -190,4 +196,4 @@ if ((is.na(rseg$pid) == TRUE) || (rseg$propcode == "")) {
 # print main_seg aka downstream riverseg name
 splits <- strsplit(subshed, "_")
 downstream <- paste(splits[[1]][[1]],splits[[1]][[2]],splits[[1]][[3]], sep = "_")
-print(paste(new_name, downstream))
+cat(paste(new_name, downstream))
