@@ -43,6 +43,7 @@ end
 # duplicate information from downstream to new subshed
 Rscript /opt/model/p6/vadeq/run/resegment/copy_parent.R /opt/model/p6/vadeq/input/param/transport/wF180615RXAPXXXW_l2w.csv $subshed $downstream
   echo'wF180615RXAPXXXW_l2w.csv duplicated'
+   # How many transport files need to be duplicated - do we need a loop like above, or just run them one-by-one?
 
 Rscript /opt/model/p6/vadeq/run/resegment/copy_parent.R /opt/model/p6/vadeq/input/param/river/vahydro_2022/gen_info_rseg.csv $subshed $downstream
  echo'gen_info_rseg.csv duplicated'
