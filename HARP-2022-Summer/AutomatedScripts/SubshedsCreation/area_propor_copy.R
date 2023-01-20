@@ -114,7 +114,7 @@ area_propor <- function(
   
 }
 
-file_new <- area_propor(subshed, main_seg, da, file, cols)
+file_new <- area_propor(subshed, main_seg, da, file, print(cols))
 
 write.file(file,
             file=file,
