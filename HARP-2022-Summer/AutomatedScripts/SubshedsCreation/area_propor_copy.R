@@ -8,7 +8,7 @@ file <- argst[1]
 subshed <- argst[2]
 main_seg <- argst[3]
 da <- as.numeric(argst[4])
-cols <- argst[5] #this is a maybe ; if usage is only for lrseg files, cols != an argument anymore
+cols <- as.array(argst[5]) #this is a maybe ; if usage is only for lrseg files, cols != an argument anymore
 
 #TESTING
 # main_seg <- 'PS2_5560_5100'
@@ -114,7 +114,7 @@ area_propor <- function(
   
 }
 
-file_new <- area_propor(subshed, main_seg, da, file, "cols")
+file_new <- area_propor(subshed, main_seg, da, file, cols)
 
 write.file(file,
             file=file,
