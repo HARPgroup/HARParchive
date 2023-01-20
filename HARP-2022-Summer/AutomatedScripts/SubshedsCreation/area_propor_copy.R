@@ -55,6 +55,7 @@ area_propor <- function(
   
   message('row of zeros created')
   # sum subshed area
+  as.numeric(cols)
   sub_area <- sum(subsheds[cols])/640
   
   message('subshed area calculated')
@@ -114,7 +115,7 @@ area_propor <- function(
   
 }
 
-file_new <- area_propor(subshed, main_seg, da, file, print(cols))
+file_new <- area_propor(subshed, main_seg, da, file, cols)
 
 write.file(file,
             file=file,
