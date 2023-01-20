@@ -11,9 +11,9 @@ da <- as.numeric(argst[4])
 cols <- argst[5] #this is a maybe ; if usage is only for lrseg files, cols != an argument anymore
 
 #TESTING
-#main_seg <- 'PS2_5560_5100'
-#subshed <- 'PS2_5568_5560'
-#da <- 46.04
+# main_seg <- 'PS2_5560_5100'
+# subshed <- 'PS2_5568_5560'
+# da <- 46.04
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_water_area.csv'
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/SCRORG.csv'
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
@@ -25,7 +25,7 @@ file <- read.csv(file, sep=',')
 area_propor <- function(
     subshed,
     main_seg,
-    sub_da, #subshed drainage area
+    da, #subshed drainage area
     file, 
     cols #col(s) to be proportioned --> file[,cols] to call
 ){
@@ -112,7 +112,7 @@ area_propor <- function(
   
 }
 
-file_new <- area_propor(subshed, main_seg, sub_da, file, cols)
+file_new <- area_propor(subshed, main_seg, sub_da, file, "cols")
 
 write.file(file,
             file=file,
