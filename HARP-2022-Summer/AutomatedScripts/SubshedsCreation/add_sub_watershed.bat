@@ -10,13 +10,10 @@ hydrocode=$1
 downstream=$2
 model_version=$3
 scenario=$4
+darea=$5
 
 # get info
 GEO=`cbp get_config subsheds river GEO`
-
-# retrieve drainage area for our subshed
-read -r darea <<< "$(Rscript /opt/model/p6/vadeq/run/resegment/get_subsheds_riverseg.R /opt/model/p6/vadeq/config/catalog/${GEO}/vahydro/)"
-  echo'subshed drainage area:' $darea
 
 # name subshed or retrieve the name if it already exists
 read -r subshed downstream <<< "$(Rscript /opt/model/p6/vadeq/run/resegment/subsheds_naming.R $hydrocode /opt/model/p6/vadeq/config/catalog/${GEO}/vahydro/rivernames.csv cbp-6.0)"
