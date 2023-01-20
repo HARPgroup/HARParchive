@@ -42,7 +42,8 @@ da_data <- sqldf(
 
 #isolate da for our subshed:
 vahydro_subs <- subset(da_data, nchar(da_data$riverseg)>13)
-vahydro_subs <- vahydro_subs[,-2:-3]
+darea <- vahydro_subs[,-2:-3]
+cat(paste(darea))
 
 file <- paste(path, 'subshed_list.csv', sep='')
 write.table(vahydro_subs, file = file, quote = FALSE, row.names = FALSE, col.names = TRUE, sep=",")
