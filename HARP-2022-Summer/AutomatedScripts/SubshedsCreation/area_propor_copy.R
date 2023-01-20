@@ -55,7 +55,7 @@ area_propor <- function(
   
   message('row of zeros created')
   # sum subshed area
-  sub_area <- sum(subsheds[cols]) / 640
+  sub_area <- sum(subsheds[,cols]) / 640
   
   message('subshed area calculated')
   # -- -- --
