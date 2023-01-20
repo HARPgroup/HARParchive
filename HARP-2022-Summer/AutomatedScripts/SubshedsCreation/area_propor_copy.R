@@ -46,6 +46,8 @@ area_propor <- function(
   main_segs <- sqldf(paste0("select * from file where riverseg = '",main_seg,"'"))
   subsheds <- sqldf(paste0("select * from file where riverseg = '",subshed,"'"))
   
+  message('main segs and subsheds subset')
+  
   if (length(subsheds[, 1]) == 0) {
     subsheds <- data.frame(matrix(0, 1, length(colnames(main_segs))))
     colnames(subsheds) <- colnames(main_segs)
@@ -53,6 +55,7 @@ area_propor <- function(
   # sum subshed area
   sub_area <- sum(subsheds[cols]) / 640
   
+  message('subshed area calculated')
   # -- -- --
   # if subshed area has values, have to add them back to main_seg
   if (sub_area != 0) {
@@ -74,6 +77,8 @@ area_propor <- function(
       main_segs[cols] <- subsheds[cols] + main_segs[cols]
     }
   }
+  
+  message('reproportioning since subsheds existed already')
   # -- -- --
   mainws_area <- sum(main_segs[cols])/640 #calculate the main ws total area
   propor <- da/mainws_area
