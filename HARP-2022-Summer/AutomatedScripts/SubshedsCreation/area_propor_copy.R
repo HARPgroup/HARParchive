@@ -52,6 +52,8 @@ area_propor <- function(
     subsheds <- data.frame(matrix(0, 1, length(colnames(main_segs))))
     colnames(subsheds) <- colnames(main_segs)
   }
+  
+  message('row of zeros created')
   # sum subshed area
   sub_area <- sum(subsheds[cols]) / 640
   

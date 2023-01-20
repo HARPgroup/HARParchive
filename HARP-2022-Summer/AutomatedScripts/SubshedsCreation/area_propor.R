@@ -41,7 +41,7 @@ area_propor <- function(
   }
 # -- -- --
   # isolate data we want to work with
-  main_segs <- table[grep(main_seg, table[1]), ]
+  main_segs <- table[grep(main_seg, table[, 1]), ]
   subsheds <- table[grep(subshed, table[, 1]),]
   
   if (length(subsheds[, 1]) == 0) {
