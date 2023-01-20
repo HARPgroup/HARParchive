@@ -5,7 +5,7 @@ argst <- commandArgs(trailingOnly = T)
 file <- argst[1]
 subshed <- argst[2]
 main_seg <- argst[3]
-da <- as.numeric(argst[4])
+sub_da <- as.numeric(argst[4])
 cols <- argst[5] #this is a maybe ; if usage is only for lrseg files, cols != an argument anymore
 
 #TESTING
@@ -48,6 +48,8 @@ area_propor <- function(
     subsheds <- data.frame(matrix(0, 1, length(colnames(main_segs))))
     colnames(subsheds) <- colnames(main_segs)
   }
+  
+  message('row of zeros added')
   # sum subshed area
   sub_area <- sum(subsheds[cols]) / 640
   
