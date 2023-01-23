@@ -4,7 +4,7 @@
 suppressPackageStartupMessages(library("sqldf"))
 
 argst <- commandArgs(trailingOnly = T)
-file <- argst[1]
+file_path <- argst[1]
 subshed <- argst[2]
 main_seg <- argst[3]
 sub_da <- as.numeric(argst[4])
@@ -17,7 +17,7 @@ sub_da <- as.numeric(argst[4])
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
 #-- -- 
 
-file <- read.csv(file, sep=',')
+file <- read.csv(file_path, sep=',')
 
 area_propor <- function(
     subshed,
@@ -105,8 +105,8 @@ area_propor <- function(
   
 file_new <- area_propor(subshed, main_seg, sub_da, file)
   
-write.table(file,
-            file=file,
+write.table(file_new,
+            file=file_path,
             append = FALSE,
             quote = FALSE,
             sep = ",",
