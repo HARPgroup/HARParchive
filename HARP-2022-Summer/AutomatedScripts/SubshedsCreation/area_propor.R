@@ -14,7 +14,6 @@ sub_da <- as.numeric(argst[4])
 #subshed <- 'PS2_5568_5560'
 #da <- 46.04
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_water_area.csv'
-#file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/SCRORG.csv'
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
 #-- -- 
 
@@ -73,7 +72,7 @@ area_propor <- function(
   }
 # -- -- --
   mainws_area <- sum(main_segs[-1:-2])/640 #calculate the main ws total area
-  propor <- da/mainws_area
+  propor <- sub_da/mainws_area
   
   # do the proportioning
   new_sub <- main_segs
@@ -104,7 +103,7 @@ area_propor <- function(
   
 }
   
-file_new <- area_propor(subshed, main_seg, sub_da, file)
+file_new <- area_propor(subshed, main_seg, sub_sub_da, file)
   
 write.table(file,
             file=file,
