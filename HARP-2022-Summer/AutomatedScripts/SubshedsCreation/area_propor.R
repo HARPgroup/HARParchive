@@ -103,7 +103,7 @@ area_propor <- function(
   
 }
   
-file_new <- area_propor(subshed, main_seg, sub_sub_da, file)
+file_new <- area_propor(subshed, main_seg, sub_da, file)
   
 write.table(file,
             file=file,
