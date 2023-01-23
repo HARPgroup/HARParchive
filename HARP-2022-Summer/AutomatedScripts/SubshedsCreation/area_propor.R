@@ -10,9 +10,9 @@ main_seg <- argst[3]
 sub_da <- as.numeric(argst[4])
 
 #TESTING
-#main_seg <- 'PS2_5560_5100'
-#subshed <- 'PS2_5568_5560'
-#da <- 46.04
+# main_seg <- 'PS2_5560_5100'
+# subshed <- 'PS2_5568_5560'
+# sub_da <- 46.04
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_water_area.csv'
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
 #-- -- 
@@ -55,11 +55,14 @@ area_propor <- function(
     
     if (colnames(file)[2] == "landseg") { #means it's a 1 entry per lrseg file
       
-      for (i in 1:length(main_segs[-1:-2])) {
+      for (i in 1:length(main_segs[,2])) {
         #for each landuse in subshed, find the corresponding data in main_segs
-        sub_lsegs <- subsheds[grep(main_segs[i, 2], subsheds[, 2]), ]
+        #sub_lsegs <- subsheds[grep(main_segs[i, 2], subsheds[, 2]), ]
+        #main_lsegs <- main_segs[grep(main_segs[i, 2], main_segs[, 2]), ]
         
-        main_lsegs <- main_segs[grep(main_segs[i, 2], main_segs[, 2]), ]
+        sub_lsegs <- sqldf(paste0("select * from subsheds where landseg = '",main_segs[i,2], "'"))
+        
+        main_lsegs <- sqldf(paste0("select * from main_segs where landseg = '", main_segs[i,2], "'"))
         
         if (length(sub_lsegs[, 1]) != 0) {
           main_segs[i, -1:-2] <- sub_lsegs[-1:-2] + main_lsegs[-1:-2]
