@@ -19,7 +19,7 @@ main_seg <- argst[3]
 #main_seg <- 'PS2_5560_5100'
 
 #-load file & manipulate----
-table <- read.csv(file, sep=',') 
+table <- read.csv(file, sep=',', check.names = F) 
 table <- subset(table, table[,1] != subshed) #delete any pre-existing subshed rows
 
 #sometimes there is an 'end' or NOTES at the bottom which we want to keep there
