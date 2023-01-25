@@ -17,7 +17,7 @@ sub_da <- as.numeric(argst[4])
 #file <- 'HARParchive/HARP-2022-Summer/AutomatedScripts/SubshedsCreation/land_use_2013VAHYDRO2018615.csv'
 #-- -- 
 
-file <- read.csv(file_path, sep=',')
+file <- read.csv(file_path, sep=',', check.names = F)
 
 area_propor <- function(
     subshed,
