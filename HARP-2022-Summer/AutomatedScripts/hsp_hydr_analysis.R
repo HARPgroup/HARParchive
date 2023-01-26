@@ -14,14 +14,11 @@ suppressPackageStartupMessages(library(IHA))
 suppressPackageStartupMessages(library(PearsonDS))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(R.utils))
-suppressPackageStartupMessages(library(ggplot2))
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only 
-#hydr <- fread("OR2_7650_8070_hydr.csv") # for testing only 
+#hydr <- fread("OR1_7700_7980_hydr.csv") # for testing only 
 #divr <- fread("OR1_7700_7980_divr.csv") # for testing only
 #ps_flow <- fread("OR1_7700_7980_psflow.csv") # for testing only
-#hydr <- fread("PL3_5250_0001_hydr_hspf.csv") # hspf hydr csv, for testing only
-
 
 # establishing location on server for storing images
 omsite = "http://deq1.bse.vt.edu:81"
@@ -33,16 +30,10 @@ river_segment_name <- argst[1]
 #river_segment_name <-'OR1_7700_7980' #for testing only 
 scenario_name <- argst[2]
 input_file_path <- argst[3] 
-<<<<<<< HEAD
 #input_file_path='/media/model/p532/out/river/hsp2_2022/hydr/' #for testing 
 image_directory_path <- argst[4]
 #image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images/' # for testing only 
 model_version <- argst[5]
-=======
-#input_file_path='/media/model/p532/out/river/hsp2_2022' # for testing only 
-image_directory_path <- paste(input_file_path, '/', 'images', sep='')
-#image_directory_path <- '/media/model/p532/out/river/hsp2_2022/images' # for testing only 
->>>>>>> e10554fd520dc5fa007a1e8778e539e272c25a07
 
 if (!file.exists(input_file_path)) {
   dir.create(file.path(input_file_path)) #creates directory if one does not yet exists
@@ -67,8 +58,7 @@ dailyQout <- aggregate(hydr$Qout, by = list(hydr$date), FUN='mean')
 colnames(dailyQout) <- c('date','Qout') # Qout in units of cfs
 monthlyQout <- aggregate(hydr$Qout, by = list(hydr$month, hydr$year), FUN = "mean")
 colnames(monthlyQout) <- c("month", "year", "Qout") # Qout in units of cfs
-#Adding date col to monthly data for plotting 
-monthlyQout$date <- as.Date(paste0(monthlyQout$month,'/15/',monthlyQout$year), format = "%m/%d/%Y")
+
 
 # From: waterSupplyModelNode.R
 
@@ -76,7 +66,7 @@ syear = min(hydr$year)
 eyear = max(hydr$year)
 model_run_start <- min(hydr$date)   
 model_run_end <- max(hydr$date)
-#years <- seq(1984,2021)
+years <- seq(syear,eyear)
 
 if (syear < (eyear - 2)) {
   sdate <- as.Date(paste0(syear,"-10-01"))
@@ -160,15 +150,17 @@ riverseg<- RomFeature$new(
 model <- RomProperty$new(
   ds,
   list(
-    varkey="om_model_element", 
-    propname=riverseg$name,
     featureid=riverseg$hydroid, 
     entity_type="dh_feature", 
     propcode=model_version
   ), 
   TRUE
 )
-model$save(TRUE)
+if (is.na(model$pid)) {
+  model$propname = paste(riverseg$name, model_version)
+  model$varid = ds$get_vardef('om_water_model_node')$varid
+  model$save(TRUE)
+}
 
 model_scenario <- RomProperty$new( 
   ds,
@@ -284,8 +276,9 @@ furl <- paste(
   sep = '/'
 )
 png(fname) 
-ggplot(monthlyQout) + geom_line(aes(date,Qout), col = 'blue') +
-  labs(y='Qout (cfs)',x=NULL)
+plot(monthlyQout$Qout, type = 'l', col = 'blue', ylab = 'Qout (cfs)', xaxt = 'n', xlab = NA,)
+title(main = 'Outflow from the River Segment', sub = 'Monthly average values are plotted')
+axis(1, at = seq(0,len_Qmon,12), labels = years)
 dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
 model_graph1 <- RomProperty$new(
