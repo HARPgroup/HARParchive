@@ -23,7 +23,7 @@ GEO=`cbp get_config $scenario river GEO`
 PARAMS=`cbp get_config $scenario river PARAMETERS`
 LANDUSE=`cbp get_config $scenario river 'LAND USE'`
 # name subshed or retrieve the name if it already exists
-read -r subshed downstream <<< "$(Rscript $CBP_ROOT/run/resegment/subsheds_naming.R $hydrocode $CBP_ROOT/config/catalog/geo/${GEO}/rivernames.csv cbp-6.0)"
+read -r subshed downstream <<< "$(Rscript $CBP_ROOT/run/resegment/subsheds_naming.R $hydrocode $CBP_ROOT/config/catalog/geo/${GEO}/rivernames.csv $model_version)"
 echo 'new subshed:' $subshed
 
 # set and proportion watershed area
