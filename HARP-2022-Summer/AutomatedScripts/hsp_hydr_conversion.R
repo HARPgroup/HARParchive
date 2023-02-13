@@ -42,7 +42,7 @@ hydr$wd_cumulative_mgd = hydr$wd_mgd
 hydr$ps_cumulative_mgd = hydr$ps_mgd
 hydr$ps_nextdown_mgd = 0 
 
-hydr[is.na(hydr)] <- 0  #fix NAs
+#hydr[is.na(hydr)] <- 0  #fix NAs
 #Write hourly hydr csv
 write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
 
