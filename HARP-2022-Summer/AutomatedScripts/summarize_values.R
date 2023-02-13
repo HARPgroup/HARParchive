@@ -176,10 +176,6 @@ if (imp_off == 0) {
 }
 
 Qbaseline <- mean(as.numeric(hydr$Qbaseline))
- if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
-   Qbaseline = Qout +
-     (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
- }
 
 #Adding unmet demand:
 hydr$unmet_demand_mgd = as.numeric(hydr$demand_mgd) - as.numeric(hydr$wd_mgd)
