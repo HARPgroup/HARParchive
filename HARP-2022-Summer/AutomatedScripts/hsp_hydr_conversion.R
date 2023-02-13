@@ -32,15 +32,9 @@ hydr$Qout <- hydr$OVOL3*12.1 #Qout in units of cfs
 hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 # withdrawal cfs converted to mgd
 #hydr$ps_mgd <- hydr$ps_afd*0.32585
 hydr$demand_mgd <- (hydr$divr_cfs + hydr$diva_cfs)/1.5472 #demand cfs summed and coverted to mgd 
-if (is.na(hydr$demand_mgd)) {
-  hydr$demand_mgd = 0.0
-}
 
 #Qbaseline = Qout + (wd_cum_mgd - ps_cum_mgd)*1.547
 hydr$Qbaseline <- hydr$Qout + (hydr$wd_mgd - hydr$ps_mgd)*1.5472
-if (is.na(hydr$Qbaseline)) {
-  hydr$Qbaseline = 0.0
-}
 
 # Assumptions and placeholder columns
 hydr$wd_imp_child_mgd = 0 #child vars used in hspf 
@@ -48,6 +42,7 @@ hydr$wd_cumulative_mgd = hydr$wd_mgd
 hydr$ps_cumulative_mgd = hydr$ps_mgd
 hydr$ps_nextdown_mgd = 0 
 
+hydr[is.na(hydr)] <- 0  #fix NAs
 #Write hourly hydr csv
 write.table(hydr,file = hydr_file_path, sep = ",", row.names = FALSE)
 
