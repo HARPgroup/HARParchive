@@ -288,5 +288,5 @@ names(values) <- c("imp_off", "l90_year")
 values_json <- serializeJSON(values) # converting to a json
 
 # exporting as json file 
-write(values_json, file= paste0(json_dir, river_seg, "_summ.json"), sep = ",")
+write(values_json, file= paste0(json_dir, river_seg, "_summ.json"), sep = ",", append = FALSE)
 
