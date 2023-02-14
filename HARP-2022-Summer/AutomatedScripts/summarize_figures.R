@@ -2,6 +2,7 @@
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
+source(paste(om_location,'R/summarize','rseg_elfgen.R',sep='/'))
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
