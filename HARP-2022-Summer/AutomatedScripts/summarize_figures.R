@@ -654,4 +654,4 @@ rseg_hydroid<-rseg$featureid
 huc_level <- 'huc8'
 Dataset <- 'VAHydro-EDAS'
 
-elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, model_scenario, ds, image_dir, save_url, site)
+elfgen_huc(scenario_name, rseg_hydroid, huc_level, Dataset, model_scenario, ds, image_dir, save_url, site)
