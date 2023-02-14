@@ -27,6 +27,10 @@ hydr_file_path <- argst[1]
 
 hydr <- fread(hydr_file_path)
 
+#Removing demand and Qbaseline if they already exist for replacement, to overcome an error
+hydr$demand_mgd <- NULL 
+hydr$Qbaseline <- NULL
+
 # Converting from ac-ft/hr (ROVOL) to cfs : 1 ac-ft/hr = 12.1 cfs
 hydr$Qout <- hydr$OVOL3*12.1 #Qout in units of cfs
 hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 # withdrawal cfs converted to mgd
