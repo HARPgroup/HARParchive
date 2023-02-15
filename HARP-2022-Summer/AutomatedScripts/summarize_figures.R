@@ -64,11 +64,11 @@ hydr <- window(hydr, start = sdate, end = edate)
 
 mode(hydr) <- 'numeric'
 
-json_split <- strsplit(json_dir, split = '/')
-last_element <- as.numeric(length(json_split[[1]]))
-json_file <- json_split[[1]][[last_element]]  # selecting just the json file name
+#json_split <- strsplit(json_dir, split = '/')
+#last_element <- as.numeric(length(json_split[[1]]))
+#json_file <- json_split[[1]][[last_element]]  # selecting just the json file name
 
-values <- unserializeJSON(readLines(json_file))
+values <- unserializeJSON(readLines(json_dir))
 
 # unlisting the two values from the json file
 imp_off <- as.numeric(values[[1]])
