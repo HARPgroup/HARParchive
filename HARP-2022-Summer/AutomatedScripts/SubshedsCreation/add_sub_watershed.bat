@@ -96,7 +96,7 @@ echo 'river_met_wdm.csv duplicated'
 Rscript $CBP_ROOT/run/resegment/copy_parent.R $CBP_ROOT/config/catalog/geo/${GEO}/river_prad_wdm.csv $subshed $downstream
 echo 'river_prad_wdm.csv duplicated'
 
-# WDM files 
+# WDM files
 cp config/blank_wdm/blank_ps_sep_div.wdm input/scenario/river/div/${DIV}/DIV_${subshed}.wdm
 
 # this may not be needed, as these don't appear in the UCI but might be used in the ETM?
