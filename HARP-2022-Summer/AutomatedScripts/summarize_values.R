@@ -176,10 +176,6 @@ if (imp_off == 0) {
 }
 
 Qbaseline <- mean(as.numeric(hydr$Qbaseline))
-# if (is.na(Qbaseline)) {   # creating Qbaseline since it doesn't exist
-#   Qbaseline = Qout +
-#     (wd_cumulative_mgd - ps_cumulative_mgd ) * 1.547
-# }
 
 #Adding unmet demand:
 hydr$unmet_demand_mgd = as.numeric(hydr$demand_mgd) - as.numeric(hydr$wd_mgd)
@@ -288,5 +284,5 @@ names(values) <- c("imp_off", "l90_year")
 values_json <- serializeJSON(values) # converting to a json
 
 # exporting as json file 
-write(values_json, file= paste0(json_dir, river_seg, "_summ.json"), sep = ",")
+write(values_json, file= paste0(json_dir, river_seg, "_summ.json"), sep = ",", append = FALSE)
 

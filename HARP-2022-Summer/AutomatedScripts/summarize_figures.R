@@ -2,6 +2,7 @@
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
+source(paste(om_location,'R/summarize','rseg_elfgen.R',sep='/'))
 
 suppressPackageStartupMessages(library(data.table)) 
 suppressPackageStartupMessages(library(lubridate))
@@ -653,4 +654,4 @@ rseg_hydroid<-rseg$featureid
 huc_level <- 'huc8'
 Dataset <- 'VAHydro-EDAS'
 
-# elfgen_huc(scenario_name, rseg_hydroid, huc_level, hydraset, scenprop, ds, image_dir, save_url, site)
+elfgen_huc(scenario_name, rseg_hydroid, huc_level, Dataset, model_scenario, ds, image_dir, save_url, site)
