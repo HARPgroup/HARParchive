@@ -22,6 +22,14 @@ params:
   summary_text: ''
 ---
 
+```{r}
+### for testing! (replacing lines 56 and 57):
+
+#setwd("/Users/VT_SA/Documents/GitHUB/HARParchive/HARP-2022-Summer/AutomatedScripts")
+#model_flows <- fread("PM2_4860_4670_hydrd_wy.csv") 
+```
+
+
 ```{r setup, include=FALSE}
 library("dataRetrieval")
 library("zoo")
@@ -99,6 +107,56 @@ model_l1 <- model_loflows["1 Day Min"]
 gage_l1 <- gage_loflows["1 Day Min"]
 cmp_l1 <- cbind(gage_loflows$year, gage_l1, model_l1)
 names(cmp_l1) <- c("Year", "USGS", "Model")
+
+#ml8 data ########################################################
+fn_iha_mlf <- function(zoots, targetmo) {
+  modat <- group1(zoots,'water','min')
+  print(paste("Grabbing ", targetmo, " values ", sep=''))
+  g1vec <- as.vector(as.matrix(modat[,targetmo]))
+  print("Performing quantile analysis")
+  x <- quantile(g1vec, 0.5, na.rm = TRUE);
+  return(as.numeric(x));
+}
+model_alf <- fn_iha_mlf(model_flows,'August')
+gage_alf <- fn_iha_mlf(gage_flows,'August')
+cmp_alf <- cbind('ml8', gage_alf, model_alf)
+names(cmp_alf) <- c("Metric", "USGS", "Model")
+
+#7q10 data ########################################################
+fn_iha_7q10 <- function(zoots) {
+  g2 <- group2(zoots) 
+  x <- as.vector(as.matrix(g2["7 Day Min"]))
+  for (k in 1:length(x)) {
+    if (x[k] <= 0) {
+      x[k] <- 0.00000001
+      print (paste("Found 0.0 average in year", g2["year"], sep = " "))
+    }
+  }
+  x <- log(x)
+  pars <- PearsonDS:::pearsonIIIfitML(x)
+  x7q10 <- exp(qpearsonIII(0.1, params = pars$par))
+  return(x7q10);
+}
+model_7q10 <- fn_iha_7q10(model_flows)
+gage_7q10 <- fn_iha_7q10(gage_flows)
+cmp_7q10 <- cbind('7q10', gage_7q10, model_7q10)
+names(cmp_7q10) <- c("Metric", "USGS", "Model")
+
+
+#mne9_10 data ########################################################
+model_sept <- subset(model_flows, month(model_flows)=='9') 
+model_mne910 <- as.numeric(round(quantile(as.numeric(model_flows), 0.10),6))
+gage_sept <- subset(gage_flows, month(gage_flows) == '9') 
+gage_mne910 <- as.numeric(round(quantile(as.numeric(gage_flows), 0.10),6))
+cmp_mne910 <- cbind('mn9_10', gage_mne910, model_mne910)
+names(cmp_mne910) <- c("Metric", "USGS", "Model")
+
+
+#Qout data ########################################################
+model_Qout <- mean(as.numeric(model_flows))
+gage_Qout <- mean(as.numeric(gage_flows))
+cmp_Qout <- cbind('Qout', gage_Qout, model_Qout)
+names(cmp_Qout) <- c("Metric", "USGS", "Model")
 
 # turn off scientific notation (makes plot legends look nicer)
 options(scipen=999)
@@ -444,9 +502,19 @@ metrics_table = rbind(metrics_table,c("l30",round(gage_l30_Qout,2),gage_l30_year
 metrics_table = rbind(metrics_table,c("l7",round(gage_l7_Qout,2),gage_l7_year,round(model_l7_Qout,2),model_l7_year))
 metrics_table = rbind(metrics_table,c("l1",round(gage_l1_Qout,2),gage_l1_year,round(model_l1_Qout,2),model_l1_year))
 colnames(metrics_table) <- c("stat","gage","gage_year","model","model_year")
+
 ######################
+gstart_year <- year(gstart)
+gend_year <- year(gend)
+metrics_table2 <- data.frame("stat"=character(),"gage"=double(),"model"=double(), "start_year"=double(), "end_year"=double())
+metrics_table2 = rbind(metrics_table2,c("7q10", round(gage_7q10, 2), round(model_7q10, 2), gstart_year, gend_year))
+metrics_table2 = rbind(metrics_table2,c("ml8", round(gage_alf, 2), round(model_alf, 2), gstart_year, gend_year))
+metrics_table2 = rbind(metrics_table2,c("mne9_10", round(gage_mne910, 2), round(model_mne910, 2), gstart_year, gend_year))
+metrics_table2 = rbind(metrics_table2,c("Qout", round(gage_Qout, 2), round(model_Qout, 2), gstart_year, gend_year))
+colnames(metrics_table2) <- c("stat","gage","model","start_year","end_year")
 ```
 
 ```{r MetricsTable, echo=FALSE}
 qflextable(metrics_table)
+qflextable(metrics_table2)
 ```
