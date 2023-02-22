@@ -39,22 +39,6 @@ gageid <- params$gageid
 summary_text <- params$summary_text
 ```
 
-```{r TESTING}
-### for testing! (replacing lines 56 and 57):
-
-#setwd("/Users/VT_SA/Documents/GitHUB/HARParchive/HARP-2022-Summer/AutomatedScripts")
-#model_flows <- fread(paste(rseg_id,"_hydrd_wy.csv", sep=''))
-
-#removing the years 1999-2000 just so we match gage data:
-  #yr99_to_00 <- as.numeric(rownames(model_flows[grep("1998|1999|2000", model_flows$index)]))
-  #model_flows <- model_flows[-yr99_to_00,]
-
-
-  #searchin <- data.frame(gage_flows)
-  #searchin <- data.frame(rownames(searchin), searchin$gage_flows)
-  #found <- searchin[grep("1998|1999|2000", searchin$rownames.searchin.)]
-```
-
 ```{r EDITS to make}
 
 # how we'll pull in data for the two scenarios:
@@ -82,6 +66,22 @@ scenario1_l90_Qout <- model_info [[1]]$hsp2_2022$l90_Qout$value
 # ARGUMENTS for the rmd: segmentid1, ftype1, model1, scenario1, segmentid2, ftype2, model2, scenario2
 
 # Don't delete gage code info, just save for later 
+```
+
+```{r TESTING}
+### for testing! (replacing lines 56 and 57):
+
+#setwd("/Users/VT_SA/Documents/GitHUB/HARParchive/HARP-2022-Summer/AutomatedScripts")
+#model_flows <- fread(paste(rseg_id,"_hydrd_wy.csv", sep=''))
+
+#removing the years 1999-2000 just so we match gage data:
+  #yr99_to_00 <- as.numeric(rownames(model_flows[grep("1998|1999|2000", model_flows$index)]))
+  #model_flows <- model_flows[-yr99_to_00,]
+
+
+  #searchin <- data.frame(gage_flows)
+  #searchin <- data.frame(rownames(searchin), searchin$gage_flows)
+  #found <- searchin[grep("1998|1999|2000", searchin$rownames.searchin.)]
 ```
 
 ```{r getdata, include=FALSE}
