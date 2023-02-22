@@ -55,6 +55,35 @@ summary_text <- params$summary_text
   #found <- searchin[grep("1998|1999|2000", searchin$rownames.searchin.)]
 ```
 
+```{r EDITS to make}
+
+# how we'll pull in data for the two scenarios:
+library(jsonlite)
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+
+rseg.hydroid <- 67924
+model <- RomProperty$new(
+  ds,
+  list(entity_type='dh_feature', featureid = rseg.hydroid, propcode="cbp-6.0"),
+  TRUE
+)
+
+json_obj_url <- paste(site, 'node/62', sep="/")
+site = "http://deq1.bse.vt.edu:81/d.dh"
+
+obj_url <- paste(json_obj_url, model$pid, sep="/")
+model_info <- ds$auth_read(obj_url, "text/json", "")
+model_info <- fromJSON(model_info )
+scenario1_l90_Qout <- model_info [[1]]$hsp2_2022$l90_Qout$value
+
+# ARGUMENTS for the rmd: segmentid1, ftype1, model1, scenario1, segmentid2, ftype2, model2, scenario2
+
+# Don't delete gage code info, just save for later 
+```
+
 ```{r getdata, include=FALSE}
 #######################################################################
 # get model data via rseg_id
