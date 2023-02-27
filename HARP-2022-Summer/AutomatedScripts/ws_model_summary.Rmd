@@ -64,7 +64,7 @@ model1 <- RomProperty$new(
           )
 
 json_obj_url <- paste(site, 'node/62', sep="/")
-#site = "http://deq1.bse.vt.edu:81/d.dh"
+site = "http://deq1.bse.vt.edu:81/d.dh"
 obj_url <- paste(json_obj_url, model1$pid, sep="/")
 model1_info <- ds$auth_read(obj_url, "text/json", "")
 model1_info <- fromJSON(model1_info)
