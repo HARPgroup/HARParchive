@@ -14,544 +14,60 @@ output:
       header: 0.0
       footer: 0.0
 params: 
-  doc_title: "USGS Gage vs VAHydro Model"
-  elid: 235833
-  rseg_id: 'PM2_4860_4670'
-  runid: 'hsp2_2022'
-  gageid: '01643700'
+  doc_title: "Comparison of Two VaHydro Models"
   summary_text: ''
+  
+  id1: 67924  #hydroid !
+  ftype1: ''
+  model1: ''
+  scenario1: ''
+  
+  id2: ''  #hydroid !
+  ftype2: ''
+  model2: ''
+  scenario2: ''
 ---
 
 ```{r setup, include=FALSE}
-library("dataRetrieval")
-library("zoo")
+#library("dataRetrieval")
+#library("zoo")
 library("hydrotools")
-library("data.table")
-library("flextable")
+#library("data.table")
+#library("flextable")          uncomment when packages get used just to make sure no extras from previous gage situation
 
-basepath='/var/www/R'
-source('/var/www/R/config.R')
-
-elid <- params$elid
-rseg_id <- params$rseg_id
-runid <- params$runid
-gageid <- params$gageid
-summary_text <- params$summary_text
-```
-
-```{r EDITS to make}
-
-# how we'll pull in data for the two scenarios:
-library(jsonlite)
+library("jsonlite")
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 
-rseg.hydroid <- 67924
-model <- RomProperty$new(
-  ds,
-  list(entity_type='dh_feature', featureid = rseg.hydroid, propcode="cbp-6.0"),
-  TRUE
-)
+summary_text <- params$summary_text
 
-json_obj_url <- paste(site, 'node/62', sep="/")
-site = "http://deq1.bse.vt.edu:81/d.dh"
+id1 <- params$id1
+ftype1 <- params$ftype1
+model1 <- params$model1
+scenario1 <- params$scenario1
 
-obj_url <- paste(json_obj_url, model$pid, sep="/")
-model_info <- ds$auth_read(obj_url, "text/json", "")
-model_info <- fromJSON(model_info )
-scenario1_l90_Qout <- model_info [[1]]$hsp2_2022$l90_Qout$value
-
-# ARGUMENTS for the rmd: segmentid1, ftype1, model1, scenario1, segmentid2, ftype2, model2, scenario2
-
-# Don't delete gage code info, just save for later 
-```
-
-```{r TESTING}
-### for testing! (replacing lines 56 and 57):
-
-#setwd("/Users/VT_SA/Documents/GitHUB/HARParchive/HARP-2022-Summer/AutomatedScripts")
-#model_flows <- fread(paste(rseg_id,"_hydrd_wy.csv", sep=''))
-
-#removing the years 1999-2000 just so we match gage data:
-  #yr99_to_00 <- as.numeric(rownames(model_flows[grep("1998|1999|2000", model_flows$index)]))
-  #model_flows <- model_flows[-yr99_to_00,]
-
-
-  #searchin <- data.frame(gage_flows)
-  #searchin <- data.frame(rownames(searchin), searchin$gage_flows)
-  #found <- searchin[grep("1998|1999|2000", searchin$rownames.searchin.)]
+id22 <- params$id2
+ftype2 <- params$ftype2
+model2 <- params$model2
+scenario2 <- params$scenario2
 ```
 
 ```{r getdata, include=FALSE}
-#######################################################################
-# get model data via rseg_id
-site = omsite
-urlbase <- paste(site,"p6/out/river/",sep = "/")
-# filename <- paste(urlbase, runid, "/hydr/", rseg_id, "_hydr.csv",sep = "")
-filename <- paste(urlbase, runid, "/hydr/", rseg_id, "_hydrd_wy.csv",sep = "")
-model_flows <-data.table::fread(filename, header = T)
-model_flows <- zoo(as.numeric(as.character( model_flows$Qout )), order.by = model_flows$date);
-#######################################################################
-# get model data via elid
-# model_flows <- om_get_rundata(elid, runid, site=omsite)
-# model_flows <- zoo(as.numeric(as.character( model_flows$Qout )), order.by = index(model_flows));
-#######################################################################
-mstart <- zoo::as.Date(as.POSIXct(min(index(model_flows)),origin="1970-01-01"))
-mend <- zoo::as.Date(as.POSIXct(max(index(model_flows)),origin="1970-01-01"))
 
-#######################################################################
-# get gage data
-historic <- dataRetrieval::readNWISdv(gageid,'00060')
-gage_flows <- zoo(as.numeric(as.character( historic$X_00060_00003 )), order.by = historic$Date);
-# window gage_flows to model period
-gage_flows <- window(gage_flows, start = mstart, end = mend)
-gstart <- zoo::as.Date(as.POSIXct(min(index(gage_flows)),origin="1970-01-01"))
-gend <- zoo::as.Date(as.POSIXct(max(index(gage_flows)),origin="1970-01-01"))
-# window model_flows to gage period
-model_flows <- window(model_flows, start = gstart, end = gend)
+id1 <- 67924
+model1 <- RomProperty$new(
+          ds,
+          list(entity_type='dh_feature', featureid = id1, propcode="cbp-6.0"),
+          TRUE
+          )
 
+json_obj_url <- paste(site, 'node/62', sep="/")
+#site = "http://deq1.bse.vt.edu:81/d.dh"
+obj_url <- paste(json_obj_url, model1$pid, sep="/")
+model1_info <- ds$auth_read(obj_url, "text/json", "")
+model1_info <- fromJSON(model1_info)
 
-# do IHA
-model_loflows <- IHA::group2(model_flows)
-gage_loflows <- IHA::group2(gage_flows)
-
-title_param <- paste0("\nrunid #",runid)
-
-#l90 data ####################################################### 
-model_l90 <- model_loflows["90 Day Min"]
-gage_l90 <- gage_loflows["90 Day Min"]
-cmp_l90 <- cbind(gage_loflows$year, gage_l90, model_l90)
-names(cmp_l90) <- c("Year", "USGS", "Model")
-#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
-ymax_val <- max(c(cmp_l90$USGS,cmp_l90$Model))
-
-#l30 data ####################################################### 
-model_l30 <- model_loflows["30 Day Min"]
-gage_l30 <- gage_loflows["30 Day Min"]
-cmp_l30 <- cbind(gage_loflows$year, gage_l30, model_l30)
-names(cmp_l30) <- c("Year", "USGS", "Model")
-
-#l7 data ######################################################## 
-model_l7 <- model_loflows["7 Day Min"]
-gage_l7 <- gage_loflows["7 Day Min"]
-cmp_l7 <- cbind(gage_loflows$year, gage_l7, model_l7)
-names(cmp_l7) <- c("Year", "USGS", "Model")
-
-#l1 data ######################################################## 
-model_l1 <- model_loflows["1 Day Min"]
-gage_l1 <- gage_loflows["1 Day Min"]
-cmp_l1 <- cbind(gage_loflows$year, gage_l1, model_l1)
-names(cmp_l1) <- c("Year", "USGS", "Model")
-
-#ml8 data ########################################################
-fn_iha_mlf <- function(zoots, targetmo) {
-  modat <- group1(zoots,'water','min')
-  print(paste("Grabbing ", targetmo, " values ", sep=''))
-  g1vec <- as.vector(as.matrix(modat[,targetmo]))
-  print("Performing quantile analysis")
-  x <- quantile(g1vec, 0.5, na.rm = TRUE);
-  return(as.numeric(x));
-}
-model_alf <- fn_iha_mlf(model_flows,'August')
-gage_alf <- fn_iha_mlf(gage_flows,'August')
-cmp_alf <- cbind('ml8', gage_alf, model_alf)
-names(cmp_alf) <- c("Metric", "USGS", "Model")
-
-#7q10 data ########################################################
-fn_iha_7q10 <- function(zoots) {
-  g2 <- group2(zoots) 
-  x <- as.vector(as.matrix(g2["7 Day Min"]))
-  for (k in 1:length(x)) {
-    if (x[k] <= 0) {
-      x[k] <- 0.00000001
-      print (paste("Found 0.0 average in year", g2["year"], sep = " "))
-    }
-  }
-  x <- log(x)
-  pars <- PearsonDS:::pearsonIIIfitML(x)
-  x7q10 <- exp(qpearsonIII(0.1, params = pars$par))
-  return(x7q10);
-}
-model_7q10 <- fn_iha_7q10(model_flows)
-gage_7q10 <- fn_iha_7q10(gage_flows)
-cmp_7q10 <- cbind('7q10', gage_7q10, model_7q10)
-names(cmp_7q10) <- c("Metric", "USGS", "Model")
-
-
-#mne9_10 data ########################################################
-model_sept <- subset(model_flows, month(model_flows)=='9') 
-model_mne910 <- as.numeric(round(quantile(as.numeric(model_flows), 0.10),6))
-gage_sept <- subset(gage_flows, month(gage_flows) == '9') 
-gage_mne910 <- as.numeric(round(quantile(as.numeric(gage_flows), 0.10),6))
-cmp_mne910 <- cbind('mn9_10', gage_mne910, model_mne910)
-names(cmp_mne910) <- c("Metric", "USGS", "Model")
-
-
-#Qout data ########################################################
-model_Qout <- mean(as.numeric(model_flows))
-gage_Qout <- mean(as.numeric(gage_flows))
-cmp_Qout <- cbind('Qout', gage_Qout, model_Qout)
-names(cmp_Qout) <- c("Metric", "USGS", "Model")
-
-# turn off scientific notation (makes plot legends look nicer)
-options(scipen=999)
-```
-
-# Appendix X - Model Calibration Analysis:
-```{r SummaryText, echo=FALSE, results = "asis"}
-cat(summary_text)
-```
-
-## Flow Duration Curve Plot:
-```{r fdc-plot, fig.width=6, fig.height=6, dev='png', echo=FALSE, message=FALSE, results='hide'}
-fdc_dat.df <- data.frame(gage_flows,model_flows)
-sdate <- min(rownames(fdc_dat.df))
-edate <- max(rownames(fdc_dat.df))
-legend_text <- c("gage","model")
-fdc_plot <- hydroTSM::fdc(cbind(fdc_dat.df),
-                          yat = c(1, 5, 10, 50, 100, seq(0,round(max(fdc_dat.df),0), by = 500)),
-                          leg.txt = legend_text,
-                          main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
-                          ylab = "Flow (cfs)",
-                          ylim=c(min(fdc_dat.df), max(fdc_dat.df)),
-                          cex.main=1,
-                          cex.axis=0.9,
-                          cex.lab=1,
-                          leg.cex=1,
-                          pch = NA
-                          )
-```
-
-\newpage
-
-## L90 Model Performance Bar Plot:
-```{r l90-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
-barplot(
-  cbind(USGS, Model) ~ Year, data=cmp_l90,
-  col=c("blue", "black"),
-  main=paste("USGS vs VAHydro, 90 Day Low Flow ",title_param,sep=""),
-  beside=TRUE,
-  ylab = "Streamflow (cfs)",
-  ylim = c(0,ymax_val),
-  cex.main=0.8,
-  cex.axis=0.9,
-  cex.lab=1,
-  cex.names=0.7
-)
-legend("topleft",legend=c("USGS", "VAHydro"),fill=c("blue", "black"),cex=1)
-abline(h=min(cmp_l90$USGS), col="blue", lty = "dashed")
-abline(h=min(cmp_l90$Model), col="black", lty = "dashed")
-mtext(round(min(cmp_l90$USGS),1), side=2, line=0, las=1, at=min(cmp_l90$USGS), cex=0.6, col="blue")
-mtext(round(min(cmp_l90$Model),1), side=4, line=0, las=1, at=(min(cmp_l90$Model)), cex=0.6, col="black")
-```
-
-## L30 Model Performance Bar Plot:
-```{r l30-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
-barplot(
-  cbind(USGS, Model) ~ Year, data=cmp_l30,
-  col=c("blue", "black"),
-  main=paste("USGS vs VAHydro, 30 Day Low Flow ",title_param,sep=""),
-  beside=TRUE,
-  ylab = "Streamflow (cfs)",
-  ylim = c(0,ymax_val),
-  cex.main=0.8,
-  cex.axis=0.9,
-  cex.lab=1,
-  cex.names=0.7
-)
-legend("topleft",legend=c("USGS", "VAHydro"),fill=c("blue", "black"),cex=1)
-abline(h=min(cmp_l30$USGS), col="blue", lty = "dashed")
-abline(h=min(cmp_l30$Model), col="black", lty = "dashed")
-mtext(round(min(cmp_l30$USGS),1), side=2, line=0, las=1, at=min(cmp_l30$USGS), cex=0.6, col="blue")
-mtext(round(min(cmp_l30$Model),1), side=4, line=0, las=1, at=(min(cmp_l30$Model)), cex=0.6, col="black")
-```
-
-## L7 Model Performance Bar Plot:
-```{r l7-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
-barplot(
-  cbind(USGS, Model) ~ Year, data=cmp_l7,
-  col=c("blue", "black"),
-  main=paste("USGS vs VAHydro, 7 Day Low Flow ",title_param,sep=""),
-  beside=TRUE,
-  ylab = "Streamflow (cfs)",
-  ylim = c(0,ymax_val),
-  cex.main=0.8,
-  cex.axis=0.9,
-  cex.lab=1,
-  cex.names=0.7
-)
-legend("topleft",legend=c("USGS", "VAHydro"),fill=c("blue", "black"),cex=1)
-abline(h=min(cmp_l7$USGS), col="blue", lty = "dashed")
-abline(h=min(cmp_l7$Model), col="black", lty = "dashed")
-mtext(round(min(cmp_l7$USGS),1), side=2, line=0, las=1, at=min(cmp_l7$USGS), cex=0.6, col="blue")
-mtext(round(min(cmp_l7$Model),1), side=4, line=0, las=1, at=(min(cmp_l7$Model)), cex=0.6, col="black")
-```
-
-## L1 Model Performance Bar Plot:
-```{r l1-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
-barplot(
-  cbind(USGS, Model) ~ Year, data=cmp_l1,
-  col=c("blue", "black"),
-  main=paste("USGS vs VAHydro, 1 Day Low Flow ",title_param,sep=""),
-  beside=TRUE,
-  ylab = "Streamflow (cfs)",
-  ylim = c(0,ymax_val),
-  cex.main=0.8,
-  cex.axis=0.9,
-  cex.lab=1,
-  cex.names=0.7
-)
-legend("topleft",legend=c("USGS", "VAHydro"),fill=c("blue", "black"),cex=1)
-abline(h=min(cmp_l1$USGS), col="blue", lty = "dashed")
-abline(h=min(cmp_l1$Model), col="black", lty = "dashed")
-mtext(round(min(cmp_l1$USGS),1), side=2, line=0, las=1, at=min(cmp_l1$USGS), cex=0.6, col="blue")
-mtext(round(min(cmp_l1$Model),1), side=4, line=0, las=1, at=(min(cmp_l1$Model)), cex=0.6, col="black")
-```
-
-
-## Model Performance Scatterplots:
-```{r l90-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
-
-par(mfrow=c(1,2))
-
-# L90 Scatterplot
-m90 <- max(c(max(model_l90$`90 Day Min`), max(gage_l90$`90 Day Min`)))
-lm90 <- lm(model_l90$`90 Day Min` ~ gage_l90$`90 Day Min`)
-plot(model_l90$`90 Day Min` ~ gage_l90$`90 Day Min`, ylim=c(0,m90), xlim=c(0,m90),
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro, 90 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(lm90,lwd=2,col="blue")
-abline(0,1,col="black")
-title(ylab="VAHydro 90 Day Low Flow", line=2, cex.lab=0.8)
-title(xlab="USGS 90 Day Low Flow", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm90)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm90)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-
-# L90 Error Scatterplot
-l90_err <- (model_l90$`90 Day Min` - gage_l90$`90 Day Min`)
-l90_err_pct <- 100.0 * (model_l90$`90 Day Min` - gage_l90$`90 Day Min`) / gage_l90$`90 Day Min`
-lm90_err <- lm(l90_err ~ gage_loflows$year)
-
-plot(l90_err ~ gage_loflows$year,
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro Error, 90 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(reg=lm90_err,lwd=2,col="blue")
-abline(0,0,col="black")
-title(ylab="90 Day Low Flow Error", line=2, cex.lab=0.8)
-title(xlab="Year", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm90_err)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm90_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-```
-
-```{r l30-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
-
-par(mfrow=c(1,2))
-
-# l30 Scatterplot
-m30 <- max(c(max(model_l30$`30 Day Min`), max(gage_l30$`30 Day Min`)))
-lm30 <- lm(model_l30$`30 Day Min` ~ gage_l30$`30 Day Min`)
-plot(model_l30$`30 Day Min` ~ gage_l30$`30 Day Min`, ylim=c(0,m30), xlim=c(0,m30),
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro, 30 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(lm30,lwd=2,col="blue")
-abline(0,1,col="black")
-title(ylab="VAHydro 30 Day Low Flow", line=2, cex.lab=0.8)
-title(xlab="USGS 30 Day Low Flow", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm30)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm30)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-
-# l30 Error Scatterplot
-l30_err <- (model_l30$`30 Day Min` - gage_l30$`30 Day Min`)
-l30_err_pct <- 100.0 * (model_l30$`30 Day Min` - gage_l30$`30 Day Min`) / gage_l30$`30 Day Min`
-lm30_err <- lm(l30_err ~ gage_loflows$year)
-
-plot(l30_err ~ gage_loflows$year,
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro Error, 30 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(reg=lm30_err,lwd=2,col="blue")
-abline(0,0,col="black")
-title(ylab="30 Day Low Flow Error", line=2, cex.lab=0.8)
-title(xlab="Year", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm30_err)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm30_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-```
-
-```{r l7-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
-
-par(mfrow=c(1,2))
-
-# l7 Scatterplot
-m7 <- max(c(max(model_l7$`7 Day Min`), max(gage_l7$`7 Day Min`)))
-lm7 <- lm(model_l7$`7 Day Min` ~ gage_l7$`7 Day Min`)
-plot(model_l7$`7 Day Min` ~ gage_l7$`7 Day Min`, ylim=c(0,m7), xlim=c(0,m7),
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro, 7 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(lm7,lwd=2,col="blue")
-abline(0,1,col="black")
-title(ylab="VAHydro 7 Day Low Flow", line=2, cex.lab=0.8)
-title(xlab="USGS 7 Day Low Flow", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm7)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm7)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-
-# l7 Error Scatterplot
-l7_err <- (model_l7$`7 Day Min` - gage_l7$`7 Day Min`)
-l7_err_pct <- 100.0 * (model_l7$`7 Day Min` - gage_l7$`7 Day Min`) / gage_l7$`7 Day Min`
-lm7_err <- lm(l7_err ~ gage_loflows$year)
-
-plot(l7_err ~ gage_loflows$year,
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro Error, 7 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(reg=lm7_err,lwd=2,col="blue")
-abline(0,0,col="black")
-title(ylab="7 Day Low Flow Error", line=2, cex.lab=0.8)
-title(xlab="Year", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm7_err)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm7_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-```
-
-```{r l1-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
-
-par(mfrow=c(1,2))
-
-# l1 Scatterplot
-m1 <- max(c(max(model_l1$`1 Day Min`), max(gage_l1$`1 Day Min`)))
-lm1 <- lm(model_l1$`1 Day Min` ~ gage_l1$`1 Day Min`)
-plot(model_l1$`1 Day Min` ~ gage_l1$`1 Day Min`, ylim=c(0,m1), xlim=c(0,m1),
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro, 1 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(lm1,lwd=2,col="blue")
-abline(0,1,col="black")
-title(ylab="VAHydro 1 Day Low Flow", line=2, cex.lab=0.8)
-title(xlab="USGS 1 Day Low Flow", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm1)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm1)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-
-# l1 Error Scatterplot
-l1_err <- (model_l1$`1 Day Min` - gage_l1$`1 Day Min`)
-l1_err_pct <- 100.0 * (model_l1$`1 Day Min` - gage_l1$`1 Day Min`) / gage_l1$`1 Day Min`
-lm1_err <- lm(l1_err ~ gage_loflows$year)
-
-plot(l1_err ~ gage_loflows$year,
-     cex = 0.8,
-     cex.main=0.8,
-     cex.axis=0.7,
-     cex.lab=0.8,
-     col = "blue",
-     main=paste("USGS vs VAHydro Error, 1 Day Low Flow ",title_param,sep=""),
-     xlab = "",
-     ylab = ""
-     )
-abline(reg=lm1_err,lwd=2,col="blue")
-abline(0,0,col="black")
-title(ylab="1 Day Low Flow Error", line=2, cex.lab=0.8)
-title(xlab="Year", line=2.25, cex.lab=0.8)
-legend("topleft",legend=paste("R2: ", format(summary(lm1_err)$r.squared,digits=3),"\n",
-                              "p: ", format(summary(lm1_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
-```
-
-\newpage
-
-## Metrics Table:
-```{r LoadMetricsTable, include=FALSE}
-######################
-model_l90_min = which.min(as.numeric(model_l90[,"90 Day Min"]))
-model_l90_Qout = round(model_loflows[model_l90_min,]$"90 Day Min",6)
-model_l90_year = model_loflows[model_l90_min,]$"year"
-gage_l90_min = which.min(as.numeric(gage_l90[,"90 Day Min"]))
-gage_l90_Qout = round(gage_loflows[gage_l90_min,]$"90 Day Min",6)
-gage_l90_year = gage_loflows[gage_l90_min,]$"year"
-######################
-model_l30_min = which.min(as.numeric(model_l30[,"30 Day Min"]))
-model_l30_Qout = round(model_loflows[model_l30_min,]$"30 Day Min",6)
-model_l30_year = model_loflows[model_l30_min,]$"year"
-gage_l30_min = which.min(as.numeric(gage_l30[,"30 Day Min"]))
-gage_l30_Qout = round(gage_loflows[gage_l30_min,]$"30 Day Min",6)
-gage_l30_year = gage_loflows[gage_l30_min,]$"year"
-######################
-model_l7_min = which.min(as.numeric(model_l7[,"7 Day Min"]))
-model_l7_Qout = round(model_loflows[model_l7_min,]$"7 Day Min",6)
-model_l7_year = model_loflows[model_l7_min,]$"year"
-gage_l7_min = which.min(as.numeric(gage_l7[,"7 Day Min"]))
-gage_l7_Qout = round(gage_loflows[gage_l7_min,]$"7 Day Min",6)
-gage_l7_year = gage_loflows[gage_l7_min,]$"year"
-######################
-model_l1_min = which.min(as.numeric(model_l1[,"1 Day Min"]))
-model_l1_Qout = round(model_loflows[model_l1_min,]$"1 Day Min",6)
-model_l1_year = model_loflows[model_l1_min,]$"year"
-gage_l1_min = which.min(as.numeric(gage_l1[,"1 Day Min"]))
-gage_l1_Qout = round(gage_loflows[gage_l1_min,]$"1 Day Min",6)
-gage_l1_year = gage_loflows[gage_l1_min,]$"year"
-
-metrics_table <- data.frame("stat"=character(),"gage"=double(),"gage_year"=character(),"model"=double(),"model_year"=character())
-metrics_table = rbind(metrics_table,c("l90",round(gage_l90_Qout,2),gage_l90_year,round(model_l90_Qout,2),model_l90_year))
-metrics_table = rbind(metrics_table,c("l30",round(gage_l30_Qout,2),gage_l30_year,round(model_l30_Qout,2),model_l30_year))
-metrics_table = rbind(metrics_table,c("l7",round(gage_l7_Qout,2),gage_l7_year,round(model_l7_Qout,2),model_l7_year))
-metrics_table = rbind(metrics_table,c("l1",round(gage_l1_Qout,2),gage_l1_year,round(model_l1_Qout,2),model_l1_year))
-colnames(metrics_table) <- c("stat","gage","gage_year","model","model_year")
-
-######################
-gstart_year <- year(gstart)
-gend_year <- year(gend)
-metrics_table2 <- data.frame("stat"=character(),"gage"=double(),"model"=double(), "start_year"=double(), "end_year"=double())
-metrics_table2 = rbind(metrics_table2,c("7q10", round(gage_7q10, 2), round(model_7q10, 2), gstart_year, gend_year))
-metrics_table2 = rbind(metrics_table2,c("ml8", round(gage_alf, 2), round(model_alf, 2), gstart_year, gend_year))
-metrics_table2 = rbind(metrics_table2,c("mne9_10", round(gage_mne910, 2), round(model_mne910, 2), gstart_year, gend_year))
-metrics_table2 = rbind(metrics_table2,c("Qout", round(gage_Qout, 2), round(model_Qout, 2), gstart_year, gend_year))
-colnames(metrics_table2) <- c("stat","gage","model","start_year","end_year")
-```
-
-```{r MetricsTable, echo=FALSE}
-qflextable(metrics_table)
-qflextable(metrics_table2)
+scenario1_l90_Qout <- model_info[[1]]$hsp2_2022$l90_Qout$value
 ```
