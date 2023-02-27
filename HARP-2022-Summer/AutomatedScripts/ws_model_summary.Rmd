@@ -48,7 +48,7 @@ ftype1 <- params$ftype1
 model1 <- params$model1
 scenario1 <- params$scenario1
 
-id22 <- params$id2
+id2 <- params$id2
 ftype2 <- params$ftype2
 model2 <- params$model2
 scenario2 <- params$scenario2
@@ -56,18 +56,213 @@ scenario2 <- params$scenario2
 
 ```{r getdata, include=FALSE}
 
-id1 <- 67924
 model1 <- RomProperty$new(
           ds,
           list(entity_type='dh_feature', featureid = id1, propcode="cbp-6.0"),
           TRUE
           )
 
-json_obj_url <- paste(site, 'node/62', sep="/")
 site = "http://deq1.bse.vt.edu:81/d.dh"
+json_obj_url <- paste(site, 'node/62', sep="/")
 obj_url <- paste(json_obj_url, model1$pid, sep="/")
 model1_info <- ds$auth_read(obj_url, "text/json", "")
 model1_info <- fromJSON(model1_info)
 
-scenario1_l90_Qout <- model_info[[1]]$hsp2_2022$l90_Qout$value
+model2 <- RomProperty$new(
+          ds,
+          list(entity_type='dh_feature', featureid = id2, propcode="cbp-6.0"),
+          TRUE
+          )
+
+site = "http://deq1.bse.vt.edu:81/d.dh"
+json_obj_url <- paste(site, 'node/62', sep="/")
+obj_url <- paste(json_obj_url, model1$pid, sep="/")
+model2_info <- ds$auth_read(obj_url, "text/json", "")
+model2_info <- fromJSON(model1_info)
+
+#Pull hydr csv data #######################################################
+sc1_path <- model1_info[[1]]$hsp2_2022$hydr_file_path$value
+sc1_hydr <- data.table::fread(sc1_path)
+############################
+sdate <- as.Date(min(sc1_hydr$date))
+edate <- as.Date(max(sc1_hydr$date))
+############################
+sc1_cols <- names(sc1_hydr)
+sc1_flow <- zoo(as.numeric(as.character( sc1_hydr$Qout )), order.by = sc1_hydr$date)
+sc1_flow <- window(sc1_flow, start = sdate, end = edate)
+############################
+sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
+sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
+mode(sc1_hydr) <- 'numeric'
+############################
+sc2_path <- model2_info[[1]]$hsp2_2022$hydr_file_path$value
+sc2_hydr <- data.table::fread(sc2_path)
+############################
+sc2_cols <- names(sc2_hydr)
+sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
+sc2_flow <- window(sc2_flow, start = sdate, end = edate)
+############################
+sc2_hydr <- zoo(sc2_hydr, order.by = sc2_hydr$index)
+sc2_hydr <- window(sc2_hydr, start = sdate, end = edate)
+mode(sc2_hydr) <- 'numeric'
+    
+    # this assumes that both sc1 and sc2 are the same length --- could it be otherwise?
+      # if so; explore full_join() from SQLDF or other similar solutions
+    # could the different scenarios have different headers for the columns? Or are they
+    # all hydr csv's??
+
+```
+
+```{r getstats, include=FALSE}
+#Pull pre-calculated stats
+sc1_l90_Qout <- model1_info[[1]]$hsp2_2022$l90_Qout$value
+sc1_l30_Qout <- model1_info[[1]]$hsp2_2022$l30_Qout$value
+sc1_l90_year <- model1_info[[1]]$hsp2_2022$l90_year$value
+sc1_l30_year <- model1_info[[1]]$hsp2_2022$l90_year$value
+sc1_Qbaseline <- model1_info[[1]]$hsp2_2022$Qbaseline$value
+sc1_Qout <- model1_info[[1]]$hsp2_2022$Qout$value
+sc1_7q10 <- model1_info[[1]]$hsp2_2022$'7q10'$value
+sc1_mne9_10 <- model1_info[[1]]$hsp2_2022$mne9_10$value
+sc1_ml8 <- model1_info[[1]]$hsp2_2022$ml8$value
+sc1_ps_mgd <- model1_info[[1]]$hsp2_2022$ps_mgd$value
+sc1_ps_cumulative_mgd <- model1_info[[1]]$hsp2_2022$ps_cumulative_mgd$value
+sc1_wd_cumulative_mgd <- model1_info[[1]]$hsp2_2022$wd_cumulative_mgd$value
+sc1_wd_mgd <- model1_info[[1]]$hsp2_2022$wd_mgd$value
+sc1_unmet_demand_mgd <- model1_info[[1]]$hsp2_2022$unmet_demand_mgd$value
+sc1_ps_nextdown_mgd <- model1_info[[1]]$hsp2_2022$ps_nextdown_mgd$value
+sc1_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$consumptive_use_frac$value
+sc1_daily_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$daily_consumptive_use_frac$value
+sc1_net_consumption_mgd <- model1_info[[1]]$hsp2_2022$net_consumption_mgd$value
+################################################################################
+sc2_l90_Qout <- model1_info[[1]]$hsp2_2022$l90_Qout$value
+sc2_l30_Qout <- model1_info[[1]]$hsp2_2022$l30_Qout$value
+sc2_l90_year <- model1_info[[1]]$hsp2_2022$l90_year$value
+sc2_l30_year <- model1_info[[1]]$hsp2_2022$l90_year$value
+sc2_Qbaseline <- model1_info[[1]]$hsp2_2022$Qbaseline$value
+sc2_Qout <- model1_info[[1]]$hsp2_2022$Qout$value
+sc2_7q10 <- model1_info[[1]]$hsp2_2022$'7q10'$value
+sc2_mne9_10 <- model1_info[[1]]$hsp2_2022$mne9_10$value
+sc2_ml8 <- model1_info[[1]]$hsp2_2022$ml8$value
+sc2_ps_mgd <- model1_info[[1]]$hsp2_2022$ps_mgd$value
+sc2_ps_cumulative_mgd <- model1_info[[1]]$hsp2_2022$ps_cumulative_mgd$value
+sc2_wd_cumulative_mgd <- model1_info[[1]]$hsp2_2022$wd_cumulative_mgd$value
+sc2_wd_mgd <- model1_info[[1]]$hsp2_2022$wd_mgd$value
+sc2_unmet_demand_mgd <- model1_info[[1]]$hsp2_2022$unmet_demand_mgd$value
+sc2_ps_nextdown_mgd <- model1_info[[1]]$hsp2_2022$ps_nextdown_mgd$value
+sc2_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$consumptive_use_frac$value
+sc2_daily_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$daily_consumptive_use_frac$value
+sc2_net_consumption_mgd <- model1_info[[1]]$hsp2_2022$net_consumption_mgd$value
+```
+
+```{r lowflowdata, include=FALSE}
+
+sc1_loflows <- IHA::group2(sc1_flow)
+sc2_loflows <- IHA::group2(sc2_flow)
+
+title_param <- paste0("\nrunid #",runid)
+
+#l90 data ####################################################### 
+sc1_l90 <- sc1_loflows["90 Day Min"]
+sc2_l90 <- sc2_loflows["90 Day Min"]
+cmp_l90 <- cbind(sc2_loflows$year, sc2_l90, sc1_l90)
+names(cmp_l90) <- c("Year", "USGS", "sc1")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_l90$USGS,cmp_l90$sc1))
+
+#l30 data ####################################################### 
+sc1_l30 <- sc1_loflows["30 Day Min"]
+sc2_l30 <- sc2_loflows["30 Day Min"]
+cmp_l30 <- cbind(sc2_loflows$year, sc2_l30, sc1_l30)
+names(cmp_l30) <- c("Year", "USGS", "sc1")
+
+#l7 data ######################################################## 
+sc1_l7 <- sc1_loflows["7 Day Min"]
+sc2_l7 <- sc2_loflows["7 Day Min"]
+cmp_l7 <- cbind(sc2_loflows$year, sc2_l7, sc1_l7)
+names(cmp_l7) <- c("Year", "USGS", "sc1")
+
+#l1 data ######################################################## 
+sc1_l1 <- sc1_loflows["1 Day Min"]
+sc2_l1 <- sc2_loflows["1 Day Min"]
+cmp_l1 <- cbind(sc2_loflows$year, sc2_l1, sc1_l1)
+names(cmp_l1) <- c("Year", "USGS", "sc1")
+
+# turn off scientific notation (makes plot legends look nicer)
+options(scipen=999)
+```
+
+# Appendix X - Model Calibration Analysis:
+```{r SummaryText, echo=FALSE, results = "asis"}
+cat(summary_text)
+```
+
+  ###plotting here!
+
+
+## Metrics Table:
+```{r stattable, include = FALSE}
+
+gstart_year <- year(gstart)
+gend_year <- year(gend)
+############################
+metrics_table <- data.frame("stat"=character(),"sc1"=double(),"sc2"=double(), "start_year"=double(), "end_year"=double())
+
+metrics_table = rbind(metrics_table,c("Qout", round(sc1_Qout, 2), round(sc2_Qout, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("Qbaseline", round(sc1_Qbaseline, 2), round(sc2_Qbaseline, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("7q10", round(sc1_7q10, 2), round(sc2_7q10, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("ml8", round(sc1_ml8, 2), round(sc2_ml8, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("mne9_10", round(sc1_mne910, 2), round(sc2_mne910, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("wd_mgd", round(sc1_wd_mgd, 2), round(sc2_wd_mgd, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("wd_cumulative_mgd", round(sc1_wd_cumulative_mgd, 2), round(sc2_wd_cumulative_mgd, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("ps_mgd", round(sc1_ps_mgd, 2), round(sc2_ps_mgd, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("ps_cumulative_mgd", round(sc1_ps_cumulative_mgd, 2), round(sc2_ps_cumulative_mgd, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("ps_nextdown_mgd", round(sc1_ps_nextdown_mgd, 2), round(sc2_ps_nextdown_mgd, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("unmet_demand_mgd", round(sc1_unmet_demand_mgd, 2), round(sc2_unmet_demand_mgd, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("consumptive_use_frac", round(sc1_consumptive_use_frac, 2), round(sc2_consumptive_use_frac, 2), gstart_year, gend_year))
+metrics_table = rbind(metrics_table,c("daily_consumptive_use_frac", round(sc1_daily_consumptive_use_frac, 2), round(sc2_daily_consumptive_use_frac, 2), gstart_year, gend_year))
+
+colnames(metrics_table) <- c("stat","scenario1","scenario2","start_year","end_year")
+
+
+######################
+sc1_l90_min = which.min(as.numeric(sc1_l90[,"90 Day Min"]))
+sc1_l90_Qout = round(sc1_loflows[sc1_l90_min,]$"90 Day Min",6)
+sc1_l90_year = sc1_loflows[sc1_l90_min,]$"year"
+sc2_l90_min = which.min(as.numeric(sc2_l90[,"90 Day Min"]))
+sc2_l90_Qout = round(sc2_loflows[sc2_l90_min,]$"90 Day Min",6)
+sc2_l90_year = sc2_loflows[sc2_l90_min,]$"year"
+######################
+sc1_l30_min = which.min(as.numeric(sc1_l30[,"30 Day Min"]))
+sc1_l30_Qout = round(sc1_loflows[sc1_l30_min,]$"30 Day Min",6)
+sc1_l30_year = sc1_loflows[sc1_l30_min,]$"year"
+sc2_l30_min = which.min(as.numeric(sc2_l30[,"30 Day Min"]))
+sc2_l30_Qout = round(sc2_loflows[sc2_l30_min,]$"30 Day Min",6)
+sc2_l30_year = sc2_loflows[sc2_l30_min,]$"year"
+######################
+sc1_l7_min = which.min(as.numeric(sc1_l7[,"7 Day Min"]))
+sc1_l7_Qout = round(sc1_loflows[sc1_l7_min,]$"7 Day Min",6)
+sc1_l7_year = sc1_loflows[sc1_l7_min,]$"year"
+sc2_l7_min = which.min(as.numeric(sc2_l7[,"7 Day Min"]))
+sc2_l7_Qout = round(sc2_loflows[sc2_l7_min,]$"7 Day Min",6)
+sc2_l7_year = sc2_loflows[sc2_l7_min,]$"year"
+######################
+sc1_l1_min = which.min(as.numeric(sc1_l1[,"1 Day Min"]))
+sc1_l1_Qout = round(sc1_loflows[sc1_l1_min,]$"1 Day Min",6)
+sc1_l1_year = sc1_loflows[sc1_l1_min,]$"year"
+sc2_l1_min = which.min(as.numeric(sc2_l1[,"1 Day Min"]))
+sc2_l1_Qout = round(sc2_loflows[sc2_l1_min,]$"1 Day Min",6)
+sc2_l1_year = sc2_loflows[sc2_l1_min,]$"year"
+
+metrics_table2 <- data.frame("stat"=character(),"sc1"=double(),"sc1_year"=character(),"sc2"=double(),"sc2_year"=character())
+metrics_table2 = rbind(metrics_table2,c("l90",round(sc1_l90_Qout,2),sc2_l90_year,round(sc2_l90_Qout,2),sc2_l90_year))
+metrics_table2 = rbind(metrics_table2,c("l30",round(sc1_l30_Qout,2),sc2_l30_year,round(sc2_l30_Qout,2),sc2_l30_year))
+metrics_table2 = rbind(metrics_table2,c("l7",round(sc1_l7_Qout,2),sc2_l7_year,round(sc2_l7_Qout,2),sc2_l7_year))
+metrics_table2 = rbind(metrics_table2,c("l1",round(sc1_l1_Qout,2),sc2_l1_year,round(sc2_l1_Qout,2),sc2_l1_year))
+colnames(metrics_table2) <- c("stat","scenario1","sc1_year","scenario2","sc2_year")
+
+```
+
+```{r MetricsTable, echo=FALSE}
+qflextable(metrics_table)
+qflextable(metrics_table2)
 ```
