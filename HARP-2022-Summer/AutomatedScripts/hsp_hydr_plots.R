@@ -103,28 +103,33 @@ riverseg<- RomFeature$new(
 model <- RomProperty$new(
   ds,
   list(
-    varkey="om_model_element", 
-    propname=riverseg$name,
     featureid=riverseg$hydroid, 
     entity_type="dh_feature", 
     propcode=model_version
   ), 
   TRUE
 )
-model$save(TRUE)
+if (is.na(model$pid)) {
+  model$propname = paste(riverseg$name, model_version)
+  model$varid = ds$get_vardef('om_water_model_node')$varid
+  model$save(TRUE)
+}
 
-model_scenario <- RomProperty$new( 
+
+model_scenario <- RomProperty$new(
   ds,
   list(
-    varkey="om_scenario", 
     featureid=model$pid, 
     entity_type="dh_properties", 
-    propname=scenario_name,
     propcode=scenario_name
   ), 
   TRUE
 )
-model_scenario$save(TRUE)
+if (is.na(model_scenario$pid)) {
+  model_scenario$propname = paste(scenario_name)
+  model_scenario$varid = ds$get_vardef('om_scenario')$varid
+  model_scenario$save(TRUE)
+}
 
 
 # Uploading constants to VaHydro:
@@ -564,6 +569,7 @@ furl <- paste(
 hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
+ymn <- 0.01
 fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
                           # yat = c(0.10,1,5,10,25,100,400),
                           # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
@@ -571,7 +577,7 @@ fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(h
                           leg.txt = legend_text,
                           main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
                           ylab = "Flow (cfs)",
-                          ylim=c(min(hydrpd$Qout), max(hydrpd$Qout)),
+                          ylim=c(ymn, max(hydrpd$Qout)),
                           cex.main=1.75,
                           cex.axis=1.50,
                           leg.cex=2,
