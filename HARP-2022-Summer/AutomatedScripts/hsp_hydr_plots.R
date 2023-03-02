@@ -564,6 +564,7 @@ furl <- paste(
 hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
+ymn <- 0
 fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
                           # yat = c(0.10,1,5,10,25,100,400),
                           # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
@@ -571,7 +572,7 @@ fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(h
                           leg.txt = legend_text,
                           main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
                           ylab = "Flow (cfs)",
-                          ylim=c(min(hydrpd$Qout), max(hydrpd$Qout)),
+                          ylim=c(ymn, max(hydrpd$Qout)),
                           cex.main=1.75,
                           cex.axis=1.50,
                           leg.cex=2,
