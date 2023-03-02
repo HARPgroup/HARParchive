@@ -95,19 +95,6 @@ if (is.na(model$pid)) {
   model$save(TRUE)
 }
 
-#model_scenario <- RomProperty$new( 
-#  ds,
-#  list(
-#    varkey="om_scenario", 
-#    featureid=model$pid, 
-#    entity_type="dh_properties", 
-#    propname=scenario_name,
-#    propcode=scenario_name
-#  ), 
-#  TRUE
-#)
-#model_scenario$save(TRUE)
-
 model_scenario <- RomProperty$new(
   ds,
   list(
