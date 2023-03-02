@@ -564,7 +564,7 @@ furl <- paste(
 hydrpd <- data.frame(hydrpd)
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
-ymn <- 0
+ymn <- 0.01
 fdc_plot <- hydroTSM::fdc(cbind(hydrpd[names(hydrpd)== base_var], hydrpd[names(hydrpd)== comp_var]),
                           # yat = c(0.10,1,5,10,25,100,400),
                           # yat = c(round(min(hydrpd),0),500,1000,5000,10000),
