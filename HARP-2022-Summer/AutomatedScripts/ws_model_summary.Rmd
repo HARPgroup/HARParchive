@@ -22,7 +22,7 @@ params:
   model1: ''
   scenario1: ''
   
-  id2: ''  #hydroid !
+  id2: 478766  #hydroid !
   ftype2: ''
   model2: ''
   scenario2: ''
@@ -32,13 +32,13 @@ params:
 #library("dataRetrieval")
 #library("zoo")
 library("hydrotools")
-#library("data.table")
+library("data.table")
 #library("flextable")          uncomment when packages get used just to make sure no extras from previous gage situation
 
-library("jsonlite")
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+site = "http://deq1.bse.vt.edu:81/d.dh"
+ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 summary_text <- params$summary_text
@@ -52,9 +52,8 @@ id2 <- params$id2
 ftype2 <- params$ftype2
 model2 <- params$model2
 scenario2 <- params$scenario2
-```
 
-```{r getdata, include=FALSE}
+#Pull data for both scenarios ################################################
 
 model1 <- RomProperty$new(
           ds,
@@ -62,27 +61,30 @@ model1 <- RomProperty$new(
           TRUE
           )
 
-site = "http://deq1.bse.vt.edu:81/d.dh"
 json_obj_url <- paste(site, 'node/62', sep="/")
 obj_url <- paste(json_obj_url, model1$pid, sep="/")
 model1_info <- ds$auth_read(obj_url, "text/json", "")
-model1_info <- fromJSON(model1_info)
+model1_info <- jsonlite::fromJSON(model1_info)
 
 model2 <- RomProperty$new(
           ds,
-          list(entity_type='dh_feature', featureid = id2, propcode="cbp-6.0"),
+          list(entity_type='dh_feature', featureid = id2, propcode="cbp-5.3.2"),
           TRUE
           )
 
-site = "http://deq1.bse.vt.edu:81/d.dh"
 json_obj_url <- paste(site, 'node/62', sep="/")
-obj_url <- paste(json_obj_url, model1$pid, sep="/")
+obj_url <- paste(json_obj_url, model2$pid, sep="/")
 model2_info <- ds$auth_read(obj_url, "text/json", "")
-model2_info <- fromJSON(model1_info)
+model2_info <- jsonlite::fromJSON(model2_info)
+```
 
-#Pull hydr csv data #######################################################
+```{r getdata, include=FALSE}
+#Pull hydr csv data
+
 sc1_path <- model1_info[[1]]$hsp2_2022$hydr_file_path$value
 sc1_hydr <- data.table::fread(sc1_path)
+  #for testing (this csv is in the AutomatedScripts -folder):
+#sc1_hydr <- fread("JU4_7260_7380_hydrd_wy.csv")
 ############################
 sdate <- as.Date(min(sc1_hydr$date))
 edate <- as.Date(max(sc1_hydr$date))
@@ -94,6 +96,7 @@ sc1_flow <- window(sc1_flow, start = sdate, end = edate)
 sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
 sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
 mode(sc1_hydr) <- 'numeric'
+
 ############################
 sc2_path <- model2_info[[1]]$hsp2_2022$hydr_file_path$value
 sc2_hydr <- data.table::fread(sc2_path)
