@@ -17,15 +17,16 @@ params:
   doc_title: "Comparison of Two VaHydro Models"
   summary_text: ''
   
-  id1: 67924  #hydroid !
-  ftype1: ''
-  model1: ''
-  scenario1: ''
+  id1: 605598 #67924  #hydroid !
+    #rseg for 605598 is PU0_6080_5620
+  ftype1: "cbp60"
+  modelv1: "cbp-6.0" #propcode
+  scenario1: 'hsp2_2022'
   
-  id2: 478766  #hydroid !
-  ftype2: ''
-  model2: ''
-  scenario2: ''
+  id2: 67783 #478766  #hydroid !
+  ftype2: 'vahydro'
+  modelv2: "vahydro-1.0" 
+  scenario2: 'runid_11'
 ---
 
 ```{r setup, include=FALSE}
@@ -45,19 +46,19 @@ summary_text <- params$summary_text
 
 id1 <- params$id1
 ftype1 <- params$ftype1
-model1 <- params$model1
+modelv1 <- params$modelv1
 scenario1 <- params$scenario1
 
 id2 <- params$id2
 ftype2 <- params$ftype2
-model2 <- params$model2
+modelv2 <- params$modelv2
 scenario2 <- params$scenario2
 
 #Pull data for both scenarios ################################################
 
 model1 <- RomProperty$new(
           ds,
-          list(entity_type='dh_feature', featureid = id1, propcode="cbp-6.0"),
+          list(entity_type='dh_feature', featureid = id1, propcode=modelv1),
           TRUE
           )
 
@@ -68,7 +69,7 @@ model1_info <- jsonlite::fromJSON(model1_info)
 
 model2 <- RomProperty$new(
           ds,
-          list(entity_type='dh_feature', featureid = id2, propcode="cbp-5.3.2"),
+          list(entity_type='dh_feature', featureid = id2, propcode=modelv2),
           TRUE
           )
 
@@ -78,33 +79,76 @@ model2_info <- ds$auth_read(obj_url, "text/json", "")
 model2_info <- jsonlite::fromJSON(model2_info)
 ```
 
-```{r getdata, include=FALSE}
+```{r get_vahydro_stats, include=FALSE}
+#Pull pre-calculated stats
+sc1_l90_Qout <- model1_info[[1]][[scenario1]]$l90_Qout$value
+sc1_l30_Qout <- model1_info[[1]][[scenario1]]$l30_Qout$value
+sc1_l90_year <- model1_info[[1]][[scenario1]]$l90_year$value
+sc1_l30_year <- model1_info[[1]][[scenario1]]$l30_year$value
+sc1_Qbaseline <- model1_info[[1]][[scenario1]]$Qbaseline$value
+sc1_Qout <- model1_info[[1]][[scenario1]]$Qout$value
+sc1_7q10 <- model1_info[[1]][[scenario1]]$'7q10'$value
+sc1_mne9_10 <- model1_info[[1]][[scenario1]]$mne9_10$value
+sc1_ml8 <- model1_info[[1]][[scenario1]]$ml8$value
+sc1_ps_mgd <- model1_info[[1]][[scenario1]]$ps_mgd$value
+sc1_ps_cumulative_mgd <- model1_info[[1]][[scenario1]]$ps_cumulative_mgd$value
+sc1_wd_cumulative_mgd <- model1_info[[1]][[scenario1]]$wd_cumulative_mgd$value
+sc1_wd_mgd <- model1_info[[1]][[scenario1]]$wd_mgd$value
+sc1_unmet_demand_mgd <- model1_info[[1]][[scenario1]]$unmet_demand_mgd$value
+sc1_ps_nextdown_mgd <- model1_info[[1]][[scenario1]]$ps_nextdown_mgd$value
+sc1_consumptive_use_frac <- model1_info[[1]][[scenario1]]$consumptive_use_frac$value
+sc1_daily_consumptive_use_frac <- model1_info[[1]][[scenario1]]$daily_consumptive_use_frac$value
+sc1_net_consumption_mgd <- model1_info[[1]][[scenario1]]$net_consumption_mgd$value
+################################################################################
+sc2_l90_Qout <- model2_info[[1]][[scenario2]]$l90_Qout$value
+sc2_l30_Qout <- model2_info[[1]][[scenario2]]$l30_Qout$value
+sc2_l90_year <- model2_info[[1]][[scenario2]]$l90_year$value
+sc2_l30_year <- model2_info[[1]][[scenario2]]$l90_year$value
+sc2_Qbaseline <- model2_info[[1]][[scenario2]]$Qbaseline$value
+sc2_Qout <- model2_info[[1]][[scenario2]]$Qout$value
+sc2_7q10 <- model2_info[[1]][[scenario2]]$'7q10'$value
+sc2_mne9_10 <- model2_info[[1]][[scenario2]]$mne9_10$value
+sc2_ml8 <- model2_info[[1]][[scenario2]]$ml8$value
+sc2_ps_mgd <- model2_info[[1]][[scenario2]]$ps_mgd$value
+sc2_ps_cumulative_mgd <- model2_info[[1]][[scenario2]]$ps_cumulative_mgd$value
+sc2_wd_cumulative_mgd <- model2_info[[1]][[scenario2]]$wd_cumulative_mgd$value
+sc2_wd_mgd <- model2_info[[1]][[scenario2]]$wd_mgd$value
+sc2_unmet_demand_mgd <- model2_info[[1]][[scenario2]]$unmet_demand_mgd$value
+sc2_ps_nextdown_mgd <- model2_info[[1]][[scenario2]]$ps_nextdown_mgd$value
+sc2_consumptive_use_frac <- model2_info[[1]][[scenario2]]$consumptive_use_frac$value
+sc2_daily_consumptive_use_frac <- model2_info[[1]][[scenario2]]$daily_consumptive_use_frac$value
+sc2_net_consumption_mgd <- model2_info[[1]][[scenario2]]$net_consumption_mgd$value
+```
+
+```{r get_hydr_data, include=FALSE}
 #Pull hydr csv data
 
-sc1_path <- model1_info[[1]]$hsp2_2022$hydr_file_path$value
+#for id1 ###########################
+sc1_path <- model1_info[[1]][[scenario1]]$hydrd_wy_file_path$value
 sc1_hydr <- data.table::fread(sc1_path)
   #for testing (this csv is in the AutomatedScripts -folder):
-#sc1_hydr <- fread("JU4_7260_7380_hydrd_wy.csv")
-############################
-sdate <- as.Date(min(sc1_hydr$date))
+    #sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
+
+sdate <- as.Date(min(sc1_hydr$date)) 
 edate <- as.Date(max(sc1_hydr$date))
-############################
+
 sc1_cols <- names(sc1_hydr)
 sc1_flow <- zoo(as.numeric(as.character( sc1_hydr$Qout )), order.by = sc1_hydr$date)
 sc1_flow <- window(sc1_flow, start = sdate, end = edate)
-############################
+
 sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
 sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
 mode(sc1_hydr) <- 'numeric'
 
-############################
-sc2_path <- model2_info[[1]]$hsp2_2022$hydr_file_path$value
+#for id2 ###########################
+sc2_path <- model2_info[[1]][[scenario2]]$hydrd_wy_file_path$value
 sc2_hydr <- data.table::fread(sc2_path)
-############################
+  #for testing: there is no hydr file for this seg
+
 sc2_cols <- names(sc2_hydr)
 sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
-sc2_flow <- window(sc2_flow, start = sdate, end = edate)
-############################
+sc2_flow <- window(sc2_flow, start = sdate, end = edate) #currently using sc1's start/end dates
+
 sc2_hydr <- zoo(sc2_hydr, order.by = sc2_hydr$index)
 sc2_hydr <- window(sc2_hydr, start = sdate, end = edate)
 mode(sc2_hydr) <- 'numeric'
@@ -114,47 +158,6 @@ mode(sc2_hydr) <- 'numeric'
     # could the different scenarios have different headers for the columns? Or are they
     # all hydr csv's??
 
-```
-
-```{r getstats, include=FALSE}
-#Pull pre-calculated stats
-sc1_l90_Qout <- model1_info[[1]]$hsp2_2022$l90_Qout$value
-sc1_l30_Qout <- model1_info[[1]]$hsp2_2022$l30_Qout$value
-sc1_l90_year <- model1_info[[1]]$hsp2_2022$l90_year$value
-sc1_l30_year <- model1_info[[1]]$hsp2_2022$l90_year$value
-sc1_Qbaseline <- model1_info[[1]]$hsp2_2022$Qbaseline$value
-sc1_Qout <- model1_info[[1]]$hsp2_2022$Qout$value
-sc1_7q10 <- model1_info[[1]]$hsp2_2022$'7q10'$value
-sc1_mne9_10 <- model1_info[[1]]$hsp2_2022$mne9_10$value
-sc1_ml8 <- model1_info[[1]]$hsp2_2022$ml8$value
-sc1_ps_mgd <- model1_info[[1]]$hsp2_2022$ps_mgd$value
-sc1_ps_cumulative_mgd <- model1_info[[1]]$hsp2_2022$ps_cumulative_mgd$value
-sc1_wd_cumulative_mgd <- model1_info[[1]]$hsp2_2022$wd_cumulative_mgd$value
-sc1_wd_mgd <- model1_info[[1]]$hsp2_2022$wd_mgd$value
-sc1_unmet_demand_mgd <- model1_info[[1]]$hsp2_2022$unmet_demand_mgd$value
-sc1_ps_nextdown_mgd <- model1_info[[1]]$hsp2_2022$ps_nextdown_mgd$value
-sc1_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$consumptive_use_frac$value
-sc1_daily_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$daily_consumptive_use_frac$value
-sc1_net_consumption_mgd <- model1_info[[1]]$hsp2_2022$net_consumption_mgd$value
-################################################################################
-sc2_l90_Qout <- model1_info[[1]]$hsp2_2022$l90_Qout$value
-sc2_l30_Qout <- model1_info[[1]]$hsp2_2022$l30_Qout$value
-sc2_l90_year <- model1_info[[1]]$hsp2_2022$l90_year$value
-sc2_l30_year <- model1_info[[1]]$hsp2_2022$l90_year$value
-sc2_Qbaseline <- model1_info[[1]]$hsp2_2022$Qbaseline$value
-sc2_Qout <- model1_info[[1]]$hsp2_2022$Qout$value
-sc2_7q10 <- model1_info[[1]]$hsp2_2022$'7q10'$value
-sc2_mne9_10 <- model1_info[[1]]$hsp2_2022$mne9_10$value
-sc2_ml8 <- model1_info[[1]]$hsp2_2022$ml8$value
-sc2_ps_mgd <- model1_info[[1]]$hsp2_2022$ps_mgd$value
-sc2_ps_cumulative_mgd <- model1_info[[1]]$hsp2_2022$ps_cumulative_mgd$value
-sc2_wd_cumulative_mgd <- model1_info[[1]]$hsp2_2022$wd_cumulative_mgd$value
-sc2_wd_mgd <- model1_info[[1]]$hsp2_2022$wd_mgd$value
-sc2_unmet_demand_mgd <- model1_info[[1]]$hsp2_2022$unmet_demand_mgd$value
-sc2_ps_nextdown_mgd <- model1_info[[1]]$hsp2_2022$ps_nextdown_mgd$value
-sc2_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$consumptive_use_frac$value
-sc2_daily_consumptive_use_frac <- model1_info[[1]]$hsp2_2022$daily_consumptive_use_frac$value
-sc2_net_consumption_mgd <- model1_info[[1]]$hsp2_2022$net_consumption_mgd$value
 ```
 
 ```{r lowflowdata, include=FALSE}
