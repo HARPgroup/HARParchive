@@ -34,7 +34,7 @@ params:
 #library("zoo")
 library("hydrotools")
 library("data.table")
-#library("flextable")          uncomment when packages get used just to make sure no extras from previous gage situation
+#library("flextable")          #uncomment when packages get used just to make sure no extras from previous gage situation
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
@@ -127,7 +127,7 @@ sc2_net_consumption_mgd <- model2_info[[1]][[scenario2]]$net_consumption_mgd$val
 sc1_path <- model1_info[[1]][[scenario1]]$hydrd_wy_file_path$value
 sc1_hydr <- data.table::fread(sc1_path)
   #for testing (this csv is in the AutomatedScripts -folder):
-    #sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
+    sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
 
 sdate <- as.Date(min(sc1_hydr$date)) 
 edate <- as.Date(max(sc1_hydr$date))
@@ -143,7 +143,8 @@ mode(sc1_hydr) <- 'numeric'
 #for id2 ###########################
 sc2_path <- model2_info[[1]][[scenario2]]$hydrd_wy_file_path$value
 sc2_hydr <- data.table::fread(sc2_path)
-  #for testing: there is no hydr file for this seg
+  #for testing: there is no hydr file for this seg --> substituting with id1's hydrd_wy file for now
+    sc2_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
 
 sc2_cols <- names(sc2_hydr)
 sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
@@ -165,7 +166,7 @@ mode(sc2_hydr) <- 'numeric'
 sc1_loflows <- IHA::group2(sc1_flow)
 sc2_loflows <- IHA::group2(sc2_flow)
 
-title_param <- paste0("\nrunid #",runid)
+title_param <- paste0("\nrunid #", scenario1)
 
 #l90 data ####################################################### 
 sc1_l90 <- sc1_loflows["90 Day Min"]
