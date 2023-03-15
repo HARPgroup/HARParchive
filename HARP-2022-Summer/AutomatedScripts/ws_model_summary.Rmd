@@ -26,7 +26,7 @@ params:
   id2: 67783 #478766  #hydroid !
   ftype2: 'vahydro'
   modelv2: "vahydro-1.0" 
-  scenario2: 'runid_11'
+  scenario2: '11'
 ---
 
 ```{r setup, include=FALSE}
@@ -77,6 +77,13 @@ json_obj_url <- paste(site, 'node/62', sep="/")
 obj_url <- paste(json_obj_url, model2$pid, sep="/")
 model2_info <- ds$auth_read(obj_url, "text/json", "")
 model2_info <- jsonlite::fromJSON(model2_info)
+
+elid <- model2_info[[1]]$om_element_connection$value
+
+# get model data via elid
+model2_flows <- om_get_rundata(elid, scenario2, site=omsite)
+model2_flows.df <- data.frame(model2_flows)
+model2_flows <- zoo(as.numeric(as.character(model2_flows$Qout)), order.by = index(model2_flows))
 ```
 
 ```{r get_vahydro_stats, include=FALSE}
@@ -158,7 +165,6 @@ mode(sc2_hydr) <- 'numeric'
       # if so; explore full_join() from SQLDF or other similar solutions
     # could the different scenarios have different headers for the columns? Or are they
     # all hydr csv's??
-
 ```
 
 ```{r lowflowdata, include=FALSE}
