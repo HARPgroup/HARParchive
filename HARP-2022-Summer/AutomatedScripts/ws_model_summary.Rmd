@@ -10,272 +10,235 @@ output:
       bottom: 0.5
       top: 0.5
       right: 1
-      left: 0.0
+      left: 0.5
       header: 0.0
       footer: 0.0
 params: 
   doc_title: "Comparison of Two VaHydro Models"
-  summary_text: ''
-  
-  id1: 605598 #67924  #hydroid !
-    #rseg for 605598 is PU0_6080_5620
-  ftype1: "cbp60"
-  modelv1: "cbp-6.0" #propcode
-  scenario1: 'hsp2_2022'
-  
-  id2: 67783 #478766  #hydroid !
-  ftype2: 'vahydro'
-  modelv2: "vahydro-1.0" 
-  scenario2: '11'
+  rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
+  rseg.ftype: [ "cbp60","vahydro" ]
+  rseg.model.version: [ "cbp-6.0","vahydro-1.0" ]
+  runid.list: [ "hsp2_2022","runid_11" ]
+  rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
 ---
 
 ```{r setup, include=FALSE}
-#library("dataRetrieval")
-#library("zoo")
-library("hydrotools")
-library("data.table")
-#library("flextable")          #uncomment when packages get used just to make sure no extras from previous gage situation
-
+#https://cran.r-project.org/web/packages/officedown/officedown.pdf
+#https://ardata-fr.github.io/officeverse/officedown-for-word.html#insert-sections
+knitr::opts_chunk$set(echo = TRUE, fig.cap = TRUE)
+library(officedown)
+library(officer)
+library(flextable)
+library(hydrotools)
+library(rjson)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-site = "http://deq1.bse.vt.edu:81/d.dh"
-ds <- RomDataSource$new(site, rest_uname)
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
+# Load functions used during development
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/fn_get_prop.R")
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/rest_functions.R")
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/find_name.R")
 
-summary_text <- params$summary_text
+fp <- fp_par(
+  text.align = "center", 
+  padding.bottom = 20, padding.top = 120, 
+  border.bottom = fp_border())
 
-id1 <- params$id1
-ftype1 <- params$ftype1
-modelv1 <- params$modelv1
-scenario1 <- params$scenario1
+ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
-id2 <- params$id2
-ftype2 <- params$ftype2
-modelv2 <- params$modelv2
-scenario2 <- params$scenario2
-
-#Pull data for both scenarios ################################################
-
-model1 <- RomProperty$new(
-          ds,
-          list(entity_type='dh_feature', featureid = id1, propcode=modelv1),
-          TRUE
-          )
-
-json_obj_url <- paste(site, 'node/62', sep="/")
-obj_url <- paste(json_obj_url, model1$pid, sep="/")
-model1_info <- ds$auth_read(obj_url, "text/json", "")
-model1_info <- jsonlite::fromJSON(model1_info)
-
-model2 <- RomProperty$new(
-          ds,
-          list(entity_type='dh_feature', featureid = id2, propcode=modelv2),
-          TRUE
-          )
-
-json_obj_url <- paste(site, 'node/62', sep="/")
-obj_url <- paste(json_obj_url, model2$pid, sep="/")
-model2_info <- ds$auth_read(obj_url, "text/json", "")
-model2_info <- jsonlite::fromJSON(model2_info)
-
-elid <- model2_info[[1]]$om_element_connection$value
-
-# get model data via elid
-model2_flows <- om_get_rundata(elid, scenario2, site=omsite)
-model2_flows.df <- data.frame(model2_flows)
-model2_flows <- zoo(as.numeric(as.character(model2_flows$Qout)), order.by = index(model2_flows))
 ```
 
-```{r get_vahydro_stats, include=FALSE}
-#Pull pre-calculated stats
-sc1_l90_Qout <- model1_info[[1]][[scenario1]]$l90_Qout$value
-sc1_l30_Qout <- model1_info[[1]][[scenario1]]$l30_Qout$value
-sc1_l90_year <- model1_info[[1]][[scenario1]]$l90_year$value
-sc1_l30_year <- model1_info[[1]][[scenario1]]$l30_year$value
-sc1_Qbaseline <- model1_info[[1]][[scenario1]]$Qbaseline$value
-sc1_Qout <- model1_info[[1]][[scenario1]]$Qout$value
-sc1_7q10 <- model1_info[[1]][[scenario1]]$'7q10'$value
-sc1_mne9_10 <- model1_info[[1]][[scenario1]]$mne9_10$value
-sc1_ml8 <- model1_info[[1]][[scenario1]]$ml8$value
-sc1_ps_mgd <- model1_info[[1]][[scenario1]]$ps_mgd$value
-sc1_ps_cumulative_mgd <- model1_info[[1]][[scenario1]]$ps_cumulative_mgd$value
-sc1_wd_cumulative_mgd <- model1_info[[1]][[scenario1]]$wd_cumulative_mgd$value
-sc1_wd_mgd <- model1_info[[1]][[scenario1]]$wd_mgd$value
-sc1_unmet_demand_mgd <- model1_info[[1]][[scenario1]]$unmet_demand_mgd$value
-sc1_ps_nextdown_mgd <- model1_info[[1]][[scenario1]]$ps_nextdown_mgd$value
-sc1_consumptive_use_frac <- model1_info[[1]][[scenario1]]$consumptive_use_frac$value
-sc1_daily_consumptive_use_frac <- model1_info[[1]][[scenario1]]$daily_consumptive_use_frac$value
-sc1_net_consumption_mgd <- model1_info[[1]][[scenario1]]$net_consumption_mgd$value
-################################################################################
-sc2_l90_Qout <- model2_info[[1]][[scenario2]]$l90_Qout$value
-sc2_l30_Qout <- model2_info[[1]][[scenario2]]$l30_Qout$value
-sc2_l90_year <- model2_info[[1]][[scenario2]]$l90_year$value
-sc2_l30_year <- model2_info[[1]][[scenario2]]$l90_year$value
-sc2_Qbaseline <- model2_info[[1]][[scenario2]]$Qbaseline$value
-sc2_Qout <- model2_info[[1]][[scenario2]]$Qout$value
-sc2_7q10 <- model2_info[[1]][[scenario2]]$'7q10'$value
-sc2_mne9_10 <- model2_info[[1]][[scenario2]]$mne9_10$value
-sc2_ml8 <- model2_info[[1]][[scenario2]]$ml8$value
-sc2_ps_mgd <- model2_info[[1]][[scenario2]]$ps_mgd$value
-sc2_ps_cumulative_mgd <- model2_info[[1]][[scenario2]]$ps_cumulative_mgd$value
-sc2_wd_cumulative_mgd <- model2_info[[1]][[scenario2]]$wd_cumulative_mgd$value
-sc2_wd_mgd <- model2_info[[1]][[scenario2]]$wd_mgd$value
-sc2_unmet_demand_mgd <- model2_info[[1]][[scenario2]]$unmet_demand_mgd$value
-sc2_ps_nextdown_mgd <- model2_info[[1]][[scenario2]]$ps_nextdown_mgd$value
-sc2_consumptive_use_frac <- model2_info[[1]][[scenario2]]$consumptive_use_frac$value
-sc2_daily_consumptive_use_frac <- model2_info[[1]][[scenario2]]$daily_consumptive_use_frac$value
-sc2_net_consumption_mgd <- model2_info[[1]][[scenario2]]$net_consumption_mgd$value
+
+```{r UserInputs, include=FALSE}
+rseg.hydrocode <- params$rseg.hydrocode
+rseg.ftype <- params$rseg.ftype
+rseg.model.version <- params$rseg.model.version
+runid.list <- params$runid.list
+rseg.metric.list <- params$rseg.metric.list
+
+rlist <- gsub('runid_', '', runid.list)
+
+# r <- 1
+for (r in 1:length(rseg.model.version)){
+  
+  # get rseg feature
+  rseg.hydrocode.r <- rseg.hydrocode[r]
+  rseg.ftype.r <- rseg.ftype[r]
+  rseg_feature <- RomFeature$new(
+    ds,
+    list(hydrocode = rseg.hydrocode.r, ftype = rseg.ftype.r),
+    TRUE
+  )
+  rseg.hydroid.r <- rseg_feature$hydroid
+  
+  # get rseg model
+  rseg.model.version.r <- rseg.model.version[r]
+  print(paste("searching", rseg.model.version.r,"model for river segment hydroid", rseg.hydroid.r))
+  rseg.model.r <- RomProperty$new(
+    ds,
+    list(entity_type='dh_feature', featureid = rseg.hydroid.r, propcode=rseg.model.version.r),
+    TRUE
+  )
+  
+  if (exists("json_obj_url")) {
+  rseg_obj_url.r <- paste(json_obj_url, rseg.model.r$pid, sep="/")
+  rseg_model_info.r <- ds$auth_read(rseg_obj_url.r, "text/json", "")
+  rseg_model_info.r <- fromJSON(rseg_model_info.r)
+  } else {
+  message("Error: json_obj_url is undefined.  Can not retrieve model and scenario information. (Hint: Use config.R to set json_obj_url) ")
+  rseg_model_info.r <- list()
+  }
+  
+  # stash the model run data to a variable
+  # in case its needed outside the loop
+  assign(paste0("dat",r), rseg_model_info.r) 
+  
+  # retrieve metrics for a run
+  runid.r <- runid.list[r]
+  rseg_table.r <- om_model_table(model_info = rseg_model_info.r,
+                             runid.list = runid.r,
+                             metric.list = rseg.metric.list,
+                             include.elfgen = TRUE,
+                             site = site,
+                             site_base = omsite
+                             )
+  # join results from multiple runs to a single dataframe
+  if (r == 1){
+    rseg_metrics.df <- rseg_table.r
+  } else {
+    rseg_metrics.df <- cbind(rseg_metrics.df,rseg_table.r)
+  }
+}
+
 ```
+
+
+```{r LoadStatsTable, include=FALSE}
+rseg_table <- rseg_metrics.df
+rseg_table <- cbind(rownames(rseg_table),rseg_table)
+names(rseg_table)[names(rseg_table) == 'rownames(rseg_table)'] <- 'Desc'
+rseg_table_raw <- rseg_table
+
+rseg_table_sql <- paste('SELECT
+                  CASE
+                    WHEN "Desc" = "model" THEN "River Segment Model Statistics:"
+                    WHEN "Desc" = "Qout" THEN "Flow Out (cfs) - (i.e mean flow)"
+                    WHEN "Desc" = "Qbaseline" THEN "Flow Baseline (cfs)"
+                    WHEN "Desc" = "remaining_days_p0" THEN "Minimum Days of Storage Remaining"
+                    WHEN "Desc" = "l01_Qout" THEN "1 Day Low Flow (cfs)"
+                    WHEN "Desc" = "l07_Qout" THEN "7 Day Low Flow (cfs)"
+                    WHEN "Desc" = "l30_Qout" THEN "30 Day Low Flow (cfs)"
+                    WHEN "Desc" = "l90_Qout" THEN "90 Day Low Flow (cfs)"
+                    WHEN "Desc" = "consumptive_use_frac" THEN "Consumptive Use Fraction"
+                    WHEN "Desc" = "wd_cumulative_mgd" THEN "Cumulative Withdrawal (mgd)"
+                    WHEN "Desc" = "ps_cumulative_mgd" THEN "Cumulative Point Source (mgd)"
+                    WHEN "Desc" = "wd_mgd" THEN "Withdrawal (mgd)"
+                    WHEN "Desc" = "ps_mgd" THEN "Point Source (mgd)"
+                    ELSE Desc
+                  END AS Description, *
+                 FROM rseg_table_raw
+                 WHERE Desc NOT IN ("riverseg","run_date","starttime","endtime","richness_change_abs","richness_change_pct","runid")
+                 ',sep='')
+rseg_table <- sqldf(rseg_table_sql)
+rseg_table <- rseg_table[,-2]
+#-------------------------------------------------------------------------------
+statsdf <- rbind(rseg_table)
+```
+
+\newpage
+
+<!---BLOCK_LANDSCAPE_START--->
+### Metrics Summary:
+```{r StatsTable, echo=FALSE}
+ft <- qflextable(statsdf)
+
+# Set column widths
+ft <- width(ft, j = 2:length(statsdf[1,]), width = 1.9)
+ft <- width(ft, j = 1, width = 2.5)
+
+# Set theme
+ft <- theme_box(ft)
+
+# Set background color of select rows --------------------------------------------------------------
+ft <- bg(ft, bg = "#EFEFEF", part = "header")
+ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEFEF", part = "body")
+fontsize(ft, size = 9)
+```
+<!---BLOCK_LANDSCAPE_STOP--->
+
 
 ```{r get_hydr_data, include=FALSE}
-#Pull hydr csv data
-
-#for id1 ###########################
-sc1_path <- model1_info[[1]][[scenario1]]$hydrd_wy_file_path$value
-sc1_hydr <- data.table::fread(sc1_path)
-  #for testing (this csv is in the AutomatedScripts -folder):
-    sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
-
-sdate <- as.Date(min(sc1_hydr$date)) 
-edate <- as.Date(max(sc1_hydr$date))
-
-sc1_cols <- names(sc1_hydr)
-sc1_flow <- zoo(as.numeric(as.character( sc1_hydr$Qout )), order.by = sc1_hydr$date)
-sc1_flow <- window(sc1_flow, start = sdate, end = edate)
-
-sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
-sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
-mode(sc1_hydr) <- 'numeric'
-
-#for id2 ###########################
-sc2_path <- model2_info[[1]][[scenario2]]$hydrd_wy_file_path$value
-sc2_hydr <- data.table::fread(sc2_path)
-  #for testing: there is no hydr file for this seg --> substituting with id1's hydrd_wy file for now
-    sc2_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
-
-sc2_cols <- names(sc2_hydr)
-sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
-sc2_flow <- window(sc2_flow, start = sdate, end = edate) #currently using sc1's start/end dates
-
-sc2_hydr <- zoo(sc2_hydr, order.by = sc2_hydr$index)
-sc2_hydr <- window(sc2_hydr, start = sdate, end = edate)
-mode(sc2_hydr) <- 'numeric'
-    
-    # this assumes that both sc1 and sc2 are the same length --- could it be otherwise?
-      # if so; explore full_join() from SQLDF or other similar solutions
-    # could the different scenarios have different headers for the columns? Or are they
-    # all hydr csv's??
+# #Pull hydr csv data
+# 
+# #for id1 ###########################
+# sc1_path <- model1_info[[1]][[scenario1]]$hydrd_wy_file_path$value
+# sc1_hydr <- data.table::fread(sc1_path)
+#   #for testing (this csv is in the AutomatedScripts -folder):
+#     sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
+# 
+# sdate <- as.Date(min(sc1_hydr$date)) 
+# edate <- as.Date(max(sc1_hydr$date))
+# 
+# sc1_cols <- names(sc1_hydr)
+# sc1_flow <- zoo(as.numeric(as.character( sc1_hydr$Qout )), order.by = sc1_hydr$date)
+# sc1_flow <- window(sc1_flow, start = sdate, end = edate)
+# 
+# sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
+# sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
+# mode(sc1_hydr) <- 'numeric'
+# 
+# #for id2 ###########################
+# sc2_path <- model2_info[[1]][[scenario2]]$hydrd_wy_file_path$value
+# sc2_hydr <- data.table::fread(sc2_path)
+#   #for testing: there is no hydr file for this seg --> substituting with id1's hydrd_wy file for now
+#     sc2_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
+# 
+# sc2_cols <- names(sc2_hydr)
+# sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
+# sc2_flow <- window(sc2_flow, start = sdate, end = edate) #currently using sc1's start/end dates
+# 
+# sc2_hydr <- zoo(sc2_hydr, order.by = sc2_hydr$index)
+# sc2_hydr <- window(sc2_hydr, start = sdate, end = edate)
+# mode(sc2_hydr) <- 'numeric'
+#     
+#     # this assumes that both sc1 and sc2 are the same length --- could it be otherwise?
+#       # if so; explore full_join() from SQLDF or other similar solutions
+#     # could the different scenarios have different headers for the columns? Or are they
+#     # all hydr csv's??
 ```
 
 ```{r lowflowdata, include=FALSE}
+ 
+# sc1_loflows <- IHA::group2(sc1_flow)
+# sc2_loflows <- IHA::group2(sc2_flow)
+# 
+# title_param <- paste0("\nrunid #", scenario1)
+# 
+# #l90 data ####################################################### 
+# sc1_l90 <- sc1_loflows["90 Day Min"]
+# sc2_l90 <- sc2_loflows["90 Day Min"]
+# cmp_l90 <- cbind(sc2_loflows$year, sc2_l90, sc1_l90)
+# names(cmp_l90) <- c("Year", "USGS", "sc1")
+# #set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+# ymax_val <- max(c(cmp_l90$USGS,cmp_l90$sc1))
+# 
+# #l30 data ####################################################### 
+# sc1_l30 <- sc1_loflows["30 Day Min"]
+# sc2_l30 <- sc2_loflows["30 Day Min"]
+# cmp_l30 <- cbind(sc2_loflows$year, sc2_l30, sc1_l30)
+# names(cmp_l30) <- c("Year", "USGS", "sc1")
+# 
+# #l7 data ######################################################## 
+# sc1_l7 <- sc1_loflows["7 Day Min"]
+# sc2_l7 <- sc2_loflows["7 Day Min"]
+# cmp_l7 <- cbind(sc2_loflows$year, sc2_l7, sc1_l7)
+# names(cmp_l7) <- c("Year", "USGS", "sc1")
+# 
+# #l1 data ######################################################## 
+# sc1_l1 <- sc1_loflows["1 Day Min"]
+# sc2_l1 <- sc2_loflows["1 Day Min"]
+# cmp_l1 <- cbind(sc2_loflows$year, sc2_l1, sc1_l1)
+# names(cmp_l1) <- c("Year", "USGS", "sc1")
 
-sc1_loflows <- IHA::group2(sc1_flow)
-sc2_loflows <- IHA::group2(sc2_flow)
-
-title_param <- paste0("\nrunid #", scenario1)
-
-#l90 data ####################################################### 
-sc1_l90 <- sc1_loflows["90 Day Min"]
-sc2_l90 <- sc2_loflows["90 Day Min"]
-cmp_l90 <- cbind(sc2_loflows$year, sc2_l90, sc1_l90)
-names(cmp_l90) <- c("Year", "USGS", "sc1")
-#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
-ymax_val <- max(c(cmp_l90$USGS,cmp_l90$sc1))
-
-#l30 data ####################################################### 
-sc1_l30 <- sc1_loflows["30 Day Min"]
-sc2_l30 <- sc2_loflows["30 Day Min"]
-cmp_l30 <- cbind(sc2_loflows$year, sc2_l30, sc1_l30)
-names(cmp_l30) <- c("Year", "USGS", "sc1")
-
-#l7 data ######################################################## 
-sc1_l7 <- sc1_loflows["7 Day Min"]
-sc2_l7 <- sc2_loflows["7 Day Min"]
-cmp_l7 <- cbind(sc2_loflows$year, sc2_l7, sc1_l7)
-names(cmp_l7) <- c("Year", "USGS", "sc1")
-
-#l1 data ######################################################## 
-sc1_l1 <- sc1_loflows["1 Day Min"]
-sc2_l1 <- sc2_loflows["1 Day Min"]
-cmp_l1 <- cbind(sc2_loflows$year, sc2_l1, sc1_l1)
-names(cmp_l1) <- c("Year", "USGS", "sc1")
-
-# turn off scientific notation (makes plot legends look nicer)
-options(scipen=999)
-```
-
-# Appendix X - Model Calibration Analysis:
-```{r SummaryText, echo=FALSE, results = "asis"}
-cat(summary_text)
-```
-
-  ###plotting here!
-
-
-## Metrics Table:
-```{r stattable, include = FALSE}
-
-gstart_year <- year(gstart)
-gend_year <- year(gend)
-############################
-metrics_table <- data.frame("stat"=character(),"sc1"=double(),"sc2"=double(), "start_year"=double(), "end_year"=double())
-
-metrics_table = rbind(metrics_table,c("Qout", round(sc1_Qout, 2), round(sc2_Qout, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("Qbaseline", round(sc1_Qbaseline, 2), round(sc2_Qbaseline, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("7q10", round(sc1_7q10, 2), round(sc2_7q10, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("ml8", round(sc1_ml8, 2), round(sc2_ml8, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("mne9_10", round(sc1_mne910, 2), round(sc2_mne910, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("wd_mgd", round(sc1_wd_mgd, 2), round(sc2_wd_mgd, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("wd_cumulative_mgd", round(sc1_wd_cumulative_mgd, 2), round(sc2_wd_cumulative_mgd, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("ps_mgd", round(sc1_ps_mgd, 2), round(sc2_ps_mgd, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("ps_cumulative_mgd", round(sc1_ps_cumulative_mgd, 2), round(sc2_ps_cumulative_mgd, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("ps_nextdown_mgd", round(sc1_ps_nextdown_mgd, 2), round(sc2_ps_nextdown_mgd, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("unmet_demand_mgd", round(sc1_unmet_demand_mgd, 2), round(sc2_unmet_demand_mgd, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("consumptive_use_frac", round(sc1_consumptive_use_frac, 2), round(sc2_consumptive_use_frac, 2), gstart_year, gend_year))
-metrics_table = rbind(metrics_table,c("daily_consumptive_use_frac", round(sc1_daily_consumptive_use_frac, 2), round(sc2_daily_consumptive_use_frac, 2), gstart_year, gend_year))
-
-colnames(metrics_table) <- c("stat","scenario1","scenario2","start_year","end_year")
-
-
-######################
-sc1_l90_min = which.min(as.numeric(sc1_l90[,"90 Day Min"]))
-sc1_l90_Qout = round(sc1_loflows[sc1_l90_min,]$"90 Day Min",6)
-sc1_l90_year = sc1_loflows[sc1_l90_min,]$"year"
-sc2_l90_min = which.min(as.numeric(sc2_l90[,"90 Day Min"]))
-sc2_l90_Qout = round(sc2_loflows[sc2_l90_min,]$"90 Day Min",6)
-sc2_l90_year = sc2_loflows[sc2_l90_min,]$"year"
-######################
-sc1_l30_min = which.min(as.numeric(sc1_l30[,"30 Day Min"]))
-sc1_l30_Qout = round(sc1_loflows[sc1_l30_min,]$"30 Day Min",6)
-sc1_l30_year = sc1_loflows[sc1_l30_min,]$"year"
-sc2_l30_min = which.min(as.numeric(sc2_l30[,"30 Day Min"]))
-sc2_l30_Qout = round(sc2_loflows[sc2_l30_min,]$"30 Day Min",6)
-sc2_l30_year = sc2_loflows[sc2_l30_min,]$"year"
-######################
-sc1_l7_min = which.min(as.numeric(sc1_l7[,"7 Day Min"]))
-sc1_l7_Qout = round(sc1_loflows[sc1_l7_min,]$"7 Day Min",6)
-sc1_l7_year = sc1_loflows[sc1_l7_min,]$"year"
-sc2_l7_min = which.min(as.numeric(sc2_l7[,"7 Day Min"]))
-sc2_l7_Qout = round(sc2_loflows[sc2_l7_min,]$"7 Day Min",6)
-sc2_l7_year = sc2_loflows[sc2_l7_min,]$"year"
-######################
-sc1_l1_min = which.min(as.numeric(sc1_l1[,"1 Day Min"]))
-sc1_l1_Qout = round(sc1_loflows[sc1_l1_min,]$"1 Day Min",6)
-sc1_l1_year = sc1_loflows[sc1_l1_min,]$"year"
-sc2_l1_min = which.min(as.numeric(sc2_l1[,"1 Day Min"]))
-sc2_l1_Qout = round(sc2_loflows[sc2_l1_min,]$"1 Day Min",6)
-sc2_l1_year = sc2_loflows[sc2_l1_min,]$"year"
-
-metrics_table2 <- data.frame("stat"=character(),"sc1"=double(),"sc1_year"=character(),"sc2"=double(),"sc2_year"=character())
-metrics_table2 = rbind(metrics_table2,c("l90",round(sc1_l90_Qout,2),sc2_l90_year,round(sc2_l90_Qout,2),sc2_l90_year))
-metrics_table2 = rbind(metrics_table2,c("l30",round(sc1_l30_Qout,2),sc2_l30_year,round(sc2_l30_Qout,2),sc2_l30_year))
-metrics_table2 = rbind(metrics_table2,c("l7",round(sc1_l7_Qout,2),sc2_l7_year,round(sc2_l7_Qout,2),sc2_l7_year))
-metrics_table2 = rbind(metrics_table2,c("l1",round(sc1_l1_Qout,2),sc2_l1_year,round(sc2_l1_Qout,2),sc2_l1_year))
-colnames(metrics_table2) <- c("stat","scenario1","sc1_year","scenario2","sc2_year")
-
-```
-
-```{r MetricsTable, echo=FALSE}
-qflextable(metrics_table)
-qflextable(metrics_table2)
 ```
