@@ -15,6 +15,7 @@ output:
       footer: 0.0
 params: 
   doc_title: "Comparison of Two VaHydro Models"
+  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "path/to/flow/data" ]
   rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
   rseg.ftype: [ "cbp60","vahydro" ]
   rseg.model.version: [ "cbp-6.0","vahydro-1.0" ]
