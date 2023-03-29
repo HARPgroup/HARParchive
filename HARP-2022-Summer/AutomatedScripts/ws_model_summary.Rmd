@@ -104,6 +104,19 @@ for (r in 1:length(rseg.model.version)){
                              site = site,
                              site_base = omsite
                              )
+  # retrieve flow data for a run
+  rseg.data.r <- data.table::fread(rseg.file.path)
+  sdate <- as.Date(min(rseg.data.1$date))         # set as 1 - since we want the same date range for all models(?)
+  edate <- as.Date(max(rseg.data.1$date))
+
+  rseg.cols.r <- names(rseg.data.r)
+  #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
+  #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+      #not sure if all models will have Qout as a header?
+  rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
+  rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
+  mode(rseg.data.r) <- 'numeric'
+  
   # join results from multiple runs to a single dataframe
   if (r == 1){
     rseg_metrics.df <- rseg_table.r
@@ -124,18 +137,18 @@ rseg_table_raw <- rseg_table
 rseg_table_sql <- paste('SELECT
                   CASE
                     WHEN "Desc" = "model" THEN "River Segment Model Statistics:"
-                    WHEN "Desc" = "Qout" THEN "Flow Out (cfs) - (i.e mean flow)"
-                    WHEN "Desc" = "Qbaseline" THEN "Flow Baseline (cfs)"
+                    WHEN "Desc" = "Qout" THEN "Mean Flow Out (cfs)"
+                    WHEN "Desc" = "Qbaseline" THEN "Baseline Flow (cfs)"
                     WHEN "Desc" = "remaining_days_p0" THEN "Minimum Days of Storage Remaining"
                     WHEN "Desc" = "l01_Qout" THEN "1 Day Low Flow (cfs)"
                     WHEN "Desc" = "l07_Qout" THEN "7 Day Low Flow (cfs)"
                     WHEN "Desc" = "l30_Qout" THEN "30 Day Low Flow (cfs)"
                     WHEN "Desc" = "l90_Qout" THEN "90 Day Low Flow (cfs)"
-                    WHEN "Desc" = "consumptive_use_frac" THEN "Consumptive Use Fraction"
-                    WHEN "Desc" = "wd_cumulative_mgd" THEN "Cumulative Withdrawal (mgd)"
-                    WHEN "Desc" = "ps_cumulative_mgd" THEN "Cumulative Point Source (mgd)"
-                    WHEN "Desc" = "wd_mgd" THEN "Withdrawal (mgd)"
-                    WHEN "Desc" = "ps_mgd" THEN "Point Source (mgd)"
+                    WHEN "Desc" = "consumptive_use_frac" THEN "Consumptive Use Fraction (1.0-Qout/Qbaseline)"
+                    WHEN "Desc" = "wd_cumulative_mgd" THEN "Cumulative Withdrawal Flow Out (mgd)"
+                    WHEN "Desc" = "ps_cumulative_mgd" THEN "Cumulative Point Source Flow In (mgd)"
+                    WHEN "Desc" = "wd_mgd" THEN "Withdrawal Flow Out (mgd)"
+                    WHEN "Desc" = "ps_mgd" THEN "Point Source Flow In (mgd)"
                     ELSE Desc
                   END AS Description, *
                  FROM rseg_table_raw
@@ -178,7 +191,7 @@ fontsize(ft, size = 9)
 #   #for testing (this csv is in the AutomatedScripts -folder):
 #     sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
 # 
-# sdate <- as.Date(min(sc1_hydr$date)) 
+# sdate <- as.Date(min(sc1_hydr$date))
 # edate <- as.Date(max(sc1_hydr$date))
 # 
 # sc1_cols <- names(sc1_hydr)
