@@ -15,11 +15,11 @@ output:
       footer: 0.0
 params: 
   doc_title: "Comparison of Two VaHydro Models"
-  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "path/to/flow/data" ]
+  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
   rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
   rseg.ftype: [ "cbp60","vahydro" ]
-  rseg.model.version: [ "cbp-6.0","vahydro-1.0" ]
-  runid.list: [ "hsp2_2022","runid_11" ]
+  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
+  runid.list: [ "hsp2_2022","subsheds" ]
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
 ---
 
@@ -34,7 +34,11 @@ library(hydrotools)
 library(rjson)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+
+site <- 'http://deq1.bse.vt.edu/d.dh'
+json_obj_url <- paste(site, "node/62", sep ="/")
+
+ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 # Load functions used during development
 source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/fn_get_prop.R")
@@ -162,6 +166,13 @@ statsdf <- rbind(rseg_table)
 
 \newpage
 
+```{r PlotsRetrival, echo=FALSE}
+
+
+```
+
+\newpage
+
 <!---BLOCK_LANDSCAPE_START--->
 ### Metrics Summary:
 ```{r StatsTable, echo=FALSE}
@@ -180,6 +191,13 @@ ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEF
 fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
+
+\newpage
+
+```{r Sources, echo=FALSE}
+
+
+```
 
 
 ```{r get_hydr_data, include=FALSE}
