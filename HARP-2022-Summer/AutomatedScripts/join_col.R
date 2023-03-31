@@ -6,8 +6,8 @@ suppressPackageStartupMessages(library(sqldf))
 suppressPackageStartupMessages(library(lubridate))
 
 #setwd("/Users/glenncampagna/Desktop/HARPteam22/Data") # for testing only (Glenn)
-#df1<- fread("OR1_7700_7980_hydr.csv") # for testing only 
-#df2 <- fread("OR1_7700_7980_divr.csv") # for testing only
+#df1<- fread("JL1_6770_6850_hydr.csv") # for testing only 
+#df2 <- fread("ps_sep_div_ams_vadeq_2021_JL1_6770_6850_3000.csv") # for testing only
 
 argst <- commandArgs(trailingOnly = T)
 csv1 <- argst[1]
@@ -16,6 +16,7 @@ old_col <- argst[3] #should be 'values' when wdm is used
 new_col <- argst[4]
 format <- argst[5] # either wdm or header depending on csv2
 timestep <- argst[6] # either hour or day 
+mod <- argst[7] # either hsp2 or hspf
 
 #for testing, should be commented before actual use 
 #old_col <- 'values'
@@ -32,6 +33,27 @@ df1$month <- month(df1$index)
 df1$year <- year(df1$index)
 index_seq <- df1$index
 
+if (format == 'wdm') {
+  if (timestep == 'day') {
+    colnames(df2) <- c('year','month','day','values')
+    df2$date = as.Date(paste0(df2$year,'-',df2$month,'-',df2$day), origin = origin, tz = "UTC") 
+  }
+  if (timestep == 'hour') {
+    colnames(df2) <- c('year','month','day','hour','values')
+  }
+}
+
+# index/timestamp adjustment if data to be joined is hspf
+if (mod == 'hspf') {
+  df2$index <- as.POSIXct(make_datetime(df2$year,df2$month,df2$day,df2$hour))
+  df2$date <- as.Date(df2$index, origin = origin, tz = "UTC") 
+  df2$hour <- hour(df2$index)
+  df2$day <- day(df2$index)
+  df2$month <- month(df2$index)
+  df2$year <- year(df2$index)
+}
+
+
 #df2 can have headers or be in wdm format (no headers)
 if (format == 'header') {
   df2$date <- as.Date(df2$index, origin = origin, tz = "UTC")
@@ -43,15 +65,6 @@ if (format == 'header') {
   }
 }
 
-if (format == 'wdm') {
-  if (timestep == 'day') {
-    colnames(df2) <- c('year','month','day','values')
-    df2$date = as.Date(paste0(df2$year,'-',df2$month,'-',df2$day), origin = origin, tz = "UTC") 
-  }
-  if (timestep == 'hour') {
-    colnames(df2) <- c('year','month','day','hour','values')
-  }
-}
 
 #this sqldf syntax selects a as primary table and b to be joined, we capitalized sqldf operator words to exclude syntax errors
 
