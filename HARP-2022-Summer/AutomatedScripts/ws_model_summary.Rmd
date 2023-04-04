@@ -56,6 +56,7 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
 
 ```{r UserInputs, include=FALSE}
+rseg.filepath <- params$rseg.file.path
 rseg.hydrocode <- params$rseg.hydrocode
 rseg.ftype <- params$rseg.ftype
 rseg.model.version <- params$rseg.model.version
@@ -109,17 +110,17 @@ for (r in 1:length(rseg.model.version)){
                              site_base = omsite
                              )
   # retrieve flow data for a run
-  rseg.data.r <- data.table::fread(rseg.file.path)
-  sdate <- as.Date(min(rseg.data.1$date))         # set as 1 - since we want the same date range for all models(?)
-  edate <- as.Date(max(rseg.data.1$date))
-
-  rseg.cols.r <- names(rseg.data.r)
-  #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
-  #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-      #not sure if all models will have Qout as a header?
-  rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
-  rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
-  mode(rseg.data.r) <- 'numeric'
+  # rseg.data.r <- data.table::fread(rseg.file.path.r)
+  # sdate <- as.Date(min(rseg.data.1$date))         # set as 1 - since we want the same date range for all models(?)
+  # edate <- as.Date(max(rseg.data.1$date))
+  # 
+  # rseg.cols.r <- names(rseg.data.r)
+  # #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
+  # #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+  #     #not sure if all models will have Qout as a header?
+  # rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
+  # rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
+  # mode(rseg.data.r) <- 'numeric'
   
   # join results from multiple runs to a single dataframe
   if (r == 1){
@@ -127,6 +128,22 @@ for (r in 1:length(rseg.model.version)){
   } else {
     rseg_metrics.df <- cbind(rseg_metrics.df,rseg_table.r)
   }
+  
+  # create an output for information on the models compared
+  #output <- output_file[(length)]
+  
+  header1 <- fp_text(cs.family = "calibri", font.size = 16, bold = TRUE)
+  normal.text <- fp_text(cs.family = "cambria", font.size = 12)
+  
+  rseg.info <- read_docx()
+  rseg.info <- block_list(
+    fpar(ftext(paste("Model",r)), header1),
+    fpar(ftext(paste("Hydrocode:", rseg.hydrocode.r)), normal.text),
+    fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text),
+    fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text),
+    fpar(ftext(paste("Run ID:", runid.r)), normal.text)
+  )
+  print(rseg.info, target = output.file)
 }
 
 ```
