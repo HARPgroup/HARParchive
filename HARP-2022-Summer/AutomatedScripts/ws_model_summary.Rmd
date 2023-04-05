@@ -62,6 +62,7 @@ rseg.ftype <- params$rseg.ftype
 rseg.model.version <- params$rseg.model.version
 runid.list <- params$runid.list
 rseg.metric.list <- params$rseg.metric.list
+output_file <- params$output_file
 
 rlist <- gsub('runid_', '', runid.list)
 
@@ -143,7 +144,7 @@ for (r in 1:length(rseg.model.version)){
     fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text),
     fpar(ftext(paste("Run ID:", runid.r)), normal.text)
   )
-  print(rseg.info, target = output.file)
+  print(rseg.info, target = output_file)
 }
 
 ```
