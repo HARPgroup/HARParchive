@@ -124,14 +124,6 @@ for (r in 1:length(rseg.model.version)){
   # rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
   # rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
   # mode(rseg.data.r) <- 'numeric'
-
-  # retrieve figures for a run ????
-  # rseg.figure.list <- c('fig.fdc', 'fig.flows.all', 'fig.hydrograph_dry', 'fig.l90_flows.2yr')
-  # rseg.figures.r <- om_get_prop(base_url = rseg_obj_url.r,
-  #                                 entity_id = runid.r,
-  #                                 entity_type = 'dh_feature',
-  #                                 propname = TRUE
-  #                                 )
   
   # join results from multiple runs to a single dataframe
   if (r == 1){
@@ -151,10 +143,6 @@ for (r in 1:length(rseg.model.version)){
   fpar.ftype.r <- fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text)
   fpar.version.r <- fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text)
   fpar.id.r <- fpar(ftext(paste("Run ID:", runid.r)), normal.text)
-  
-  # read_docx() %>% 
-  # body_add_blocks(block_list(fpar.model.r,fpar.hcode.r,fpar.ftype.r,fpar.version.r,fpar.id.r)) %>% 
-  #   print(target = "C:/Users/VT_SA/Documents/HARP/MarkdownSummaryTest.docx")
   
 }
 
@@ -197,36 +185,79 @@ statsdf <- rbind(rseg_table)
 # Flow Modeling
 
 ## Flow Duration Curve
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
+  
+  if (r == 1){
+    fig.fdc <- ggdraw() + 
+    draw_image(path.fdc.r, width = 0.5)
+  } else {
+    fig.fdc <- fig.fdc + 
+      draw_image(path.fdc.r, width = 0.5, x = 0.5)
+  }
 
-```{r fig.cap="Flow Duration Curve, representing the percent of time specified discharges were equaled or exceeded during a given period. ", fig.id = "fig.fdc", fig.cap.style = "Image Caption", echo=FALSE}
-# Display figures from VAHydro side-by-side
+}
+fig.fdc
+```
+## Mean Flow, Withdrawals and Point Sources
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.flows.all.r <- rseg.runid.r[['fig.flows.all']][['code']]
+  
+  if (r == 1){
+    fig.flows.all <- ggdraw() + 
+    draw_image(path.flows.all.r, width = 0.5)
+  } else {
+    fig.flows.all <- fig.flows.all + 
+      draw_image(path.flows.all.r, width = 0.5, x = 0.5)
+  }
+}
+fig.flows.all
+```
+## Dry Period Hydrograph
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.hydrograph.dry.r <- rseg.runid.r[['fig.hydrograph_dry']][['code']]
 
+ if (r == 1){
+    fig.hydrograph.dry <- ggdraw() + 
+    draw_image(path.hydrograph.dry.r, width = 0.5)
+  } else {
+    fig.hydrograph.dry <- fig.flows.all + 
+      draw_image(path.hydrograph.dry.r, width = 0.5, x = 0.5)
+  }
+}
+fig.hydrograph.dry
 ```
 
-## Difference in Mean Flow
-
-```{r fig.cap="Mean flow, withdrawals out, and point source into the river.", fig.id = "fig.flows.all", fig.cap.style = "Image Caption", echo=FALSE}
-# Display figures from VAHydro side-by-side
-
-```  
-
-## Dry Period Hydrograph
-
-```{r fig.cap="The year with the lowest 90-day low flow.", fig.id = "fig.hydrograph.dry", fig.cap.style = "Image Caption", echo=FALSE}
-# Display figures from VAHydro side-by-side
-
-```  
-
 ## 90-day Low Flows over a 2 year Period
-
-```{r fig.cap="The 2 year period with the lowest 90-day low flow.", fig.id = "fig.l90.2yr", fig.cap.style = "Image Caption", echo=FALSE}
-# Display figures from VAHydro side-by-side
-
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
+  
+  if (r == 1){
+      fig.l90.2yr <- ggdraw() + 
+      draw_image(path.l90.2yr.r, width = 0.5)
+    } else {
+      fig.l90.2yr.dry <- fig.flows.all + 
+        draw_image(path.l90.2yr.r, width = 0.5, x = 0.5)
+    }
+}
+fig.l90.2yr.dry
 ```
 
 \newpage
 
-# Low Flow Comparison and Model Performance
+# Timeseries Analysis
 
 ```{r lowflowdata, include=FALSE}
 # for (r in 1:length(rseg.model.version)){
