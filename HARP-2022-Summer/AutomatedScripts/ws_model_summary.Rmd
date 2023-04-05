@@ -54,6 +54,10 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
 ```
 
+# Table of contents
+```{r, echo = FALSE}
+block_toc()
+```
 
 ```{r UserInputs, include=FALSE}
 rseg.filepath <- params$rseg.file.path
@@ -117,12 +121,11 @@ for (r in 1:length(rseg.model.version)){
   # rseg.cols.r <- names(rseg.data.r)
   # #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
   # #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-  #     #not sure if all models will have Qout as a header?
   # rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
   # rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
   # mode(rseg.data.r) <- 'numeric'
 
-  # retrieve figures for a run
+  # retrieve figures for a run ????
   # rseg.figure.list <- c('fig.fdc', 'fig.flows.all', 'fig.hydrograph_dry', 'fig.l90_flows.2yr')
   # rseg.figures.r <- om_get_prop(base_url = rseg_obj_url.r,
   #                                 entity_id = runid.r,
@@ -148,6 +151,10 @@ for (r in 1:length(rseg.model.version)){
   fpar.ftype.r <- fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text)
   fpar.version.r <- fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text)
   fpar.id.r <- fpar(ftext(paste("Run ID:", runid.r)), normal.text)
+  
+  # read_docx() %>% 
+  # body_add_blocks(block_list(fpar.model.r,fpar.hcode.r,fpar.ftype.r,fpar.version.r,fpar.id.r)) %>% 
+  #   print(target = "C:/Users/VT_SA/Documents/HARP/MarkdownSummaryTest.docx")
   
 }
 
@@ -185,10 +192,6 @@ rseg_table <- rseg_table[,-2]
 statsdf <- rbind(rseg_table)
 ```
 
-# Table of contents
-```{r, echo = FALSE}
-block_toc()
-```
 
 \newpage
 # Flow Modeling
@@ -224,6 +227,28 @@ block_toc()
 \newpage
 
 # Low Flow Comparison and Model Performance
+
+```{r lowflowdata, include=FALSE}
+# for (r in 1:length(rseg.model.version)){
+  # rseg.lowflows.r <- IHA::group2(rseg.flow.r)
+  
+  # rseg.flow.l90.r <- rseg.lowflows.r["90 Day Min"]
+  # names(rseg.flow.l90) <- c("Year", "USGS", "model.r")
+  # ymax_val <- max(c(rseg.flow.l90$USGS,rseg.flow.l90$model.r))
+  
+  # rseg.flow.l30.r <- rseg.lowflows.r["30 Day Min"]
+  # names(rseg.flow.l30) <- c("Year", "USGS", "model.r")
+  # ymax_val <- max(c(rseg.flow.l30$USGS,rseg.flow.l30$model.r))
+  
+  # rseg.flow.l7.r <- rseg.lowflows.r["7 Day Min"]
+  # names(rseg.flow.l7) <- c("Year", "USGS", "model.r")
+  # ymax_val <- max(c(rseg.flow.l7$USGS,rseg.flow.l7$model.r))
+  
+  # rseg.flow.l1.r <- rseg.lowflows.r["1 Day Min"]
+  # names(rseg.flow.l1) <- c("Year", "USGS", "model.r")
+  # ymax_val <- max(c(rseg.flow.l1$USGS,rseg.flow.l1$model.r))
+# }
+```
 
 ## 90-Day Low Flow Yearly Bar Plot
 
@@ -271,78 +296,3 @@ fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
 
-
-```{r get_hydr_data, include=FALSE}
-# #Pull hydr csv data
-# 
-# #for id1 ###########################
-# sc1_path <- model1_info[[1]][[scenario1]]$hydrd_wy_file_path$value
-# sc1_hydr <- data.table::fread(sc1_path)
-#   #for testing (this csv is in the AutomatedScripts -folder):
-#     sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
-# 
-# sdate <- as.Date(min(sc1_hydr$date))
-# edate <- as.Date(max(sc1_hydr$date))
-# 
-# sc1_cols <- names(sc1_hydr)
-# sc1_flow <- zoo(as.numeric(as.character( sc1_hydr$Qout )), order.by = sc1_hydr$date)
-# sc1_flow <- window(sc1_flow, start = sdate, end = edate)
-# 
-# sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
-# sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
-# mode(sc1_hydr) <- 'numeric'
-# 
-# #for id2 ###########################
-# sc2_path <- model2_info[[1]][[scenario2]]$hydrd_wy_file_path$value
-# sc2_hydr <- data.table::fread(sc2_path)
-#   #for testing: there is no hydr file for this seg --> substituting with id1's hydrd_wy file for now
-#     sc2_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
-# 
-# sc2_cols <- names(sc2_hydr)
-# sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
-# sc2_flow <- window(sc2_flow, start = sdate, end = edate) #currently using sc1's start/end dates
-# 
-# sc2_hydr <- zoo(sc2_hydr, order.by = sc2_hydr$index)
-# sc2_hydr <- window(sc2_hydr, start = sdate, end = edate)
-# mode(sc2_hydr) <- 'numeric'
-#     
-#     # this assumes that both sc1 and sc2 are the same length --- could it be otherwise?
-#       # if so; explore full_join() from SQLDF or other similar solutions
-#     # could the different scenarios have different headers for the columns? Or are they
-#     # all hydr csv's??
-```
-
-```{r lowflowdata, include=FALSE}
- 
-# sc1_loflows <- IHA::group2(sc1_flow)
-# sc2_loflows <- IHA::group2(sc2_flow)
-# 
-# title_param <- paste0("\nrunid #", scenario1)
-# 
-# #l90 data ####################################################### 
-# sc1_l90 <- sc1_loflows["90 Day Min"]
-# sc2_l90 <- sc2_loflows["90 Day Min"]
-# cmp_l90 <- cbind(sc2_loflows$year, sc2_l90, sc1_l90)
-# names(cmp_l90) <- c("Year", "USGS", "sc1")
-# #set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
-# ymax_val <- max(c(cmp_l90$USGS,cmp_l90$sc1))
-# 
-# #l30 data ####################################################### 
-# sc1_l30 <- sc1_loflows["30 Day Min"]
-# sc2_l30 <- sc2_loflows["30 Day Min"]
-# cmp_l30 <- cbind(sc2_loflows$year, sc2_l30, sc1_l30)
-# names(cmp_l30) <- c("Year", "USGS", "sc1")
-# 
-# #l7 data ######################################################## 
-# sc1_l7 <- sc1_loflows["7 Day Min"]
-# sc2_l7 <- sc2_loflows["7 Day Min"]
-# cmp_l7 <- cbind(sc2_loflows$year, sc2_l7, sc1_l7)
-# names(cmp_l7) <- c("Year", "USGS", "sc1")
-# 
-# #l1 data ######################################################## 
-# sc1_l1 <- sc1_loflows["1 Day Min"]
-# sc2_l1 <- sc2_loflows["1 Day Min"]
-# cmp_l1 <- cbind(sc2_loflows$year, sc2_l1, sc1_l1)
-# names(cmp_l1) <- c("Year", "USGS", "sc1")
-
-```
