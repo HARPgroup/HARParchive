@@ -255,6 +255,51 @@ for (r in length(rseg.model.version)) {
 fig.l90.2yr.dry
 ```
 
+## Ftable Visual
+```{r ftable_crosssection, echo=TRUE}
+
+path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
+ftable <- read.csv(paste(path_uci,  rseg.hydrocode[1], '.ftable', sep=''), 
+                    sep='', 
+                    header=FALSE,
+                    col.names = c('depth','area','vol', 'disch','flo-thru'),
+                    nrows = 19, skip= 5)
+
+plot.new()
+#polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
+#polygon(c(0.2, 0.29, 0.74, 0.65), c(0.2, 0.8, 0.8, 0.2))
+polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
+#polygon(c(0, 0.08, 0.84, 1), c(0.38, 0.2, 0.2, 0.38))
+
+#practicing with values from JL2_6850_6890:
+h <- 8.770787/100
+b <- 80.93515/100
+bf <- 136.3575/100
+z <- 3.159484/100
+cslope <- 0.002241783/100
+
+#segments(x0, y0, x1, y1)
+segments(0, 1.5*h, 0.01, 1.5*h-z)
+segments(0.01, h, 2*bf, h)
+polygon(c(0.01, 0.01+2*bf, 0.01+2*bf+b, 0.02+2*bf+b), c(h, 0, 0, h), col='blue')
+
+```
+
+```{r crosssect, echo=TRUE}
+plot.new()
+polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
+polygon(c(0, 0.15, 0.23, 0.08), c(0.5, 0.9, 0.8, 0.4)) #left fp
+polygon(c(0.08, 0.23, 0.36, 0.21), c(0.4, 0.8, 0.79, 0.39)) #left fp
+polygon(c(0.645, 0.795, 0.926, 0.776), c(0.38, 0.784, 0.795, 0.4)) #rt fp
+polygon(c(0.776, 0.846, 0.996, 0.926), c(0.4, 0.5, 0.895, 0.795)) #rt fp
+
+segments(0.21, 0.39, 0.33, 0.15) #left channel
+polygon(c(0.22, 0.33, 0.55, 0.635), c(0.37, 0.15, 0.14, 0.36), col='blue')
+segments(0.55, 0.15, 0.645, 0.38) #rt channel
+
+polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
+```
+
 \newpage
 
 <!---BLOCK_LANDSCAPE_START--->
@@ -276,40 +321,3 @@ ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEF
 fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
-
-```{r ftable_crosssection, echo=TRUE}
-plot.new()
-#polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
-#polygon(c(0.2, 0.29, 0.74, 0.65), c(0.2, 0.8, 0.8, 0.2))
-polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
-#polygon(c(0, 0.08, 0.84, 1), c(0.38, 0.2, 0.2, 0.38))
-
-#practicing with values from JL2_6850_6890:
-h <- 8.770787/100
-b <- 80.93515/100
-bf <- 136.3575/100
-z <- 3.159484/100
-cslope <- 0.002241783/100
-
-#segments(x0, y0, x1, y1)
-segments(0, 1.5*h, 0.01, 1.5*h-z)
-segments(0.01, h, 2*bf, h)
-polygon(c(0.01, 0.01+2*bf, 0.01+2*bf+b, 0.02+2*bf+b), c(h, 0, 0, h), col='blue')
-
-
-```
-
-```{r crosssect, echo=TRUE}
-plot.new()
-polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
-polygon(c(0, 0.15, 0.23, 0.08), c(0.5, 0.9, 0.8, 0.4)) #left fp
-polygon(c(0.08, 0.23, 0.36, 0.21), c(0.4, 0.8, 0.79, 0.39)) #left fp
-polygon(c(0.645, 0.795, 0.926, 0.776), c(0.38, 0.784, 0.795, 0.4)) #rt fp
-polygon(c(0.776, 0.846, 0.996, 0.926), c(0.4, 0.5, 0.895, 0.795)) #rt fp
-
-segments(0.21, 0.39, 0.33, 0.15) #left channel
-polygon(c(0.22, 0.33, 0.55, 0.635), c(0.37, 0.15, 0.14, 0.36), col='blue')
-segments(0.55, 0.15, 0.645, 0.38) #rt channel
-
-polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
-```
