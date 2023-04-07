@@ -15,11 +15,11 @@ output:
       footer: 0.0
 params: 
   doc_title: "Comparison of Two VaHydro Models"
-  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
+  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "path/to/flow/data" ]
   rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
   rseg.ftype: [ "cbp60","vahydro" ]
-  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
-  runid.list: [ "hsp2_2022","subsheds" ]
+  rseg.model.version: [ "cbp-6.0","vahydro-1.0" ]
+  runid.list: [ "hsp2_2022","runid_11" ]
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
 ---
 
@@ -38,7 +38,7 @@ source('/var/www/R/config.R')
 site <- 'http://deq1.bse.vt.edu/d.dh'
 json_obj_url <- paste(site, "node/62", sep ="/")
 
-ds <- RomDataSource$new(site, rest_uname)
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 # Load functions used during development
 source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/fn_get_prop.R")
@@ -166,13 +166,6 @@ statsdf <- rbind(rseg_table)
 
 \newpage
 
-```{r PlotsRetrival, echo=FALSE}
-
-
-```
-
-\newpage
-
 <!---BLOCK_LANDSCAPE_START--->
 ### Metrics Summary:
 ```{r StatsTable, echo=FALSE}
@@ -191,13 +184,6 @@ ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEF
 fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
-
-\newpage
-
-```{r Sources, echo=FALSE}
-
-
-```
 
 
 ```{r get_hydr_data, include=FALSE}
@@ -273,4 +259,42 @@ fontsize(ft, size = 9)
 # cmp_l1 <- cbind(sc2_loflows$year, sc2_l1, sc1_l1)
 # names(cmp_l1) <- c("Year", "USGS", "sc1")
 
+```
+
+
+```{r ftable_crosssection, echo=TRUE}
+plot.new()
+#polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
+#polygon(c(0.2, 0.29, 0.74, 0.65), c(0.2, 0.8, 0.8, 0.2))
+polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
+#polygon(c(0, 0.08, 0.84, 1), c(0.38, 0.2, 0.2, 0.38))
+
+#practicing with values from JL2_6850_6890:
+h <- 8.770787/100
+b <- 80.93515/100
+bf <- 136.3575/100
+z <- 3.159484/100
+cslope <- 0.002241783/100
+
+#segments(x0, y0, x1, y1)
+segments(0, 1.5*h, 0.01, 1.5*h-z)
+segments(0.01, h, 2*bf, h)
+polygon(c(0.01, 0.01+2*bf, 0.01+2*bf+b, 0.02+2*bf+b), c(h, 0, 0, h), col='blue')
+
+
+```
+
+```{r crosssect, echo=TRUE}
+plot.new()
+polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
+polygon(c(0, 0.15, 0.23, 0.08), c(0.5, 0.9, 0.8, 0.4)) #left fp
+polygon(c(0.08, 0.23, 0.36, 0.21), c(0.4, 0.8, 0.79, 0.39)) #left fp
+polygon(c(0.645, 0.795, 0.926, 0.776), c(0.38, 0.784, 0.795, 0.4)) #rt fp
+polygon(c(0.776, 0.846, 0.996, 0.926), c(0.4, 0.5, 0.895, 0.795)) #rt fp
+
+segments(0.21, 0.39, 0.33, 0.15) #left channel
+polygon(c(0.22, 0.33, 0.55, 0.635), c(0.37, 0.15, 0.14, 0.36), col='blue')
+segments(0.55, 0.15, 0.645, 0.38) #rt channel
+
+polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
 ```
