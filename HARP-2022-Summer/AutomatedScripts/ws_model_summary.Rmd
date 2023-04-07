@@ -54,8 +54,13 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
 ```
 
+# Table of contents
+```{r, echo = FALSE}
+block_toc()
+```
 
 ```{r UserInputs, include=FALSE}
+rseg.filepath <- params$rseg.file.path
 rseg.hydrocode <- params$rseg.hydrocode
 rseg.ftype <- params$rseg.ftype
 rseg.model.version <- params$rseg.model.version
@@ -109,17 +114,16 @@ for (r in 1:length(rseg.model.version)){
                              site_base = omsite
                              )
   # retrieve flow data for a run
-  rseg.data.r <- data.table::fread(rseg.file.path)
-  sdate <- as.Date(min(rseg.data.1$date))         # set as 1 - since we want the same date range for all models(?)
-  edate <- as.Date(max(rseg.data.1$date))
-
-  rseg.cols.r <- names(rseg.data.r)
-  #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
-  #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-      #not sure if all models will have Qout as a header?
-  rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
-  rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
-  mode(rseg.data.r) <- 'numeric'
+  # rseg.data.r <- data.table::fread(rseg.file.path[r])
+  # sdate <- as.Date(min(rseg.data.1$date))         # set as 1 - since we want the same date range for all models(?)
+  # edate <- as.Date(max(rseg.data.1$date))
+  # 
+  # rseg.cols.r <- names(rseg.data.r)
+  # #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
+  # #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+  # rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
+  # rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
+  # mode(rseg.data.r) <- 'numeric'
   
   # join results from multiple runs to a single dataframe
   if (r == 1){
@@ -127,10 +131,22 @@ for (r in 1:length(rseg.model.version)){
   } else {
     rseg_metrics.df <- cbind(rseg_metrics.df,rseg_table.r)
   }
+  
+  # create an output for information on the models compared
+  #output <- output_file[(length)]
+  
+  header1 <- fp_text(cs.family = "calibri", font.size = 16, bold = TRUE)
+  normal.text <- fp_text(cs.family = "cambria", font.size = 12)
+  
+  fpar.model.r <- fpar(ftext(paste(rseg_model_info.r[[1]][[3]])), header1)
+  fpar.hcode.r <- fpar(ftext(paste("Hydrocode:", rseg.hydrocode.r)), normal.text)
+  fpar.ftype.r <- fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text)
+  fpar.version.r <- fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text)
+  fpar.id.r <- fpar(ftext(paste("Run ID:", runid.r)), normal.text)
+  
 }
 
 ```
-
 
 ```{r LoadStatsTable, include=FALSE}
 rseg_table <- rseg_metrics.df
@@ -164,10 +180,86 @@ rseg_table <- rseg_table[,-2]
 statsdf <- rbind(rseg_table)
 ```
 
+
+\newpage
+# Flow Modeling
+
+## Flow Duration Curve
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
+  
+  if (r == 1){
+    fig.fdc <- ggdraw() + 
+    draw_image(path.fdc.r, width = 0.5)
+  } else {
+    fig.fdc <- fig.fdc + 
+      draw_image(path.fdc.r, width = 0.5, x = 0.5)
+  }
+
+}
+fig.fdc
+```
+## Mean Flow, Withdrawals and Point Sources
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.flows.all.r <- rseg.runid.r[['fig.flows.all']][['code']]
+  
+  if (r == 1){
+    fig.flows.all <- ggdraw() + 
+    draw_image(path.flows.all.r, width = 0.5)
+  } else {
+    fig.flows.all <- fig.flows.all + 
+      draw_image(path.flows.all.r, width = 0.5, x = 0.5)
+  }
+}
+fig.flows.all
+```
+## Dry Period Hydrograph
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.hydrograph.dry.r <- rseg.runid.r[['fig.hydrograph_dry']][['code']]
+
+ if (r == 1){
+    fig.hydrograph.dry <- ggdraw() + 
+    draw_image(path.hydrograph.dry.r, width = 0.5)
+  } else {
+    fig.hydrograph.dry <- fig.flows.all + 
+      draw_image(path.hydrograph.dry.r, width = 0.5, x = 0.5)
+  }
+}
+fig.hydrograph.dry
+```
+
+## 90-day Low Flows over a 2 year Period
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis"}
+for (r in length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
+  
+  if (r == 1){
+      fig.l90.2yr <- ggdraw() + 
+      draw_image(path.l90.2yr.r, width = 0.5)
+    } else {
+      fig.l90.2yr.dry <- fig.flows.all + 
+        draw_image(path.l90.2yr.r, width = 0.5, x = 0.5)
+    }
+}
+fig.l90.2yr.dry
+```
+
 \newpage
 
 <!---BLOCK_LANDSCAPE_START--->
-### Metrics Summary:
+# Metrics Summary
+
 ```{r StatsTable, echo=FALSE}
 ft <- qflextable(statsdf)
 
@@ -184,83 +276,6 @@ ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEF
 fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
-
-
-```{r get_hydr_data, include=FALSE}
-# #Pull hydr csv data
-# 
-# #for id1 ###########################
-# sc1_path <- model1_info[[1]][[scenario1]]$hydrd_wy_file_path$value
-# sc1_hydr <- data.table::fread(sc1_path)
-#   #for testing (this csv is in the AutomatedScripts -folder):
-#     sc1_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
-# 
-# sdate <- as.Date(min(sc1_hydr$date))
-# edate <- as.Date(max(sc1_hydr$date))
-# 
-# sc1_cols <- names(sc1_hydr)
-# sc1_flow <- zoo(as.numeric(as.character( sc1_hydr$Qout )), order.by = sc1_hydr$date)
-# sc1_flow <- window(sc1_flow, start = sdate, end = edate)
-# 
-# sc1_hydr <- zoo(sc1_hydr, order.by = sc1_hydr$index)
-# sc1_hydr <- window(sc1_hydr, start = sdate, end = edate)
-# mode(sc1_hydr) <- 'numeric'
-# 
-# #for id2 ###########################
-# sc2_path <- model2_info[[1]][[scenario2]]$hydrd_wy_file_path$value
-# sc2_hydr <- data.table::fread(sc2_path)
-#   #for testing: there is no hydr file for this seg --> substituting with id1's hydrd_wy file for now
-#     sc2_hydr <- data.table::fread("PU0_6080_5620_hydrd_wy.csv")
-# 
-# sc2_cols <- names(sc2_hydr)
-# sc2_flow <- zoo(as.numeric(as.character( sc2_hydr$Qout )), order.by = sc2_hydr$date)
-# sc2_flow <- window(sc2_flow, start = sdate, end = edate) #currently using sc1's start/end dates
-# 
-# sc2_hydr <- zoo(sc2_hydr, order.by = sc2_hydr$index)
-# sc2_hydr <- window(sc2_hydr, start = sdate, end = edate)
-# mode(sc2_hydr) <- 'numeric'
-#     
-#     # this assumes that both sc1 and sc2 are the same length --- could it be otherwise?
-#       # if so; explore full_join() from SQLDF or other similar solutions
-#     # could the different scenarios have different headers for the columns? Or are they
-#     # all hydr csv's??
-```
-
-```{r lowflowdata, include=FALSE}
- 
-# sc1_loflows <- IHA::group2(sc1_flow)
-# sc2_loflows <- IHA::group2(sc2_flow)
-# 
-# title_param <- paste0("\nrunid #", scenario1)
-# 
-# #l90 data ####################################################### 
-# sc1_l90 <- sc1_loflows["90 Day Min"]
-# sc2_l90 <- sc2_loflows["90 Day Min"]
-# cmp_l90 <- cbind(sc2_loflows$year, sc2_l90, sc1_l90)
-# names(cmp_l90) <- c("Year", "USGS", "sc1")
-# #set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
-# ymax_val <- max(c(cmp_l90$USGS,cmp_l90$sc1))
-# 
-# #l30 data ####################################################### 
-# sc1_l30 <- sc1_loflows["30 Day Min"]
-# sc2_l30 <- sc2_loflows["30 Day Min"]
-# cmp_l30 <- cbind(sc2_loflows$year, sc2_l30, sc1_l30)
-# names(cmp_l30) <- c("Year", "USGS", "sc1")
-# 
-# #l7 data ######################################################## 
-# sc1_l7 <- sc1_loflows["7 Day Min"]
-# sc2_l7 <- sc2_loflows["7 Day Min"]
-# cmp_l7 <- cbind(sc2_loflows$year, sc2_l7, sc1_l7)
-# names(cmp_l7) <- c("Year", "USGS", "sc1")
-# 
-# #l1 data ######################################################## 
-# sc1_l1 <- sc1_loflows["1 Day Min"]
-# sc2_l1 <- sc2_loflows["1 Day Min"]
-# cmp_l1 <- cbind(sc2_loflows$year, sc2_l1, sc1_l1)
-# names(cmp_l1) <- c("Year", "USGS", "sc1")
-
-```
-
 
 ```{r ftable_crosssection, echo=TRUE}
 plot.new()
