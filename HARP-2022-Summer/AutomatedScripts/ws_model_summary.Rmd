@@ -262,61 +262,82 @@ path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/f
 ftable <- read.csv(paste(path_uci,  rseg.hydrocode[1], '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
-                    col.names = c('depth','area','vol', 'disch','flo-thru'),
                     nrows = 19, skip= 5)
+if (ncol(ftable)==5) {
+  ftable <- ftable[,1:4] #remove flow-thru col if it exists (for old models)
+}
+colnames(ftable) <- c('depth','area','vol','disch')
 
-#get channel values from VAHydro:
-for (r in length(rseg.model.version)) {
-  rseg<- RomFeature$new(ds,list(
-      hydrocode= rseg.hydrocode[2], 
-      ftype=rseg.ftype[1],
-      bundle='watershed'), 
-      TRUE)
-  
-  model <- RomProperty$new(ds,list(
+#pull channel length:
+rseg<- RomFeature$new(ds,list(
+    hydrocode= rseg.hydrocode[2], 
+    ftype= rseg.ftype[2],
+    bundle='watershed'), 
+    TRUE)
+model <- RomProperty$new(ds,list(
     varkey="om_water_model_node",
     featureid=rseg$hydroid,
     entity_type="dh_feature", 
-    propcode=rseg.model.version[1]), 
+    propcode=rseg.model.version[2]), 
   TRUE)
-  
-  channel_prop <- RomProperty$new(ds,list(
+channel_prop <- RomProperty$new(ds,list(
     #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
     featureid=model$pid,
     entity_type='dh_properties',
-    propname = channel),
+    propname = '0. River Channel'),
   TRUE)
-  
-  drainage_area <- RomProperty$new(channel_prop[["datasource"]],list(
+length <- RomProperty$new(channel_prop[["datasource"]],list(
     varkey="om_class_Constant",
     featureid=channel_prop$pid,
     entity_type='dh_properties',
-    propname='drainage_area'),
+    propname='length'),
   TRUE)
-  da <- drainage_area$propvalue
-}
+clength <- length$propvalue #channel length
 
+#extract geometry:
 h <- ftable$depth[10]
 
+SWh <- ftable$area[10]*43560/clength
+Ah <- ftable$vol[10]*43560/clength
+b <- Ah/h*2 - SWh
+slope <- (SWh-b)/(2*h)
+bf <- b + 2*slope*h
 
-plot.new()
-#polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
-#polygon(c(0.2, 0.29, 0.74, 0.65), c(0.2, 0.8, 0.8, 0.2))
-polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
-#polygon(c(0, 0.08, 0.84, 1), c(0.38, 0.2, 0.2, 0.38))
+#practicevalues from JL2_6850_6890:
+#h <- 8.770787/100
+#b <- 80.93515/100
+#bf <- 136.3575/100
+#z <- 3.159484/100
+#cslope <- 0.002241783/100
 
-#practicing with values from JL2_6850_6890:
-h <- 8.770787/100
-b <- 80.93515/100
-bf <- 136.3575/100
-z <- 3.159484/100
-cslope <- 0.002241783/100
+# Generate data for the plot
+trapezoid <- function(x, y){ #piecewise function utilizing R's understanding of TRUE==1 and FALSE==0
+  (x <= 0-0.5*b) & (x >= 0-0.5*bf) * (slope*x) + 
+  (x >= 0+0.5*b) & (x <= 0+0.5*bf) * (-slope*x) 
+}
+
+x <- seq(-bf, bf,length.out=50)
+y <- seq(0, clength, length.out=50)
+z <- outer(x, y, trapezoid)
+ 
+# Create the plot
+persp(x, y, z, theta = 0, phi = 30, expand = 0.2, col = "lightblue", border =NA)
+
+# Visualizing a simple DEM model
+ volcano
+z <- 2 * volcano     # Exaggerate the relief
+x <- 10 * (1:nrow(z)) # 10 meter spacing (S to N)
+y <- 10 * (1:ncol(z)) # 10 meter spacing (E to W)
+ 
+# Don't draw the grid lines : border = NA
+par(bg = "gray")
+persp(x, y, z, theta = 135, phi = 30,
+      col = "brown", scale = FALSE,
+    ltheta = -120, shade = 0.75,
+      border = NA, box = FALSE)
+
 
 #segments(x0, y0, x1, y1)
-segments(0, 1.5*h, 0.01, 1.5*h-z)
-segments(0.01, h, 2*bf, h)
-polygon(c(0.01, 0.01+2*bf, 0.01+2*bf+b, 0.02+2*bf+b), c(h, 0, 0, h), col='blue')
-
 ```
 
 ```{r crosssect, echo=TRUE}
