@@ -97,7 +97,8 @@ for (r in 1:length(rseg.model.version)){
   rseg_model_info.r <- ds$auth_read(rseg_obj_url.r, "text/json", "")
   rseg_model_info.r <- fromJSON(rseg_model_info.r)
   } else {
-  message("Error: json_obj_url is undefined.  Can not retrieve model and scenario information. (Hint: Use config.R to set json_obj_url) ")
+  message("Error: json_obj_url is undefined.  Can not retrieve model and scenario information. (Hint: Use config.R
+          to set json_obj_url) ")
   rseg_model_info.r <- list()
   }
   
@@ -117,12 +118,7 @@ for (r in 1:length(rseg.model.version)){
                              site = site,
                              site_base = omsite
                              )
-  # retrieve flow data for a run
-  # rseg.data.r <- data.table::fread(rseg.file.path[r])
-  # rseg.cols.r <- names(rseg.data.r)
-  # rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$index)
-  # assign(paste0('rseg.flow.',r),rseg.flow.r)
-  
+
   # join results from multiple runs to a single dataframe & create captioning for later
   if (r == 1){
     rseg_metrics.df <- rseg_table.r
@@ -131,14 +127,14 @@ for (r in 1:length(rseg.model.version)){
   }
   
   # create an output for information on the models compared
-  header1 <- fp_text(cs.family = "calibri", font.size = 16, bold = TRUE)
-  normal.text <- fp_text(cs.family = "cambria", font.size = 12)
-  
-  fpar.model.r <- fpar(ftext(paste(rseg_model_info.r[[1]][[3]])), header1)
-  fpar.hcode.r <- fpar(ftext(paste("Hydrocode:", rseg.hydrocode.r)), normal.text)
-  fpar.ftype.r <- fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text)
-  fpar.version.r <- fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text)
-  fpar.id.r <- fpar(ftext(paste("Run ID:", runid.r)), normal.text)
+  # header1 <- fp_text(cs.family = "calibri", font.size = 16, bold = TRUE)
+  # normal.text <- fp_text(cs.family = "cambria", font.size = 12)
+  # 
+  # fpar.model.r <- fpar(ftext(paste(rseg_model_info.r[[1]][[3]])), header1)
+  # fpar.hcode.r <- fpar(ftext(paste("Hydrocode:", rseg.hydrocode.r)), normal.text)
+  # fpar.ftype.r <- fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text)
+  # fpar.version.r <- fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text)
+  # fpar.id.r <- fpar(ftext(paste("Run ID:", runid.r)), normal.text)
   
 }
 
@@ -184,7 +180,7 @@ for (r in 1:length(rseg.model.version)) {
   caption.r <- rseg_metrics.df[[r]][[2]]
   
   if (r == 1) {
-      caption <- paste(caption.r)
+    caption <- paste(caption.r)
   } else {
     caption <- paste(caption, "vs", caption.r)
   }
@@ -266,14 +262,31 @@ fig.l90.2yr.dry
 \newpage
 # Time Series Analysis
 
-```{r Data, echo = FALSE}
-# matching the timelines of the time series
+```{r MathcingData, echo = FALSE}
+# retrieving and matching the data
+
 for (r in 1:length(rseg.model.version)) {
-  
+  rseg.data.r <- data.table::fread(rseg.file.path[r])
+  assign(paste0('rseg.data.',r),rseg.data.r)
+  rseg.cols.r <- names(rseg.data.r)
+ 
+   if (r == 1){
+      sdate <- as.Date(min(rseg.data.r$date))
+      edate <- as.Date(max(rseg.data.r$date))
+    } else {
+      data.match <- match(rseg.data.1, rseg.data.r)
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    }
 }
-sdate <- as.Date(min(rseg.data.1$date))
-edate <- as.Date(max(rseg.data.1$date))
-rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+
+for (r in 1:length(rseg.model.version)) {
+  rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
+  rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+  mode(rseg.flow.r) <- 'numeric'
+
+  assign(paste0('rseg.flow.',r),rseg.flow.r)
+}
 ```
 
 ## 90-Day Low Flow Comparison
