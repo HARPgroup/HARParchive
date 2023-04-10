@@ -15,11 +15,11 @@ output:
       footer: 0.0
 params: 
   doc_title: "Comparison of Two VaHydro Models"
-  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "path/to/flow/data" ]
+  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
   rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
   rseg.ftype: [ "cbp60","vahydro" ]
-  rseg.model.version: [ "cbp-6.0","vahydro-1.0" ]
-  runid.list: [ "hsp2_2022","runid_11" ]
+  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
+  runid.list: [ "hsp2_2022","subsheds" ]
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
 ---
 
@@ -32,6 +32,7 @@ library(officer)
 library(flextable)
 library(hydrotools)
 library(rjson)
+library(cowplot)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
@@ -100,9 +101,12 @@ for (r in 1:length(rseg.model.version)){
   rseg_model_info.r <- list()
   }
   
-  # stash the model run data to a variable
-  # in case its needed outside the loop
-  assign(paste0("dat",r), rseg_model_info.r) 
+  # stash the model run data into a combined list
+  if (r == 1){
+    dat <- rseg_model_info.r
+  } else {
+    dat <- cbind(dat,rseg_model_info.r)
+  }
   
   # retrieve metrics for a run
   runid.r <- runid.list[r]
@@ -115,17 +119,11 @@ for (r in 1:length(rseg.model.version)){
                              )
   # retrieve flow data for a run
   # rseg.data.r <- data.table::fread(rseg.file.path[r])
-  # sdate <- as.Date(min(rseg.data.1$date))         # set as 1 - since we want the same date range for all models(?)
-  # edate <- as.Date(max(rseg.data.1$date))
-  # 
   # rseg.cols.r <- names(rseg.data.r)
-  # #rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$date)
-  # #rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-  # rseg.data.r <- zoo(rseg.data.r, order.by = rseg.data.r$index)
-  # rseg.data.r <- window(rseg.data.r, start = sdate, end = edate)
-  # mode(rseg.data.r) <- 'numeric'
+  # rseg.flow.r <- zoo(as.numeric(as.character( rseg.data.r$Qout )), order.by = rseg.data.r$index)
+  # assign(paste0('rseg.flow.',r),rseg.flow.r)
   
-  # join results from multiple runs to a single dataframe
+  # join results from multiple runs to a single dataframe & create captioning for later
   if (r == 1){
     rseg_metrics.df <- rseg_table.r
   } else {
@@ -133,8 +131,6 @@ for (r in 1:length(rseg.model.version)){
   }
   
   # create an output for information on the models compared
-  #output <- output_file[(length)]
-  
   header1 <- fp_text(cs.family = "calibri", font.size = 16, bold = TRUE)
   normal.text <- fp_text(cs.family = "cambria", font.size = 12)
   
@@ -182,31 +178,43 @@ statsdf <- rbind(rseg_table)
 
 
 \newpage
+```{r Caption, echo = FALSE}
+# generating a captioning phrase
+for (r in 1:length(rseg.model.version)) {
+  caption.r <- rseg_metrics.df[[r]][[2]]
+  
+  if (r == 1) {
+      caption <- paste(caption.r)
+  } else {
+    caption <- paste(caption, "vs", caption.r)
+  }
+}
+```
+
 # Flow Modeling
 
 ## Flow Duration Curve
-```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis"}
-for (r in length(rseg.model.version)) {
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", caption), fig.id = "fdc", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
-  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  rseg.runid.r <- dat[[r]][[runid.r]]
   path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
-  
+
   if (r == 1){
-    fig.fdc <- ggdraw() + 
-    draw_image(path.fdc.r, width = 0.5)
+      fig.fdc <- ggdraw() + 
+      draw_image(path.fdc.r, width = 0.5)
   } else {
     fig.fdc <- fig.fdc + 
       draw_image(path.fdc.r, width = 0.5, x = 0.5)
   }
-
 }
 fig.fdc
 ```
 ## Mean Flow, Withdrawals and Point Sources
-```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis"}
-for (r in length(rseg.model.version)) {
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", caption), fig.id = "all_flows", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
-  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  rseg.runid.r <- dat[[r]][[runid.r]]
   path.flows.all.r <- rseg.runid.r[['fig.flows.all']][['code']]
   
   if (r == 1){
@@ -220,10 +228,10 @@ for (r in length(rseg.model.version)) {
 fig.flows.all
 ```
 ## Dry Period Hydrograph
-```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis"}
-for (r in length(rseg.model.version)) {
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", caption), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
-  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  rseg.runid.r <- dat[[r]][[runid.r]]
   path.hydrograph.dry.r <- rseg.runid.r[['fig.hydrograph_dry']][['code']]
 
  if (r == 1){
@@ -238,14 +246,14 @@ fig.hydrograph.dry
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis"}
-for (r in length(rseg.model.version)) {
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", caption), fig.id = "2yr_l90", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
-  rseg.runid.r <- rseg_model_info.r[[1]][[runid.r]]
+  rseg.runid.r <- dat[[r]][[runid.r]]
   path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
   
   if (r == 1){
-      fig.l90.2yr <- ggdraw() + 
+      fig.l90.2yr.dry <- ggdraw() + 
       draw_image(path.l90.2yr.r, width = 0.5)
     } else {
       fig.l90.2yr.dry <- fig.flows.all + 
@@ -256,7 +264,31 @@ fig.l90.2yr.dry
 ```
 
 \newpage
+# Time Series Analysis
 
+```{r Data, echo = FALSE}
+# matching the timelines of the time series
+for (r in 1:length(rseg.model.version)) {
+  
+}
+sdate <- as.Date(min(rseg.data.1$date))
+edate <- as.Date(max(rseg.data.1$date))
+rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+```
+
+## 90-Day Low Flow Comparison
+```{r 90day, echo = FALSE}
+
+```
+
+## 30-Day Low Flow Comparison
+```{r 30day, echo = FALSE}
+
+
+```
+
+
+\newpage
 <!---BLOCK_LANDSCAPE_START--->
 # Metrics Summary
 
@@ -277,7 +309,11 @@ fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
 
-```{r ftable_crosssection, echo=TRUE}
+\newpage
+
+# Cross-section Visualization - Ftable
+
+```{r ftable_crosssection, echo=FALSE}
 plot.new()
 #polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
 #polygon(c(0.2, 0.29, 0.74, 0.65), c(0.2, 0.8, 0.8, 0.2))
@@ -299,7 +335,7 @@ polygon(c(0.01, 0.01+2*bf, 0.01+2*bf+b, 0.02+2*bf+b), c(h, 0, 0, h), col='blue')
 
 ```
 
-```{r crosssect, echo=TRUE}
+```{r crosssect, echo=FALSE}
 plot.new()
 polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
 polygon(c(0, 0.15, 0.23, 0.08), c(0.5, 0.9, 0.8, 0.4)) #left fp
