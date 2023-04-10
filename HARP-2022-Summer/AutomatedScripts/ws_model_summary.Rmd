@@ -271,10 +271,11 @@ for (r in 1:length(rseg.model.version)) {
   rseg.cols.r <- names(rseg.data.r)
  
    if (r == 1){
-      sdate <- as.Date(min(rseg.data.r$date))
-      edate <- as.Date(max(rseg.data.r$date))
+      data.match <- rseg.data.r$date
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
     } else {
-      data.match <- match(rseg.data.1, rseg.data.r)
+      data.match <- match(data.match, rseg.data.r)
       sdate <- as.Date(min(data.match))
       edate <- as.Date(max(data.match))
     }
