@@ -257,13 +257,47 @@ fig.l90.2yr.dry
 
 ## Ftable Visual
 ```{r ftable_crosssection, echo=TRUE}
-
+#get ftable:
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 ftable <- read.csv(paste(path_uci,  rseg.hydrocode[1], '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
                     col.names = c('depth','area','vol', 'disch','flo-thru'),
                     nrows = 19, skip= 5)
+
+#get channel values from VAHydro:
+for (r in length(rseg.model.version)) {
+  rseg<- RomFeature$new(ds,list(
+      hydrocode= rseg.hydrocode[2], 
+      ftype=rseg.ftype[1],
+      bundle='watershed'), 
+      TRUE)
+  
+  model <- RomProperty$new(ds,list(
+    varkey="om_water_model_node",
+    featureid=rseg$hydroid,
+    entity_type="dh_feature", 
+    propcode=rseg.model.version[1]), 
+  TRUE)
+  
+  channel_prop <- RomProperty$new(ds,list(
+    #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
+    featureid=model$pid,
+    entity_type='dh_properties',
+    propname = channel),
+  TRUE)
+  
+  drainage_area <- RomProperty$new(channel_prop[["datasource"]],list(
+    varkey="om_class_Constant",
+    featureid=channel_prop$pid,
+    entity_type='dh_properties',
+    propname='drainage_area'),
+  TRUE)
+  da <- drainage_area$propvalue
+}
+
+h <- ftable$depth[10]
+
 
 plot.new()
 #polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
