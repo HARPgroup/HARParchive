@@ -312,16 +312,16 @@ bf <- b + 2*slope*h
 
 # Generate data for the plot
 trapezoid <- function(x, y){ #piecewise function utilizing R's understanding of TRUE==1 and FALSE==0
-  (x <= 0-0.5*b) & (x >= 0-0.5*bf) * (slope*x) + 
-  (x >= 0+0.5*b) & (x <= 0+0.5*bf) * (-slope*x) 
+  (x <= -0.5*bf | x >= 0.5*bf) * h +
+  (x <= -2.5*bf | x >= 2.5*bf) * (4*h)
 }
 
-x <- seq(-bf, bf,length.out=50)
+x <- seq(-4*bf, 4*bf,length.out=50)
 y <- seq(0, clength, length.out=50)
 z <- outer(x, y, trapezoid)
  
 # Create the plot
-persp(x, y, z, theta = 0, phi = 30, expand = 0.2, col = "lightblue", border =NA)
+persp(x, y, z, theta = 0, phi = 20, expand = 0.2, col = "gray")
 
 # Visualizing a simple DEM model
  volcano
