@@ -33,6 +33,7 @@ library(flextable)
 library(hydrotools)
 library(rjson)
 library(cowplot)
+library(gridExtra)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
@@ -127,18 +128,39 @@ for (r in 1:length(rseg.model.version)){
   }
   
   # create an output for information on the models compared
-  # header1 <- fp_text(cs.family = "calibri", font.size = 16, bold = TRUE)
-  # normal.text <- fp_text(cs.family = "cambria", font.size = 12)
-  # 
-  # fpar.model.r <- fpar(ftext(paste(rseg_model_info.r[[1]][[3]])), header1)
-  # fpar.hcode.r <- fpar(ftext(paste("Hydrocode:", rseg.hydrocode.r)), normal.text)
-  # fpar.ftype.r <- fpar(ftext(paste("Ftype:", rseg.ftype.r)), normal.text)
-  # fpar.version.r <- fpar(ftext(paste("Model Version:", rseg.model.version.r)), normal.text)
-  # fpar.id.r <- fpar(ftext(paste("Run ID:", runid.r)), normal.text)
+  ftext.model.r <- paste(rseg_model_info.r[[1]][[3]])
+  ftext.hcode.r <- paste(rseg.hydrocode.r)
+  ftext.ftype.r <- paste(rseg.ftype.r)
+  ftext.version.r <- paste(rseg.model.version.r)
+  ftext.id.r <- paste(runid.r)
   
+  if (r == 1){
+    ftext.model <- ftext.model.r 
+    ftext.hcode <- ftext.hcode.r 
+    ftext.ftype <- ftext.ftype.r 
+    ftext.version <- ftext.version.r 
+    ftext.id <- ftext.id.r 
+  } else {
+    ftext.model <- paste(ftext.model, "vs", ftext.model.r)
+    ftext.hcode <- paste(ftext.hcode, "vs", ftext.hcode.r)
+    ftext.ftype <- paste(ftext.ftype, "vs", ftext.ftype.r)
+    ftext.version <- paste(ftext.version, "vs", ftext.version.r)
+    ftext.id <- paste(ftext.id, "vs", ftext.id.r)
+  }
 }
 
 ```
+
+The models compared in this document are:
+
+**`r ftext.model[1]`**
+
+With the respective model properties:
+
+* Hydro code: **`r ftext.hcode[1]`**
+* Ftype: **`r ftext.ftype[1]`**
+* Model version: **`r ftext.version[1]`**
+* Run ID: **`r ftext.id[1]`**
 
 ```{r LoadStatsTable, include=FALSE}
 rseg_table <- rseg_metrics.df
@@ -190,21 +212,37 @@ for (r in 1:length(rseg.model.version)) {
 # Flow Modeling
 
 ## Flow Duration Curve
+
 ```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", caption), fig.id = "fdc", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
 
-  if (r == 1){
-      fig.fdc <- ggdraw() + 
-      draw_image(path.fdc.r, width = 0.5)
+  if (r == 1) {
+    fig.fdc <- paste0("![](",path.fdc.r,")")
   } else {
-    fig.fdc <- fig.fdc + 
-      draw_image(path.fdc.r, width = 0.5, x = 0.5)
+    fig.fdc <- paste(paste0(fig.fdc,"{width=1/",r,"}"), paste0("![](",path.fdc.r,")","{width=1/",r,"}"))
   }
 }
-fig.fdc
+
+cat(fig.fdc)
+```
+```{r FDC2, out.width=paste0("1/",r), fig.align='center', fig.cap=paste("Flow duration curves from VAHydro:", caption), fig.id = "fdc", fig.cap.style = "Image Caption", echo = FALSE}
+# for (r in 1:length(rseg.model.version)) {
+#   runid.r <- runid.list[r]
+#   rseg.runid.r <- dat[[r]][[runid.r]]
+#   path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
+#
+  # knitr::include_url(path.fdc.r)
+  # external_img(path.fdc.r, width = 1/r)
+  # if (r == 1) {
+  #     fig.fdc <- path.fdc.r
+  #   } else {
+  #     fig.fdc <- list(fig.fdc, path.fdc.r)
+  #   }
+#}
+# knitr::include_url(fig.fdc)
 ```
 ## Mean Flow, Withdrawals and Point Sources
 ```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", caption), fig.id = "all_flows", fig.cap.style = "Image Caption"}
@@ -215,14 +253,21 @@ for (r in 1:length(rseg.model.version)) {
   
   if (r == 1){
     fig.flows.all <- ggdraw() + 
-    draw_image(path.flows.all.r, width = 0.5)
+      draw_image(path.flows.all.r)
   } else {
-    fig.flows.all <- fig.flows.all + 
-      draw_image(path.flows.all.r, width = 0.5, x = 0.5)
+    fig.flows.all.r <- ggdraw() +
+      draw_image(path.flows.all.r)
+    fig.flows.all <- list(fig.flows.all, fig.flows.all.r)
+  }
+  
+  if (r == 1) {
+    fig.flows.all
+  } else {
+    do.call("grid.arrange", c(fig.flows.all, ncol = r)) 
   }
 }
-fig.flows.all
 ```
+
 ## Dry Period Hydrograph
 ```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", caption), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
@@ -232,13 +277,19 @@ for (r in 1:length(rseg.model.version)) {
 
  if (r == 1){
     fig.hydrograph.dry <- ggdraw() + 
-    draw_image(path.hydrograph.dry.r, width = 0.5)
+      draw_image(path.hydrograph.dry.r)
   } else {
-    fig.hydrograph.dry <- fig.flows.all + 
-      draw_image(path.hydrograph.dry.r, width = 0.5, x = 0.5)
+    fig.hydrograph.dry.r <- ggdraw() +
+      draw_image(path.hydrograph.dry.r)
+    fig.hydrograph.dry <- list(fig.hydrograph.dry, fig.hydrograph.dry.r)
+  }
+  
+  if (r == 1) {
+    fig.hydrograph.dry
+  } else {
+    do.call("grid.arrange", c(fig.hydrograph.dry, ncol = r)) 
   }
 }
-fig.hydrograph.dry
 ```
 
 ## 90-day Low Flows over a 2 year Period
@@ -249,14 +300,20 @@ for (r in 1:length(rseg.model.version)) {
   path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
   
   if (r == 1){
-      fig.l90.2yr.dry <- ggdraw() + 
-      draw_image(path.l90.2yr.r, width = 0.5)
-    } else {
-      fig.l90.2yr.dry <- fig.flows.all + 
-        draw_image(path.l90.2yr.r, width = 0.5, x = 0.5)
-    }
+    fig.l90.2yr <- ggdraw() + 
+      draw_image(path.l90.2yr.r)
+  } else {
+    fig.l90.2yr.r <- ggdraw() +
+      draw_image(path.l90.2yr.r)
+    fig.l90.2yr <- list(fig.l90.2yr, fig.l90.2yr.r)
+  }
+  
+  if (r == 1) {
+    fig.l90.2yr
+  } else {
+    do.call("grid.arrange", c(fig.l90.2yr, ncol = r)) 
+  }
 }
-fig.l90.2yr.dry
 ```
 
 \newpage
@@ -265,29 +322,29 @@ fig.l90.2yr.dry
 ```{r MathcingData, echo = FALSE}
 # retrieving and matching the data
 
-for (r in 1:length(rseg.model.version)) {
-  rseg.data.r <- data.table::fread(rseg.file.path[r])
-  assign(paste0('rseg.data.',r),rseg.data.r)
-  rseg.cols.r <- names(rseg.data.r)
- 
-   if (r == 1){
-      data.match <- rseg.data.r$date
-      sdate <- as.Date(min(data.match))
-      edate <- as.Date(max(data.match))
-    } else {
-      data.match <- match(data.match, rseg.data.r)
-      sdate <- as.Date(min(data.match))
-      edate <- as.Date(max(data.match))
-    }
-}
-
-for (r in 1:length(rseg.model.version)) {
-  rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
-  rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-  mode(rseg.flow.r) <- 'numeric'
-
-  assign(paste0('rseg.flow.',r),rseg.flow.r)
-}
+# for (r in 1:length(rseg.model.version)) {
+#   rseg.data.r <- data.table::fread(rseg.file.path[r])
+#   assign(paste0('rseg.data.',r),rseg.data.r)
+#   rseg.cols.r <- names(rseg.data.r)
+#  
+#    if (r == 1){
+#       data.match <- rseg.data.r$date
+#       sdate <- as.Date(min(data.match))
+#       edate <- as.Date(max(data.match))
+#     } else {
+#       data.match <- match(data.match, rseg.data.r)
+#       sdate <- as.Date(min(data.match))
+#       edate <- as.Date(max(data.match))
+#     }
+# }
+# 
+# for (r in 1:length(rseg.model.version)) {
+#   rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
+#   rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+#   mode(rseg.flow.r) <- 'numeric'
+# 
+#   assign(paste0('rseg.flow.',r),rseg.flow.r)
+# }
 ```
 
 ## 90-Day Low Flow Comparison
