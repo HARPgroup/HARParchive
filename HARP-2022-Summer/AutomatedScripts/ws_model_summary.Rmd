@@ -356,13 +356,15 @@ length <- RomProperty$new(channel_prop[["datasource"]],list(
 clength <- length$propvalue #channel length
 
 #extract geometry:
-h <- ftable$depth[10]
+#h <- ftable$depth[10]
+#SWh <- ftable$area[10]*43560/clength
+#b <- Ah/h*2 - SWh
+#slope <- (SWh-b)/(2*h)
+#bf <- b + 2*slope*h
 
-SWh <- ftable$area[10]*43560/clength
-Ah <- ftable$vol[10]*43560/clength
-b <- Ah/h*2 - SWh
-slope <- (SWh-b)/(2*h)
-bf <- b + 2*slope*h
+ftable$sw <- ftable$area*43560/clength
+ftable$crossA <- ftable$vol*43560/clength
+
 
 #practicevalues from JL2_6850_6890:
 #h <- 8.770787/100
@@ -372,35 +374,65 @@ bf <- b + 2*slope*h
 #cslope <- 0.002241783/100
 
 # Generate data for the plot
+fp <- 2.5*bf + 3/2*(bf-b)
+  
 trapezoid <- function(x, z){ #piecewise function utilizing R's understanding of TRUE==1 and FALSE==0
-  (x <= -0.5*bf | x >= 0.5*bf) * h +
-  (x >= -2.5*bf | x <= 2.5*bf) * h +
-  (x <= -2.5*bf - 3/2*(bf-b) | x >= 2.5*bf + (3/2*(bf-b))) * 4*h
-  #(x >= 2.5*bf) * (slope)
+  (x>=-0.5*b & x<=0.5*b) * 0
+  (x<=-0.5*bf & x>=-2.5*bf | x>=0.5*bf & x<=2.5*bf) * h +
+  (x<=-fp| x>=fp) * (4*h) 
+}
+
+water <- function(x,z){
+  #(x<=-0.5*bf & x>=-2.5*bf | x>=0.5*bf & x<=2.5*bf) * h/2
+  (x<=-2.5*bf & x>=-fp) * (-slope*x + (h-2.5*slope*bf)) +
+  (x>=2.5*bf & x<=fp) * (slope*x + (h-2.5*slope*bf))
 }
 
 x <- seq(-4*bf, 4*bf,length.out=50)
-y <- seq(0, 5*bf, length.out=50)
+y <- seq(0, clength, length.out=50)
 z <- outer(x, y, trapezoid)
- 
+z2 <- outer(x, y, water)
+
+#fill <- matrix("lightblue", nr = nrow(z)-1, nc = ncol(z)-1)
+#fill[,1] <- "gray"
+#fill[,ncol(fill)] <- "gray"
+#fill[1,] <- "gray"
+#fill[nrow(fill),] <- "gray"
+
 # Create the plot
-persp(x, y, z, theta = 0, phi = 20, expand = 1, col = "gray", axes=TRUE, nticks=10, ticktype="detailed", scale=FALSE)
+persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
 
-# Visualizing a simple DEM model
- volcano
-z <- 2 * volcano     # Exaggerate the relief
-x <- 10 * (1:nrow(z)) # 10 meter spacing (S to N)
-y <- 10 * (1:ncol(z)) # 10 meter spacing (E to W)
- 
-# Don't draw the grid lines : border = NA
-par(bg = "gray")
-persp(x, y, z, theta = 135, phi = 30,
-      col = "brown", scale = FALSE,
-    ltheta = -120, shade = 0.75,
-      border = NA, box = FALSE)
+persp(x, y, z2, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
+
+########################################################
+ftable$x <- rep(0,19)
+for (i in 2:19){
+ #print(ftable[i,])
+ ftable$x[i] <- ftable$sw[i]/2
+}
+
+coord <- cbind(0,0)
+colnames(coord) <- c("x","z")
+
+for (i in 2:19){
+  xcoord <- seq(-ftable$x[i], ftable$x[i], 100)
+  zcoord <- rep(ftable$depth[i], length(xcoord))
+  pair <- cbind(xcoord, zcoord)
+  coord <- rbind(coord, pair)
+}
 
 
-#segments(x0, y0, x1, y1)
+heights <- function(x,z){
+  for (i in 2:19){
+    Z <- (x>=-ftable$x[i] & x<=ftable$x[i]) * ftable$depth[i]
+  }
+}
+
+x <- seq(ftable$x[2], ftable$x[19], length.out=50)
+y <- seq(0, clength, length.out=50)
+z <- outer(x, y, heights)
+
+persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
 ```
 
 ```{r crosssect, echo=TRUE}
@@ -483,42 +515,3 @@ fontsize(ft, size = 9)
 <!---BLOCK_LANDSCAPE_STOP--->
 
 \newpage
-
-# Cross-section Visualization - Ftable
-
-```{r ftable_crosssection, echo=FALSE}
-plot.new()
-#polygon(c(0.2, 0.28, 0.59, 0.65), c(0.2, 0, 0, 0.2))
-#polygon(c(0.2, 0.29, 0.74, 0.65), c(0.2, 0.8, 0.8, 0.2))
-polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
-#polygon(c(0, 0.08, 0.84, 1), c(0.38, 0.2, 0.2, 0.38))
-
-#practicing with values from JL2_6850_6890:
-h <- 8.770787/100
-b <- 80.93515/100
-bf <- 136.3575/100
-z <- 3.159484/100
-cslope <- 0.002241783/100
-
-#segments(x0, y0, x1, y1)
-segments(0, 1.5*h, 0.01, 1.5*h-z)
-segments(0.01, h, 2*bf, h)
-polygon(c(0.01, 0.01+2*bf, 0.01+2*bf+b, 0.02+2*bf+b), c(h, 0, 0, h), col='blue')
-
-
-```
-
-```{r crosssect, echo=FALSE}
-plot.new()
-polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
-polygon(c(0, 0.15, 0.23, 0.08), c(0.5, 0.9, 0.8, 0.4)) #left fp
-polygon(c(0.08, 0.23, 0.36, 0.21), c(0.4, 0.8, 0.79, 0.39)) #left fp
-polygon(c(0.645, 0.795, 0.926, 0.776), c(0.38, 0.784, 0.795, 0.4)) #rt fp
-polygon(c(0.776, 0.846, 0.996, 0.926), c(0.4, 0.5, 0.895, 0.795)) #rt fp
-
-segments(0.21, 0.39, 0.33, 0.15) #left channel
-polygon(c(0.22, 0.33, 0.55, 0.635), c(0.37, 0.15, 0.14, 0.36), col='blue')
-segments(0.55, 0.15, 0.645, 0.38) #rt channel
-
-polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
-```
