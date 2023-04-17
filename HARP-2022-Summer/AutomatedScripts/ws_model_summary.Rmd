@@ -157,10 +157,10 @@ The models compared in this document are:
 
 With the respective model properties:
 
-* Hydro code: **`r ftext.hcode[1]`**
-* Ftype: **`r ftext.ftype[1]`**
-* Model version: **`r ftext.version[1]`**
-* Run ID: **`r ftext.id[1]`**
+* Hydro code: `r ftext.hcode[1]`
+* Ftype: `r ftext.ftype[1]`
+* Model version: `r ftext.version[1]`
+* Run ID: `r ftext.id[1]`
 
 ```{r LoadStatsTable, include=FALSE}
 rseg_table <- rseg_metrics.df
@@ -196,24 +196,10 @@ statsdf <- rbind(rseg_table)
 
 
 \newpage
-```{r Caption, echo = FALSE}
-# generating a captioning phrase
-for (r in 1:length(rseg.model.version)) {
-  caption.r <- rseg_metrics.df[[r]][[2]]
-  
-  if (r == 1) {
-    caption <- paste(caption.r)
-  } else {
-    caption <- paste(caption, "vs", caption.r)
-  }
-}
-```
-
 # Flow Modeling
 
 ## Flow Duration Curve
-
-```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", caption), fig.id = "fdc", fig.cap.style = "Image Caption"}
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", ftext.model[1]), fig.id = "fdc", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -228,7 +214,8 @@ for (r in 1:length(rseg.model.version)) {
 
 cat(fig.fdc)
 ```
-```{r FDC2, out.width=paste0("1/",r), fig.align='center', fig.cap=paste("Flow duration curves from VAHydro:", caption), fig.id = "fdc", fig.cap.style = "Image Caption", echo = FALSE}
+
+```{r FDC2, out.width=paste0("1/",r), fig.align='center', fig.cap=paste("Flow duration curves from VAHydro:", ftext.model[1]), fig.id = "fdc", fig.cap.style = "Image Caption", echo = FALSE}
 # for (r in 1:length(rseg.model.version)) {
 #   runid.r <- runid.list[r]
 #   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -244,8 +231,9 @@ cat(fig.fdc)
 #}
 # knitr::include_url(fig.fdc)
 ```
+
 ## Mean Flow, Withdrawals and Point Sources
-```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", caption), fig.id = "all_flows", fig.cap.style = "Image Caption"}
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", ftext.model[1]), fig.id = "all_flows", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -269,7 +257,7 @@ for (r in 1:length(rseg.model.version)) {
 ```
 
 ## Dry Period Hydrograph
-```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", caption), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", ftext.model[1]), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -293,7 +281,7 @@ for (r in 1:length(rseg.model.version)) {
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", caption), fig.id = "2yr_l90", fig.cap.style = "Image Caption"}
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", ftext.model[1]), fig.id = "2yr_l90", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -424,42 +412,116 @@ polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
 ```{r MathcingData, echo = FALSE}
 # retrieving and matching the data
 
-# for (r in 1:length(rseg.model.version)) {
-#   rseg.data.r <- data.table::fread(rseg.file.path[r])
-#   assign(paste0('rseg.data.',r),rseg.data.r)
-#   rseg.cols.r <- names(rseg.data.r)
-#  
-#    if (r == 1){
-#       data.match <- rseg.data.r$date
-#       sdate <- as.Date(min(data.match))
-#       edate <- as.Date(max(data.match))
-#     } else {
-#       data.match <- match(data.match, rseg.data.r)
-#       sdate <- as.Date(min(data.match))
-#       edate <- as.Date(max(data.match))
-#     }
-# }
-# 
-# for (r in 1:length(rseg.model.version)) {
-#   rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
-#   rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-#   mode(rseg.flow.r) <- 'numeric'
-# 
-#   assign(paste0('rseg.flow.',r),rseg.flow.r)
-# }
+for (r in 1:length(rseg.model.version)) {
+  rseg.data.r <- data.table::fread(rseg.file.path[r])
+  assign(paste0('rseg.data.',r),rseg.data.r)
+  rseg.cols.r <- names(rseg.data.r)
+
+   if (r == 1){
+      data.match <- rseg.data.r$date
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    } else {
+      data.match <- match(data.match, rseg.data.r$date)
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    }
+}
+
+for (r in 1:length(rseg.model.version)) {
+  rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
+  rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+  mode(rseg.flow.r) <- 'numeric'
+
+  assign(paste0('rseg.flow.',r),rseg.flow.r)
+}
+
+# generate low flow data
+
+for (r in 1:length(rseg.model.version)) {
+  rseg.lowflow.r <- IHA::group2(rseg.flow.r)
+  assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
+}
 ```
 
 ## 90-Day Low Flow Comparison
-```{r 90day, echo = FALSE}
+```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", ftext.model[1]), fig.id = "90day", fig.cap.style = "Image Caption"}
+#combine l90 data
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
+    colname.l90 <- paste0("rseg.l90.", r)
+  } else {
+    l90.data <- cbind(l90.data, rseg.lowflow.r["90 Day Min"])
+    colnames(l90.data) <- c("year", colname.l90, paste0("rseg.l90.", r))
+    ymax.l90 <- max(l90.data[-1])
+  }
+}
 
+# l90.plot <- ggplot(data=l90.data, aes(x=year, y=l90.data[-1], ymax = ymax.l90, validate_mapping = )) + 
+#   geom_col(position_dodge2(preserve ="single", padding ="0.001"))+
+#   theme_minimal()
+
+# for (r in 1:length(rseg.model.version)) {
+#   barplot(
+#     cbind(USGS, Model) ~ Year, data=cmp_l90,
+#     col=c("blue", "black"),
+#     main=paste("USGS vs VAHydro, 90 Day Low Flow ",title_param,sep=""),
+#     beside=TRUE,
+#     ylab = "Streamflow (cfs)",
+#     ylim = c(0,ymax_val),
+#     cex.main=0.8,
+#     cex.axis=0.9,
+#     cex.lab=1,
+#     cex.names=0.7
+#   )
+#   legend("topleft",legend=c("USGS", "VAHydro"),fill=c("blue", "black"),cex=1)
+#   abline(h=min(cmp_l90$USGS), col="blue", lty = "dashed")
+#   abline(h=min(cmp_l90$Model), col="black", lty = "dashed")
+#   mtext(round(min(cmp_l90$USGS),1), side=2, line=0, las=1, at=min(cmp_l90$USGS), cex=0.6, col="blue")
+#   mtext(round(min(cmp_l90$Model),1), side=4, line=0, las=1, at=(min(cmp_l90$Model)), cex=0.6, col="black")
+# }
 ```
 
 ## 30-Day Low Flow Comparison
-```{r 30day, echo = FALSE}
-
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", ftext.model[1]), fig.id = "30day", fig.cap.style = "Image Caption"}
+#combine l90 data
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
+    colname.l30 <- paste0("rseg.l30.", r)
+  } else {
+    l30.data <- cbind(l30.data, rseg.lowflow.r["30 Day Min"])
+    colnames(l30.data) <- c("year", colname.l30, paste0("rseg.l30.", r))
+    ymax.l30 <- max(l30.data[-1])
+  }
+}
 
 ```
 
+## 7-Day Low Flow Comparison
+```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", ftext.model[1]), fig.id = "7day", fig.cap.style = "Image Caption"}
+#combine l90 data
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["7 Day Min"])
+    colname.l7 <- paste0("rseg.l7.", r)
+  } else {
+    l7.data <- cbind(l7.data, rseg.lowflow.r["7 Day Min"])
+    colnames(l7.data) <- c("year", colname.l7, paste0("rseg.l7.", r))
+    ymax.l7 <- max(l7.data[-1])
+  }
+}
+
+```
+
+## Model Errors
+
+``` {r errors, echo = FALSE}
+
+
+
+```
 
 \newpage
 <!---BLOCK_LANDSCAPE_START--->
