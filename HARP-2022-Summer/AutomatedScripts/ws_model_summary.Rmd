@@ -356,14 +356,15 @@ length <- RomProperty$new(channel_prop[["datasource"]],list(
 clength <- length$propvalue #channel length
 
 #extract geometry:
-#h <- ftable$depth[10]
-#SWh <- ftable$area[10]*43560/clength
-#b <- Ah/h*2 - SWh
-#slope <- (SWh-b)/(2*h)
-#bf <- b + 2*slope*h
+h <- ftable$depth[10]
+Ah <- ftable$area[10]
+SWh <- ftable$area[10]*43560/clength
+b <- Ah/h*2 - SWh
+slope <- (SWh-b)/(2*h)
+bf <- b + 2*slope*h
 
 ftable$sw <- ftable$area*43560/clength
-ftable$crossA <- ftable$vol*43560/clength
+#ftable$crossA <- ftable$vol*43560/clength
 
 
 #practicevalues from JL2_6850_6890:
@@ -372,10 +373,11 @@ ftable$crossA <- ftable$vol*43560/clength
 #bf <- 136.3575/100
 #z <- 3.159484/100
 #cslope <- 0.002241783/100
+```
 
+```{r, echo=FALSE}
 # Generate data for the plot
 fp <- 2.5*bf + 3/2*(bf-b)
-  
 trapezoid <- function(x, z){ #piecewise function utilizing R's understanding of TRUE==1 and FALSE==0
   (x>=-0.5*b & x<=0.5*b) * 0
   (x<=-0.5*bf & x>=-2.5*bf | x>=0.5*bf & x<=2.5*bf) * h +
@@ -399,12 +401,15 @@ z2 <- outer(x, y, water)
 #fill[1,] <- "gray"
 #fill[nrow(fill),] <- "gray"
 
+values<- cbind(x,y,z2)
+
 # Create the plot
 persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
 
 persp(x, y, z2, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
+```
 
-########################################################
+```{r, echo=FALSE}
 ftable$x <- rep(0,19)
 for (i in 2:19){
  #print(ftable[i,])
@@ -413,26 +418,46 @@ for (i in 2:19){
 
 coord <- cbind(0,0)
 colnames(coord) <- c("x","z")
-
 for (i in 2:19){
-  xcoord <- seq(-ftable$x[i], ftable$x[i], 100)
+  xcoord <- seq(-ftable$x[i], ftable$x[i], length.out=10)
   zcoord <- rep(ftable$depth[i], length(xcoord))
   pair <- cbind(xcoord, zcoord)
   coord <- rbind(coord, pair)
 }
+#persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
+```
 
+```{r, echo=FALSE}
+# Visualizing a simple DEM model
+z <- 2 * volcano     # Exaggerate the relief
+x <- 10 * (1:nrow(z)) # 10 meter spacing (S to N)
+y <- 10 * (1:ncol(z)) # 10 meter spacing (E to W)
 
-heights <- function(x,z){
-  for (i in 2:19){
-    Z <- (x>=-ftable$x[i] & x<=ftable$x[i]) * ftable$depth[i]
-  }
+# Don't draw the grid lines : border = NA
+par(bg = "gray")
+persp(x, y, z, theta = 135, phi = 30,
+      col = "brown", scale = FALSE,
+    ltheta = -120, shade = 0.75,
+      border = NA, box = FALSE)
+```
+
+```{r, echo=TRUE}
+x <- c(ftable$x, -ftable$x[-1]) #make sure there aren't 2 rows where x=0
+y <- seq(0, clength, length.out=length(x))
+z <- c(ftable$depth,ftable$depth)
+
+pair <- cbind(x, z)
+pair <- pair[order(x),] #ascending order
+x <- pair[,1]
+z <- pair[,-1]
+
+for (i in 1:(length(x)-1)){
+  z <- cbind(z, pair[,-1])
 }
+colnames(z) <- y #to conceptualize data
+rownames(z) <- x
 
-x <- seq(ftable$x[2], ftable$x[19], length.out=50)
-y <- seq(0, clength, length.out=50)
-z <- outer(x, y, heights)
-
-persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
+persp(x, y, z, theta = -10, phi = 15, expand = .2, col = "lightblue", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.75, border=NA, d=0.6, r=4.5)
 ```
 
 ```{r crosssect, echo=TRUE}
