@@ -34,6 +34,8 @@ library(hydrotools)
 library(rjson)
 library(cowplot)
 library(gridExtra)
+library(tidyr)
+library(ggplot2)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
@@ -213,23 +215,6 @@ for (r in 1:length(rseg.model.version)) {
 }
 
 cat(fig.fdc)
-```
-
-```{r FDC2, out.width=paste0("1/",r), fig.align='center', fig.cap=paste("Flow duration curves from VAHydro:", ftext.model[1]), fig.id = "fdc", fig.cap.style = "Image Caption", echo = FALSE}
-# for (r in 1:length(rseg.model.version)) {
-#   runid.r <- runid.list[r]
-#   rseg.runid.r <- dat[[r]][[runid.r]]
-#   path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
-#
-  # knitr::include_url(path.fdc.r)
-  # external_img(path.fdc.r, width = 1/r)
-  # if (r == 1) {
-  #     fig.fdc <- path.fdc.r
-  #   } else {
-  #     fig.fdc <- list(fig.fdc, path.fdc.r)
-  #   }
-#}
-# knitr::include_url(fig.fdc)
 ```
 
 ## Mean Flow, Withdrawals and Point Sources
@@ -437,7 +422,6 @@ for (r in 1:length(rseg.model.version)) {
 }
 
 # generate low flow data
-
 for (r in 1:length(rseg.model.version)) {
   rseg.lowflow.r <- IHA::group2(rseg.flow.r)
   assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
@@ -459,10 +443,15 @@ for (r in 1:length(rseg.model.version)) {
 
 values.l90 <- tidyr::pivot_longer(l90.data, -Year, names_to="Model", values_to="Flow")
 l90.plot <- ggplot(values.l90, aes(y=Flow, x=Year, fill = Model)) + 
-    geom_bar(position="dodge", stat="identity", color="black") +
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
     theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
     scale_fill_brewer()
-
+l90.plot
 ```
 
 ## 30-Day Low Flow Comparison
@@ -480,9 +469,15 @@ for (r in 1:length(rseg.model.version)) {
 
 values.l30 <- tidyr::pivot_longer(l30.data, -Year, names_to="Model", values_to="Flow")
 l30.plot <- ggplot(values.l30, aes(y=Flow, x=Year, fill = Model)) + 
-    geom_bar(position="dodge", stat="identity", color="black") +
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
     theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
     scale_fill_brewer()
+l30.plot
 ```
 
 ## 7-Day Low Flow Comparison
@@ -500,9 +495,40 @@ for (r in 1:length(rseg.model.version)) {
 
 values.l7 <- tidyr::pivot_longer(l7.data, -Year, names_to="Model", values_to="Flow")
 l7.plot <- ggplot(values.l7, aes(y=Flow, x=Year, fill = Model)) + 
-    geom_bar(position="dodge", stat="identity", color="black") +
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
     theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
     scale_fill_brewer()
+l7.plot
+```
+
+## 1-Day Low Flow Comparison
+```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", ftext.model[1]), fig.id = "1day", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
+    colname.l1 <- paste0(rseg_model_info.r[[1]][[3]])
+  } else {
+    l1.data <- cbind(l1.data, rseg.lowflow.r["90 Day Min"])
+    colnames(l1.data) <- c("Year", colname.l1, paste0(rseg_model_info.r[[1]][[3]]))
+    ymax.l1 <- max(l1.data[-1])
+  }
+}
+
+values.l1 <- tidyr::pivot_longer(l1.data, -Year, names_to="Model", values_to="Flow")
+geom_bar(position="dodge", stat="identity", color="darkgrey") +
+    theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
+    scale_fill_brewer()
+l1.plot
 ```
 
 ## Model Errors
