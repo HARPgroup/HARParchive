@@ -32,8 +32,14 @@ if (('Qout' %in% colnames(hydr)) == FALSE) {
 }
 
 hydr$wd_mgd <- (hydr$RO - hydr$O3) /1.5472 # withdrawal cfs converted to mgd
-hydr$ps_mgd <- hydr$ps_afd*0.32585
 hydr$demand_mgd <- (hydr$divr_cfs + hydr$diva_cfs)/1.5472 #demand cfs summed and coverted to mgd 
+# demand is substituted for withdrawal in hspf because necessary vars (RO, O3) are not exported
+# demand and wd will be equal almost all the time except very low flows when not all of demand can be met
+if (('O3' %in% colnames(hydr)) == FALSE) { #O3 will not be present in hspf hydr files
+  hydr$wd_mgd <- hydr$demand_mgd
+}
+
+hydr$ps_mgd <- hydr$ps_afd*0.32585
 
 #Qbaseline = Qout + (wd_cum_mgd - ps_cum_mgd)*1.547
 hydr$Qbaseline <- hydr$Qout + (hydr$wd_mgd - hydr$ps_mgd)*1.5472
