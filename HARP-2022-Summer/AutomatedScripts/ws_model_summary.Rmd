@@ -128,8 +128,16 @@ for (r in 1:length(rseg.model.version)){
   } else {
     rseg_metrics.df <- cbind(rseg_metrics.df,rseg_table.r)
   }
-  
-  # create an output for information on the models compared
+
+}
+
+ <- qflextable(statsdf)
+
+```
+
+The models compared in this document are:
+``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo"}
+for (r in 1:length(rseg.model.version)){
   ftext.model.r <- paste(rseg_model_info.r[[1]][[3]])
   ftext.hcode.r <- paste(rseg.hydrocode.r)
   ftext.ftype.r <- paste(rseg.ftype.r)
@@ -137,32 +145,44 @@ for (r in 1:length(rseg.model.version)){
   ftext.id.r <- paste(runid.r)
   
   if (r == 1){
+    model.num <- paste("Model", r)
     ftext.model <- ftext.model.r 
     ftext.hcode <- ftext.hcode.r 
     ftext.ftype <- ftext.ftype.r 
     ftext.version <- ftext.version.r 
-    ftext.id <- ftext.id.r 
+    ftext.id <- ftext.id.r
   } else {
-    ftext.model <- paste(ftext.model, "vs", ftext.model.r)
-    ftext.hcode <- paste(ftext.hcode, "vs", ftext.hcode.r)
-    ftext.ftype <- paste(ftext.ftype, "vs", ftext.ftype.r)
-    ftext.version <- paste(ftext.version, "vs", ftext.version.r)
-    ftext.id <- paste(ftext.id, "vs", ftext.id.r)
+    model.num <- cbind(model.num, paste("Model", r))
+    ftext.model <- cbind(ftext.model, ftext.model.r)
+    ftext.hcode <- cbind(ftext.hcode, ftext.hcode.r)
+    ftext.ftype <- cbind(ftext.ftype, ftext.ftype.r)
+    ftext.version <- cbind(ftext.version, ftext.version.r)
+    ftext.id <- cbind(ftext.id, ftext.id.r)
+    
+    model.comparison <- rbind(ftext.model,ftext.hcode, ftext.ftype,
+                              ftext.version, ftext.id)
+    colnames(model.comparison) <- c(model.num)
+    rownames(model.comparison) <- c("Model", "Hydrocode", "Ftype", "Model Version", 
+                                    "Run ID")
   }
 }
 
+model.info <- model.comparison %>% as.data.frame() %>% add_rownames() %>% qflextable()
+
+# Set column widths
+model.info <- width(model.info, j = 2:length(model.comparison[1,]), width = 1.9)
+model.info <- width(model.info, j = 1, width = 2.5)
+
+# Set theme
+model.info <- theme_box(model.info)
+
+# Set background color of select rows --------------------------------------------------------------
+model.info <- bg(model.info, bg = "#EFEFEF", part = "header")
+model.info <- set_header_labels(model.info, rowname = "Properties")
+fontsize(model.info, size = 9)
+}
+
 ```
-
-The models compared in this document are:
-
-**`r ftext.model[1]`**
-
-With the respective model properties:
-
-* Hydro code: `r ftext.hcode[1]`
-* Ftype: `r ftext.ftype[1]`
-* Model version: `r ftext.version[1]`
-* Run ID: `r ftext.id[1]`
 
 ```{r LoadStatsTable, include=FALSE}
 rseg_table <- rseg_metrics.df
@@ -224,21 +244,28 @@ for (r in 1:length(rseg.model.version)) {
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.flows.all.r <- rseg.runid.r[['fig.flows.all']][['code']]
   
-  if (r == 1){
-    fig.flows.all <- ggdraw() + 
-      draw_image(path.flows.all.r)
-  } else {
-    fig.flows.all.r <- ggdraw() +
-      draw_image(path.flows.all.r)
-    fig.flows.all <- list(fig.flows.all, fig.flows.all.r)
-  }
+  # if (r == 1){
+  #   fig.flows.all <- ggdraw() + 
+  #     draw_image(path.flows.all.r)
+  # } else {
+  #   fig.flows.all.r <- ggdraw() +
+  #     draw_image(path.flows.all.r)
+  #   fig.flows.all <- list(fig.flows.all, fig.flows.all.r)
+  # }
   
   if (r == 1) {
-    fig.flows.all
+    fig.flows.all <- paste0("![](",path.flows.all.r,")")
   } else {
-    do.call("grid.arrange", c(fig.flows.all, ncol = r)) 
+    fig.flows.all <- paste(paste0(fig.flows.all,"{width=1/",r,"}"), paste0("![](",path.flows.all.r,")","{width=1/",r,"}"))
   }
+  
+  # if (r == 1) {
+  #   fig.flows.all
+  # } else {
+  #   do.call("grid.arrange", c(fig.flows.all, ncol = r)) 
+  # }
 }
+cat(fig.flows.all)
 ```
 
 ## Dry Period Hydrograph
@@ -248,21 +275,29 @@ for (r in 1:length(rseg.model.version)) {
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.hydrograph.dry.r <- rseg.runid.r[['fig.hydrograph_dry']][['code']]
 
- if (r == 1){
-    fig.hydrograph.dry <- ggdraw() + 
-      draw_image(path.hydrograph.dry.r)
-  } else {
-    fig.hydrograph.dry.r <- ggdraw() +
-      draw_image(path.hydrograph.dry.r)
-    fig.hydrograph.dry <- list(fig.hydrograph.dry, fig.hydrograph.dry.r)
-  }
+ # if (r == 1){
+ #    fig.hydrograph.dry <- ggdraw() + 
+ #      draw_image(path.hydrograph.dry.r)
+ #  } else {
+ #    fig.hydrograph.dry.r <- ggdraw() +
+ #      draw_image(path.hydrograph.dry.r)
+ #    fig.hydrograph.dry <- list(fig.hydrograph.dry, fig.hydrograph.dry.r)
+ #  }
   
   if (r == 1) {
-    fig.hydrograph.dry
+    fig.hydrograph.dry <- paste0("![](",path.hydrograph.dry.r,")")
   } else {
-    do.call("grid.arrange", c(fig.hydrograph.dry, ncol = r)) 
+    fig.hydrograph.dry <- paste(paste0(fig.hydrograph.dry,"{width=1/",r,"}"),
+                                paste0("![](",path.hydrograph.dry.r,")","{width=1/",r,"}"))
   }
+  
+  # if (r == 1) {
+  #   fig.hydrograph.dry
+  # } else {
+  #   do.call("grid.arrange", c(fig.hydrograph.dry, ncol = r)) 
+  # }
 }
+cat(fig.hydrograph.dry)
 ```
 
 ## 90-day Low Flows over a 2 year Period
@@ -272,21 +307,28 @@ for (r in 1:length(rseg.model.version)) {
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
   
-  if (r == 1){
-    fig.l90.2yr <- ggdraw() + 
-      draw_image(path.l90.2yr.r)
-  } else {
-    fig.l90.2yr.r <- ggdraw() +
-      draw_image(path.l90.2yr.r)
-    fig.l90.2yr <- list(fig.l90.2yr, fig.l90.2yr.r)
-  }
+  # if (r == 1){
+  #   fig.l90.2yr <- ggdraw() + 
+  #     draw_image(path.l90.2yr.r)
+  # } else {
+  #   fig.l90.2yr.r <- ggdraw() +
+  #     draw_image(path.l90.2yr.r)
+  #   fig.l90.2yr <- list(fig.l90.2yr, fig.l90.2yr.r)
+  # }
   
   if (r == 1) {
-    fig.l90.2yr
+    fig.l90.2yr <- paste0("![](",path.l90.2yr.r,")")
   } else {
-    do.call("grid.arrange", c(fig.l90.2yr, ncol = r)) 
+    fig.l90.2yr <- paste(paste0(fig.l90.2yr,"{width=1/",r,"}"), paste0("![](",path.l90.2yr.r,")","{width=1/",r,"}"))
   }
+  
+  # if (r == 1) {
+  #   fig.l90.2yr
+  # } else {
+  #   do.call("grid.arrange", c(fig.l90.2yr, ncol = r)) 
+  # }
 }
+cat(fig.l90.2yr)
 ```
 
 ## Ftable Visual
