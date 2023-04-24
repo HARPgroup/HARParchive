@@ -152,6 +152,7 @@ for (r in 1:length(rseg.model.version)){
     ftext.ftype <- ftext.ftype.r 
     ftext.version <- ftext.version.r 
     ftext.id <- ftext.id.r
+    title_param <- paste(ftext.model.r)
   } else {
     model.num <- cbind(model.num, paste("Model", r))
     ftext.model <- cbind(ftext.model, ftext.model.r)
@@ -165,6 +166,7 @@ for (r in 1:length(rseg.model.version)){
     colnames(model.comparison) <- c(model.num)
     rownames(model.comparison) <- c("Model", "Hydrocode", "Ftype", "Model Version", 
                                     "Run ID")
+    title_param <- paste(title_param, "vs", paste(ftext.model.r))
   }
 }
 
@@ -222,7 +224,7 @@ statsdf <- rbind(rseg_table)
 # Flow Modeling
 
 ## Flow Duration Curve
-```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", ftext.model[1]), fig.id = "fdc", fig.cap.style = "Image Caption"}
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -239,7 +241,7 @@ cat(fig.fdc)
 ```
 
 ## Mean Flow, Withdrawals and Point Sources
-```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", ftext.model[1]), fig.id = "all_flows", fig.cap.style = "Image Caption"}
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -270,7 +272,7 @@ cat(fig.flows.all)
 ```
 
 ## Dry Period Hydrograph
-```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", ftext.model[1]), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -302,7 +304,7 @@ cat(fig.hydrograph.dry)
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", ftext.model[1]), fig.id = "2yr_l90", fig.cap.style = "Image Caption"}
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
@@ -472,7 +474,7 @@ for (r in 1:length(rseg.model.version)) {
 ```
 
 ## 90-Day Low Flow Comparison
-```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", ftext.model[1]), fig.id = "90day", fig.cap.style = "Image Caption"}
+```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", title_param), fig.id = "90day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
@@ -498,7 +500,7 @@ l90.plot
 ```
 
 ## 30-Day Low Flow Comparison
-```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", ftext.model[1]), fig.id = "30day", fig.cap.style = "Image Caption"}
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
@@ -524,7 +526,7 @@ l30.plot
 ```
 
 ## 7-Day Low Flow Comparison
-```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", ftext.model[1]), fig.id = "7day", fig.cap.style = "Image Caption"}
+```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
@@ -550,7 +552,7 @@ l7.plot
 ```
 
 ## 1-Day Low Flow Comparison
-```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", ftext.model[1]), fig.id = "1day", fig.cap.style = "Image Caption"}
+```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
@@ -574,9 +576,121 @@ geom_bar(position="dodge", stat="identity", color="darkgrey") +
 l1.plot
 ```
 
-## Model Errors
+## Model Performance Scatterplots
 
-``` {r errors, echo = FALSE}
+``` {r scatter, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+
+if (length(rseg.model.version) == 2) {
+
+  l90.scatter <- ggplot(l90.data, aes(x = get(names(l90.data)[2]), y = get(names(l90.data)[3]))) +
+  geom_point() +
+  geom_smooth(method=lm) +
+  theme_light() +
+  theme(axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9)) +
+  ylab(colnames(l90.data[2])) +
+  xlab(colnames(l90.data[3]))
+
+  # L90 Error Scatterplot
+  l90_diff <- unlist(l90.data[2] - l90.data[3]) # has to unlist in order to plot with ggplot!
+  l90_diff_pct <- 100.0 * (l90_diff) / l90.data[3]
+  
+  l90.diff <- ggplot(l90.data, aes(x =get(names(l90.data)[1]), y = l90_diff)) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+  
+  l30.scatter <- ggplot(l30.data, aes(x = get(names(l30.data)[2]), y = get(names(l30.data)[3]))) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(colnames(l30.data[2])) +
+    xlab(colnames(l30.data[3]))
+  
+  # l30 Error Scatterplot
+  l30_diff <- unlist(l30.data[2] - l30.data[3]) # has to unlist in order to plot with ggplot!
+  l30_diff_pct <- 100.0 * (l30_diff) / l30.data[3]
+  
+  l30.diff <- ggplot(l30.data, aes(x =get(names(l30.data)[1]), y = l30_diff)) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+  
+  l7.scatter <- ggplot(l7.data, aes(x = get(names(l7.data)[2]), y = get(names(l7.data)[3]))) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(colnames(l7.data[2])) +
+    xlab(colnames(l7.data[3]))
+  
+  # l7 Error Scatterplot
+  l7_diff <- unlist(l7.data[2] - l7.data[3]) # has to unlist in order to plot with ggplot!
+  l7_diff_pct <- 100.0 * (l7_diff) / l7.data[3]
+  
+  l7.diff <- ggplot(l7.data, aes(x =get(names(l7.data)[1]), y = l7_diff)) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+
+  l1.scatter <- ggplot(l1.data, aes(x = get(names(l1.data)[2]), y = get(names(l1.data)[3]))) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(colnames(l1.data[2])) +
+    xlab(colnames(l1.data[3]))
+  
+  # l1 Error Scatterplot
+  l1_diff <- unlist(l1.data[2] - l1.data[3]) # has to unlist in order to plot with ggplot!
+  l1_diff_pct <- 100.0 * (l1_diff) / l1.data[3]
+  
+  l1.diff <- ggplot(l1.data, aes(x =get(names(l1.data)[1]), y = l1_diff)) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9)) +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+  
+  plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
+  plot_row1 <- plot_grid(plots[[1]], l90.diff , 
+                         labels = c("90 Day Low Flow" ," "), label_size = 10,
+                         rel_widths = c(0.5, 0.5), rel_heights = c(0.5,0.5))
+  plot_row2 <- plot_grid(l30.scatter, l30.diff, 
+                         labels = c("30 Day Low Flow" ," "), label_size = 10,
+                         rel_widths = c(0.5, 0.5))
+  plot_row3 <- plot_grid(l7.scatter, l7.diff, 
+                         labels = c("7 Day Low Flow" ," "), label_size = 10,
+                         rel_widths = c(0.5, 0.5))
+  plot_row4 <- plot_grid(plots[[2]], l1.diff, 
+                         labels = c("1 Day Low Flow" ," "), label_size = 10,
+                         rel_widths = c(0.5, 0.5))
+  
+  plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
+}
+```
+
+## Model %-Difference
+
+``` {r percent, echo = FALSE}
 
 
 
