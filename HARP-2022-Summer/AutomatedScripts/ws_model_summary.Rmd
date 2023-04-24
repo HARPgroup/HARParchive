@@ -36,6 +36,7 @@ library(cowplot)
 library(gridExtra)
 library(tidyr)
 library(ggplot2)
+library(dplyr)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
