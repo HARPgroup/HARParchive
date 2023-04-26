@@ -21,6 +21,7 @@ params:
   rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
   runid.list: [ "hsp2_2022","subsheds" ]
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
+
 ---
 
 ```{r setup, include=FALSE}
@@ -337,11 +338,26 @@ cat(fig.l90.2yr)
 ## Ftable Visual
 ```{r ftable_crosssection, echo=TRUE}
 #get ftable:
+rseg.hydrocode <- c("JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200") #Black Creek Reservoir
+
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
-ftable <- read.csv(paste(path_uci,  rseg.hydrocode[1], '.ftable', sep=''), 
+
+for(i in 1:length(rseg.hydrocode)) {
+  if (rseg.model.version == "cbp-6.1"){
+    ftable <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
-                    nrows = 19, skip= 5)
+                    nrows = 19, skip= 7) 
+  }
+  
+  else {
+    ftable <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
+                    sep='', 
+                    header=FALSE,
+                    nrows = 19, skip= 5) 
+  }
+}
+
 if (ncol(ftable)==5) {
   ftable <- ftable[,1:4] #remove flow-thru col if it exists (for old models)
 }
@@ -371,10 +387,11 @@ length <- RomProperty$new(channel_prop[["datasource"]],list(
     entity_type='dh_properties',
     propname='length'),
   TRUE)
-clength <- length$propvalue #channel length
+clength <- length$propvalue #channel length in ft
 
 #generate 3D coordinates:
 ftable$x <- ftable$area*43560/clength/2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
+#multiply by 43560 to go acres --> sqft
 
 x <- c(ftable$x[-1], -ftable$x[-1]) #make sure there aren't 2 rows where x=0
 y <- seq(0, clength, length.out=length(x))
@@ -392,9 +409,20 @@ colnames(z) <- y #to conceptualize data
 rownames(z) <- x
 
 #plot channel:
-persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=4.5, xlab="Channel Width", ylab="Channel Length", zlab="Depth", main=paste(rseg.hydrocode[1], "FTABLE"))
+persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
+      ylab="Channel Length (ft)", zlab="Depth (ft)", 
+      main=paste(rseg.hydrocode[1], "FTABLE"),
+      sub=paste("Water shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
+  for(i in 1:15){
+    lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, clength, by=10) , z = ftable$depth[i], pmat = channel), 
+           col ="#33CCFF2F", pch=16) #bankfull
+  }
+#note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
 
-persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=4.5, xlab="Channel Width", ylab="Channel Length", zlab="Depth", main=paste(rseg.hydrocode[1], "FTABLE"))
+persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+
+persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+
 ```
 
 \newpage
