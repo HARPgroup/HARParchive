@@ -373,96 +373,12 @@ length <- RomProperty$new(channel_prop[["datasource"]],list(
   TRUE)
 clength <- length$propvalue #channel length
 
-#extract geometry:
-h <- ftable$depth[10]
-Ah <- ftable$area[10]
-SWh <- ftable$area[10]*43560/clength
-b <- Ah/h*2 - SWh
-slope <- (SWh-b)/(2*h)
-bf <- b + 2*slope*h
+#generate 3D coordinates:
+ftable$x <- ftable$area*43560/clength/2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
 
-ftable$sw <- ftable$area*43560/clength
-#ftable$crossA <- ftable$vol*43560/clength
-
-
-#practicevalues from JL2_6850_6890:
-#h <- 8.770787/100
-#b <- 80.93515/100
-#bf <- 136.3575/100
-#z <- 3.159484/100
-#cslope <- 0.002241783/100
-```
-
-```{r, echo=FALSE}
-# Generate data for the plot
-fp <- 2.5*bf + 3/2*(bf-b)
-trapezoid <- function(x, z){ #piecewise function utilizing R's understanding of TRUE==1 and FALSE==0
-  (x>=-0.5*b & x<=0.5*b) * 0
-  (x<=-0.5*bf & x>=-2.5*bf | x>=0.5*bf & x<=2.5*bf) * h +
-  (x<=-fp| x>=fp) * (4*h) 
-}
-
-water <- function(x,z){
-  #(x<=-0.5*bf & x>=-2.5*bf | x>=0.5*bf & x<=2.5*bf) * h/2
-  (x<=-2.5*bf & x>=-fp) * (-slope*x + (h-2.5*slope*bf)) +
-  (x>=2.5*bf & x<=fp) * (slope*x + (h-2.5*slope*bf))
-}
-
-x <- seq(-4*bf, 4*bf,length.out=50)
-y <- seq(0, clength, length.out=50)
-z <- outer(x, y, trapezoid)
-z2 <- outer(x, y, water)
-
-#fill <- matrix("lightblue", nr = nrow(z)-1, nc = ncol(z)-1)
-#fill[,1] <- "gray"
-#fill[,ncol(fill)] <- "gray"
-#fill[1,] <- "gray"
-#fill[nrow(fill),] <- "gray"
-
-values<- cbind(x,y,z2)
-
-# Create the plot
-persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
-
-persp(x, y, z2, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
-```
-
-```{r, echo=FALSE}
-ftable$x <- rep(0,19)
-for (i in 2:19){
- #print(ftable[i,])
- ftable$x[i] <- ftable$sw[i]/2
-}
-
-coord <- cbind(0,0)
-colnames(coord) <- c("x","z")
-for (i in 2:19){
-  xcoord <- seq(-ftable$x[i], ftable$x[i], length.out=10)
-  zcoord <- rep(ftable$depth[i], length(xcoord))
-  pair <- cbind(xcoord, zcoord)
-  coord <- rbind(coord, pair)
-}
-#persp(x, y, z, theta = 10, phi = 20, expand = 0.1, col = "lightblue", axes=TRUE, nticks=10, ticktype="detailed", scale=TRUE)
-```
-
-```{r, echo=FALSE}
-# Visualizing a simple DEM model
-z <- 2 * volcano     # Exaggerate the relief
-x <- 10 * (1:nrow(z)) # 10 meter spacing (S to N)
-y <- 10 * (1:ncol(z)) # 10 meter spacing (E to W)
-
-# Don't draw the grid lines : border = NA
-par(bg = "gray")
-persp(x, y, z, theta = 135, phi = 30,
-      col = "brown", scale = FALSE,
-    ltheta = -120, shade = 0.75,
-      border = NA, box = FALSE)
-```
-
-```{r, echo=TRUE}
-x <- c(ftable$x, -ftable$x[-1]) #make sure there aren't 2 rows where x=0
+x <- c(ftable$x[-1], -ftable$x[-1]) #make sure there aren't 2 rows where x=0
 y <- seq(0, clength, length.out=length(x))
-z <- c(ftable$depth,ftable$depth)
+z <- c(ftable$depth[-1], ftable$depth[-1])
 
 pair <- cbind(x, z)
 pair <- pair[order(x),] #ascending order
@@ -475,22 +391,10 @@ for (i in 1:(length(x)-1)){
 colnames(z) <- y #to conceptualize data
 rownames(z) <- x
 
-persp(x, y, z, theta = -10, phi = 15, expand = .2, col = "lightblue", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.75, border=NA, d=0.6, r=4.5)
-```
+#plot channel:
+persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=4.5)
 
-```{r crosssect, echo=TRUE}
-plot.new()
-polygon(c(0, 0, 1, 1), c(0, 1, 1, 0))
-polygon(c(0, 0.15, 0.23, 0.08), c(0.5, 0.9, 0.8, 0.4)) #left fp
-polygon(c(0.08, 0.23, 0.36, 0.21), c(0.4, 0.8, 0.79, 0.39)) #left fp
-polygon(c(0.645, 0.795, 0.926, 0.776), c(0.38, 0.784, 0.795, 0.4)) #rt fp
-polygon(c(0.776, 0.846, 0.996, 0.926), c(0.4, 0.5, 0.895, 0.795)) #rt fp
-
-segments(0.21, 0.39, 0.33, 0.15) #left channel
-polygon(c(0.22, 0.33, 0.55, 0.635), c(0.37, 0.15, 0.14, 0.36), col='blue')
-segments(0.55, 0.15, 0.645, 0.38) #rt channel
-
-polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
+persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=4.5)
 ```
 
 \newpage
