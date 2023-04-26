@@ -138,10 +138,10 @@ The models compared in this document are:
 ``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo"}
 for (r in 1:length(rseg.model.version)){
   ftext.model.r <- paste(dat[[r]][[3]])
-  ftext.hcode.r <- paste(rseg.hydrocode.r)
-  ftext.ftype.r <- paste(rseg.ftype.r)
-  ftext.version.r <- paste(rseg.model.version.r)
-  ftext.id.r <- paste(runid.r)
+  ftext.hcode.r <- paste(rseg.hydrocode[r])
+  ftext.ftype.r <- paste(rseg.ftype[r])
+  ftext.version.r <- paste(rseg.model.version[r])
+  ftext.id.r <- paste(runid.list[r])
   
   if (r == 1){
     model.num <- paste("Model", r)
@@ -496,35 +496,63 @@ polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
 ```{r MathcingData, echo = FALSE}
 # retrieving and matching the data
 
-for (r in 1:length(rseg.model.version)) {
-  rseg.data.r <- data.table::fread(rseg.file.path[r])
-  assign(paste0('rseg.data.',r),rseg.data.r)
-  rseg.cols.r <- names(rseg.data.r)
+# for (r in 1:length(rseg.model.version)) {
+#   rseg.data.r <- data.table::fread(rseg.file.path[r])
+#   assign(paste0('rseg.data.',r),rseg.data.r)
+#   rseg.cols.r <- names(rseg.data.r)
+# 
+#    if (r == 1){
+#       data.match <- rseg.data.r$date
+#       sdate <- as.Date(min(data.match))
+#       edate <- as.Date(max(data.match))
+#     } else {
+#       data.match <- match(data.match, rseg.data.r$date)
+#       sdate <- as.Date(min(data.match))
+#       edate <- as.Date(max(data.match))
+#     }
+# }
+# 
+# for (r in 1:length(rseg.model.version)) {
+#   rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
+#   rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+#   mode(rseg.flow.r) <- 'numeric'
+# 
+#   assign(paste0('rseg.flow.',r),rseg.flow.r)
+# }
+# 
+# # generate low flow data
+# for (r in 1:length(rseg.model.version)) {
+#   rseg.lowflow.r <- IHA::group2(rseg.flow.r)
+#   assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
+# }
+```
 
-   if (r == 1){
-      data.match <- rseg.data.r$date
-      sdate <- as.Date(min(data.match))
-      edate <- as.Date(max(data.match))
-    } else {
-      data.match <- match(data.match, rseg.data.r$date)
-      sdate <- as.Date(min(data.match))
-      edate <- as.Date(max(data.match))
-    }
-}
+``` {r testin, echo = FALSE}
+# ONLY FOR TESTING PURPOSES
+rseg.data.1 <- data.table::fread('JA4_7280_7340_hydrd_wy.csv')
+rseg.data.2 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
+# rseg.data.3 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
 
-for (r in 1:length(rseg.model.version)) {
-  rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
-  rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-  mode(rseg.flow.r) <- 'numeric'
+data.match <- match(rseg.data.1$date, rseg.data.2$date)
+sdate <- as.Date(min(data.match))
+edate <- as.Date(max(data.match))
 
-  assign(paste0('rseg.flow.',r),rseg.flow.r)
-}
+rseg.flow.1 <- zoo(as.numeric(as.character(rseg.data.1$Qout)), order.by = rseg.data.1$index)
+rseg.flow.1 <- window(rseg.flow.1, start = sdate, end = edate)
+mode(rseg.flow.1) <- 'numeric'
 
-# generate low flow data
-for (r in 1:length(rseg.model.version)) {
-  rseg.lowflow.r <- IHA::group2(rseg.flow.r)
-  assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
-}
+rseg.flow.2 <- zoo(as.numeric(as.character(rseg.data.2$Qout)), order.by = rseg.data.2$index)
+rseg.flow.2 <- window(rseg.flow.2, start = sdate, end = edate)
+mode(rseg.flow.2) <- 'numeric'
+
+# rseg.flow.3 <- zoo(as.numeric(as.character(rseg.data.3$Qout)), order.by = rseg.data.3$index)
+# rseg.flow.3 <- window(rseg.flow.3, start = sdate, end = edate)
+# mode(rseg.flow.3) <- 'numeric'
+
+rseg.lowflow.1 <- IHA::group2(rseg.flow.1)
+rseg.lowflow.2 <- IHA::group2(rseg.flow.2)
+# rseg.lowflow.3 <- IHA::group2(rseg.flow.3)
+
 ```
 
 ## 90-Day Low Flow Comparison
@@ -632,7 +660,7 @@ l1.plot
 
 ## Model Performance Scatterplots
 
-``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption", fig.width = 6,fig.height = 8 }
 
 if (length(rseg.model.version) == 2) {
 
