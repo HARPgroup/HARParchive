@@ -496,62 +496,62 @@ polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
 ```{r MathcingData, echo = FALSE}
 # retrieving and matching the data
 
-# for (r in 1:length(rseg.model.version)) {
-#   rseg.data.r <- data.table::fread(rseg.file.path[r])
-#   assign(paste0('rseg.data.',r),rseg.data.r)
-#   rseg.cols.r <- names(rseg.data.r)
-# 
-#    if (r == 1){
-#       data.match <- rseg.data.r$date
-#       sdate <- as.Date(min(data.match))
-#       edate <- as.Date(max(data.match))
-#     } else {
-#       data.match <- match(data.match, rseg.data.r$date)
-#       sdate <- as.Date(min(data.match))
-#       edate <- as.Date(max(data.match))
-#     }
-# }
-# 
-# for (r in 1:length(rseg.model.version)) {
-#   rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
-#   rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
-#   mode(rseg.flow.r) <- 'numeric'
-# 
-#   assign(paste0('rseg.flow.',r),rseg.flow.r)
-# }
-# 
-# # generate low flow data
-# for (r in 1:length(rseg.model.version)) {
-#   rseg.lowflow.r <- IHA::group2(rseg.flow.r)
-#   assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
-# }
+for (r in 1:length(rseg.model.version)) {
+  rseg.data.r <- data.table::fread(rseg.file.path[r])
+  assign(paste0('rseg.data.',r),rseg.data.r)
+  rseg.cols.r <- names(rseg.data.r)
+
+   if (r == 1){
+      data.match <- rseg.data.r$date
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    } else {
+      data.match <- match(data.match, rseg.data.r$date)
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    }
+}
+
+for (r in 1:length(rseg.model.version)) {
+  rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
+  rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+  mode(rseg.flow.r) <- 'numeric'
+
+  assign(paste0('rseg.flow.',r),rseg.flow.r)
+}
+
+# generate low flow data
+for (r in 1:length(rseg.model.version)) {
+  rseg.lowflow.r <- IHA::group2(rseg.flow.r)
+  assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
+}
 ```
 
 ``` {r testin, echo = FALSE}
 # ONLY FOR TESTING PURPOSES
-rseg.data.1 <- data.table::fread('JA4_7280_7340_hydrd_wy.csv')
-rseg.data.2 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
-# rseg.data.3 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
-
-data.match <- match(rseg.data.1$date, rseg.data.2$date)
-sdate <- as.Date(min(data.match))
-edate <- as.Date(max(data.match))
-
-rseg.flow.1 <- zoo(as.numeric(as.character(rseg.data.1$Qout)), order.by = rseg.data.1$index)
-rseg.flow.1 <- window(rseg.flow.1, start = sdate, end = edate)
-mode(rseg.flow.1) <- 'numeric'
-
-rseg.flow.2 <- zoo(as.numeric(as.character(rseg.data.2$Qout)), order.by = rseg.data.2$index)
-rseg.flow.2 <- window(rseg.flow.2, start = sdate, end = edate)
-mode(rseg.flow.2) <- 'numeric'
-
-# rseg.flow.3 <- zoo(as.numeric(as.character(rseg.data.3$Qout)), order.by = rseg.data.3$index)
-# rseg.flow.3 <- window(rseg.flow.3, start = sdate, end = edate)
-# mode(rseg.flow.3) <- 'numeric'
-
-rseg.lowflow.1 <- IHA::group2(rseg.flow.1)
-rseg.lowflow.2 <- IHA::group2(rseg.flow.2)
-# rseg.lowflow.3 <- IHA::group2(rseg.flow.3)
+# rseg.data.1 <- data.table::fread('JA4_7280_7340_hydrd_wy.csv')
+# rseg.data.2 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
+# # rseg.data.3 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
+# 
+# data.match <- match(rseg.data.1$date, rseg.data.2$date)
+# sdate <- as.Date(min(data.match))
+# edate <- as.Date(max(data.match))
+# 
+# rseg.flow.1 <- zoo(as.numeric(as.character(rseg.data.1$Qout)), order.by = rseg.data.1$index)
+# rseg.flow.1 <- window(rseg.flow.1, start = sdate, end = edate)
+# mode(rseg.flow.1) <- 'numeric'
+# 
+# rseg.flow.2 <- zoo(as.numeric(as.character(rseg.data.2$Qout)), order.by = rseg.data.2$index)
+# rseg.flow.2 <- window(rseg.flow.2, start = sdate, end = edate)
+# mode(rseg.flow.2) <- 'numeric'
+# 
+# # rseg.flow.3 <- zoo(as.numeric(as.character(rseg.data.3$Qout)), order.by = rseg.data.3$index)
+# # rseg.flow.3 <- window(rseg.flow.3, start = sdate, end = edate)
+# # mode(rseg.flow.3) <- 'numeric'
+# 
+# rseg.lowflow.1 <- IHA::group2(rseg.flow.1)
+# rseg.lowflow.2 <- IHA::group2(rseg.flow.2)
+# # rseg.lowflow.3 <- IHA::group2(rseg.flow.3)
 
 ```
 
@@ -585,10 +585,10 @@ l90.plot
 ```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
-    l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
+    l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
     colname.l30 <- paste0(dat[[r]][[3]])
   } else {
-    l30.data <- cbind(l30.data, rseg.lowflow.r["90 Day Min"])
+    l30.data <- cbind(l30.data, rseg.lowflow.r["30 Day Min"])
     colnames(l30.data) <- c("Year", colname.l30, paste0(dat[[r]][[3]]))
     ymax.l30 <- max(l30.data[-1])
   }
@@ -611,10 +611,10 @@ l30.plot
 ```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
-    l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
+    l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["7 Day Min"])
     colname.l7 <- paste0(dat[[r]][[3]])
   } else {
-    l7.data <- cbind(l7.data, rseg.lowflow.r["90 Day Min"])
+    l7.data <- cbind(l7.data, rseg.lowflow.r["7 Day Min"])
     colnames(l7.data) <- c("Year", colname.l7, paste0(dat[[r]][[3]]))
     ymax.l7 <- max(l7.data[-1])
   }
@@ -637,10 +637,10 @@ l7.plot
 ```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
-    l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
+    l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["1 Day Min"])
     colname.l1 <- paste0(dat[[r]][[3]])
   } else {
-    l1.data <- cbind(l1.data, rseg.lowflow.r["90 Day Min"])
+    l1.data <- cbind(l1.data, rseg.lowflow.r["1 Day Min"])
     colnames(l1.data) <- c("Year", colname.l1, paste0(dat[[r]][[3]]))
     ymax.l1 <- max(l1.data[-1])
   }
@@ -660,7 +660,7 @@ l1.plot
 
 ## Model Performance Scatterplots
 
-``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption", fig.width = 6,fig.height = 8 }
+``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption", fig.width = 7,fig.height = 8 }
 
 if (length(rseg.model.version) == 2) {
 
@@ -805,8 +805,8 @@ for (r in 1:length(rseg.model.version)) {
 mean_diff <- unlist(mean.data.1 - mean.data.2) # has to unlist in order to plot with ggplot!
 mean_diff_pct <- 100.0 * (mean_diff) / mean.data.2
 
-fun_mean <- function(x){
-  return(data.frame(y=mean(x),label=mean(x,na.rm=T)))}
+fun_median <- function(x){
+  return(data.frame(y=median(x),label=median(x,na.rm=T)))}
 
 # setting up the comparison
 perc.diff.data <- cbind(mean_diff_pct, l90_diff_pct, l30_diff_pct, l7_diff_pct, l1_diff_pct)
@@ -819,8 +819,8 @@ perc.diff.fig <- ggplot(stack(perc.diff.data), aes(x = ind, y = values)) +
   theme_light() +
   ylab(paste("% Difference")) +
   xlab(paste("Flow Metric")) +
-  stat_summary(fun = mean, geom="point",colour="darkred", size=3) +
-  stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7, aes(label=round(..y.., digits = 5)))
+  stat_summary(fun.data = fun_median, geom="text", vjust=-0.7, 
+               aes(label=round(..y.., digits = 5)))
 
 perc.diff.fig
 
