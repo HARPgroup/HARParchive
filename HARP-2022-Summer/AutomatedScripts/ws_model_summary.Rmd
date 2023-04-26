@@ -33,7 +33,7 @@ library(flextable)
 library(hydrotools)
 library(rjson)
 library(cowplot)
-library(gridExtra)
+#library(gridExtra)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
@@ -132,14 +132,12 @@ for (r in 1:length(rseg.model.version)){
 
 }
 
- <- qflextable(statsdf)
-
 ```
 
 The models compared in this document are:
 ``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo"}
 for (r in 1:length(rseg.model.version)){
-  ftext.model.r <- paste(rseg_model_info.r[[1]][[3]])
+  ftext.model.r <- paste(dat[[r]][[3]])
   ftext.hcode.r <- paste(rseg.hydrocode.r)
   ftext.ftype.r <- paste(rseg.ftype.r)
   ftext.version.r <- paste(rseg.model.version.r)
@@ -183,7 +181,6 @@ model.info <- theme_box(model.info)
 model.info <- bg(model.info, bg = "#EFEFEF", part = "header")
 model.info <- set_header_labels(model.info, rowname = "Properties")
 fontsize(model.info, size = 9)
-}
 
 ```
 
@@ -535,10 +532,10 @@ for (r in 1:length(rseg.model.version)) {
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
-    colname.l90 <- paste0(rseg_model_info.r[[1]][[3]])
+    colname.l90 <- paste0(dat[[r]][[3]])
   } else {
     l90.data <- cbind(l90.data, rseg.lowflow.r["90 Day Min"])
-    colnames(l90.data) <- c("Year", colname.l90, paste0(rseg_model_info.r[[1]][[3]]))
+    colnames(l90.data) <- c("Year", colname.l90, paste0(dat[[r]][[3]]))
     ymax.l90 <- max(l90.data[-1])
   }
 }
@@ -561,10 +558,10 @@ l90.plot
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
-    colname.l30 <- paste0(rseg_model_info.r[[1]][[3]])
+    colname.l30 <- paste0(dat[[r]][[3]])
   } else {
     l30.data <- cbind(l30.data, rseg.lowflow.r["90 Day Min"])
-    colnames(l30.data) <- c("Year", colname.l30, paste0(rseg_model_info.r[[1]][[3]]))
+    colnames(l30.data) <- c("Year", colname.l30, paste0(dat[[r]][[3]]))
     ymax.l30 <- max(l30.data[-1])
   }
 }
@@ -587,10 +584,10 @@ l30.plot
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
-    colname.l7 <- paste0(rseg_model_info.r[[1]][[3]])
+    colname.l7 <- paste0(dat[[r]][[3]])
   } else {
     l7.data <- cbind(l7.data, rseg.lowflow.r["90 Day Min"])
-    colnames(l7.data) <- c("Year", colname.l7, paste0(rseg_model_info.r[[1]][[3]]))
+    colnames(l7.data) <- c("Year", colname.l7, paste0(dat[[r]][[3]]))
     ymax.l7 <- max(l7.data[-1])
   }
 }
@@ -613,10 +610,10 @@ l7.plot
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
-    colname.l1 <- paste0(rseg_model_info.r[[1]][[3]])
+    colname.l1 <- paste0(dat[[r]][[3]])
   } else {
     l1.data <- cbind(l1.data, rseg.lowflow.r["90 Day Min"])
-    colnames(l1.data) <- c("Year", colname.l1, paste0(rseg_model_info.r[[1]][[3]]))
+    colnames(l1.data) <- c("Year", colname.l1, paste0(dat[[r]][[3]]))
     ymax.l1 <- max(l1.data[-1])
   }
 }
@@ -635,7 +632,7 @@ l1.plot
 
 ## Model Performance Scatterplots
 
-``` {r scatter, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
 
 if (length(rseg.model.version) == 2) {
 
@@ -742,14 +739,62 @@ if (length(rseg.model.version) == 2) {
                          rel_widths = c(0.5, 0.5))
   
   plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
-}
+} 
+```
+
+``` {r scatter.3models, echo = FALSE}
+# if (length(rseg.model.version) > 2) {
+#   l90_diff.1v2 <- unlist(l90.data[2] - l90.data[3]) # has to unlist in order to plot with ggplot!
+#   l90_diff.1v3 <- unlist(l90.data[2] - l90.data[4])
+#   l90_diff.2v3 <- unlist(l90.data[3] - l90.data[4])
+# 
+  # l90_diff_pct <- 100.0 * (l90_diff) / l90.data[3]
+  # 
+  # l30_diff <- unlist(l30.data[2] - l30.data[3]) 
+  # l30_diff_pct <- 100.0 * (l30_diff) / l30.data[3]
+  # 
+  # l7_diff <- unlist(l7.data[2] - l7.data[3]) 
+  # l7_diff_pct <- 100.0 * (l7_diff) / l7.data[3]
+  # 
+  # l1_diff <- unlist(l1.data[2] - l1.data[3]) # has to unlist in order to plot with ggplot!
+  # l1_diff_pct <- 100.0 * (l1_diff) / l1.data[3]
+# }
+
 ```
 
 ## Model %-Difference
 
-``` {r percent, echo = FALSE}
+``` {r percent, echo = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
+# differences calculated in previous chunk, except the mean:
 
+for (r in 1:length(rseg.model.version)) {
+    runid.r <- runid.list[r]
+    rseg.runid.r <- dat[[r]][[runid.r]]
+    mean.data.r <- as.numeric(rseg.runid.r[['Qout']][['value']])
+    assign(paste0('mean.data.',r), mean.data.r)
+}
 
+mean_diff <- unlist(mean.data.1 - mean.data.2) # has to unlist in order to plot with ggplot!
+mean_diff_pct <- 100.0 * (mean_diff) / mean.data.2
+
+fun_mean <- function(x){
+  return(data.frame(y=mean(x),label=mean(x,na.rm=T)))}
+
+# setting up the comparison
+perc.diff.data <- cbind(mean_diff_pct, l90_diff_pct, l30_diff_pct, l7_diff_pct, l1_diff_pct)
+colnames(perc.diff.data) <- c("Mean Flow", "l90", "l30", "l7", "l1")
+
+perc.diff.fig <- ggplot(stack(perc.diff.data), aes(x = ind, y = values)) +
+  geom_boxplot(outlier.colour="red", outlier.shape=8,
+                outlier.size=3) +
+  stat_boxplot(geom ='errorbar') +
+  theme_light() +
+  ylab(paste("% Difference")) +
+  xlab(paste("Flow Metric")) +
+  stat_summary(fun = mean, geom="point",colour="darkred", size=3) +
+  stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7, aes(label=round(..y.., digits = 5)))
+
+perc.diff.fig
 
 ```
 
