@@ -41,6 +41,7 @@ basepath='/var/www/R'
 source('/var/www/R/config.R')
 
 site <- 'http://deq1.bse.vt.edu/d.dh'
+esite <- 'http://deq1.bse.vt.edu:81'
 json_obj_url <- paste(site, "node/62", sep ="/")
 
 ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
@@ -497,7 +498,11 @@ polygon(c(0.22, 0.635, 0.785, 0.365), c(0.37, 0.36, 0.76, 0.77), col='blue')
 # retrieving and matching the data
 
 for (r in 1:length(rseg.model.version)) {
-  rseg.data.r <- data.table::fread(rseg.file.path[r])
+  split <- strsplit(params$rseg.file.path[r], split = "/")
+  path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
+  path_string_m2 <- paste(path_list_m2, collapse = "/")
+  save_url <- paste0(esite, '/', path_string_m2)
+  rseg.data.r <- read.csv(save_url)
   assign(paste0('rseg.data.',r),rseg.data.r)
   rseg.cols.r <- names(rseg.data.r)
 
