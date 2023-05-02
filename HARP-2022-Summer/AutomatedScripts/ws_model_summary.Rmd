@@ -33,7 +33,9 @@ library(flextable)
 library(hydrotools)
 library(rjson)
 library(cowplot)
-#library(gridExtra)
+library(gridExtra)
+library(grid)
+library(png)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
@@ -222,118 +224,96 @@ statsdf <- rbind(rseg_table)
 # Flow Modeling
 
 ## Flow Duration Curve
-```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption"}
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
-
-  if (r == 1) {
-    fig.fdc <- paste0("![](",path.fdc.r,")")
+  
+  if (r == 1){
+    fdc <- png::readPNG(getURLContent(path.fdc.r))
   } else {
-    fig.fdc <- paste(paste0(fig.fdc,"{width=1/",r,"}"), paste0("![](",path.fdc.r,")","{width=1/",r,"}"))
+    fdc.r <- png::readPNG(getURLContent(path.fdc.r))
+    fdc <- list(rasterGrob(fdc), rasterGrob(fdc.r))
+  }
+  
+  if (r == 1) {
+    fdc
+  } else {
+    do.call("grid.arrange", c(fdc, ncol = r))
   }
 }
-
-cat(fig.fdc)
 ```
 
 ## Mean Flow, Withdrawals and Point Sources
-```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption"}
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption", out.width = '100%'}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.flows.all.r <- rseg.runid.r[['fig.flows.all']][['code']]
   
-  # if (r == 1){
-  #   fig.flows.all <- ggdraw() + 
-  #     draw_image(path.flows.all.r)
-  # } else {
-  #   fig.flows.all.r <- ggdraw() +
-  #     draw_image(path.flows.all.r)
-  #   fig.flows.all <- list(fig.flows.all, fig.flows.all.r)
-  # }
-  
-  if (r == 1) {
-    fig.flows.all <- paste0("![](",path.flows.all.r,")")
+  if (r == 1){
+    all.flows <- png::readPNG(getURLContent(path.flows.all.r))
   } else {
-    fig.flows.all <- paste(paste0(fig.flows.all,"{width=1/",r,"}"), paste0("![](",path.flows.all.r,")","{width=1/",r,"}"))
+    all.flows.r <- png::readPNG(getURLContent(path.flows.all.r))
+    all.flows <- list(rasterGrob(all.flows), rasterGrob(all.flows.r))
   }
   
-  # if (r == 1) {
-  #   fig.flows.all
-  # } else {
-  #   do.call("grid.arrange", c(fig.flows.all, ncol = r)) 
-  # }
+  if (r == 1) {
+    all.flows
+  } else {
+    do.call("grid.arrange", c(all.flows, ncol = r))
+  }
 }
-cat(fig.flows.all)
+
 ```
 
 ## Dry Period Hydrograph
-```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption"}
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.hydrograph.dry.r <- rseg.runid.r[['fig.hydrograph_dry']][['code']]
 
- # if (r == 1){
- #    fig.hydrograph.dry <- ggdraw() + 
- #      draw_image(path.hydrograph.dry.r)
- #  } else {
- #    fig.hydrograph.dry.r <- ggdraw() +
- #      draw_image(path.hydrograph.dry.r)
- #    fig.hydrograph.dry <- list(fig.hydrograph.dry, fig.hydrograph.dry.r)
- #  }
-  
-  if (r == 1) {
-    fig.hydrograph.dry <- paste0("![](",path.hydrograph.dry.r,")")
+   if (r == 1){
+    hydrograph <- png::readPNG(getURLContent(path.hydrograph.dry.r))
   } else {
-    fig.hydrograph.dry <- paste(paste0(fig.hydrograph.dry,"{width=1/",r,"}"),
-                                paste0("![](",path.hydrograph.dry.r,")","{width=1/",r,"}"))
+    hydrograph.r <- png::readPNG(getURLContent(path.hydrograph.dry.r))
+    hydrograph <- list(rasterGrob(hydrograph), rasterGrob(hydrograph.r))
   }
   
-  # if (r == 1) {
-  #   fig.hydrograph.dry
-  # } else {
-  #   do.call("grid.arrange", c(fig.hydrograph.dry, ncol = r)) 
-  # }
+  if (r == 1) {
+    hydrograph
+  } else {
+    do.call("grid.arrange", c(hydrograph, ncol = r))
+  }
 }
-cat(fig.hydrograph.dry)
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption"}
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
 for (r in 1:length(rseg.model.version)) {
   runid.r <- runid.list[r]
   rseg.runid.r <- dat[[r]][[runid.r]]
   path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
   
-  # if (r == 1){
-  #   fig.l90.2yr <- ggdraw() + 
-  #     draw_image(path.l90.2yr.r)
-  # } else {
-  #   fig.l90.2yr.r <- ggdraw() +
-  #     draw_image(path.l90.2yr.r)
-  #   fig.l90.2yr <- list(fig.l90.2yr, fig.l90.2yr.r)
-  # }
-  
-  if (r == 1) {
-    fig.l90.2yr <- paste0("![](",path.l90.2yr.r,")")
+  if (r == 1){
+    l90.2yr <- png::readPNG(getURLContent(path.l90.2yr.r))
   } else {
-    fig.l90.2yr <- paste(paste0(fig.l90.2yr,"{width=1/",r,"}"), paste0("![](",path.l90.2yr.r,")","{width=1/",r,"}"))
+    l90.2yr.r <- png::readPNG(getURLContent(path.l90.2yr.r))
+    l90.2yr <- list(rasterGrob(l90.2yr), rasterGrob(l90.2yr.r))
   }
   
-  # if (r == 1) {
-  #   fig.l90.2yr
-  # } else {
-  #   do.call("grid.arrange", c(fig.l90.2yr, ncol = r)) 
-  # }
+  if (r == 1) {
+    l90.2yr
+  } else {
+    do.call("grid.arrange", c(l90.2yr, ncol = r))
+  }
 }
-cat(fig.l90.2yr)
 ```
 
 ## Ftable Visual
-```{r ftable_crosssection, echo=TRUE}
+```{r ftable_crosssection, echo=FALSE}
 #get ftable:
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 ftable <- read.csv(paste(path_uci,  rseg.hydrocode[1], '.ftable', sep=''), 
@@ -532,36 +512,8 @@ for (r in 1:length(rseg.model.version)) {
 }
 ```
 
-``` {r testin, echo = FALSE}
-# ONLY FOR TESTING PURPOSES
-# rseg.data.1 <- data.table::fread('JA4_7280_7340_hydrd_wy.csv')
-# rseg.data.2 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
-# # rseg.data.3 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
-# 
-# data.match <- match(rseg.data.1$date, rseg.data.2$date)
-# sdate <- as.Date(min(data.match))
-# edate <- as.Date(max(data.match))
-# 
-# rseg.flow.1 <- zoo(as.numeric(as.character(rseg.data.1$Qout)), order.by = rseg.data.1$index)
-# rseg.flow.1 <- window(rseg.flow.1, start = sdate, end = edate)
-# mode(rseg.flow.1) <- 'numeric'
-# 
-# rseg.flow.2 <- zoo(as.numeric(as.character(rseg.data.2$Qout)), order.by = rseg.data.2$index)
-# rseg.flow.2 <- window(rseg.flow.2, start = sdate, end = edate)
-# mode(rseg.flow.2) <- 'numeric'
-# 
-# # rseg.flow.3 <- zoo(as.numeric(as.character(rseg.data.3$Qout)), order.by = rseg.data.3$index)
-# # rseg.flow.3 <- window(rseg.flow.3, start = sdate, end = edate)
-# # mode(rseg.flow.3) <- 'numeric'
-# 
-# rseg.lowflow.1 <- IHA::group2(rseg.flow.1)
-# rseg.lowflow.2 <- IHA::group2(rseg.flow.2)
-# # rseg.lowflow.3 <- IHA::group2(rseg.flow.3)
-
-```
-
 ## 90-Day Low Flow Comparison
-```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", title_param), fig.id = "90day", fig.cap.style = "Image Caption"}
+```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", title_param), fig.id = "90day", fig.cap.style = "Image Caption", out.width= '100%', out.height= '30%'}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
@@ -587,7 +539,7 @@ l90.plot
 ```
 
 ## 30-Day Low Flow Comparison
-```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption", out.width= '100%', out.height= '30%'}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
@@ -613,7 +565,7 @@ l30.plot
 ```
 
 ## 7-Day Low Flow Comparison
-```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
+```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption", out.width= '100%', out.height= '30%'}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["7 Day Min"])
@@ -639,7 +591,7 @@ l7.plot
 ```
 
 ## 1-Day Low Flow Comparison
-```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
+```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption", out.width= '100%', out.height= '30%'}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["1 Day Min"])
@@ -652,7 +604,8 @@ for (r in 1:length(rseg.model.version)) {
 }
 
 values.l1 <- tidyr::pivot_longer(l1.data, -Year, names_to="Model", values_to="Flow")
-geom_bar(position="dodge", stat="identity", color="darkgrey") +
+l1.plot <- ggplot(values.l1, aes(y=Flow, x=Year, fill = Model)) + 
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
     theme_light() +
     theme(legend.title = element_text(size=10),
           legend.text = element_text(size=10),
@@ -665,13 +618,13 @@ l1.plot
 
 ## Model Performance Scatterplots
 
-``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption", fig.width = 7,fig.height = 8 }
+``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption", out.width = '100%',out.height = '90%'}
 
 if (length(rseg.model.version) == 2) {
 
   l90.scatter <- ggplot(l90.data, aes(x = get(names(l90.data)[2]), y = get(names(l90.data)[3]))) +
   geom_point() +
-  geom_smooth(method=lm) +
+  geom_smooth(formula = y ~ x, method=lm) +
   theme_light() +
   theme(axis.title.x = element_text(size = 9),
         axis.title.y = element_text(size = 9)) +
@@ -684,7 +637,7 @@ if (length(rseg.model.version) == 2) {
   
   l90.diff <- ggplot(l90.data, aes(x =get(names(l90.data)[1]), y = l90_diff)) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x, method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -693,7 +646,7 @@ if (length(rseg.model.version) == 2) {
   
   l30.scatter <- ggplot(l30.data, aes(x = get(names(l30.data)[2]), y = get(names(l30.data)[3]))) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x, method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -706,7 +659,7 @@ if (length(rseg.model.version) == 2) {
   
   l30.diff <- ggplot(l30.data, aes(x =get(names(l30.data)[1]), y = l30_diff)) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x, method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -715,7 +668,7 @@ if (length(rseg.model.version) == 2) {
   
   l7.scatter <- ggplot(l7.data, aes(x = get(names(l7.data)[2]), y = get(names(l7.data)[3]))) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x,method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -728,7 +681,7 @@ if (length(rseg.model.version) == 2) {
   
   l7.diff <- ggplot(l7.data, aes(x =get(names(l7.data)[1]), y = l7_diff)) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x,method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -737,7 +690,7 @@ if (length(rseg.model.version) == 2) {
 
   l1.scatter <- ggplot(l1.data, aes(x = get(names(l1.data)[2]), y = get(names(l1.data)[3]))) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x, method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -750,7 +703,7 @@ if (length(rseg.model.version) == 2) {
   
   l1.diff <- ggplot(l1.data, aes(x =get(names(l1.data)[1]), y = l1_diff)) +
     geom_point() +
-    geom_smooth(method=lm) +
+    geom_smooth(formula = y ~ x, method=lm) +
     theme_light() +
     theme(axis.title.x = element_text(size = 9),
           axis.title.y = element_text(size = 9)) +
@@ -760,7 +713,7 @@ if (length(rseg.model.version) == 2) {
   plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
   plot_row1 <- plot_grid(plots[[1]], l90.diff , 
                          labels = c("90 Day Low Flow" ," "), label_size = 10,
-                         rel_widths = c(0.5, 0.5), rel_heights = c(0.5,0.5))
+                         rel_widths = c(0.5, 0.5))
   plot_row2 <- plot_grid(l30.scatter, l30.diff, 
                          labels = c("30 Day Low Flow" ," "), label_size = 10,
                          rel_widths = c(0.5, 0.5))
@@ -773,26 +726,6 @@ if (length(rseg.model.version) == 2) {
   
   plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
 } 
-```
-
-``` {r scatter.3models, echo = FALSE}
-# if (length(rseg.model.version) > 2) {
-#   l90_diff.1v2 <- unlist(l90.data[2] - l90.data[3]) # has to unlist in order to plot with ggplot!
-#   l90_diff.1v3 <- unlist(l90.data[2] - l90.data[4])
-#   l90_diff.2v3 <- unlist(l90.data[3] - l90.data[4])
-# 
-  # l90_diff_pct <- 100.0 * (l90_diff) / l90.data[3]
-  # 
-  # l30_diff <- unlist(l30.data[2] - l30.data[3]) 
-  # l30_diff_pct <- 100.0 * (l30_diff) / l30.data[3]
-  # 
-  # l7_diff <- unlist(l7.data[2] - l7.data[3]) 
-  # l7_diff_pct <- 100.0 * (l7_diff) / l7.data[3]
-  # 
-  # l1_diff <- unlist(l1.data[2] - l1.data[3]) # has to unlist in order to plot with ggplot!
-  # l1_diff_pct <- 100.0 * (l1_diff) / l1.data[3]
-# }
-
 ```
 
 ## Model %-Difference
