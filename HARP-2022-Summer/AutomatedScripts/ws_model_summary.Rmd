@@ -39,6 +39,7 @@ library(png)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
+library(data.table)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
@@ -482,7 +483,7 @@ for (r in 1:length(rseg.model.version)) {
   path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
   path_string_m2 <- paste(path_list_m2, collapse = "/")
   save_url <- paste0(esite, '/', path_string_m2)
-  rseg.data.r <- read.csv(save_url)
+  rseg.data.r <- fread(save_url)
   assign(paste0('rseg.data.',r),rseg.data.r)
   rseg.cols.r <- names(rseg.data.r)
 
