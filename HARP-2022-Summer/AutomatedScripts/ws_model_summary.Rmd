@@ -16,12 +16,16 @@ output:
 params: 
   doc_title: "Comparison of Two VaHydro Models"
   rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
-  rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
-  rseg.ftype: [ "cbp60","vahydro" ]
-  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
-  runid.list: [ "hsp2_2022","subsheds" ]
+  #rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
+  #rseg.ftype: [ "cbp60","vahydro" ]
+  #rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
+  #runid.list: [ "hsp2_2022","subsheds" ]
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
 
+  rseg.hydrocode: [ "JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200" ] #Black Creek Reservoir
+  rseg.ftype: [ "vahydro", "vahydro"]
+  rseg.model.version: [ "cbp-6.1", "cbp-6.1"]
+  runid.list: ["subsheds", "p6ss"]
 ---
 
 ```{r setup, include=FALSE}
@@ -338,23 +342,29 @@ cat(fig.l90.2yr)
 ## Ftable Visual
 ```{r ftable_crosssection, echo=TRUE}
 #get ftable:
-rseg.hydrocode <- c("JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200") #Black Creek Reservoir
-
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 
 for(i in 1:length(rseg.hydrocode)) {
-  if (rseg.model.version == "cbp-6.1"){
+  if (rseg.model.version[1] == "cbp-6.1"){ #!! will need to change [1] to [i] !!
     ftable <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
-                    nrows = 19, skip= 7) 
+                    comment.char = '***')
   }
   
   else {
     ftable <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
                     sep='', 
                     header=FALSE,
-                    nrows = 19, skip= 5) 
+                    nrows = 19, skip= 5)
+  }
+}
+
+for(i in ftable$depth){
+  if (is.na(as.numeric(ftable$depth[i]))) {
+    # discard
+  } else {
+    #keep
   }
 }
 
@@ -415,13 +425,13 @@ persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nti
       sub=paste("Water shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
   for(i in 1:15){
     lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, clength, by=10) , z = ftable$depth[i], pmat = channel), 
-           col ="#33CCFF2F", pch=16) #bankfull
+           col ="#33CCFF3F", pch=16) #bankfull
   }
 #note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
 
-persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
-
 persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+
+persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
 ```
 
