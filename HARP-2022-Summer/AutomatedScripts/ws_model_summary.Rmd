@@ -497,10 +497,10 @@ knitr::opts_chunk$set(fig.width=5, fig.height=3)
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
-    colname.l90 <- paste0(dat[[r]][[3]])
+    colnames(l90.data) <- c("Year", paste0(dat[[r]][[3]]))
   } else {
     l90.data <- cbind(l90.data, rseg.lowflow.r["90 Day Min"])
-    colnames(l90.data) <- c("Year", colname.l90, paste0(dat[[r]][[3]]))
+    colnames(l90.data)[[r+1]] <- paste0(dat[[r]][[3]])
     ymax.l90 <- max(l90.data[-1])
   }
 }
@@ -878,43 +878,56 @@ fun_median <- function(x){
 
 # setting up the comparison
 if (length(rseg.model.version) == 2) {
-  perc.diff.data <- cbind(mean_diff_pct.2, l90_diff_pct, l30_diff_pct, l7_diff_pct, l1_diff_pct)
-  colnames(perc.diff.data) <- c("Mean Flow", "l90", "l30", "l7", "l1")
+  perc.diff.data <- rbind(mean_diff_pct.2, l90_diff_pct, l30_diff_pct, l7_diff_pct, l1_diff_pct)
+  colnames(perc.diff.data) <- c("Mean", "l90", "l30", "l7", "l1")
 }
 
 if (length(rseg.model.version) == 3) {
   perc.diff.data.2 <- cbind(mean_diff_pct.3, l90_diff_pct.2, l30_diff_pct.2, l7_diff_pct.2, l1_diff_pct.2)
-  colnames(perc.diff.data.2) <- c("Mean Flow", "l90", "l30", "l7", "l1") 
+  colnames(perc.diff.data.2) <- c("Mean", "l90", "l30", "l7", "l1") 
 }
 
 if (length(rseg.model.version) == 2) {
-  perc.diff.fig <- ggplot(stack(perc.diff.data), aes(x = ind, y = values, 
-                                                     color = "Model1 - Model2")) +
+  perc.diff.fig <- ggplot(stack(perc.diff.data), aes(x = ind, y = values)) +
     geom_boxplot(outlier.colour="blue", outlier.shape=8,
                   outlier.size=3) +
     stat_boxplot(geom ='errorbar') +
-    theme(legend.position = 'none') +
     theme_light() +
     ylab(paste("% Difference")) +
     xlab(paste("Flow Metric")) +
     stat_summary(fun.data = fun_median, geom="text", vjust=-0.7, 
                  aes(label=round(..y.., digits = 5)))
+  
+  perc.diff.fig
 }
 
-# if (length(rseg.model.version) == 3) {
-#   legend_colors <- c("Model 2" = "blue", "Model 3" = "red")
-#   perc.diff.fig <- perc.diff.fig +
-#     geom_boxplot(stack(perc.diff.data.2), mapping = aes(x = ind, y = values,
-#                                                         color = "Model1 - Model3")) +
-#     geom_boxplot(outlier.colour="red", outlier.shape=8,
-#                   outlier.size=3, position = position_dodge(width = 0.5)) +
-#     stat_boxplot(geom ='errorbar') +
-#     stat_summary(fun.data = fun_median, geom="text", vjust=0.7, 
-#                  aes(label=round(..y.., digits = 5), group = "Model 3")) +
-#     labs(color = "% Diff:") + 
-#     scale_fill_manual(values = legend_colors)
-# }
-perc.diff.fig
+if (length(rseg.model.version) == 3) {
+  
+  binded <- cbind(perc.diff.data, perc.diff.data.2)[order(c(seq_along(perc.diff.data), seq_along(perc.diff.data.2)))]
+  box.data <- stack(binded)
+  mean <- rep("Mean", times = nrow(binded)*2)
+  l90 <- rep("l90", times = nrow(binded)*2)
+  l30 <- rep("l30", times = nrow(binded)*2)
+  l7 <- rep("l7", times = nrow(binded)*2)
+  l1 <- rep("l1", times = nrow(binded)*2)
+  box.data[3] <- rep(c(mean,l90,l30,l7,l1), times = 1)
+  
+  perc.diff.fig <- ggplot() +
+    geom_boxplot(box.data, mapping = aes(x = ind, y = values, fill = V3), position = "dodge") +
+    geom_boxplot(outlier.colour="red", outlier.shape=8,
+                  outlier.size=3) +
+    stat_boxplot(geom ='errorbar') +
+    labs(color = "% Diff:") + 
+    scale_x_discrete(name = "Models Compared",
+                     labels = rep(c("1v2","1v3"),5)) +
+    scale_y_continuous(name = "% Difference") +
+    scale_fill_brewer() + 
+    labs(fill="Flow Metric") +
+    theme_light()
+
+  perc.diff.fig
+}
+
 ```
 
 \newpage
