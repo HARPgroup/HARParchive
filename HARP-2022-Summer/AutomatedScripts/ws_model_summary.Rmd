@@ -917,7 +917,6 @@ if (length(rseg.model.version) == 3) {
     geom_boxplot(outlier.colour="red", outlier.shape=8,
                   outlier.size=3) +
     stat_boxplot(geom ='errorbar') +
-    labs(color = "% Diff:") + 
     scale_x_discrete(name = "Models Compared",
                      labels = rep(c("1v2","1v3"),5)) +
     scale_y_continuous(name = "% Difference") +
