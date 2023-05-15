@@ -224,7 +224,6 @@ rseg_table <- rseg_table[,-2]
 statsdf <- rbind(rseg_table)
 ```
 
-
 \newpage
 # Flow Modeling
 
@@ -340,38 +339,38 @@ cat(fig.l90.2yr)
 ```
 
 ## Ftable Visual
-```{r ftable_crosssection, echo=TRUE}
+```{r ftable_crosssection, echo=FALSE}
 #get ftable:
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 
-for(i in 1:length(rseg.hydrocode)) {
-  if (rseg.model.version[1] == "cbp-6.1"){ #!! will need to change [1] to [i] !!
-    ftable <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
+ftable_raw <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
                     sep='', 
-                    header=FALSE,
-                    comment.char = '***')
-  }
-  
-  else {
-    ftable <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
-                    sep='', 
-                    header=FALSE,
-                    nrows = 19, skip= 5)
-  }
-}
+                    header=FALSE)
 
-for(i in ftable$depth){
-  if (is.na(as.numeric(ftable$depth[i]))) {
-    # discard
-  } else {
-    #keep
-  }
+#remove flow-thru col if it exists (for old models):
+if (ncol(ftable_raw)>4) {
+  ftable_raw <- ftable_raw[,1:4]
 }
+#rename columns:
+colnames(ftable_raw) <- c('depth','area','vol','disch')
 
-if (ncol(ftable)==5) {
-  ftable <- ftable[,1:4] #remove flow-thru col if it exists (for old models)
-}
+#remove the row w/ matrix dimensions of the data (typically it's: [19,4] )
+dimensions_data <- as.numeric(rownames(ftable_raw[grep('ROWS', ftable_raw[, 1]),])) + 1 #add 1 because dimensions are 1 row below "ROWS COLS ***" comment/header row
+ftable_raw <- ftable_raw[-dimensions_data,]
+rownames(ftable_raw) <- seq(1, length(ftable_raw$depth)) #fix row numbers; otherwise we lose data in the for-loop
+
+#create empty data frame to add rows we're keeping (otherwise row numbers get scrambled in the for-loop):
+ftable <- data.frame(matrix(nrow=0, ncol=4))
 colnames(ftable) <- c('depth','area','vol','disch')
+
+for (i in 1:length(ftable_raw$depth)) {
+  if (!is.na(as.numeric(ftable_raw$depth[i]))) {
+    #only keep numeric data
+    row_i <- as.numeric(rownames(ftable_raw[i,]))
+    ftable <- rbind(ftable, ftable_raw[row_i,])
+  }
+}
+rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
 
 #pull channel length:
 rseg<- RomFeature$new(ds,list(
