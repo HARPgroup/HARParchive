@@ -1,0 +1,15 @@
+---
+title: "An Analysis of USGS Guage Mean Streamflow for Winter and Spring from 2000 to Present"
+author: "Ella Fox, Glenn Campagna and Megan Pritchard"
+date: "5/15/2023"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+geometry: left=2cm, right=3cm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
