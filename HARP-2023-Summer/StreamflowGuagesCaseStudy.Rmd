@@ -13,3 +13,59 @@ geometry: left=2cm, right=3cm
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Starting Info 
+
+Scope: Develop RMD workflow to characterize USGS gauge mean streamflow for Winter (Dec-March) and Spring (April-present) from 2000 to present. Create visualization to highlight winters/springs that are above/below long-term winter mean and spring mean. dataretreival package.
+
+Context: Previous research has shown that the amount of winter recharge, that is precipitation that infiltrates into groundwater, is an indicator of the subsequent summer streamflow. Thus, low winter recharge (indicated by streamflow between Dec-March) is a warning indicator for potential summer drought conditions. While Joey/DEQ have tools at the ready for drought prediction, the casual hydrologist may wonder things like seems like the hiking trails are dry this time year, is this just me or backed up with data? or I had to mow my grass before April the year...I wonder if the early leaf-on will result in sustained evapotranspiration that reduces water storage to the point of impacting summer streamflow?
+
+## List of gauge numbers used and why 
+We want locations in drought conditions. Locations downstream are better within larger rivers to represent large basins. The locations need to be above the fall line which is between the Coastal Plain and Piedmont regions of VA
+
+## Retrieving data from the USGS
+```{r, include=FALSE}
+#calling packages needed
+
+library(zoo)
+#library(IHA)  #Package not running/cant download
+library(dataRetrieval)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(knitr)
+```
+```{r}
+#retrieve flow data for desired river basin gauge
+
+siteNumber <- '01636500' #We want to make this a customization variable, rn using shenandoah into Potomac to test 
+
+startDate <- '2000-01-01'#from 2000 to present date
+endDate <- '2023-12-31'
+pCode <- '00060' #the code for discharge in cfs
+sCode <- '00003' #the code for daily mean data
+
+RRflow <- readNWISdv(siteNumber, pCode, startDate, endDate, sCode)
+
+#rename the columns for table
+colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+
+#previewing the flow data for pre and post-dam
+head(RRflow)
+
+```
+# Data Analysis
+
+## Subset Data 
+```{r}
+#subset data into years and then into seasons/months for analysis
+#Winter(Dec-March) & Spring(April-Present)
+
+
+
+```
+
+##Visualization 
+```{r}
+#highlight winters/springs that are above/below long-term winter mean and spring mean
+#how spring and winter average flows change over 2000 to now 
+```
