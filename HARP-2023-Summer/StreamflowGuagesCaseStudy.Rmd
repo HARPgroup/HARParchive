@@ -1,5 +1,5 @@
 ---
-title: "An Analysis of USGS Guage Mean Streamflow for Winter and Spring from 2000 to Present"
+title: "An Analysis of USGS Gauge Mean Streamflow for Winter and Spring from 2000 to Present"
 author: "Ella Fox, Glenn Campagna and Megan Pritchard"
 date: "5/15/2023"
 output:
@@ -8,6 +8,10 @@ output:
   word_document: default
   pdf_document: default
 geometry: left=2cm, right=3cm
+params:
+  doc_title: "USGS Gauge Mean Stremflow Winter/Spring"
+  #rseg.file.path: []
+  #rseg.gauge: []
 ---
 
 ```{r setup, include=FALSE}
@@ -22,17 +26,20 @@ Context: Previous research has shown that the amount of winter recharge, that is
 ## List of gauge numbers used and why 
 We want locations in drought conditions. Locations downstream are better within larger rivers to represent large basins. The locations need to be above the fall line which is between the Coastal Plain and Piedmont regions of VA
 
+![gauge numbers used](C:/HARP/GaugeLocations.png)
+
 ## Retrieving data from the USGS
 ```{r, include=FALSE}
 #calling packages needed
 
 library(zoo)
-#library(IHA)  #Package not running/cant download
+#library(IHA)  #Package not available for this version of R
+#install.packages("dataRetrieval")
 library(dataRetrieval)
 library(dplyr)
-library(lubridate)
 library(ggplot2)
 library(knitr)
+library(tidyverse)
 ```
 ```{r}
 #retrieve flow data for desired river basin gauge
@@ -59,6 +66,19 @@ head(RRflow)
 ```{r}
 #subset data into years and then into seasons/months for analysis
 #Winter(Dec-March) & Spring(April-Present)
+
+#RRflow %>% 
+  #group_by(Month= lubridate::floor_date(Date, "month")) %>%
+  #summarize(monthMean= mean(Flow))
+  
+RRflow$Date <- as.Date(RRflow$Date, format= "%m/%d/%Y")
+RRflow$month <- month(RRflow$Date)
+RRflow$year <- year(RRflow$Date)
+
+RRflow %>%
+  mutate(month=RRflow$month, year=RRflow$year) %>%
+  group_by(month, year) %>%
+  summarize(monthMean= mean(Flow))
 
 
 
