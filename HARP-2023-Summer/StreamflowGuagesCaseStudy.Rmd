@@ -117,8 +117,11 @@ colnames(winterYrAvg) <- c('year','flow')
 springYrAvg <- aggregate(springFlows$flow, by = list(springFlows$year), FUN = 'mean')
 colnames(springYrAvg) <- c('year','flow')
 
-ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_line(aes(col = 'blue')) + geom_line(data = springYrAvg, aes(x=year, y=flow, col = 'red')) +
-  scale_color_identity(name = NULL, breaks=c('red','blue'), labels = c('Spring','Winter'), guide = 'legend')
+ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_point(aes(col = 'blue')) + geom_point(data = springYrAvg, aes(x=year, y=flow, col = 'red')) +
+  scale_color_identity(name = NULL, breaks=c('red','blue'), labels = c('Spring','Winter'), guide = 'legend') + 
+  scale_x_continuous(breaks = seq(min(winterYrAvg$year), max(winterYrAvg$year), by = 2)) + 
+  labs(x='Year', y= 'Seasonal Avg Flow (cfs)') +
+  ggtitle("Winter and Spring Avg Flows (2000 - Present)")
 ```
 
 
