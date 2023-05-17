@@ -36,11 +36,20 @@ library(zoo)
 #install.packages("dataRetrieval")
 library(dataRetrieval)
 library(dplyr)
+  #megan had dependency issues loading "dplyr" and had to do this:
+  #library(devtools)
+  #remove.packages("cli")
+  #install.packages("cli")
+  #install_version("vctrs", version = "0.5.0", repos = "http://cran.us.r-project.org")
 library(ggplot2)
+  #to load ggplot2, had to update dependency "rlang" by doing this:
+  #remove.packages("rlang")
+  #install.packages("rlang")
 library(knitr)
 library(tidyverse)
 library(pals)
 ```
+
 ```{r}
 #retrieve flow data for desired river basin gauge
 

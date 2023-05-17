@@ -295,6 +295,7 @@ knitr::opts_chunk$set(fig.width=5, fig.height=5)
 ## Ftable Visual
 ```{r ftable_crosssection, echo=FALSE}
 #get ftable:
+
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 
 ftable_raw <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
