@@ -40,7 +40,10 @@ library(ggplot2)
 library(knitr)
 library(tidyverse)
 library(pals)
+library(lubridate)
 ```
+
+
 ```{r}
 #retrieve flow data for desired river basin gauge
 
