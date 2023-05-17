@@ -92,9 +92,33 @@ RRwinter <- RRflow %>%
   filter(month==Wintermon)
 RRwinter
 ```
+
 #Getting monthly average flows for the time period
 ```{r}
 monthlyFlow = aggregate(RRflow$Flow, list(RRflow$month, RRflow$year), FUN = 'mean')
+colnames(monthlyFlow) <- c('month','year','flow')
+```
+
+#Getting winters and springs:
+```{r}
+springFlows <- monthlyFlow %>% filter(month==4|month==5|month==6)
+winterFlows <- monthlyFlow %>% filter(month==12|month==1|month==2|month==3)
+```
+
+#Quick stats:
+```{r}
+#Long-term averages for winter and spring seasons
+winterAvg <- mean(winterFlows$flow)
+springAvg <- mean(springFlows$flow)
+
+#Seasonal averages per year
+winterYrAvg <- aggregate(winterFlows$flow, by = list(winterFlows$year), FUN = 'mean')
+colnames(winterYrAvg) <- c('year','flow')
+springYrAvg <- aggregate(springFlows$flow, by = list(springFlows$year), FUN = 'mean')
+colnames(springYrAvg) <- c('year','flow')
+
+ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_line(aes(col = 'blue')) + geom_line(data = springYrAvg, aes(x=year, y=flow, col = 'red')) +
+  scale_color_identity(name = NULL, breaks=c('red','blue'), labels = c('Spring','Winter'), guide = 'legend')
 ```
 
 
