@@ -101,24 +101,47 @@ RRwinter <- RRflow %>%
 RRwinter
 ```
 
-#Getting monthly average flows for the time period
 ```{r}
+#Getting monthly average flows for the time period
 monthlyFlow = aggregate(RRflow$Flow, list(RRflow$month, RRflow$year), FUN = 'mean')
 colnames(monthlyFlow) <- c('month','year','flow')
 ```
 
-#Getting winters and springs:
 ```{r}
+#Getting winters and springs:
 springFlows <- monthlyFlow %>% filter(month==4|month==5|month==6)
 winterFlows <- monthlyFlow %>% filter(month==12|month==1|month==2|month==3)
 ```
 
-#Quick stats:
+#Long-term average Spring & Winter Flows:
+
 ```{r}
 #Long-term averages for winter and spring seasons
 winterAvg <- mean(winterFlows$flow)
 springAvg <- mean(springFlows$flow)
 
+paste0('Winter Average Flow:',round(winterAvg, digits = 2), ' cfs')
+paste0('Spring Average Flow:',round(springAvg, digits = 2), ' cfs')
+```
+
+#How does this year compare to those long-term averages?
+
+```{r}
+#Comparing this year's flow with those averages
+spring23 <- springFlows %>% filter(year==2023) # finding avg for this years flow
+winter23 <- winterFlows %>% filter(year==2023)
+spring23avg <- mean(spring23$flow)
+winter23avg <- mean(winter23$flow)
+#Finding percentage difference 
+springPct <- ((spring23avg - springAvg)/springAvg)*100
+winterPct <- ((winter23avg - winterAvg)/winterAvg)*100
+paste0('Winter Flow Difference:',round(springPct, digits = 1), '%')
+paste0('Spring Flow Difference:',round(winterPct, digits = 1), '%')
+```
+
+##Visualization 
+
+```{r}
 #Seasonal averages per year
 winterYrAvg <- aggregate(winterFlows$flow, by = list(winterFlows$year), FUN = 'mean')
 colnames(winterYrAvg) <- c('year','flow')
@@ -133,7 +156,6 @@ ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_point(aes(col = 'blue')) + geom_
 ```
 
 
-##Visualization 
 ```{r}
 #highlight winters/springs that are above/below long-term winter mean and spring mean
 #how spring and winter average flows change over 2000 to now 
