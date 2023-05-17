@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # Starting Info 
 
-Scope: Develop RMD workflow to characterize USGS gauge mean streamflow for Winter (Dec-March) and Spring (April-present) from 2000 to present. Create visualization to highlight winters/springs that are above/below long-term winter mean and spring mean. dataretreival package.
+Scope: Develop RMD workflow to characterize USGS gauge mean streamflow for Winter (Dec-March) and Spring (April-present) from 2000 to present. Create visualization to highlight winters/springs that are above/below long-term winter mean and spring mean.
 
 Context: Previous research has shown that the amount of winter recharge, that is precipitation that infiltrates into groundwater, is an indicator of the subsequent summer streamflow. Thus, low winter recharge (indicated by streamflow between Dec-March) is a warning indicator for potential summer drought conditions. While Joey/DEQ have tools at the ready for drought prediction, the casual hydrologist may wonder things like seems like the hiking trails are dry this time year, is this just me or backed up with data? or I had to mow my grass before April the year...I wonder if the early leaf-on will result in sustained evapotranspiration that reduces water storage to the point of impacting summer streamflow?
 
@@ -137,6 +137,14 @@ springPct <- ((spring23avg - springAvg)/springAvg)*100
 winterPct <- ((winter23avg - winterAvg)/winterAvg)*100
 paste0('Winter Flow Difference: ',round(springPct, digits = 1), '%')
 paste0('Spring Flow Difference: ',round(winterPct, digits = 1), '%')
+
+#Getting monthly average flows for the time period
+monthlyFlow = aggregate(RRflow$Flow, list(RRflow$month, RRflow$year), FUN = 'mean')
+colnames(monthlyFlow) <- c('month','year','flow')
+
+#Getting winters and springs:
+springFlows <- monthlyFlow %>% filter(month==4|month==5|month==6)
+winterFlows <- monthlyFlow %>% filter(month==12|month==1|month==2|month==3)
 ```
 
 ## What months were the biggest differences?
@@ -166,7 +174,7 @@ junAvg <- mean(jun$SmonthMean)
 
 ```{r}
 #Seasonal averages per year
-winterYrAvg <- aggregate(winterFlows$flow, by = list(winterFlows$year), FUN = 'mean')
+winterYrAvg <- aggregate(winterFlows$flow, by = list(RRwinter$year), FUN = 'mean')
 colnames(winterYrAvg) <- c('year','flow')
 springYrAvg <- aggregate(springFlows$flow, by = list(springFlows$year), FUN = 'mean')
 colnames(springYrAvg) <- c('year','flow')
@@ -214,7 +222,7 @@ ggplot(comRR, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(si
 ```{r}
 #Plot of all years with month avg vs time for winter
 
-ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() + guides(color= guide_legend(title = "Years")) +geom_line()+ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1))
+ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() + guides(color= guide_legend(title = "Years")) +ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1)) +scale_x_break(c(3,12),scales=0.5)+geom_line()
 
 ```
 ```{r}
@@ -232,13 +240,13 @@ RRwinterAVG
 comRR <- rbind(RRwinterN, RRwinterAVG) #combine the two datasets to make easier graphing 
 
 #create graph
-ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")
+ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")+scale_x_break(c(3,12),scales=0.5)
 ```
-# Boxplots
+## Boxplots
 ```{r}
 par(mfrow=c(1,2)) #creates 2 windows side-by-side for the plots to be shown
-boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', ylim= c(0,10000))
-boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', ylim= c(0,10000))
+boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', ylim= c(0,10000), col='#FC4E07')
+boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', ylim= c(0,10000), col='#00AFBB')
 ```
 
 
