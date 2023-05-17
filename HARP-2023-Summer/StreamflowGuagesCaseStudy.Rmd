@@ -10,7 +10,7 @@ output:
 geometry: left=2cm, right=3cm
 params:
   doc_title: "USGS Gauge Mean Stremflow Winter/Spring"
-  rseg.gauge: ["01636500","01668000","02037500","03529500", "03532000", "03524000", "03527220","02066000" ]
+  rseg.gauge: ["01636500","01668000","02037500","03529500", "03532000", "03524000", "03527220","02066000" ] #overidden by params in render cmnd
 ---
 
 ```{r setup, include=FALSE}
@@ -40,7 +40,11 @@ library(ggplot2)
 library(knitr)
 library(tidyverse)
 library(pals)
+library(lubridate)
+library(stats)
 ```
+
+
 ```{r}
 #retrieve flow data for desired river basin gauge
 
@@ -50,8 +54,8 @@ startDate <- '2000-01-01'#from 2000 to present date
 endDate <- '2023-12-31'
 pCode <- '00060' #the code for discharge in cfs
 sCode <- '00003' #the code for daily mean data
-
-RRflow <- readNWISdv(siteNumber, pCode, startDate, endDate, sCode)
+RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) #new, for passing in customizable var from render command
+#RRflow <- readNWISdv(siteNumber, pCode, startDate, endDate, sCode) #original
 
 #rename the columns for table
 colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
@@ -61,6 +65,7 @@ head(RRflow)
 
 ```
 # Data Analysis
+
 
 ## Subset Data 
 ```{r}
@@ -87,6 +92,11 @@ RRwinter <- RRflow %>%
   filter(month==Wintermon)
 RRwinter
 ```
+#Getting monthly average flows for the time period
+```{r}
+monthlyFlow = aggregate(RRflow$Flow, list(RRflow$month, RRflow$year), FUN = 'mean')
+```
+
 
 ##Visualization 
 ```{r}
