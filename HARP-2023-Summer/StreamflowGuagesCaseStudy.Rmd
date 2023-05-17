@@ -61,8 +61,7 @@ startDate <- '2000-01-01'#from 2000 to present date
 endDate <- '2023-12-31'
 pCode <- '00060' #the code for discharge in cfs
 sCode <- '00003' #the code for daily mean data
-RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) #new, for passing in customizable var from render command
-#RRflow <- readNWISdv(siteNumber, pCode, startDate, endDate, sCode) #original
+RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) 
 
 #rename the columns for table
 colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
@@ -70,10 +69,8 @@ colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
 #previewing the flow data for pre and post-dam
 head(RRflow)
 RRflow
-
 ```
 # Data Analysis
-
 
 ## Subset Data 
 ```{r}
@@ -88,7 +85,7 @@ Springmon= c(4,5,6)
 RRspring <- RRflow %>%
   mutate(month=RRflow$month, year=RRflow$year) %>%
   group_by(year, month) %>%
-  summarize(SmonthMean= mean(Flow)) %>%
+  summarize(SmonthMean= mean(Flow)) %>% #same as summarize(group_by(RRflow, year, month), mean(Flow))
   filter(month == Springmon)
 RRspring
 
@@ -142,6 +139,7 @@ ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_point(aes(col = 'blue')) + geom_
 #year <- as.factor(year)
 ggplot(RRspring, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Spring Months")+ ylab("Spring Month Flow Mean")+theme_minimal()+scale_x_continuous(breaks=seq(4,6,by=1)) + guides(color= guide_legend(title = "Years"))+geom_line()
 ```
+
 ```{r}
 
 #Plot of all years with month avg vs time for winter
@@ -155,4 +153,72 @@ par(mfrow=c(1,2)) #creates 2 windows side-by-side for the plots to be shown
 boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter')
 boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring')
 ```
+
+```{r, Boxplots of Mean Flow by Year & Season}
+#create dataframe
+colnames(RRspring) <- c('year', 'month', 'mean')
+colnames(RRwinter) <- c('year', 'month', 'mean')
+yr_avgs <- rbind(RRwinter, RRspring)
+yr_avgs <- arrange(yr_avgs, year)
+
+for(i in Springmon){
+  yr_avgs$month <- gsub(i,'spring',yr_avgs$month)
+}
+
+for(i in c(12,1,2,3)){ #12 has to be first or '12' becomes 'winterwinter' from the 1 and 2
+  yr_avgs$month <- gsub(i,'winter',yr_avgs$month)
+}
+
+#Note about plots: must say x=factor(year) to make it a discrete variable so that the fill by month works
+
+#paired boxplot:
+ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
+  geom_boxplot() + 
+  xlab("Year") + ylab("Flow (cfs)") + ggtitle("Seasonal Mean Flow By Year") +
+  scale_y_continuous(minor_breaks=seq(0,max(yr_avgs$mean),500)) +
+  guides(fill=guide_legend(title="Season:")) +
+  theme(axis.text.x=element_text(size=9,angle=90),
+        axis.text.y=element_text(size=7),
+        legend.text=element_text(size=8),
+        legend.title=element_text(face="bold",size=8),
+        legend.position="top",
+        legend.key.height=unit(0.5,'cm'),
+        legend.margin=margin(0,0,0,0),
+        panel.grid.major.x=element_line(colour="light gray"))
+
+#faceted by season:
+ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
+  geom_boxplot() + 
+  facet_wrap(~month, scales="fixed") +
+  xlab("Year") + ylab("Flow (cfs)") + ggtitle("Seasonal Mean Flow By Year") +
+  scale_y_continuous(minor_breaks=seq(0,max(yr_avgs$mean),500)) +
+  guides(fill=guide_legend(title="Season:")) +
+  theme(axis.text.x=element_text(size=7,angle=90),
+        axis.text.y=element_text(size=7),
+        strip.text=element_text(face="bold",size=8,
+                                        margin=margin(3,0,3,0)),
+        legend.position="none",
+        panel.grid.major.x=element_line(colour="light gray"))
+
+#faceted by year:
+ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
+  geom_boxplot() + 
+  facet_wrap(~year, ncol=6, scales="free", strip.position="right") +
+  xlab("Year") + ylab("Flow (cfs)") + ggtitle("Seasonal Mean Flow By Year") +
+  guides(fill=guide_legend(title="Season:")) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_text(size=6),
+        strip.text.y.right=element_text(face="bold",size=8,
+                                        margin=margin(0,1,0,2)),
+        legend.text=element_text(size=7),
+        legend.title=element_text(face="bold",size=7),
+        legend.key.size=unit(0.5, 'cm'),
+        legend.position="top",
+        legend.key.height=unit(0.4,'cm'),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing=unit(0.1,'cm'))
+
+```
+
 
