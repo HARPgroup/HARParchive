@@ -111,7 +111,7 @@ RRwinter <- RRflow %>%
 RRwinter
 ```
 
-#Long-term average Spring & Winter Flows:
+## Long-term average Spring & Winter Flows:
 
 ```{r}
 #Long-term averages for winter and spring seasons
@@ -122,7 +122,7 @@ paste0('Winter Average Flow: ',round(winterAvg, digits = 2), ' cfs')
 paste0('Spring Average Flow: ',round(springAvg, digits = 2), ' cfs')
 ```
 
-#How does this year compare to those long-term averages?
+## How does this year compare to those long-term averages?
 
 ```{r}
 #Comparing this year's flow with those averages
@@ -136,6 +136,29 @@ winterPct <- ((winter23avg - winterAvg)/winterAvg)*100
 paste0('Winter Flow Difference: ',round(springPct, digits = 1), '%')
 paste0('Spring Flow Difference: ',round(winterPct, digits = 1), '%')
 ```
+
+## What months were the biggest differences?
+```{r}
+#Finding monthly long-term averages:
+dec <- RRwinter %>% filter(month == 12)
+decAvg <- mean(dec$WmonthMean)
+jan <- RRwinter %>% filter(month == 1)
+janAvg <- mean(jan$WmonthMean)
+feb <- RRwinter %>% filter(month == 2)
+febAvg <- mean(feb$WmonthMean)
+mar <- RRwinter %>% filter(month == 3)
+marAvg <- mean(mar$WmonthMean)
+apr <- RRspring %>% filter(month == 4)
+aprAvg <- mean(apr$SmonthMean)
+may <- RRspring %>% filter(month == 5)
+mayAvg <- mean(may$SmonthMean)
+jun <- RRspring %>% filter(month == 6)
+junAvg <- mean(jun$SmonthMean)
+#Finding 2022-2023 monthly averages ...
+
+```
+
+
 
 ##Visualization 
 
