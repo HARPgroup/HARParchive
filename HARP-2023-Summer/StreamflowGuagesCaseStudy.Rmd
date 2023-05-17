@@ -41,6 +41,7 @@ library(knitr)
 library(tidyverse)
 library(pals)
 library(lubridate)
+library(stats)
 ```
 
 
@@ -64,6 +65,12 @@ head(RRflow)
 
 ```
 # Data Analysis
+
+
+#Getting monthly average flows for the time period
+```{r}
+monthlyFlow = aggregate(RRflow$Flow, list(RRflow$month, RRflow$year), FUN = 'mean')
+```
 
 ## Subset Data 
 ```{r}
@@ -90,6 +97,7 @@ RRwinter <- RRflow %>%
   filter(month==Wintermon)
 RRwinter
 ```
+
 
 ##Visualization 
 ```{r}
