@@ -23,7 +23,18 @@ Scope: Develop RMD workflow to characterize USGS gauge mean streamflow for Winte
 Context: Previous research has shown that the amount of winter recharge, that is precipitation that infiltrates into groundwater, is an indicator of the subsequent summer streamflow. Thus, low winter recharge (indicated by streamflow between Dec-March) is a warning indicator for potential summer drought conditions. While Joey/DEQ have tools at the ready for drought prediction, the casual hydrologist may wonder things like seems like the hiking trails are dry this time year, is this just me or backed up with data? or I had to mow my grass before April the year...I wonder if the early leaf-on will result in sustained evapotranspiration that reduces water storage to the point of impacting summer streamflow?
 
 ## List of gauge numbers used and why 
-We want locations in drought conditions. Locations downstream are better within larger rivers to represent large basins. The locations need to be above the fall line which is between the Coastal Plain and Piedmont regions of VA
+Locations downstream are better within larger rivers to represent large basins. Locations in drought conditions are also of interest. The locations need to be above the fall line which is between the Coastal Plain and Piedmont regions of VA, because flow downstream of the fall line is tidally influenced
+
+
+01636500: Shenandoah (into Potomac) - Moderate drought  
+01668000: Rappahannock (Fredericksburg) - Abnormally dry  
+02037500: James (Richmond) - Abnormally dry   
+03529500: Powell (Big stone gap VA)  
+03532000: Powell (Arthur TN)  
+03524000: Clinch (Cleveland VA)  
+03527220: Clinch (Looneys gap TN)   
+02066000: Roanoke (Randolph VA)  
+
 
 
 ## Retrieving data from the USGS
@@ -61,8 +72,7 @@ startDate <- '2000-01-01'#from 2000 to present date
 endDate <- '2023-12-31'
 pCode <- '00060' #the code for discharge in cfs
 sCode <- '00003' #the code for daily mean data
-RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) #new, for passing in customizable var from render command
-#RRflow <- readNWISdv(siteNumber, pCode, startDate, endDate, sCode) #original
+RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) #for passing in customizable var from render command
 
 #rename the columns for table
 colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
@@ -101,43 +111,54 @@ RRwinter <- RRflow %>%
 RRwinter
 ```
 
-```{r}
-#Getting monthly average flows for the time period
-monthlyFlow = aggregate(RRflow$Flow, list(RRflow$month, RRflow$year), FUN = 'mean')
-colnames(monthlyFlow) <- c('month','year','flow')
-```
-
-```{r}
-#Getting winters and springs:
-springFlows <- monthlyFlow %>% filter(month==4|month==5|month==6)
-winterFlows <- monthlyFlow %>% filter(month==12|month==1|month==2|month==3)
-```
-
-#Long-term average Spring & Winter Flows:
+## Long-term average Spring & Winter Flows:
 
 ```{r}
 #Long-term averages for winter and spring seasons
-winterAvg <- mean(winterFlows$flow)
-springAvg <- mean(springFlows$flow)
+winterAvg <- mean(RRwinter$WmonthMean)
+springAvg <- mean(RRspring$SmonthMean)
 
-paste0('Winter Average Flow:',round(winterAvg, digits = 2), ' cfs')
-paste0('Spring Average Flow:',round(springAvg, digits = 2), ' cfs')
+paste0('Winter Average Flow: ',round(winterAvg, digits = 2), ' cfs')
+paste0('Spring Average Flow: ',round(springAvg, digits = 2), ' cfs')
 ```
 
-#How does this year compare to those long-term averages?
+## How does this year compare to those long-term averages?
 
 ```{r}
 #Comparing this year's flow with those averages
-spring23 <- springFlows %>% filter(year==2023) # finding avg for this years flow
-winter23 <- winterFlows %>% filter(year==2023)
-spring23avg <- mean(spring23$flow)
-winter23avg <- mean(winter23$flow)
+spring23 <- RRspring %>% filter(year==2023) # finding avg for this years flow
+winter23 <- RRwinter %>% filter(year==2023)
+spring23avg <- mean(spring23$SmonthMean)
+winter23avg <- mean(winter23$WmonthMean)
 #Finding percentage difference 
 springPct <- ((spring23avg - springAvg)/springAvg)*100
 winterPct <- ((winter23avg - winterAvg)/winterAvg)*100
-paste0('Winter Flow Difference:',round(springPct, digits = 1), '%')
-paste0('Spring Flow Difference:',round(winterPct, digits = 1), '%')
+paste0('Winter Flow Difference: ',round(springPct, digits = 1), '%')
+paste0('Spring Flow Difference: ',round(winterPct, digits = 1), '%')
 ```
+
+## What months were the biggest differences?
+```{r}
+#Finding monthly long-term averages:
+dec <- RRwinter %>% filter(month == 12)
+decAvg <- mean(dec$WmonthMean)
+jan <- RRwinter %>% filter(month == 1)
+janAvg <- mean(jan$WmonthMean)
+feb <- RRwinter %>% filter(month == 2)
+febAvg <- mean(feb$WmonthMean)
+mar <- RRwinter %>% filter(month == 3)
+marAvg <- mean(mar$WmonthMean)
+apr <- RRspring %>% filter(month == 4)
+aprAvg <- mean(apr$SmonthMean)
+may <- RRspring %>% filter(month == 5)
+mayAvg <- mean(may$SmonthMean)
+jun <- RRspring %>% filter(month == 6)
+junAvg <- mean(jun$SmonthMean)
+#Finding 2022-2023 monthly averages ...
+
+```
+
+
 
 ##Visualization 
 
