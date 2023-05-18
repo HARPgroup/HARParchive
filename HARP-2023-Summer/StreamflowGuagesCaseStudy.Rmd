@@ -27,7 +27,7 @@ Locations downstream are better within larger rivers to represent large basins. 
 
 Some rivers/basins in VA currently impacted by dry conditions:  
 
-01636500: Shenandoah (into Potomac) 
+01636500: Shenandoah (into Potomac)   
 01668000: Rappahannock (Fredericksburg)  
 02037500: James (Richmond)    
 03529500: Powell (Big stone gap VA)  
