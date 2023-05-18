@@ -45,6 +45,7 @@ library(tidyr)
 library(ggplot2)
 library(dplyr)
 library(data.table)
+library(micropan) # to overcome error finding gregexec() function
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
