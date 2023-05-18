@@ -16,16 +16,15 @@ output:
 params: 
   doc_title: "Comparison of Two VaHydro Models"
   rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
-  #rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
-  #rseg.ftype: [ "cbp60","vahydro" ]
-  #rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
-  #runid.list: [ "hsp2_2022","subsheds" ]
+  rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
+  rseg.ftype: [ "cbp60","vahydro" ]
+  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
+  runid.list: [ "hsp2_2022","subsheds" ]
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
-
-  rseg.hydrocode: [ "JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200" ] #Black Creek Reservoir
-  rseg.ftype: [ "vahydro", "vahydro"]
-  rseg.model.version: [ "cbp-6.1", "cbp-6.1"]
-  runid.list: ["subsheds", "p6ss"]
+  #rseg.hydrocode: [ "JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200" ] #Black Creek Reservoir
+  #rseg.ftype: [ "vahydro", "vahydro"]
+  #rseg.model.version: [ "cbp-6.1", "cbp-6.1"]
+  #runid.list: ["subsheds", "p6ss"]
 ---
 
 ```{r setup, include=FALSE}
@@ -288,12 +287,13 @@ for (r in 1:length(rseg.model.version)) {
 do.call("grid.arrange", c(l90.2yr,  ncol = 2, nrow = length(rseg.model.version)-1))
 ```
 
+## FTABLE Visual
+
 ``` {r output2, echo = FALSE, }
-knitr::opts_chunk$set(fig.width=5, fig.height=5)
+knitr::opts_chunk$set(fig.width=7, fig.height=4)
 ```
 
-## Ftable Visual
-```{r ftable_crosssection, echo=FALSE}
+```{r ftable_data, include=FALSE}
 #get ftable:
 
 path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
@@ -322,7 +322,8 @@ for (i in 1:length(ftable_raw$depth)) {
   if (!is.na(as.numeric(ftable_raw$depth[i]))) {
     #only keep numeric data
     row_i <- as.numeric(rownames(ftable_raw[i,]))
-    ftable <- rbind(ftable, ftable_raw[row_i,])
+    ftable <- rbind(ftable, as.numeric(ftable_raw[row_i,]))
+    colnames(ftable) <- c('depth','area','vol','disch')
   }
 }
 rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
@@ -337,7 +338,7 @@ model <- RomProperty$new(ds,list(
     varkey="om_water_model_node",
     featureid=rseg$hydroid,
     entity_type="dh_feature", 
-    propcode=rseg.model.version[2]), 
+    propcode='vahydro-1.0'), #can't be cbp-6.1 b/c it won't have a '0. River Channel'
   TRUE)
 channel_prop <- RomProperty$new(ds,list(
     #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
@@ -372,20 +373,23 @@ for (i in 1:(length(x)-1)){
 colnames(z) <- y #to conceptualize data
 rownames(z) <- x
 
+```
+
+```{r, ftable_plots, echo=FALSE, warning=FALSE}
 #plot channel:
 persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
       ylab="Channel Length (ft)", zlab="Depth (ft)", 
-      main=paste(rseg.hydrocode[1], "FTABLE"),
-      sub=paste("Water shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
+      main=paste(model$propname, "Cross-section"),
+      sub=paste("Water is shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
   for(i in 1:15){
     lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, clength, by=10) , z = ftable$depth[i], pmat = channel), 
-           col ="#33CCFF3F", pch=16) #bankfull
+           col ="#33CCFF4F", pch=16) #bankfull
   }
 #note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
 
-persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model$propname, "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
-persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(rseg.hydrocode[1], "FTABLE"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model$propname, "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
 ```
 
@@ -543,7 +547,7 @@ l1.plot
 knitr::opts_chunk$set(fig.width=5, fig.height=5)
 ```
 
-``` {r scatter.2models, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+``` {r scatter.2models, eval = FALSE, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
 
 if (length(rseg.model.version) > 2) {
 
@@ -798,7 +802,7 @@ plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
 
 ## Model %-Difference
 
-``` {r percent, echo = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
+``` {r percent, eval = FALSE, echo = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
 # differences calculated in previous chunk, except the mean:
 
 for (r in 1:length(rseg.model.version)) {
@@ -871,10 +875,10 @@ if (length(rseg.model.version) == 3) {
 
 ```
 
-\newpage
+\newpage 
 <!---BLOCK_LANDSCAPE_START--->
 # Metrics Summary
-
+\n
 ```{r StatsTable, echo=FALSE}
 ft <- qflextable(statsdf)
 
@@ -891,5 +895,3 @@ ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEF
 fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
-
-\newpage
