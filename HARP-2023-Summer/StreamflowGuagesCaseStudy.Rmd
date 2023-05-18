@@ -312,15 +312,15 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
 ```
 
 # Summary of Findings
-*In general we see we our spring trend is following the drought year trend which isn't ideal.
-*The winter trend is more in line with the average but still in a lower percentile. 
-*A general downward trend for 2023 is not a good sign in terms of drought possibility
-*Our bigger rivers(Rappaannock and Shenandoah) are showing much worse numbers for comparison of this year avg to previous years. They are both significantly negative, around -40% on avg
-*Our smaller rivers(Clinch, Powell) are not nearly as negative, around -20% on avg
-*Best Gauge(Highest Percentile)- Clinch 1
-  +Winter: -15.3%
-  +Spring: 15%
-*Worst Gauge(Lowest Percentile)- Shenandoah
-  +Winter: -42.8%
-  +Spring: -30.1%
+* In general we see we our spring trend is following the drought year trend which isn't ideal.
+* The winter trend is more in line with the average but still in a lower percentile. 
+* A general downward trend for 2023 is not a good sign in terms of drought possibility
+* Our bigger rivers(Rappaannock and Shenandoah) are showing much worse numbers for comparison of this year avg to previous years. They are both significantly negative, around -40% on avg
+* Our smaller rivers(Clinch, Powell) are not nearly as negative, around -20% on avg
+* Best Gauge(Highest Percentile)- Clinch 1
+  + Winter: -15.3%
+  + Spring: 15%
+* Worst Gauge(Lowest Percentile)- Rappahannock
+  + Winter: -45.7%
+  + Spring: -40.9%
 
