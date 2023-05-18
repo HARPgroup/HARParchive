@@ -106,7 +106,6 @@ head(RRwinter,3)
 ```
 
 ## Long-term average Spring & Winter Flows:
-
 ```{r, echo=FALSE}
 #Long-term averages for winter and spring seasons
 winterAvg <- mean(RRwinter$WmonthMean)
@@ -117,7 +116,6 @@ paste0('Spring Average Flow: ',round(springAvg, digits = 2), ' cfs')
 ```
 
 ## How does this year compare to those long-term averages?
-
 ```{r, echo=FALSE}
 #Comparing this year's flow with those averages
 spring23 <- RRspring %>% filter(year==2023) # finding avg for this years flow
@@ -138,8 +136,6 @@ colnames(monthlyFlow) <- c('month','year','flow')
 springFlows <- monthlyFlow %>% filter(month==4|month==5|month==6)
 winterFlows <- monthlyFlow %>% filter(month==12|month==1|month==2|month==3)
 ```
-
-
 
 ```{r, include=FALSE}
 ## What months were the biggest differences?
@@ -162,10 +158,7 @@ junAvg <- mean(jun$SmonthMean)
  # in progress
 ```
 
-
-
-##Visualization 
-
+# Visualization 
 ```{r, echo=FALSE}
 #Seasonal averages per year
 winterYrAvg <- aggregate(winterFlows$flow, by = list(RRwinter$year), FUN = 'mean')
@@ -181,21 +174,17 @@ ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_point(aes(col = 'blue')) + geom_
 ```
 
 
-## Spring Averages Per Month Graphs
-
+## Plots of Spring Averages Per Month:
 ```{r, echo=FALSE}
 #highlight winters/springs that are above/below long-term winter mean and spring mean
 #how spring and winter average flows change over 2000 to now 
 
 #Plot of all years with month avg vs time for spring
 ggplot(RRspring, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Spring Months")+ ylab("Spring Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(4,6,by=1)) + guides(color= guide_legend(title = "Years"))+geom_line()+ggtitle("Mean Flow for Spring(2000-Present)")
-
-  
 ```
 
 ```{r, echo=FALSE}
 #Plot of current year, drought year and average year for spring 
-
 RRspringN <- RRspring %>% filter(year %in% c("2002", "2023")) #Adjust original RRspring to only include 2002 and 2023, current and drought year
 
 RRspringAVG <- RRflow %>% #adjust RRflow original to collect the monthly average in spring for all years
@@ -211,8 +200,7 @@ comRR <- rbind(RRspringN, RRspringAVG) #combine the two datasets to make easier 
 ggplot(comRR, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Spring Months")+ ylab("Spring Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(4,6,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Spring for Drought Year & Present Year Vs. All Years Mean")
 ```
 
-## Winter Averages Per Month Graphs
-
+## Plots of Winter Averages Per Month:
 ```{r, echo=FALSE}
 #Plot of all years with month avg vs time for winter
 
@@ -237,13 +225,14 @@ comRR <- rbind(RRwinterN, RRwinterAVG) #combine the two datasets to make easier 
 #create graph
 ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")+scale_x_break(c(3,12),scales=0.5)
 ```
-## Boxplots
+
+## Seasonal Boxplots
+### Overall Mean:
 ```{r, echo=FALSE}
 par(mfrow=c(1,2)) #creates 2 windows side-by-side for the plots to be shown
-boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', ylim= c(0,10000), col='#FC4E07')
-boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', ylim= c(0,10000), col='#00AFBB')
+boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', ylim= c(0,10000), col='#00AFBB')
+boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', ylim= c(0,10000), col='#FC4E07')
 ```
-
 
 ```{r, Boxplots of Mean Flow by Year & Season, echo=FALSE}
 #create dataframe
@@ -259,7 +248,9 @@ for(i in Springmon){
 for(i in c(12,1,2,3)){ #12 has to be first or '12' becomes 'winterwinter' from the 1 and 2
   yr_avgs$month <- gsub(i,'winter',yr_avgs$month)
 }
-
+```
+### Paired Boxplot:
+```{r, echo=FALSE}
 #Note about plots: must say x=factor(year) to make it a discrete variable so that the fill by month works
 
 #paired boxplot:
@@ -278,7 +269,7 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
         panel.grid.major.x=element_line(colour="light gray"))
 ```
 
-
+### Faceted by Season:
 ```{r, echo=FALSE}
 #faceted by season:
 ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
@@ -295,7 +286,7 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
         panel.grid.major.x=element_line(colour="light gray"))
 ```
 
-
+### Faceted by Year:
 ```{r, echo=FALSE}
 #faceted by year:
 ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
