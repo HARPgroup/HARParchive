@@ -25,10 +25,11 @@ Context: Previous research has shown that the amount of winter recharge, that is
 ## List of gauge numbers used and why 
 Locations downstream are better within larger rivers to represent large basins. Locations in drought conditions are also of interest. The locations need to be above the fall line which is between the Coastal Plain and Piedmont regions of VA, because flow downstream of the fall line is tidally influenced
 
+Some rivers/basins in VA currently impacted by dry conditions:  
 
-01636500: Shenandoah (into Potomac) - Moderate drought  
-01668000: Rappahannock (Fredericksburg) - Abnormally dry  
-02037500: James (Richmond) - Abnormally dry   
+01636500: Shenandoah (into Potomac) 
+01668000: Rappahannock (Fredericksburg)  
+02037500: James (Richmond)    
 03529500: Powell (Big stone gap VA)  
 03532000: Powell (Arthur TN)  
 03524000: Clinch (Cleveland VA)  
@@ -61,32 +62,23 @@ library(pals)
 library(lubridate)
 library(stats)
 library(ggbreak)
-
 ```
 
 ```{r}
-#retrieve flow data for desired river basin gauge
-
-siteNumber <- '01636500' #We want to make this a customization variable, rn using shenandoah into Potomac to test 
-
+#Retrieve daily flow data for desired river basin gauge
 startDate <- '2000-01-01'#from 2000 to present date
 endDate <- '2023-12-31'
 pCode <- '00060' #the code for discharge in cfs
 sCode <- '00003' #the code for daily mean data
 
-RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) 
-
-#rename the columns for table
-colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
-
-#previewing the flow data for pre and post-dam
-head(RRflow)
-
+RRflow <- readNWISdv(params$rseg.gauge, pCode, startDate, endDate, sCode) #rseg.gauge should be given in render cmnd
+colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code') #rename the columns for table
+head(RRflow, 3) #preview flow data
 ```
 # Data Analysis
 
 ## Subset Data 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #subset data into years and then into seasons/months for analysis
 #Winter(Dec-March) & Spring(April-Present)
   
@@ -101,7 +93,7 @@ RRspring <- RRflow %>%
   group_by(year, month) %>%
   summarize(SmonthMean= mean(Flow)) %>% #same as summarize(group_by(RRflow, year, month), mean(Flow))
   filter(month == Springmon)
-RRspring
+head(RRspring,3)
 
 #create winter monthly average
 Wintermon= c(1,2,3,12)
@@ -110,12 +102,12 @@ RRwinter <- RRflow %>%
   group_by(year, month) %>%
   summarize(WmonthMean= mean(Flow)) %>%
   filter(month==Wintermon)
-RRwinter
+head(RRwinter,3)
 ```
 
 ## Long-term average Spring & Winter Flows:
 
-```{r}
+```{r, echo=FALSE}
 #Long-term averages for winter and spring seasons
 winterAvg <- mean(RRwinter$WmonthMean)
 springAvg <- mean(RRspring$SmonthMean)
@@ -126,7 +118,7 @@ paste0('Spring Average Flow: ',round(springAvg, digits = 2), ' cfs')
 
 ## How does this year compare to those long-term averages?
 
-```{r}
+```{r, echo=FALSE}
 #Comparing this year's flow with those averages
 spring23 <- RRspring %>% filter(year==2023) # finding avg for this years flow
 winter23 <- RRwinter %>% filter(year==2023)
@@ -147,8 +139,10 @@ springFlows <- monthlyFlow %>% filter(month==4|month==5|month==6)
 winterFlows <- monthlyFlow %>% filter(month==12|month==1|month==2|month==3)
 ```
 
+
+
+```{r, include=FALSE}
 ## What months were the biggest differences?
-```{r}
 #Finding monthly long-term averages:
 dec <- RRwinter %>% filter(month == 12)
 decAvg <- mean(dec$WmonthMean)
@@ -165,14 +159,14 @@ mayAvg <- mean(may$SmonthMean)
 jun <- RRspring %>% filter(month == 6)
 junAvg <- mean(jun$SmonthMean)
 #Finding 2022-2023 monthly averages ...
-
+ # in progress
 ```
 
 
 
 ##Visualization 
 
-```{r}
+```{r, echo=FALSE}
 #Seasonal averages per year
 winterYrAvg <- aggregate(winterFlows$flow, by = list(RRwinter$year), FUN = 'mean')
 colnames(winterYrAvg) <- c('year','flow')
@@ -189,7 +183,7 @@ ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_point(aes(col = 'blue')) + geom_
 
 ## Spring Averages Per Month Graphs
 
-```{r}
+```{r, echo=FALSE}
 #highlight winters/springs that are above/below long-term winter mean and spring mean
 #how spring and winter average flows change over 2000 to now 
 
@@ -199,7 +193,7 @@ ggplot(RRspring, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point
   
 ```
 
-```{r}
+```{r, echo=FALSE}
 #Plot of current year, drought year and average year for spring 
 
 RRspringN <- RRspring %>% filter(year %in% c("2002", "2023")) #Adjust original RRspring to only include 2002 and 2023, current and drought year
@@ -209,23 +203,24 @@ RRspringAVG <- RRflow %>% #adjust RRflow original to collect the monthly average
   group_by(month) %>%
   summarize(SmonthMean= mean(Flow)) %>%
   filter(month == Springmon)
-RRspringAVG
+#RRspringAVG
 
 comRR <- rbind(RRspringN, RRspringAVG) #combine the two datasets to make easier graphing 
 
 #create graph
 ggplot(comRR, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Spring Months")+ ylab("Spring Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(4,6,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Spring for Drought Year & Present Year Vs. All Years Mean")
-
-
 ```
+
 ## Winter Averages Per Month Graphs
-```{r}
+
+```{r, echo=FALSE}
 #Plot of all years with month avg vs time for winter
 
 ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() + guides(color= guide_legend(title = "Years")) +ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1)) +scale_x_break(c(3,12),scales=0.5)+geom_line()
 
 ```
-```{r}
+
+```{r, echo=FALSE}
 #Plot of current year, drought year and average year for winter
 
 RRwinterN <- RRwinter %>% filter(year %in% c("2002", "2023")) #Adjust original RRwinter to only include 2002 and 2023, current and drought year
@@ -235,7 +230,7 @@ RRwinterAVG <- RRflow %>% #adjust RRflow original to collect the monthly average
   group_by(month) %>%
   summarize(WmonthMean= mean(Flow)) %>%
   filter(month == Wintermon)
-RRwinterAVG
+#RRwinterAVG
 
 comRR <- rbind(RRwinterN, RRwinterAVG) #combine the two datasets to make easier graphing 
 
@@ -243,14 +238,14 @@ comRR <- rbind(RRwinterN, RRwinterAVG) #combine the two datasets to make easier 
 ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")+scale_x_break(c(3,12),scales=0.5)
 ```
 ## Boxplots
-```{r}
+```{r, echo=FALSE}
 par(mfrow=c(1,2)) #creates 2 windows side-by-side for the plots to be shown
 boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', ylim= c(0,10000), col='#FC4E07')
 boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', ylim= c(0,10000), col='#00AFBB')
 ```
 
 
-```{r, Boxplots of Mean Flow by Year & Season}
+```{r, Boxplots of Mean Flow by Year & Season, echo=FALSE}
 #create dataframe
 colnames(RRspring) <- c('year', 'month', 'mean')
 colnames(RRwinter) <- c('year', 'month', 'mean')
@@ -281,7 +276,10 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
         legend.key.height=unit(0.5,'cm'),
         legend.margin=margin(0,0,0,0),
         panel.grid.major.x=element_line(colour="light gray"))
+```
 
+
+```{r, echo=FALSE}
 #faceted by season:
 ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
   geom_boxplot() + 
@@ -295,7 +293,10 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
                                         margin=margin(3,0,3,0)),
         legend.position="none",
         panel.grid.major.x=element_line(colour="light gray"))
+```
 
+
+```{r, echo=FALSE}
 #faceted by year:
 ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
   geom_boxplot() + 
