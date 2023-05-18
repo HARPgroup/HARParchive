@@ -27,7 +27,7 @@ Locations downstream are better within larger rivers to represent large basins. 
 
 Some rivers/basins in VA currently impacted by dry conditions:  
 
-01636500: Shenandoah (into Potomac) 
+01636500: Shenandoah (into Potomac)   
 01668000: Rappahannock (Fredericksburg)  
 02037500: James (Richmond)    
 03529500: Powell (Big stone gap VA)  
@@ -169,6 +169,8 @@ colnames(springYrAvg) <- c('year','flow')
 ggplot(winterYrAvg, aes(x=year, y=flow)) + geom_point(aes(col = 'blue')) + geom_point(data = springYrAvg, aes(x=year, y=flow, col = 'red')) +
   scale_color_identity(name = NULL, breaks=c('red','blue'), labels = c('Spring','Winter'), guide = 'legend') + 
   scale_x_continuous(breaks = seq(min(winterYrAvg$year), max(winterYrAvg$year), by = 2)) + 
+  geom_hline(yintercept = springAvg, color = "red") +
+  geom_hline(yintercept = winterAvg, color = "blue") +
   labs(x='Year', y= 'Seasonal Avg Flow (cfs)') +
   ggtitle("Winter and Spring Avg Flows (2000 - Present)")
 ```
@@ -204,7 +206,7 @@ ggplot(comRR, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(si
 ```{r, echo=FALSE}
 #Plot of all years with month avg vs time for winter
 
-ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() + guides(color= guide_legend(title = "Years")) +ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1)) +scale_x_break(c(3,12),scales=0.5)+geom_line()
+ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() +scale_x_break(c(3,12),scales=0.5)+geom_line()+ guides(color= guide_legend(title = "Years")) +ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1)) 
 
 ```
 
@@ -223,7 +225,7 @@ RRwinterAVG <- RRflow %>% #adjust RRflow original to collect the monthly average
 comRR <- rbind(RRwinterN, RRwinterAVG) #combine the two datasets to make easier graphing 
 
 #create graph
-ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")+scale_x_break(c(3,12),scales=0.5)
+ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+ scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+scale_x_break(c(3,12),scales=0.5)+ ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")
 ```
 
 ## Seasonal Boxplots
@@ -309,5 +311,16 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
 
 ```
 
-
+# Summary of Findings
+*In general we see we our spring trend is following the drought year trend which isn't ideal.
+*The winter trend is more in line with the average but still in a lower percentile. 
+*A general downward trend for 2023 is not a good sign in terms of drought possibility
+*Our bigger rivers(Rappaannock and Shenandoah) are showing much worse numbers for comparison of this year avg to previous years. They are both significantly negative, around -40% on avg
+*Our smaller rivers(Clinch, Powell) are not nearly as negative, around -20% on avg
+*Best Gauge(Highest Percentile)- Clinch 1
+  +Winter: -15.3%
+  +Spring: 15%
+*Worst Gauge(Lowest Percentile)- Shenandoah
+  +Winter: -42.8%
+  +Spring: -30.1%
 
