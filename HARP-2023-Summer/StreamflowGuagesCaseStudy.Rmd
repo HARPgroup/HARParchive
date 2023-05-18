@@ -276,7 +276,10 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
         legend.key.height=unit(0.5,'cm'),
         legend.margin=margin(0,0,0,0),
         panel.grid.major.x=element_line(colour="light gray"))
+```
 
+
+```{r, echo=FALSE}
 #faceted by season:
 ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
   geom_boxplot() + 
@@ -290,7 +293,10 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
                                         margin=margin(3,0,3,0)),
         legend.position="none",
         panel.grid.major.x=element_line(colour="light gray"))
+```
 
+
+```{r, echo=FALSE}
 #faceted by year:
 ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) + 
   geom_boxplot() + 
