@@ -222,7 +222,7 @@ ggplot(comRR, aes(x=month, y=SmonthMean, color=as.factor(year))) + geom_point(si
 ```{r}
 #Plot of all years with month avg vs time for winter
 
-ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() + guides(color= guide_legend(title = "Years")) +ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1)) +scale_x_break(c(3,12),scales=0.5)+geom_line()
+ggplot(RRwinter, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal() +scale_x_break(c(3,12),scales=0.5)+geom_line()+ guides(color= guide_legend(title = "Years")) +ggtitle("Mean Flow for Winter(2000-Present)")+scale_x_continuous(breaks=seq(1,12,by=1)) 
 
 ```
 ```{r}
@@ -240,13 +240,13 @@ RRwinterAVG
 comRR <- rbind(RRwinterN, RRwinterAVG) #combine the two datasets to make easier graphing 
 
 #create graph
-ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")+scale_x_break(c(3,12),scales=0.5)
+ggplot(comRR, aes(x=month, y=WmonthMean, color=as.factor(year))) + geom_point(size=2) + xlab("Winter Months")+ ylab("Winter Month Flow Mean(cfs)")+theme_minimal()+ scale_x_continuous(breaks=seq(1,12,by=1)) + guides(color= guide_legend(title = "Years")) +geom_line()+scale_color_manual(labels=c("2002","2023","Average"), values=c('#00AFBB','#FC4E07','#E7B800'))+scale_x_break(c(3,12),scales=0.5)+ ggtitle("Average Flow for Winter for Drought Year & Present Year Vs. All Years Mean")
 ```
 ## Boxplots
 ```{r}
 par(mfrow=c(1,2)) #creates 2 windows side-by-side for the plots to be shown
-boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', ylim= c(0,10000), col='#FC4E07')
-boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', ylim= c(0,10000), col='#00AFBB')
+boxplot(RRwinter$WmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Winter', col='#FC4E07', ylim= c(0,10000))
+boxplot(RRspring$SmonthMean, ylab = 'Monthly magnitude (cfs)', main = 'Monthly Mean Spring', col='#00AFBB', ylim= c(0,10000))
 ```
 
 
@@ -317,5 +317,16 @@ ggplot(yr_avgs, aes(x=factor(year),y=mean, fill=month)) +
 
 ```
 
-
+# Summary of Findings
+*In general we see we our spring trend is following the drought year trend which isn't ideal.
+*The winter trend is more in line with the average but still in a lower percentile. 
+*A general downward trend for 2023 is not a good sign in terms of drought possibility
+*Our bigger rivers(Rappaannock and Shenandoah) are showing much worse numbers for comparison of this year avg to previous years. They are both significantly negative, around -40% on avg
+*Our smaller rivers(Clinch, Powell) are not nearly as negative, around -20% on avg
+*Best Gauge(Highest Percentile)- Clinch 1
+  +Winter: -15.3%
+  +Spring: 15%
+*Worst Gauge(Lowest Percentile)- Shenandoah
+  +Winter: -42.8%
+  +Spring: -30.1%
 
