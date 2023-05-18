@@ -1,0 +1,257 @@
+---
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+author: ""
+title: "`r params$doc_title`"
+output: 
+  officedown::rdocx_document:
+    mapstyles:
+      Normal: ['First Paragraph']
+    page_margins:
+      bottom: 0.5
+      top: 0.5
+      right: 0.25
+      left: 0.25
+      header: 0.0
+      footer: 0.0
+params: 
+  doc_title: "Comparison of Two VaHydro Models"
+  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
+  rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
+  rseg.ftype: [ "cbp60","vahydro" ]
+  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
+  runid.list: [ "hsp2_2022","subsheds" ]
+  rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
+---
+```{r setup, include=FALSE}
+#https://cran.r-project.org/web/packages/officedown/officedown.pdf
+#https://ardata-fr.github.io/officeverse/officedown-for-word.html#insert-sections
+knitr::opts_chunk$set(echo = TRUE, fig.cap = TRUE)
+library(officedown)
+library(officer)
+library(flextable)
+library(hydrotools)
+library(rjson)
+library(cowplot)
+library(gridExtra)
+library(tidyr)
+library(ggplot2)
+library(data.table)
+library(png)
+library(grid)
+library(gridExtra)
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+
+site <- 'http://deq1.bse.vt.edu/d.dh'
+esite <- 'http://deq1.bse.vt.edu:81'
+json_obj_url <- paste(site, "node/62", sep ="/")
+
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+# Load functions used during development
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/fn_get_prop.R")
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/rest_functions.R")
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/find_name.R")
+
+fp <- fp_par(
+  text.align = "center", 
+  padding.bottom = 20, padding.top = 120, 
+  border.bottom = fp_border())
+
+ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
+
+```
+
+# Table of contents
+```{r, echo = FALSE}
+block_toc()
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(fig.width=7.5, fig.height=5) 
+```
+
+
+```{r UserInputs, include=FALSE}
+rseg.filepath <- params$rseg.file.path
+rseg.hydrocode <- params$rseg.hydrocode
+rseg.ftype <- params$rseg.ftype
+rseg.model.version <- params$rseg.model.version
+runid.list <- params$runid.list
+rseg.metric.list <- params$rseg.metric.list
+
+rlist <- gsub('runid_', '', runid.list)
+
+# r <- 1
+for (r in 1:length(rseg.model.version)){
+  
+  # get rseg feature
+  rseg.hydrocode.r <- rseg.hydrocode[r]
+  rseg.ftype.r <- rseg.ftype[r]
+  rseg_feature <- RomFeature$new(
+    ds,
+    list(hydrocode = rseg.hydrocode.r, ftype = rseg.ftype.r),
+    TRUE
+  )
+  rseg.hydroid.r <- rseg_feature$hydroid
+  
+  # get rseg model
+  rseg.model.version.r <- rseg.model.version[r]
+  print(paste("searching", rseg.model.version.r,"model for river segment hydroid", rseg.hydroid.r))
+  rseg.model.r <- RomProperty$new(
+    ds,
+    list(entity_type='dh_feature', featureid = rseg.hydroid.r, propcode=rseg.model.version.r),
+    TRUE
+  )
+  
+  if (exists("json_obj_url")) {
+  rseg_obj_url.r <- paste(json_obj_url, rseg.model.r$pid, sep="/")
+  rseg_model_info.r <- ds$auth_read(rseg_obj_url.r, "text/json", "")
+  rseg_model_info.r <- fromJSON(rseg_model_info.r)
+  } else {
+  message("Error: json_obj_url is undefined.  Can not retrieve model and scenario information. (Hint: Use config.R
+          to set json_obj_url) ")
+  rseg_model_info.r <- list()
+  }
+  
+  # stash the model run data into a combined list
+  if (r == 1){
+    dat <- rseg_model_info.r
+  } else {
+    dat <- cbind(dat,rseg_model_info.r)
+  }
+  
+  # retrieve metrics for a run
+  runid.r <- runid.list[r]
+  rseg_table.r <- om_model_table(model_info = rseg_model_info.r,
+                             runid.list = runid.r,
+                             metric.list = rseg.metric.list,
+                             include.elfgen = TRUE,
+                             site = site,
+                             site_base = omsite
+                             )
+
+  # join results from multiple runs to a single dataframe & create captioning for later
+  if (r == 1){
+    rseg_metrics.df <- rseg_table.r
+  } else {
+    rseg_metrics.df <- cbind(rseg_metrics.df,rseg_table.r)
+  }
+  
+  # create an output for information on the models compared
+  ftext.model.r <- paste(rseg_model_info.r[[1]][[3]])
+  ftext.hcode.r <- paste(rseg.hydrocode.r)
+  ftext.ftype.r <- paste(rseg.ftype.r)
+  ftext.version.r <- paste(rseg.model.version.r)
+  ftext.id.r <- paste(runid.r)
+  
+  if (r == 1){
+    ftext.model <- ftext.model.r 
+    ftext.hcode <- ftext.hcode.r 
+    ftext.ftype <- ftext.ftype.r 
+    ftext.version <- ftext.version.r 
+    ftext.id <- ftext.id.r 
+  } else {
+    ftext.model <- paste(ftext.model, "vs", ftext.model.r)
+    ftext.hcode <- paste(ftext.hcode, "vs", ftext.hcode.r)
+    ftext.ftype <- paste(ftext.ftype, "vs", ftext.ftype.r)
+    ftext.version <- paste(ftext.version, "vs", ftext.version.r)
+    ftext.id <- paste(ftext.id, "vs", ftext.id.r)
+  }
+}
+
+```
+
+
+The models compared in this document are:
+
+**`r ftext.model[1]`**
+
+With the respective model properties:
+
+* Hydro code: `r ftext.hcode[1]`
+* Ftype: `r ftext.ftype[1]`
+* Model version: `r ftext.version[1]`
+* Run ID: `r ftext.id[1]`
+
+```{r setup2, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+# To retrieve flow data:
+#rseg.data.1 <- data.table::fread('JA4_7280_7340_hydrd_wy.csv')
+#rseg.data.2 <- data.table::fread('JA4_7280_7340_hydrd_wy_sub.csv')
+
+#Reading flow data from online directory
+for (r in 1:length(rseg.model.version)) {
+  split <- strsplit(params$rseg.file.path[r], split = "/")
+  path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
+  path_string_m2 <- paste(path_list_m2, collapse = "/")
+  save_url <- paste0(esite, '/', path_string_m2)
+  rseg.flow.r <- read.csv(save_url)
+  assign(paste0('rseg.data.',r),rseg.flow.r)
+  
+}
+
+data.match <- match(rseg.data.1$date, rseg.data.2$date)
+sdate <- as.Date(min(data.match))
+edate <- as.Date(max(data.match))
+
+rseg.flow.1 <- zoo(as.numeric(as.character(rseg.data.1$Qout)), order.by = rseg.data.1$index)
+rseg.flow.1 <- window(rseg.flow.1, start = sdate, end = edate)
+mode(rseg.flow.1) <- 'numeric'
+
+rseg.flow.2 <- zoo(as.numeric(as.character(rseg.data.2$Qout)), order.by = rseg.data.2$index)
+rseg.flow.2 <- window(rseg.flow.2, start = sdate, end = edate)
+mode(rseg.flow.2) <- 'numeric'
+
+rseg.lowflow.1 <- IHA::group2(rseg.flow.1)
+rseg.lowflow.2 <- IHA::group2(rseg.flow.2)
+```
+## Flow Duration Curve
+
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", ftext.model[1]), fig.id = "fdc", fig.cap.style = "Image Caption", out.width="90%", out.height="30%", fig.show='hold',fig.align='center'}
+
+for (r in 1:length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- dat[[r]][[runid.r]]
+  path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
+  assign(paste0('path.fdc.',r),path.fdc.r)
+}
+
+  #  if (r == 1) {
+  #   fig.fdc <- paste0("![](",path.fdc.r,")")
+  # } else {
+  #   fig.fdc <- paste(paste0(fig.fdc,"{width=1/",r,"}"), paste0("![](",path.fdc.r,")","{width=1/",r,"}"))
+  # }
+
+#Downloading FDC images from urls
+destfile1 <- paste0(getwd(),'/', params$rseg.hydrocode[1])
+destfile2 <- paste0(getwd(),'/', params$rseg.hydrocode[2])
+fdc.file.1 <- download.file(path.fdc.1, destfile1)
+fdc.file.2 <- download.file(path.fdc.2, destfile2)
+fdc1 <- readPNG(destfile1)
+fdc2 <- readPNG(destfile2)
+grid.arrange(rasterGrob(fdc1), rasterGrob(fdc2), ncol = 2, widths = unit(c(3.5,3.5), c('in','in')))
+```
+
+
+## Time series analysis
+
+```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", ftext.model[1]), fig.id = "90day", fig.cap.style = "Image Caption"}
+l90.data <- data.frame(rseg.lowflow.1$year, rseg.lowflow.1["90 Day Min"])
+l90.data <- cbind(l90.data, rseg.lowflow.2["90 Day Min"])
+colnames(l90.data) <- c("Year", paste0("Appomatox River cbp-6.0"), paste0("Appomatox River cbp-6.1"))
+ymax.l90 <- max(l90.data[-1])
+
+values.l90 <- tidyr::pivot_longer(l90.data, -Year, names_to="Model", values_to="Flow")
+l90.plot <- ggplot(values.l90, aes(y=Flow, x=Year, fill = Model)) + 
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
+    theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
+    scale_fill_brewer()
+l90.plot
+```
