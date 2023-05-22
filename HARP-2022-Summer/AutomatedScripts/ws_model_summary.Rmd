@@ -69,7 +69,6 @@ fp <- fp_par(
 ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
 ```
-rmarkdown::render('~/Desktop/GitHub/HARParchive/HARP-2022-Summer/AutomatedScripts/ws_model_summary.Rmd', output_file = '~/Desktop/HARPteam22/ws_summ_doc1', params = list( doc_title = ("Test HSP2 Model Summary"), rseg.file.path = c("/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv","/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ), rseg.hydrocode = c("JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340"), rseg.ftype = c("cbp60","vahydro"), rseg.model.version = c("cbp-6.0","cbp-6.1"), runid.list = c("hsp2_2022","subsheds"), rseg.metric.list = c("7q10", "l90_Qout", "l30_year")))
 
 # Table of contents
 ```{r, echo = FALSE}
