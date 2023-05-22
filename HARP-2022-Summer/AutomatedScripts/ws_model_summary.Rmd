@@ -162,8 +162,6 @@ for (r in 1:length(rseg.model.version)) {
 }
 ```
 
-
-
 The models compared in this document are:
 ``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo"}
 for (r in 1:length(rseg.model.version)){
