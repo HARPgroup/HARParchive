@@ -150,13 +150,16 @@ for (r in 1:length(rseg.model.version)){
 ```{r, echo = FALSE}
 #Creating paths from input params to read in file containing length for ftables 
 for (r in 1:length(rseg.model.version)) {
-  submod.r <- ftable.submod[r]
-  id.r <- ftable.id[r]
-  rseg.r <- rseg[r]
+  submod.r <- params$ftable.submod[r]
+  id.r <- params$ftable.id[r]
+  rseg.r <- params$rseg[r]
   if (submod.r == 'p6') {
     submod.r <- paste0('p6/vadeq')
   }
   path.HYDR <- paste(esite, submod.r, 'input/param/river', id.r, 'HYDR.csv', sep = '/' )
+  lendf <- fread(path.HYDR)
+  length <- lendf[rseg.r,3]
+  assign(paste0('length.',r),length)
 }
 ```
 
