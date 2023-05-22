@@ -20,9 +20,9 @@ params:
   rseg.ftype: [ "cbp60","vahydro" ]
   rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
   runid.list: [ "hsp2_2022","subsheds" ]
-  ftable.submod:  [ ] #either p6 or p532, p6 will have /vadeq added automatically
-  ftable.id: [ ] #after /river/ and before /ftables in path
-  rseg: [ ] #needed to pull LEN from ftable HYDR file?
+  ftable.submod:  [ "value", "value"] #either p6 or p532, p6 will have /vadeq added automatically
+  ftable.id: [ "value", "value"] #after /river/ and before /ftables in path
+  seg: [ "value", "value"] #needed to pull LEN from ftable HYDR file?
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
   #rseg.hydrocode: [ "JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200" ] #Black Creek Reservoir
   #rseg.ftype: [ "vahydro", "vahydro"]
@@ -152,13 +152,14 @@ for (r in 1:length(rseg.model.version)){
 for (r in 1:length(rseg.model.version)) {
   submod.r <- params$ftable.submod[r]
   id.r <- params$ftable.id[r]
-  rseg.r <- params$rseg[r]
+  rseg.r <- params$seg[r]
   if (submod.r == 'p6') {
     submod.r <- paste0('p6/vadeq')
   }
   path.HYDR <- paste(esite, submod.r, 'input/param/river', id.r, 'HYDR.csv', sep = '/' )
   lendf <- fread(path.HYDR)
-  length <- lendf[rseg.r,3]
+  rownum <- which(lendf == rseg.r)
+  length = lendf[rownum, 3]
   assign(paste0('length.',r),length)
 }
 ```
