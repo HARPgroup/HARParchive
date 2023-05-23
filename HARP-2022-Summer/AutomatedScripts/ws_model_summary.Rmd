@@ -145,23 +145,6 @@ for (r in 1:length(rseg.model.version)){
 
 ```
 
-```{r, echo = FALSE}
-#Creating paths from input params to read in file containing length for ftables 
-for (r in 1:length(rseg.model.version)) {
-  submod.r <- params$ftable.submod[r]
-  id.r <- params$ftable.id[r]
-  rseg.r <- params$seg[r]
-  if (submod.r == 'p6') {
-    submod.r <- paste0('p6/vadeq')
-  }
-  path.HYDR <- paste(esite, submod.r, 'input/param/river', id.r, 'HYDR.csv', sep = '/' )
-  lendf <- fread(path.HYDR)
-  rownum <- which(lendf == rseg.r)
-  length = lendf[rownum, 3]
-  assign(paste0('length.',r),length)
-}
-```
-
 The models compared in this document are:
 ``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo"}
 for (r in 1:length(rseg.model.version)){
@@ -313,6 +296,23 @@ do.call("grid.arrange", c(l90.2yr,  ncol = 2, nrow = length(rseg.model.version)-
 knitr::opts_chunk$set(fig.width=7, fig.height=4)
 ```
 
+```{r, echo = FALSE}
+#Creating paths from input params to read in file containing length for ftables 
+for (r in 1:length(rseg.model.version)) {
+  submod.r <- params$ftable.submod[r]
+  id.r <- params$ftable.id[r]
+  rseg.r <- params$seg[r]
+  if (submod.r == 'p6') {
+    submod.r <- paste0('p6/vadeq')
+  }
+  path.HYDR <- paste(esite, submod.r, 'input/param/river', id.r, 'HYDR.csv', sep = '/' )
+  lendf <- fread(path.HYDR)
+  rownum <- which(lendf == rseg.r)
+  length = as.numeric(lendf[rownum, 3])
+  assign(paste0('length.',r),length*5280) #convert miles to ft
+}
+```
+
 ```{r ftable_data, include=FALSE}
 #get ftable:
 
@@ -410,7 +410,7 @@ rownames(z) <- x
 #plot channel: -- needs to be done for each model
 persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
       ylab="Channel Length (ft)", zlab="Depth (ft)", 
-      main=paste(model$propname, "Cross-section"),
+      main=paste(model.comparison[1,2], "Cross-section"), #model.comparison[1,i]
       sub=paste("Water is shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
   for(i in 1:15){
     lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, clength, by=10) , z = ftable$depth[i], pmat = channel), 
@@ -418,9 +418,9 @@ persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nti
   }
 #note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
 
-persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model$propname, "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
-persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model$propname, "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
 ```
 
