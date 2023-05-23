@@ -372,14 +372,14 @@ rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
 #    entity_type='dh_properties',
 #    propname='length'),
 #  TRUE)
-clength <- length$propvalue #channel length in ft
+#clength <- length$propvalue #channel length in ft
 
 #channel length coming from url believed to be in miles --- VERIFY!
 #clength to be replaced by length.1, length.2, etc
 #for (r in 1:length(rseg.model.version)) {
  # }
 
-clength <- length.1
+clength <- as.numeric(length.1) # -- temporary, for testing
 
 # -- begin for loop for iteration?
 
