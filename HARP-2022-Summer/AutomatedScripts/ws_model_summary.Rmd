@@ -296,8 +296,8 @@ do.call("grid.arrange", c(l90.2yr,  ncol = 2, nrow = length(rseg.model.version)-
 knitr::opts_chunk$set(fig.width=7, fig.height=4)
 ```
 
-```{r, echo = FALSE}
-#Creating paths from input params to read in file containing length for ftables 
+```{r ftable_data, include=FALSE}
+#getting ftables:
 for (r in 1:length(rseg.model.version)) {
   submod.r <- params$ftable.submod[r]
   id.r <- params$ftable.id[r]
@@ -308,22 +308,11 @@ for (r in 1:length(rseg.model.version)) {
   path.HYDR <- paste(esite, submod.r, 'input/param/river', id.r, 'HYDR.csv', sep = '/' )
   lendf <- fread(path.HYDR)
   rownum <- which(lendf == rseg.r)
-  length = as.numeric(lendf[rownum, 3])
-  assign(paste0('length.',r),length*5280) #convert miles to ft
-}
-```
-
-```{r ftable_data, include=FALSE}
-#getting ftables:
-for (r in 1:length(rseg.model.version)) {
-  submod.r <- params$ftable.submod[r]
-  id.r <- params$ftable.id[r]
-  rseg.r <- params$seg[r]
-  if (submod.r == 'p6') {
-    submod.r <- paste0('p6/vadeq')
-  }
+  length = as.numeric(lendf[rownum, 3])*5280 #convert miles to ft
+  #assign(paste0('length.',r),length*5280) 
+ 
   path.ftable<- paste0(esite, '/', submod.r, '/input/param/river/', id.r, '/ftables/', rseg.r, '.ftable' )
-  ftable_raw <- fread(path.ftable)
+  ftable_raw <- read.csv(path.ftable, sep='', header=FALSE)
   #remove flow-thru col if it exists (for old models):
   if (ncol(ftable_raw)>4) {
   ftable_raw <- ftable_raw[,1:4]
@@ -343,7 +332,25 @@ for (r in 1:length(rseg.model.version)) {
     }
   rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
   
-  assign(paste0('ftable.',r),ftable)
+  #generate 3D coordinates:
+  ftable$x <- ftable$area * 43560 / length / 2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
+  #multiply by 43560 to go acres --> sqft
+  
+  x <- c(ftable$x[-1],-ftable$x[-1]) #make sure there aren't 2 rows where x=0
+  y <- seq(0, length, length.out = length(x))
+  z <- c(ftable$depth[-1], ftable$depth[-1])
+  
+  pair <- cbind(x, z)
+  pair <- pair[order(x), ] #ascending order
+  x <- pair[, 1]
+  z <- pair[, -1]
+  for (i in 1:(length(x) - 1)) {
+    z <- cbind(z, pair[, -1])
+  }
+  colnames(z) <- y #to conceptualize data
+  rownames(z) <- x
+  
+  assign(paste0('z.', r), z)
 }
 
 #path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
@@ -383,28 +390,11 @@ for (r in 1:length(rseg.model.version)) {
 #for (r in 1:length(rseg.model.version)) {
  # }
 
-clength <- as.numeric(length.1) # -- temporary, for testing
+#clength <- as.numeric(length.1) # -- temporary, for testing
 
 # -- begin for loop for iteration?
 
-#generate 3D coordinates:
-ftable$x <- ftable$area*43560/clength/2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
-#multiply by 43560 to go acres --> sqft
 
-x <- c(ftable$x[-1], -ftable$x[-1]) #make sure there aren't 2 rows where x=0
-y <- seq(0, clength, length.out=length(x))
-z <- c(ftable$depth[-1], ftable$depth[-1])
-
-pair <- cbind(x, z)
-pair <- pair[order(x),] #ascending order
-x <- pair[,1]
-z <- pair[,-1]
-
-for (i in 1:(length(x)-1)){
-  z <- cbind(z, pair[,-1])
-}
-colnames(z) <- y #to conceptualize data
-rownames(z) <- x
 
 # -- end loop ?
 
@@ -412,19 +402,19 @@ rownames(z) <- x
 
 ```{r, ftable_plots, echo=FALSE, warning=FALSE}
 #plot channel: -- needs to be done for each model
-persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
+persp(as.numeric(rownames(z)), as.numeric(colnames(z)), z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
       ylab="Channel Length (ft)", zlab="Depth (ft)", 
       main=paste(model.comparison[1,2], "Cross-section"), #model.comparison[1,i]
       sub=paste("Water is shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
   for(i in 1:15){
-    lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, clength, by=10) , z = ftable$depth[i], pmat = channel), 
+    lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, length, by=10) , z = ftable$depth[i], pmat = channel), 
            col ="#33CCFF4F", pch=16) #bankfull
   }
 #note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
 
-persp(x, y, z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+persp(as.numeric(rownames(z)), as.numeric(colnames(z)), z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
-persp(x, y, z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+persp(as.numeric(rownames(z)), as.numeric(colnames(z)), z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
 
 ```
 
