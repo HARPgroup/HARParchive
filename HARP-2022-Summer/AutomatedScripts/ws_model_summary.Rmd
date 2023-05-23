@@ -314,39 +314,43 @@ knitr::opts_chunk$set(fig.width=7, fig.height=4)
 ```
 
 ```{r ftable_data, include=FALSE}
-#get ftable:
-
-path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
-
-ftable_raw <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
-                    sep='', 
-                    header=FALSE)
-
-#remove flow-thru col if it exists (for old models):
-if (ncol(ftable_raw)>4) {
+#getting ftables:
+for (r in 1:length(rseg.model.version)) {
+  submod.r <- params$ftable.submod[r]
+  id.r <- params$ftable.id[r]
+  rseg.r <- params$seg[r]
+  if (submod.r == 'p6') {
+    submod.r <- paste0('p6/vadeq')
+  }
+  path.ftable<- paste0(esite, '/', submod.r, '/input/param/river/', id.r, '/ftables/', rseg.r, '.ftable' )
+  ftable_raw <- fread(path.ftable)
+  #remove flow-thru col if it exists (for old models):
+  if (ncol(ftable_raw)>4) {
   ftable_raw <- ftable_raw[,1:4]
-}
-#rename columns:
-colnames(ftable_raw) <- c('depth','area','vol','disch')
-
-#remove the row w/ matrix dimensions of the data (typically it's: [19,4] )
-dimensions_data <- as.numeric(rownames(ftable_raw[grep('ROWS', ftable_raw[, 1]),])) + 1 #add 1 because dimensions are 1 row below "ROWS COLS ***" comment/header row
-ftable_raw <- ftable_raw[-dimensions_data,]
-rownames(ftable_raw) <- seq(1, length(ftable_raw$depth)) #fix row numbers; otherwise we lose data in the for-loop
-
-#create empty data frame to add rows we're keeping (otherwise row numbers get scrambled in the for-loop):
-ftable <- data.frame(matrix(nrow=0, ncol=4))
-colnames(ftable) <- c('depth','area','vol','disch')
-
-for (i in 1:length(ftable_raw$depth)) {
-  if (!is.na(as.numeric(ftable_raw$depth[i]))) {
-    #only keep numeric data
+  }
+  colnames(ftable_raw) <- c('depth','area','vol','disch') #renaming columns
+  #remove the row w/ matrix dimensions of the data (typically it's: [19,4] )
+  dimensions_data <- as.numeric(rownames(ftable_raw[grep('ROWS', ftable_raw[, 1]),])) + 1 #add 1 because dimensions are 1 row below "ROWS COLS ***" comment/header row
+  ftable_raw <- ftable_raw[-dimensions_data,]
+  rownames(ftable_raw) <- seq(1, length(ftable_raw$depth)) #fix row numbers; otherwise we lose data in the for-loop
+  ftable <- data.frame(matrix(nrow=0, ncol=4)) #create empty data frame to add rows we're keeping (otherwise row numbers get scrambled in the for-loop)
+  colnames(ftable) <- c('depth','area','vol','disch')
+  for (i in 1:length(ftable_raw$depth)) {
+    if (!is.na(as.numeric(ftable_raw$depth[i]))) {  #only keep numeric data
     row_i <- as.numeric(rownames(ftable_raw[i,]))
     ftable <- rbind(ftable, as.numeric(ftable_raw[row_i,]))
-    colnames(ftable) <- c('depth','area','vol','disch')
-  }
+    colnames(ftable) <- c('depth','area','vol','disch') }
+    }
+  rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
+  
+  assign(paste0('ftable.',r),ftable)
 }
-rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
+
+#path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
+
+#ftable_raw <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
+#                    sep='', 
+#                    header=FALSE)
 
 #pull channel length:  -- now done using path created from params to pull from url
 #rseg<- RomFeature$new(ds,list(
