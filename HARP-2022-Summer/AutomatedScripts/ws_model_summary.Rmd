@@ -348,31 +348,40 @@ for (i in 1:length(ftable_raw$depth)) {
 }
 rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
 
-#pull channel length:
-rseg<- RomFeature$new(ds,list(
-    hydrocode= rseg.hydrocode[2], 
-    ftype= rseg.ftype[2],
-    bundle='watershed'), 
-    TRUE)
-model <- RomProperty$new(ds,list(
-    varkey="om_water_model_node",
-    featureid=rseg$hydroid,
-    entity_type="dh_feature", 
-    propcode='vahydro-1.0'), #can't be cbp-6.1 b/c it won't have a '0. River Channel'
-  TRUE)
-channel_prop <- RomProperty$new(ds,list(
+#pull channel length:  -- now done using path created from params to pull from url
+#rseg<- RomFeature$new(ds,list(
+#    hydrocode= rseg.hydrocode[2], 
+#    ftype= rseg.ftype[2],
+#    bundle='watershed'), 
+#    TRUE)
+#model <- RomProperty$new(ds,list(
+#    varkey="om_water_model_node",
+#    featureid=rseg$hydroid,
+#    entity_type="dh_feature", 
+#    propcode='vahydro-1.0'), #can't be cbp-6.1 b/c it won't have a '0. River Channel'
+#  TRUE)
+#channel_prop <- RomProperty$new(ds,list(
     #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
-    featureid=model$pid,
-    entity_type='dh_properties',
-    propname = '0. River Channel'),
-  TRUE)
-length <- RomProperty$new(channel_prop[["datasource"]],list(
-    varkey="om_class_Constant",
-    featureid=channel_prop$pid,
-    entity_type='dh_properties',
-    propname='length'),
-  TRUE)
-clength <- length$propvalue #channel length in ft
+#    featureid=model$pid,
+#    entity_type='dh_properties',
+#    propname = '0. River Channel'),
+#  TRUE)
+#length <- RomProperty$new(channel_prop[["datasource"]],list(
+#    varkey="om_class_Constant",
+#    featureid=channel_prop$pid,
+#    entity_type='dh_properties',
+#    propname='length'),
+#  TRUE)
+#clength <- length$propvalue #channel length in ft
+
+#channel length coming from url believed to be in miles --- VERIFY!
+#clength to be replaced by length.1, length.2, etc
+#for (r in 1:length(rseg.model.version)) {
+ # }
+
+clength <- as.numeric(length.1) # -- temporary, for testing
+
+# -- begin for loop for iteration?
 
 #generate 3D coordinates:
 ftable$x <- ftable$area*43560/clength/2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
@@ -393,10 +402,12 @@ for (i in 1:(length(x)-1)){
 colnames(z) <- y #to conceptualize data
 rownames(z) <- x
 
+# -- end loop ?
+
 ```
 
 ```{r, ftable_plots, echo=FALSE, warning=FALSE}
-#plot channel:
+#plot channel: -- needs to be done for each model
 persp(x, y, z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
       ylab="Channel Length (ft)", zlab="Depth (ft)", 
       main=paste(model$propname, "Cross-section"),
