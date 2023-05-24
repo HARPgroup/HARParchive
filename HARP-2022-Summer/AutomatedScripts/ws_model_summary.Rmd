@@ -364,14 +364,30 @@ for (r in 1:length(rseg.model.version)) {
   }
   
 }
+```
 
+```{r, eval=FALSE, echo=FALSE}
 #generate data to visualize a flow metric
-#for (r in 1:length(rseg.model.version)) {
+for (r in 1:length(rseg.model.version)) {
   #l90's from each year, averaged to one value:
- # l90_avg.r <- mean(as.numeric(l90.data[,r+1])) #1st column is year; the rest are the models
-#  disch.r <- ftables[r][[1]][,4]
-#  target.r <- which(abs(disch.r - l90_avg.r) == min(abs(disch.r - l90_avg.r)))
-#}
+  l90_avg.r <- mean(as.numeric(l90.data[,r+1])) #1st column is year; the rest are the models
+  disch.r <- ftables[r][[1]][,4]
+  target.r <- which(abs(disch.r - l90_avg.r) == min(abs(disch.r - l90_avg.r)))
+}
+
+fit <- lm(log(ftable.r$disch[-1]) ~ ftable.r$depth[-1])
+depths <- seq(0, max(ftable.r$depth), length.out=18)
+
+disch <- exp(predict(fit, list(depths)))
+predicted.disch <- predict(fit,data.frame(x=depths),interval='confidence',level=0.99)
+
+int <- fit[["coefficients"]][["(Intercept)"]]
+x.coeff <- fit[["coefficients"]][["ftable.r$depth[-1]"]]
+disch <- exp(int) * exp(x.coeff)^depths
+  
+plot(ftable.r$depth, ftable.r$disch)
+#plot(depths, predicted.disch[,1])
+lines(depths, disch, lwd=2, col='red')
 
 #path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 

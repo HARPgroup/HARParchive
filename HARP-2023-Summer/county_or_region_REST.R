@@ -1,0 +1,40 @@
+
+library(hydrotools)
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+
+#get lists of all the counties and regions----
+all_counties <- RomFeature$new(ds,list(bundle='usafips'),TRUE)
+counties.df <- cbind(all_counties[["name"]], all_counties[["hydrocode"]])
+  colnames(counties.df) <- c("County", "hydrocode_fips")
+
+all_regions <- RomFeature$new(ds,list(ftype= 'wsp_plan_region'),TRUE)
+regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
+  colnames(regions.df) <- c("Region", "hydrocode")
+
+#get Amelia county codes----
+county_name <- counties.df[88,1]
+county_hydrocode <- counties.df[88,2]
+county_hydroid <- all_counties[["hydroid"]][88]
+
+region_name <- regions.df[19,1]
+region_hydrocode <- regions.df[19,2]
+region_hydroid <- all_regions[["hydroid"]][19]
+
+#pull specific region feature----
+region <- RomFeature$new(ds, list(
+      ftype= 'wsp_plan_region',
+      hydrocode= region_hydrocode,
+      bundle= 'landunit'), 
+  TRUE)
+
+#pull specific county feature----
+county <- RomFeature$new(ds, list(
+  ftype= 'county',
+  hydrocode= county_hydrocode,
+  bundle= 'usafips'), 
+  TRUE)
+
+
