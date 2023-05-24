@@ -20,9 +20,9 @@ params:
   rseg.ftype: [ "cbp60","vahydro" ]
   rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
   runid.list: [ "hsp2_2022","subsheds" ]
-  ftable.submod:  [ "value", "value"] #either p6 or p532, p6 will have /vadeq added automatically
-  ftable.id: [ "value", "value"] #after /river/ and before /ftables in path
-  seg: [ "value", "value"] #needed to pull LEN from ftable HYDR file?
+  ftable.submod:  [ "p6", "p6"] #either p6 or p532, p6 will have /vadeq added automatically
+  ftable.id: [ "vahydro_2022", "vahydro_2022"] #after /river/ and before /ftables in path
+  seg: ["JA4_7280_7340", "JA4_7280_7340"] #needed to pull LEN from ftable HYDR file?
   rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
   #rseg.hydrocode: [ "JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200" ] #Black Creek Reservoir
   #rseg.ftype: [ "vahydro", "vahydro"]
@@ -322,36 +322,56 @@ for (r in 1:length(rseg.model.version)) {
   dimensions_data <- as.numeric(rownames(ftable_raw[grep('ROWS', ftable_raw[, 1]),])) + 1 #add 1 because dimensions are 1 row below "ROWS COLS ***" comment/header row
   ftable_raw <- ftable_raw[-dimensions_data,]
   rownames(ftable_raw) <- seq(1, length(ftable_raw$depth)) #fix row numbers; otherwise we lose data in the for-loop
-  ftable <- data.frame(matrix(nrow=0, ncol=4)) #create empty data frame to add rows we're keeping (otherwise row numbers get scrambled in the for-loop)
-  colnames(ftable) <- c('depth','area','vol','disch')
+  ftable.r <- data.frame(matrix(nrow=0, ncol=4)) #create empty data frame to add rows we're keeping (otherwise row numbers get scrambled in the for-loop)
+  colnames(ftable.r) <- c('depth','area','vol','disch')
   for (i in 1:length(ftable_raw$depth)) {
     if (!is.na(as.numeric(ftable_raw$depth[i]))) {  #only keep numeric data
     row_i <- as.numeric(rownames(ftable_raw[i,]))
-    ftable <- rbind(ftable, as.numeric(ftable_raw[row_i,]))
-    colnames(ftable) <- c('depth','area','vol','disch') }
+    ftable.r <- rbind(ftable.r, as.numeric(ftable_raw[row_i,]))
+    colnames(ftable.r) <- c('depth','area','vol','disch') }
     }
-  rownames(ftable) <- seq(1, length(ftable$depth)) #fix row numbers for clarity
+  rownames(ftable.r) <- seq(1, length(ftable.r$depth)) #fix row numbers for clarity
   
   #generate 3D coordinates:
-  ftable$x <- ftable$area * 43560 / length / 2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
+  ftable.r$x <- ftable.r$area * 43560 / length / 2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
   #multiply by 43560 to go acres --> sqft
   
-  x <- c(ftable$x[-1],-ftable$x[-1]) #make sure there aren't 2 rows where x=0
-  y <- seq(0, length, length.out = length(x))
-  z <- c(ftable$depth[-1], ftable$depth[-1])
+  #save ftables together in a list
+  if(r==1){
+    ftables <- list(ftable.r)
+  } else {
+    ftables <- append(ftables, list(ftable.r))
+  }
   
-  pair <- cbind(x, z)
+  x <- c(ftable.r$x[-1],-ftable.r$x[-1]) #make sure there aren't 2 rows where x=0
+  y <- seq(0, length, length.out = length(x))
+  z.r <- c(ftable.r$depth[-1], ftable.r$depth[-1])
+  
+  pair <- cbind(x, z.r)
   pair <- pair[order(x), ] #ascending order
   x <- pair[, 1]
-  z <- pair[, -1]
+  z.r <- pair[, -1]
   for (i in 1:(length(x) - 1)) {
-    z <- cbind(z, pair[, -1])
+    z.r <- cbind(z.r, pair[, -1])
   }
-  colnames(z) <- y #to conceptualize data
-  rownames(z) <- x
+  colnames(z.r) <- y #to conceptualize data
+  rownames(z.r) <- x
   
-  assign(paste0('z.', r), z)
+  if(r==1){
+    z <- list(z.r)
+  } else {
+    z <- append(z, list(z.r))
+  }
+  
 }
+
+#generate data to visualize a flow metric
+#for (r in 1:length(rseg.model.version)) {
+  #l90's from each year, averaged to one value:
+ # l90_avg.r <- mean(as.numeric(l90.data[,r+1])) #1st column is year; the rest are the models
+#  disch.r <- ftables[r][[1]][,4]
+#  target.r <- which(abs(disch.r - l90_avg.r) == min(abs(disch.r - l90_avg.r)))
+#}
 
 #path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
 
@@ -402,20 +422,49 @@ for (r in 1:length(rseg.model.version)) {
 
 ```{r, ftable_plots, echo=FALSE, warning=FALSE}
 #plot channel: -- needs to be done for each model
-persp(as.numeric(rownames(z)), as.numeric(colnames(z)), z, theta = 5, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)",
-      ylab="Channel Length (ft)", zlab="Depth (ft)", 
-      main=paste(model.comparison[1,2], "Cross-section"), #model.comparison[1,i]
-      sub=paste("Water is shown in channel at a depth of", ftable$depth[15],"ft \n Bankfull is approx.", ftable$depth[10], "ft"))->channel
-  for(i in 1:15){
-    lines (trans3d(x = c(-ftable$x[i], ftable$x[i]), y = seq(0, length, by=10) , z = ftable$depth[i], pmat = channel), 
-           col ="#33CCFF4F", pch=16) #bankfull
-  }
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = 5,phi = 15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 8,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9, xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section"),
+    #model.comparison[1,i]
+    #sub = paste("Water is shown in channel at a depth of",ftable$depth[15],
+    #  "ft \n Bankfull is approx.",ftable$depth[10],"ft")
+    ) #-> channel
+  #for (i in 1:15) {
+   # lines (trans3d(x = c(-ftable$x[i], ftable$x[i]),
+    #               y = seq(0, length, by = 10), z = ftable$depth[i],
+    #              pmat = channel),
+    #      col = "#33CCFF4F",
+    #      pch = 16
+    #      ) #bankfull
+  #}
+}
 #note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
 
-persp(as.numeric(rownames(z)), as.numeric(colnames(z)), z, theta = 10, phi = 15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = 10,phi = 15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 8,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9,xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section")
+    #, sub = paste("Bankfull Depth is approx.", ftable$depth[10], "ft")
+  )
+}
 
-persp(as.numeric(rownames(z)), as.numeric(colnames(z)), z, theta = -5, phi = -15, expand = .2, col = "#0099CC", axes=TRUE, nticks=8, ticktype="detailed", scale=TRUE, shade=0.65, border="003300", d=0.6, r=9, xlab="Width (ft)", ylab="Channel Length (ft)", zlab="Depth (ft)", main=paste(model.comparison[1,2], "Cross-section"), sub=paste("Bankfull Depth is approx.", ftable$depth[10], "ft"))
-
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = -5,phi = -15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 8,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9,xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section")
+    #,sub = paste("Bankfull Depth is approx.", ftable$depth[10], "ft")
+  )
+}
 ```
 
 \newpage
