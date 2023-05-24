@@ -8,7 +8,7 @@ ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 
 #Get all vahydro watersheds
-seglist <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed'))
+seglist <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) #line causes R to restart - Glenn
 seglist$riverseg <- str_replace(seglist$hydrocode, 'vahydrosw_wshed_', '')
 
 #Setting up function
