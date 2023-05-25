@@ -56,7 +56,15 @@ county <- RomFeature$new(ds, list(
 
 
 ```{r}
+#Testing fetch w/ admin info - Glenn
 #token <- rest_token(base_url = site, rest_uname = rest_uname, rest_pw = rest_pw)
+wsp_basin <- getAdminregFeature(inputs = list(
+  ftype = 'wsp_plan_watershed',
+  bundle = 'registration'), base_url = site)
+
+facilities <- getAdminregFeature(inputs = list(
+  ftype = 'vdeq_vwuds',
+  bundle = 'registration'), base_url = site)
 
 bburgLocalGov <- getAdminregFeature(inputs = list(
   adminid = '172746',
