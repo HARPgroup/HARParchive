@@ -38,3 +38,27 @@ county <- RomFeature$new(ds, list(
   TRUE)
 
 
+#fetching a specific facility via dh adminreg
+
+site <- 'http://deq1.bse.vt.edu/d.dh'
+#token <- rest_token(base_url = site,rest_pw = rest_pw)  -- This needs to be run for getAdminregFEature
+
+bburgLocalGov <- getAdminregFeature(inputs = list(
+  adminid = '172746',
+  bundle = 'local_government'), base_url = site)
+
+
+bburgGolfCourse <- getAdminregFeature(inputs = list(
+  adminid = '68732',
+  bundle = 'registration'), base_url = site)
+
+
+# For getAdminregFeature()
+#pbody = list(
+#  adminid = inputs$adminid,
+#  bundle = inputs$bundle,
+#  ftype = inputs$ftype,
+#  admincode = inputs$admincode
+#);
+
+
