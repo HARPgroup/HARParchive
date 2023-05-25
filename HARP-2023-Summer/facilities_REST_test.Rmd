@@ -14,6 +14,7 @@ basepath='/var/www/R'
 source('/var/www/R/config.R')
 ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
+site <- 'http://deq1.bse.vt.edu/d.dh'
 ```
 
 ```{r Pulling all Regions/Counties}
@@ -52,3 +53,25 @@ county <- RomFeature$new(ds, list(
   bundle= 'usafips'), 
   TRUE)
 ```
+
+
+```{r}
+#Testing fetch w/ admin info - Glenn
+#token <- rest_token(base_url = site, rest_uname = rest_uname, rest_pw = rest_pw)
+wsp_basin <- getAdminregFeature(inputs = list(
+  ftype = 'wsp_plan_watershed',
+  bundle = 'registration'), base_url = site)
+
+facilities <- getAdminregFeature(inputs = list(
+  ftype = 'vdeq_vwuds',
+  bundle = 'registration'), base_url = site)
+
+bburgLocalGov <- getAdminregFeature(inputs = list(
+  adminid = '172746',
+  bundle = 'local_government'), base_url = site)
+
+bburgGolfCourse <- getAdminregFeature(inputs = list(
+  adminid = '68732',
+  bundle = 'registration'), base_url = site)
+```
+
