@@ -388,55 +388,22 @@ disch <- exp(int) * exp(x.coeff)^depths
 plot(ftable.r$depth, ftable.r$disch)
 #plot(depths, predicted.disch[,1])
 lines(depths, disch, lwd=2, col='red')
-
-#path_uci <- 'http://deq1.bse.vt.edu:81/p6/vadeq/input/param/river/vahydro_2022/ftables/'
-
-#ftable_raw <- read.csv(paste(path_uci, rseg.hydrocode[1], '.ftable', sep=''), 
-#                    sep='', 
-#                    header=FALSE)
-
-#pull channel length:  -- now done using path created from params to pull from url
-#rseg<- RomFeature$new(ds,list(
-#    hydrocode= rseg.hydrocode[2], 
-#    ftype= rseg.ftype[2],
-#    bundle='watershed'), 
-#    TRUE)
-#model <- RomProperty$new(ds,list(
-#    varkey="om_water_model_node",
-#    featureid=rseg$hydroid,
-#    entity_type="dh_feature", 
-#    propcode='vahydro-1.0'), #can't be cbp-6.1 b/c it won't have a '0. River Channel'
-#  TRUE)
-#channel_prop <- RomProperty$new(ds,list(
-    #varkey="om_USGSChannelGeomObject", #for local_channel it needs _sub added to end
-#    featureid=model$pid,
-#    entity_type='dh_properties',
-#    propname = '0. River Channel'),
-#  TRUE)
-#length <- RomProperty$new(channel_prop[["datasource"]],list(
-#    varkey="om_class_Constant",
-#    featureid=channel_prop$pid,
-#    entity_type='dh_properties',
-#    propname='length'),
-#  TRUE)
-#clength <- length$propvalue #channel length in ft
-
-#channel length coming from url believed to be in miles --- VERIFY!
-#clength to be replaced by length.1, length.2, etc
-#for (r in 1:length(rseg.model.version)) {
- # }
-
-#clength <- as.numeric(length.1) # -- temporary, for testing
-
-# -- begin for loop for iteration?
-
-
-
-# -- end loop ?
-
 ```
 
 ```{r, ftable_plots, echo=FALSE, warning=FALSE}
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = 10,phi = 15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 5,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9,xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section")
+    #, sub = paste("Bankfull Depth is approx.", ftable$depth[10], "ft")
+  )
+}
+```
+
+```{r, extra_ftable_plots, eval=FALSE, echo=FALSE, warning=FALSE}
 #plot channel: -- needs to be done for each model
 for (r in 1:length(rseg.model.version)) {
   persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
@@ -459,17 +426,6 @@ for (r in 1:length(rseg.model.version)) {
   #}
 }
 #note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
-
-for (r in 1:length(rseg.model.version)) {
-  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
-    theta = 10,phi = 15,expand = .2,col = "#0099CC",axes = TRUE,
-    nticks = 8,ticktype = "detailed",scale = TRUE,shade = 0.65,
-    border = "003300",d = 0.6,r = 9,xlab = "Width (ft)",
-    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
-    main = paste(model.comparison[1, r], "Cross-section")
-    #, sub = paste("Bankfull Depth is approx.", ftable$depth[10], "ft")
-  )
-}
 
 for (r in 1:length(rseg.model.version)) {
   persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
