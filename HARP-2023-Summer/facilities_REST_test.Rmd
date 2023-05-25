@@ -52,3 +52,28 @@ county <- RomFeature$new(ds, list(
   bundle= 'usafips'), 
   TRUE)
 ```
+
+```{r Ella Testing}
+token <- rest_token(base_url = site,rest_pw = rest_pw)
+
+#Pulls all localities, can specify one with adminid in list
+locality.ds <- getAdminregFeature(inputs = list(
+  bundle = 'registration',
+  ftype = 'wsp_plan_locality'), base_url = site)
+
+#pull specific values
+locality_name <- locality.ds[1,5]
+locality_adminID <- locality.ds[1,1]
+
+#Pulls all facilities, can specify one with adminid in list
+facility.ds <- getAdminregFeature(inputs = list(
+  bundle = 'registration',
+  ftype = 'vdeq_vwuds'), base_url = site)
+
+#pull specific values
+facility_name <- facility.ds[1,5]
+facility_adminID <- facility.ds[1,1]
+
+#we want to be able to pull data from these localities and facilities
+
+```
