@@ -14,6 +14,7 @@ library(dataRetrieval)
 library(lubridate)
 library(data.table)
 library(IHA)
+library(zoo)
 ```
 
 
@@ -25,7 +26,7 @@ endDate <- '2023-12-31'
 pCode <- '00060' #the code for discharge in cfs
 sCode <- '00003' #the code for daily mean data
 flow <- readNWISdv(siteno, pCode, startDate, endDate, sCode) #creates a data frame with flow data from the specified gauge 
-colnames(RRflow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code') #rename the columns for table
+colnames(flow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code') #rename the columns for table
 ```
 
 
@@ -40,8 +41,8 @@ flow$year <- year(flow$Date)
 ```{r}
 #Visualizing the L90 metric 
 #L90 represents the lowest consecutive 90 day average daily streamflow over the simulation period -- a prolonged drought 
-
-
+flowz <- zoo(flow$Flow, order.by = flow$Date) #create zoo object for use in IHA function
+g2 <- group2(flowz, year = 'water')#IHA group2() automatically finds L30, L90, etc.
 
 ```
 
