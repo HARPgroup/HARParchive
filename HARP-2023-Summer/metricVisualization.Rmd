@@ -1,0 +1,48 @@
+---
+title: "metricVisualization"
+author: "Glenn Campagna"
+date: '2023-05-26'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dataRetrieval)
+library(lubridate)
+library(data.table)
+library(IHA)
+library(zoo)
+```
+
+
+```{r}
+#Bringing in USGS flow data for analysis and plotting 
+siteno <- '01668000' #guage for Rappahannock river @ Fredericksburg VA
+startDate <- '1990-01-01'
+endDate <- '2023-12-31'
+pCode <- '00060' #the code for discharge in cfs
+sCode <- '00003' #the code for daily mean data
+flow <- readNWISdv(siteno, pCode, startDate, endDate, sCode) #creates a data frame with flow data from the specified gauge 
+colnames(flow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code') #rename the columns for table
+```
+
+
+```{r}
+#Manipulating data 
+flow$Date <- as.Date(flow$Date, format= "%m/%d/%Y")
+flow$month <-month(flow$Date)
+flow$year <- year(flow$Date)
+```
+
+
+```{r}
+#Visualizing the L90 metric 
+#L90 represents the lowest consecutive 90 day average daily streamflow over the simulation period -- a prolonged drought 
+flowz <- zoo(flow$Flow, order.by = flow$Date) #create zoo object for use in IHA function
+g2 <- group2(flowz, year = 'water')#IHA group2() automatically finds L30, L90, etc.
+
+```
+
