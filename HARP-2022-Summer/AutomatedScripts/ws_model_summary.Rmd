@@ -182,8 +182,8 @@ for (r in 1:length(rseg.model.version)){
 model.info <- model.comparison %>% as.data.frame() %>% add_rownames() %>% qflextable()
 
 # Set column widths
-model.info <- width(model.info, j = 2:length(model.comparison[1,]), width = 1.9)
-model.info <- width(model.info, j = 1, width = 2.5)
+model.info <- width(model.info, j = 2:(length(model.comparison[1,])+1), width = 1.9)
+model.info <- width(model.info, j = 1, width = 1)
 
 # Set theme
 model.info <- theme_box(model.info)
@@ -947,8 +947,9 @@ for (r in 2:length(rseg.model.version)) {
 ft <- qflextable(statsdf)
 
 # Set column widths
-ft <- width(ft, j = 2:length(statsdf[1,]), width = 1.9)
+ft <- width(ft, j = 2:(length(rseg.model.version)+1), width = 1.9)
 ft <- width(ft, j = 1, width = 2.5)
+#ft <- width(ft, j = (length(rseg.model.version)+1):(statsdf[1,]), width = 1.0)
 
 # Set theme
 ft <- theme_box(ft)
