@@ -537,7 +537,7 @@ l30.plot
 ```
 
 ## 7-Day Low Flow Comparison
-```{r 7day, echo = FALSE, eval = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
+```{r 7day, echo = FALSE,  fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["7 Day Min"])
