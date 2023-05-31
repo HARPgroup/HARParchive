@@ -146,7 +146,7 @@ for (r in 1:length(rseg.model.version)){
 ```
 
 The models compared in this document are:
-``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo"}
+``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo", warning = FALSE}
 for (r in 1:length(rseg.model.version)){
   ftext.model.r <- paste(dat[[r]][[3]])
   ftext.hcode.r <- paste(rseg.hydrocode[r])
@@ -593,7 +593,7 @@ l1.plot
 knitr::opts_chunk$set(fig.width=5, fig.height=5)
 ```
 
-``` {r scatter.2models, eval = FALSE, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+``` {r scatter.2models, echo = FALSE, eval=FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
 
 if (length(rseg.model.version) > 2) {
 
@@ -848,7 +848,7 @@ plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
 
 ## Model %-Difference
 
-``` {r percent, eval = FALSE, echo = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
+``` {r percent, echo = FALSE, eval = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
 # differences calculated in previous chunk, except the mean:
 
 for (r in 1:length(rseg.model.version)) {
@@ -921,6 +921,24 @@ if (length(rseg.model.version) == 3) {
 
 ```
 
+```{r, echo = FALSE}
+#Finding % diff for important metrics 
+#Basing difference on first model supplied, which can be assigned the 2020 demand scenario using a vahydro-1.0 model and runid_11
+metric_table <- rseg_table[-1,] #removing first row which does not have numeric data
+for (r in 2:length(rseg.model.version)) { 
+  metric_table$diff <- as.numeric(metric_table[,r+1]) - as.numeric(metric_table[,2]) #simple difference
+  metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 4)*100 #conv to % diff
+  metric_table <- subset(metric_table, select = -c(diff)) #removing dfifference col used to calc % diff 
+  metric_table[is.na(metric_table)] <- 0 #changing any NA values to 0
+  pct_list <- metric_table$pct_diff #create vector to add element 
+  pct_list <- c('--', pct_list) #add blank element to beginning of differences as placeholder in df 
+  statsdf[,ncol(statsdf)+1] <- pct_list #adding column to statsdf 
+  colnames(statsdf)[r+length(rseg.model.version)] <- paste0('% diff ', colnames(metric_table)[r+1]) #adding unique column name for each % diff
+}
+```
+
+
+
 \newpage 
 <!---BLOCK_LANDSCAPE_START--->
 # Metrics Summary
@@ -941,3 +959,5 @@ ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEF
 fontsize(ft, size = 9)
 ```
 <!---BLOCK_LANDSCAPE_STOP--->
+
+
