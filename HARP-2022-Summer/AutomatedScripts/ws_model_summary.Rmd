@@ -927,9 +927,14 @@ if (length(rseg.model.version) == 3) {
 #Finding % diff for important metrics 
 #Basing difference on first model supplied, which can be assigned the 2020 demand scenario using a vahydro-1.0 model and runid_11
 metric_table <- rseg_table[-1,] #removing first row which does not have numeric data
-metric_table$diff <- as.numeric(metric_table[,3]) - as.numeric(metric_table[,2]) 
-metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 2)
+for (r in 2:length(rseg.model.version)) { 
+  metric_table$diff <- as.numeric(metric_table[,3]) - as.numeric(metric_table[,2]) 
+  metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 2)
+  colnames(metric_table)[r+3] <- paste0('% Diff ',r-1)
+}
 metric_table <- subset(metric_table, select = -c(diff)) #removing dfifferenc col used to calc % diff 
+metric_table[is.na(metric_table)] <- 0 #changing any NA values to 0
+
 #metric_table[nrow(metric_table) + 1,] <- statsdf[1,] #adding 1st row back to the data frame --- needs to be on TOP
 ```
 
