@@ -235,7 +235,7 @@ knitr::opts_chunk$set(fig.width=7.5, fig.height=5)
 ```
 
 ## Flow Duration Curve
-```{r FDCRetrieve, echo = FALSE, eval=FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
 
 fdc = list()
 for (r in 1:length(rseg.model.version)) {
@@ -249,7 +249,7 @@ do.call("grid.arrange", c(fdc,  ncol = 2, nrow = length(rseg.model.version)-1))
 ```
 
 ## Mean Flow, Withdrawals and Point Sources
-```{r AllFlowsRetrieve, echo = FALSE, eval=FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption", out.width = '100%'}
 
 all.flows = list()
 for (r in 1:length(rseg.model.version)) {
@@ -263,7 +263,7 @@ do.call("grid.arrange", c(all.flows,  ncol = 2, nrow = length(rseg.model.version
 ```
 
 ## Dry Period Hydrograph
-```{r DryRetrieve, echo = FALSE, eval=FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
 
 hydrograph = list()
 for (r in 1:length(rseg.model.version)) {
@@ -277,7 +277,7 @@ do.call("grid.arrange", c(hydrograph,  ncol = 2, nrow = length(rseg.model.versio
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, echo = FALSE, eval=FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
 
 l90.2yr = list()
 for (r in 1:length(rseg.model.version)) {
@@ -485,7 +485,7 @@ knitr::opts_chunk$set(fig.width=5, fig.height=3)
 ```
 
 ## 90-Day Low Flow Comparison
-```{r 90day, echo = FALSE, eval = FALSE, fig.cap=paste("The 90-day low flows:", title_param), fig.id = "90day", fig.cap.style = "Image Caption"}
+```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", title_param), fig.id = "90day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
@@ -511,7 +511,7 @@ l90.plot
 ```
 
 ## 30-Day Low Flow Comparison
-```{r 30day, echo = FALSE, eval = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
@@ -537,7 +537,7 @@ l30.plot
 ```
 
 ## 7-Day Low Flow Comparison
-```{r 7day, echo = FALSE, eval = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
+```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["7 Day Min"])
@@ -563,7 +563,7 @@ l7.plot
 ```
 
 ## 1-Day Low Flow Comparison
-```{r 1day, echo = FALSE, eval = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
+```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["1 Day Min"])
@@ -927,7 +927,7 @@ if (length(rseg.model.version) == 3) {
 metric_table <- rseg_table[-1,] #removing first row which does not have numeric data
 for (r in 2:length(rseg.model.version)) { 
   metric_table$diff <- as.numeric(metric_table[,r+1]) - as.numeric(metric_table[,2]) #simple difference
-  metric_table$pct_diff <- as.numeric(round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 4)*100) #conv to % diff
+  metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 4)*100 #conv to % diff
   metric_table <- subset(metric_table, select = -c(diff)) #removing dfifference col used to calc % diff 
   metric_table[is.na(metric_table)] <- 0 #changing any NA values to 0
   pct_list <- metric_table$pct_diff #create vector to add element 
