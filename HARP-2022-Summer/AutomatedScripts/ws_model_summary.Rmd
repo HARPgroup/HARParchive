@@ -182,8 +182,8 @@ for (r in 1:length(rseg.model.version)){
 model.info <- model.comparison %>% as.data.frame() %>% add_rownames() %>% qflextable()
 
 # Set column widths
-model.info <- width(model.info, j = 2:length(model.comparison[1,]), width = 1.9)
-model.info <- width(model.info, j = 1, width = 2.5)
+model.info <- width(model.info, j = 2:(length(model.comparison[1,])+1), width = 1.9)
+model.info <- width(model.info, j = 1, width = 1)
 
 # Set theme
 model.info <- theme_box(model.info)
@@ -927,7 +927,7 @@ if (length(rseg.model.version) == 3) {
 metric_table <- rseg_table[-1,] #removing first row which does not have numeric data
 for (r in 2:length(rseg.model.version)) { 
   metric_table$diff <- as.numeric(metric_table[,r+1]) - as.numeric(metric_table[,2]) #simple difference
-  metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 4)*100 #conv to % diff
+  metric_table$pct_diff <- as.numeric(round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 4)*100) #conv to % diff
   metric_table <- subset(metric_table, select = -c(diff)) #removing dfifference col used to calc % diff 
   metric_table[is.na(metric_table)] <- 0 #changing any NA values to 0
   pct_list <- metric_table$pct_diff #create vector to add element 
