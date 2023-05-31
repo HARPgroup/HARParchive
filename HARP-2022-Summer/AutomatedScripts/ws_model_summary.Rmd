@@ -277,7 +277,7 @@ do.call("grid.arrange", c(hydrograph,  ncol = 2, nrow = length(rseg.model.versio
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, eval = FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
 
 l90.2yr = list()
 for (r in 1:length(rseg.model.version)) {
@@ -511,7 +511,7 @@ l90.plot
 ```
 
 ## 30-Day Low Flow Comparison
-```{r 30day, eval = FALSE, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
