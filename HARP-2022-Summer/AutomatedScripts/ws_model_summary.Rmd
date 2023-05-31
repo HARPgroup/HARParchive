@@ -277,7 +277,7 @@ do.call("grid.arrange", c(hydrograph,  ncol = 2, nrow = length(rseg.model.versio
 ```
 
 ## 90-day Low Flows over a 2 year Period
-```{r L902YRetrieve, eval = FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
 
 l90.2yr = list()
 for (r in 1:length(rseg.model.version)) {
@@ -828,21 +828,21 @@ if (length(rseg.model.version) == 3) {
   
 }
 
-#plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
-#plot_row1 <- plot_grid(plots[[1]], l90.diff , 
-#                        labels = c("90 Day Low Flow" ," "), label_size = 10,
- #                       rel_widths = c(0.5, 0.5))
-#plot_row2 <- plot_grid(l30.scatter, l30.diff, 
-#                        labels = c("30 Day Low Flow" ," "), label_size = 10,
- #                       rel_widths = c(0.5, 0.5))
-#plot_row3 <- plot_grid(l7.scatter, l7.diff, 
-#                        labels = c("7 Day Low Flow" ," "), label_size = 10,
-#                        rel_widths = c(0.5, 0.5))
-#plot_row4 <- plot_grid(plots[[2]], l1.diff, 
-#                        labels = c("1 Day Low Flow" ," "), label_size = 10,
-#                        rel_widths = c(0.5, 0.5))
+plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
+plot_row1 <- plot_grid(plots[[1]], l90.diff , 
+                        labels = c("90 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+plot_row2 <- plot_grid(l30.scatter, l30.diff, 
+                        labels = c("30 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+plot_row3 <- plot_grid(l7.scatter, l7.diff, 
+                        labels = c("7 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+plot_row4 <- plot_grid(plots[[2]], l1.diff, 
+                        labels = c("1 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
   
-#plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
+plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
 
 ```
 
