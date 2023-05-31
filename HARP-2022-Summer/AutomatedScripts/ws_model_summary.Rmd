@@ -235,7 +235,7 @@ knitr::opts_chunk$set(fig.width=7.5, fig.height=5)
 ```
 
 ## Flow Duration Curve
-```{r FDCRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
 
 fdc = list()
 for (r in 1:length(rseg.model.version)) {
@@ -249,7 +249,7 @@ do.call("grid.arrange", c(fdc,  ncol = 2, nrow = length(rseg.model.version)-1))
 ```
 
 ## Mean Flow, Withdrawals and Point Sources
-```{r AllFlowsRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption", out.width = '100%'}
 
 all.flows = list()
 for (r in 1:length(rseg.model.version)) {
@@ -263,7 +263,7 @@ do.call("grid.arrange", c(all.flows,  ncol = 2, nrow = length(rseg.model.version
 ```
 
 ## Dry Period Hydrograph
-```{r DryRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
 
 hydrograph = list()
 for (r in 1:length(rseg.model.version)) {
@@ -511,7 +511,7 @@ l90.plot
 ```
 
 ## 30-Day Low Flow Comparison
-```{r 30day, eval = FALSE, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
@@ -563,7 +563,7 @@ l7.plot
 ```
 
 ## 1-Day Low Flow Comparison
-```{r 1day, echo = FALSE, eval = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
+```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
     l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["1 Day Min"])
@@ -593,7 +593,7 @@ l1.plot
 knitr::opts_chunk$set(fig.width=5, fig.height=5)
 ```
 
-``` {r scatter.2models, eval = FALSE, echo = FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+``` {r scatter.2models, echo = FALSE, eval=FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
 
 if (length(rseg.model.version) > 2) {
 
@@ -828,27 +828,27 @@ if (length(rseg.model.version) == 3) {
   
 }
 
-plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
-plot_row1 <- plot_grid(plots[[1]], l90.diff , 
-                        labels = c("90 Day Low Flow" ," "), label_size = 10,
-                        rel_widths = c(0.5, 0.5))
-plot_row2 <- plot_grid(l30.scatter, l30.diff, 
-                        labels = c("30 Day Low Flow" ," "), label_size = 10,
-                        rel_widths = c(0.5, 0.5))
-plot_row3 <- plot_grid(l7.scatter, l7.diff, 
-                        labels = c("7 Day Low Flow" ," "), label_size = 10,
-                        rel_widths = c(0.5, 0.5))
-plot_row4 <- plot_grid(plots[[2]], l1.diff, 
-                        labels = c("1 Day Low Flow" ," "), label_size = 10,
-                        rel_widths = c(0.5, 0.5))
+#plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
+#plot_row1 <- plot_grid(plots[[1]], l90.diff , 
+#                        labels = c("90 Day Low Flow" ," "), label_size = 10,
+ #                       rel_widths = c(0.5, 0.5))
+#plot_row2 <- plot_grid(l30.scatter, l30.diff, 
+#                        labels = c("30 Day Low Flow" ," "), label_size = 10,
+ #                       rel_widths = c(0.5, 0.5))
+#plot_row3 <- plot_grid(l7.scatter, l7.diff, 
+#                        labels = c("7 Day Low Flow" ," "), label_size = 10,
+#                        rel_widths = c(0.5, 0.5))
+#plot_row4 <- plot_grid(plots[[2]], l1.diff, 
+#                        labels = c("1 Day Low Flow" ," "), label_size = 10,
+#                        rel_widths = c(0.5, 0.5))
   
-plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
+#plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
 
 ```
 
 ## Model %-Difference
 
-``` {r percent, eval = FALSE, echo = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
+``` {r percent, echo = FALSE, eval = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
 # differences calculated in previous chunk, except the mean:
 
 for (r in 1:length(rseg.model.version)) {
@@ -920,6 +920,18 @@ if (length(rseg.model.version) == 3) {
 }
 
 ```
+
+## Metrics %-Difference
+
+```{r}
+#Finding % diff for important metrics 
+metric_table <- rseg_table[-1,] #removing first row which does not have numeric data
+metric_table$diff <- as.numeric(metric_table[,3]) - as.numeric(metric_table[,2])
+metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 2)
+
+```
+
+
 
 \newpage 
 <!---BLOCK_LANDSCAPE_START--->
