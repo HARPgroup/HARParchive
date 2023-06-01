@@ -235,7 +235,7 @@ knitr::opts_chunk$set(fig.width=7.5, fig.height=5)
 ```
 
 ## Flow Duration Curve
-```{r FDCRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r FDCRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
 
 fdc = list()
 for (r in 1:length(rseg.model.version)) {
@@ -263,7 +263,7 @@ do.call("grid.arrange", c(all.flows,  ncol = 2, nrow = length(rseg.model.version
 ```
 
 ## Dry Period Hydrograph
-```{r DryRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
+```{r DryRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
 
 hydrograph = list()
 for (r in 1:length(rseg.model.version)) {
@@ -442,7 +442,7 @@ for (r in 1:length(rseg.model.version)) {
 \newpage
 # Time Series Analysis
 
-```{r MathcingData, echo = FALSE}
+```{r MatchingData, echo = FALSE}
 # retrieving and matching the data
 
 for (r in 1:length(rseg.model.version)) {
