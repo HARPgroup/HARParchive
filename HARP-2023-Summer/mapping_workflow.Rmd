@@ -5,9 +5,10 @@ date: "`r Sys.Date()`"
 output: html_document
 params:
   rivseg: ["JA4_7280_7340"]
-  runid_list: [ "runid_11","runid_13" ]
   model_version: ["vahydro-1.0"]
-  map_name: ["Appomattox_testing3"]
+  runid_list: [ "runid_11","runid_13" ]
+  metric: ["wd_mgd"]
+  map_name: ["Appomattox_wd_mgd"]
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,8 +16,10 @@ library(hydrotools)
 library(sp)
 library(rgeos)
 library(sf)
+library(nhdplusTools)
 library(ggmap)
 library(ggplot2)
+library(ggnewscale)   
 library(ggsn)
 library(ggspatial)
 
@@ -27,8 +30,9 @@ ds$get_token(rest_pw)
 site <- 'http://deq1.bse.vt.edu/d.dh'
 
 rivseg <- params$rivseg
-runid_list <- params$runid_list
 model_version <- params$model_version
+runid_list <- params$runid_list
+metric <- params$metric
 map_name <- params$map_name
 ```
 
@@ -63,8 +67,11 @@ basin_featr <- fn_extract_basin(allsegs, rivseg)
 basin_sp <- process_geom(basin_featr)
 
 # Get all facilities
-df <- data.frame(runid=runid_list, model_version, metric='wd_mgd')
-df$runlabel <- paste('WD MGD', df$runid)
+df <- data.frame(runid=runid_list, model_version, metric=metric)
+#df$runlabel <- paste('WD MGD', df$runid)
+for(i in 1:length(runid_list)){
+  df$runlabel[i] <- paste("metric_","runid", i, sep="")
+}
 
 facil_featr <- om_vahydro_metric_grid( 
   metric=FALSE, runids=df, featureid='all', 
@@ -102,6 +109,7 @@ st_crs(basin_sf) <- 4326 #Set coord. reference syst.
 #--Points Layer--
 facil_sf <- st_as_sf(facil_sp)
 st_crs(facil_sf) <- 4326
+facil_sf <- facil_sf[order(facil_sf$metric_runid1),]
 
 #--Labels & Placement--
 rsegs_centroids <- rgeos::gCentroid(basin_sp,byid=TRUE)
@@ -112,7 +120,7 @@ facil_labels <- data.frame(sf::st_coordinates(facil_sf), NAME=facil_sf$propname)
 facil_labels$NUM <- seq(1, nrow(facil_labels))
   
 #--NHD Flowline Data--
-sf_use_s2(FALSE) # switch off Spherical geometry (s2)
+sf_use_s2(FALSE) # switch off Spherical geometry (s20
 domain <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .2)
 nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
 
@@ -124,7 +132,9 @@ basemap <- ggmap(basemap)
 ```
 
 ```{r Generate Map Object, echo=FALSE}
-WD_MGD_runid_11 <- facil_sf$WD_MGD_runid_11
+
+metric_runid1 <- facil_sf$metric_runid1
+metric_runid2 <- facil_sf$metric_runid2
 
 map <- basemap + 
     ggplot2::geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
@@ -132,16 +142,27 @@ map <- basemap +
     geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 0.5) +
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
-  
-    geom_point(data = facil_labels,aes(X, Y, size=WD_MGD_runid_11), col="red", shape = 19,alpha = .7) +
-      scale_size_area(breaks = c(0, WD_MGD_runid_11[WD_MGD_runid_11!=0]),
-                      labels = c(0, WD_MGD_runid_11[WD_MGD_runid_11!=0])) +
-  
+    # 2020 MGD
+    geom_point(data = facil_labels,aes(X, Y, size=metric_runid1), col="red", shape = 19, alpha = .7, stroke = 0) +
+      scale_size(range = c(15,40), 
+                 breaks = c(0, metric_runid1[metric_runid1!=0]),
+                 labels = c(0, metric_runid1[metric_runid1!=0]),
+                 guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
+                 ) +
+    # 2040 MGD
+    new_scale("size") + new_scale("color") +
+    geom_point(data = facil_labels,aes(X, Y, size=metric_runid2), col="yellow", shape = 19, alpha = .5, stroke = 0) +
+      scale_size(range = c(15,40), 
+                 breaks = c(0, metric_runid2[metric_runid2!=0]),
+                 labels = c(0, metric_runid2[metric_runid2!=0]),
+                 guide = guide_legend(title = paste(metric, runid_list[2], sep="_"))
+                 ) +
+
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
     # plot labels
-    geom_text(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", size = 8) +
-    geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "red", size = 10, nudge_x = -0.01, nudge_y = 0.01) +
+    geom_text(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", size = 9) +
+    geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, nudge_x = -0.01, nudge_y = 0.01) +
     
     # scalebar
     ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
@@ -154,6 +175,9 @@ map <- basemap +
 ```
 
 ```{r Save Map.png, echo=FALSE}
+library(flextable)
+table <- qflextable(facil_labels[,c("NUM", "NAME")])
+
 ggsave(
   filename = paste(export_path, map_name, ".png",sep=""),
   plot = map,
