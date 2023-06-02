@@ -19,6 +19,7 @@ library(ggmap)
 library(ggplot2)
 library(ggsn)
 library(ggspatial)
+library(nhdplusTools)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
