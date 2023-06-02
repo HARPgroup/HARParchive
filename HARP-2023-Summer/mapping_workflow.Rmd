@@ -1,0 +1,163 @@
+---
+title: "Workflow for Mapping Facilities"
+author: "HARP Analysts"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  rivseg: ["JA4_7280_7340"]
+  runid_list: [ "runid_11","runid_13" ]
+  model_version: ["vahydro-1.0"]
+  map_name: ["Appomattox_testing3"]
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(hydrotools)
+library(sp)
+library(rgeos)
+library(sf)
+library(ggmap)
+library(ggplot2)
+library(ggsn)
+library(ggspatial)
+
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+site <- 'http://deq1.bse.vt.edu/d.dh'
+
+rivseg <- params$rivseg
+runid_list <- params$runid_list
+model_version <- params$model_version
+map_name <- params$map_name
+```
+
+```{r Establish Functions, echo=FALSE}
+# Convert any data frame w/ geometry stored as "character" to "SpatialXxxDataFrame" (Xx_sp)
+process_geom <- function(features) {
+  for (i in 1:nrow(features)) {
+    sp.i <- sp::addAttrToGeom(
+      x=readWKT(features[i,]$dh_geofield), 
+      y=as.data.frame(as.list(subset(features[i,],select=-c(dh_geofield)))),
+      match.ID=TRUE
+    )
+    if (i == 1) {
+      # start with one 
+      features_sp <- sp.i
+    } else {
+      # append
+      features_sp <- rbind(features_sp, sp.i)
+    }
+  }
+  return(features_sp)
+}
+```
+
+```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
+# Get all vahydro watershed features
+allsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed'))
+allsegs$riverseg <- str_replace(allsegs$hydrocode, 'vahydrosw_wshed_', '')
+# Then, extract the basin using fn_extract_basin()
+basin_featr <- fn_extract_basin(allsegs, rivseg)
+# Convert to sp
+basin_sp <- process_geom(basin_featr)
+
+# Get all facilities
+df <- data.frame(runid=runid_list, model_version, metric='wd_mgd')
+df$runlabel <- paste('WD MGD', df$runid)
+
+facil_featr <- om_vahydro_metric_grid( 
+  metric=FALSE, runids=df, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version = model_version,
+  base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+  ds = ds
+)
+
+# Filter down to facilities within the basin
+facil_in_basin <- sqldf(
+  "select a.* from facil_featr as a
+   left outer join basin_featr as b
+   on (a.riverseg = b.riverseg)
+  where b.riverseg is not null 
+  "
+)
+# filter out WSP entries (optional)
+facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like 'wsp_%'")
+
+# Get facility coordinates
+for(i in 1:nrow(facil_in_basin)){
+  facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
+  facil_in_basin$dh_geofield[i] <- facil.i$geom
+}
+# Convert to sp
+facil_sp <- process_geom(facil_in_basin)
+```
+
+```{r Process Data for Plotting, echo=FALSE, warning=FALSE, message=FALSE}
+#--Polygons Layer--
+basin_sf <- st_as_sf(basin_sp) #Convert sp to simple features (sf)
+st_crs(basin_sf) <- 4326 #Set coord. reference syst.
+
+#--Points Layer--
+facil_sf <- st_as_sf(facil_sp)
+st_crs(facil_sf) <- 4326
+
+#--Labels & Placement--
+rsegs_centroids <- rgeos::gCentroid(basin_sp,byid=TRUE)
+rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$riverseg)
+# gsub to shorten facility names: "[facility_name]:[river_containing_facility]" => "[facility_name]"
+facil_sf$propname <- gsub("\\:.*", "", facil_sf$propname) 
+facil_labels <- data.frame(sf::st_coordinates(facil_sf), NAME=facil_sf$propname)
+facil_labels$NUM <- seq(1, nrow(facil_labels))
+  
+#--NHD Flowline Data--
+sf_use_s2(FALSE) # switch off Spherical geometry (s2)
+domain <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .2)
+nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
+
+#--Create Map Base--
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
+ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 12)
+basemap <- ggmap(basemap)
+```
+
+```{r Generate Map Object, echo=FALSE}
+WD_MGD_runid_11 <- facil_sf$WD_MGD_runid_11
+
+map <- basemap + 
+    ggplot2::geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
+    #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
+    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 0.5) +
+    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
+    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
+  
+    geom_point(data = facil_labels,aes(X, Y, size=WD_MGD_runid_11), col="red", shape = 19,alpha = .7) +
+      scale_size_area(breaks = c(0, WD_MGD_runid_11[WD_MGD_runid_11!=0]),
+                      labels = c(0, WD_MGD_runid_11[WD_MGD_runid_11!=0])) +
+  
+    theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
+    
+    # plot labels
+    geom_text(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", size = 8) +
+    geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "red", size = 10, nudge_x = -0.01, nudge_y = 0.01) +
+    
+    # scalebar
+    ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
+                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
+    # north arrow
+    ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
+                                      height = unit(4, "cm"),width = unit(3, "cm"), 
+                                      style = north_arrow_orienteering(text_size = 35)
+                                      )
+```
+
+```{r Save Map.png, echo=FALSE}
+ggsave(
+  filename = paste(export_path, map_name, ".png",sep=""),
+  plot = map,
+  width = 25,
+  height = 20
+  )
+```
