@@ -68,7 +68,7 @@ mapgen <- function(start_point = data.frame(lat = 37.2863888889, lon = -80.07583
   ######################################################################
   # generate map gg object
   map_gg <- toner_map + 
-    geom_sf(data = rsegs_sf, inherit.aes = FALSE, color = "black", fill = NA, size = 50) +
+    geom_sf(data = rsegs_sf, inherit.aes = FALSE, color = "black", fill = NA, lwd = 1.5) +
     geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "blue", fill = NA, size = 0.5) +
     geom_sf(data = domain$network_wtbd,inherit.aes = FALSE,color = "blue", fill = NA, size = 1) +
     geom_sf(data = domain$off_network_wtbd,inherit.aes = FALSE,color = "blue", fill = NA, size = 1) +
@@ -171,7 +171,7 @@ map_gg <- mapgen(
 )
 
 # save the map image as png
-fpath = "~/Desktop/HARPteam23/"
+fpath = "C:/Workspace/tmp/"
 fname = paste(fpath,"fig.location_map_rivanna8.png",sep="")
 ggsave(
   filename = fname,
