@@ -171,7 +171,11 @@ map_gg <- mapgen(
 )
 
 # save the map image as png
-fpath = "C:/Workspace/tmp/"
+if (exists("export_path") == TRUE) { # save with export_path if the var exists 
+  fpath = export_path
+} else {
+  fpath = "C:/Workspace/tmp/"
+}
 fname = paste(fpath,"fig.location_map_rivanna8.png",sep="")
 ggsave(
   filename = fname,
