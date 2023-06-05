@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomattox_wd_mgd"]
+  map_name: ["Appomattox_wd_mgd8"]
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -29,7 +29,8 @@ source('/var/www/R/config.R')
 ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 site <- 'http://deq1.bse.vt.edu/d.dh'
-
+```
+```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg
 model_version <- params$model_version
 runid_list <- params$runid_list
@@ -124,6 +125,10 @@ facil_labels$NUM <- seq(1, nrow(facil_labels))
 sf_use_s2(FALSE) # switch off Spherical geometry (s20
 domain <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .2)
 nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
+
+#--Facility-Metric Data--
+metric_runid1 <- facil_sf$metric_runid1
+metric_runid2 <- facil_sf$metric_runid2
 ```
 
 ```{r, echo =FALSE, warning = FALSE, message = FALSE}
@@ -135,19 +140,14 @@ nhd$flowline <- flowline_sf
 # NOT successful
 ```
 
-```{r}
-#--Create Map Base--
+```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
-basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 12)
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 11)
 basemap <- ggmap(basemap)
 ```
 
 ```{r Generate Map Object, echo=FALSE}
-
-metric_runid1 <- facil_sf$metric_runid1
-metric_runid2 <- facil_sf$metric_runid2
-
 map <- basemap + 
     ggplot2::geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
@@ -155,26 +155,44 @@ map <- basemap +
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
     # 2020 MGD
-    geom_point(data = facil_labels,aes(X, Y, size=metric_runid1), col="red", shape = 19, alpha = .7, stroke = 0) +
-      scale_size(range = c(15,40), 
+    geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
+               #alpha = .7, 
+               col="yellow", shape = 19, stroke = 1) +
+      scale_size(range = c(10,35), 
                  breaks = c(0, metric_runid1[metric_runid1!=0]),
                  labels = c(0, metric_runid1[metric_runid1!=0]),
-                 guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
+                 #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
+                 name = paste(metric, runid_list[1], sep="_")
+                 ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
+      scale_alpha(range = c(0.7, 0.95),
+                 breaks = c(0, metric_runid1[metric_runid1!=0]),
+                 labels = c(0, metric_runid1[metric_runid1!=0]),
+                 #guide = FALSE
+                 name = paste(metric, runid_list[1], sep="_")
                  ) +
     # 2040 MGD
-    new_scale("size") + new_scale("color") +
-    geom_point(data = facil_labels,aes(X, Y, size=metric_runid2), col="yellow", shape = 19, alpha = .5, stroke = 0) +
-      scale_size(range = c(15,40), 
-                 breaks = c(0, metric_runid2[metric_runid2!=0]),
-                 labels = c(0, metric_runid2[metric_runid2!=0]),
-                 guide = guide_legend(title = paste(metric, runid_list[2], sep="_"))
-                 ) +
+    #new_scale("size") + new_scale("color") + new_scale("alpha") +
+    #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
+    #           #alpha = .5, 
+    #           col="red", shape = 19, stroke = 0) +
+    #  scale_size(range = c(15,40), 
+    #             breaks = c(0, metric_runid2[metric_runid2!=0]),
+    #             labels = c(0, metric_runid2[metric_runid2!=0]),
+    #             guide = guide_legend(title = paste(metric, runid_list[2], sep="_"))
+    #             ) +
+    #   scale_alpha(range = c(0.35, 0.8),
+    #             breaks = c(0, metric_runid1[metric_runid1!=0]),
+    #             labels = c(0, metric_runid1[metric_runid1!=0]),
+    #             guide = FALSE
+    #             ) +
 
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
     # plot labels
-    geom_text(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", size = 9) +
-    geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, nudge_x = -0.01, nudge_y = 0.01) +
+    geom_text(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", size = 7) +
+    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
+  #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
+     #          nudge_x = -0.01, nudge_y = 0.01) +
     
     # scalebar
     ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
@@ -197,3 +215,14 @@ ggsave(
   height = 20
   )
 ```
+
+```{r Joey's Scale Bar, eval=FALSE, echo=FALSE}
+base_scale <-  ggsn::scalebar(data = bbDF, location = 'bottomleft', dist = 25, dist_unit = 'mi', 
+                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
+                                st.size = 3, st.dist = 0.03,
+                                anchor = c(
+                                  x = (((extent$x[2] - extent$x[1])/2)+extent$x[1])-0.45,
+                                  y = extent$y[1]+(extent$y[1])*0.001
+                                ))
+```
+
