@@ -207,13 +207,13 @@ map <- basemap + #ggplot2::
                col="yellow", shape = 19, stroke = 0.75) +
       scale_size(range = c(10,35), 
                  breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = c(0, metric_runid1[metric_runid1!=0]),
+                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
                  #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
       scale_alpha(range = c(0.5, 0.95),
                  breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = c(0, metric_runid1[metric_runid1!=0]),
+                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
                  #guide = FALSE
                  name = paste(metric, runid_list[1], sep="_")
                  ) +
