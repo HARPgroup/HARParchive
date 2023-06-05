@@ -12,6 +12,7 @@ params:
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
 library(hydrotools)
 library(sp)
 library(rgeos)
@@ -145,7 +146,7 @@ sf_use_s2(FALSE) # switch off Spherical geometry (s20
 domain <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .2)
 nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
 
-# Modifying stream order to be plotted 
+#Modifying stream order to be plotted 
 flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger nhd object
 flowline <- flowline[!flowline$StreamOrde ==1,] #removing all rows with a strem order of 1
 flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoining with nhd object
@@ -155,6 +156,31 @@ nhd$flowline <- flowline_sf
 #--Facility-Metric Data--
 metric_runid1 <- facil_sf$metric_runid1
 metric_runid2 <- facil_sf$metric_runid2
+```
+
+```{r}
+#Labeling major rivers 
+rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
+
+riv.centroid.df <-  data.frame(feature=rivs_layer$feature,
+                                GNIS_NAME=rivs_layer$GNIS_NAME,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
+
+for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids df for labeling
+    riv_geom <- readWKT(rivs_layer$geom[r])
+    riv_geom_centroid <- gCentroid(riv_geom,byid=TRUE)
+    riv.centroid.df$centroid_longitude[r] <- riv_geom_centroid$x
+    riv.centroid.df$centroid_latitude[r] <- riv_geom_centroid$y  
+    # riv_geom_clip <- gIntersection(MB_geom, riv_geom)
+    riv_geom_clip <- riv_geom
+    
+    if (is.null(riv_geom_clip) == TRUE) {
+      # print("OUT OF MINOR BASIN EXTENT - SKIPPING") 
+      next
+    }
+}
 ```
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
@@ -217,7 +243,8 @@ map <- basemap + #ggplot2::
     geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
-    
+    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
+                    color = "dodgerblue3") + #labeling major rivers
     # scalebar
     ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
                    transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
