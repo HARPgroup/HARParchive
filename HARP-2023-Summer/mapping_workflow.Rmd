@@ -130,6 +130,16 @@ nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
 metric_runid1 <- facil_sf$metric_runid1
 metric_runid2 <- facil_sf$metric_runid2
 ```
+
+```{r, echo =FALSE, warning = FALSE, message = FALSE}
+#Modifying stream order to be plotted 
+flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger nhd object
+flowline <- flowline[!flowline$StreamOrde ==1,] #removing all rows with a strem order of 1
+flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoining with nhd object
+nhd$flowline <- flowline_sf
+# NOT successful
+```
+
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
