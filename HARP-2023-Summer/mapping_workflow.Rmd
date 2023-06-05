@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomattox_wd_mgd8"]
+  map_name: ["Appomattox_wd_mgd_zoom14"]
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -101,12 +101,26 @@ for(i in 1:nrow(facil_in_basin)){
 }
 # Convert to sp
 facil_sp <- process_geom(facil_in_basin)
+
+# Get County fips
+fips_filename <- paste("vahydro_usafips_export.csv",sep="")
+fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
+download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
+fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
+fips.csv$dh_geofield <- fips.csv$fips_geom 
+fips_sp <- process_geom(fips.csv)
+
+fips.csv$dh_geofield <- fips.csv$fips_centroid
+fips_centroid_sp <- process_geom(fips.csv)
 ```
 
 ```{r Process Data for Plotting, echo=FALSE, warning=FALSE, message=FALSE}
 #--Polygons Layer--
 basin_sf <- st_as_sf(basin_sp) #Convert sp to simple features (sf)
 st_crs(basin_sf) <- 4326 #Set coord. reference syst.
+
+fips_sf <- st_as_sf(fips_sp)
+st_crs(fips_sf) <- 4326
 
 #--Points Layer--
 facil_sf <- st_as_sf(facil_sp)
@@ -115,7 +129,12 @@ facil_sf <- facil_sf[order(facil_sf$metric_runid1),]
 
 #--Labels & Placement--
 rsegs_centroids <- rgeos::gCentroid(basin_sp,byid=TRUE)
-rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$riverseg)
+#rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$riverseg)
+rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$name)
+rseg_labels$NAME <- gsub("\\River.*", "River", rseg_labels$NAME) #remove extraneous descriptors after "River"
+
+fips_labels <- data.frame(sf::st_coordinates(st_as_sf(fips_centroid_sp)), NAME=fips_sf$fips_name)
+
 # gsub to shorten facility names: "[facility_name]:[river_containing_facility]" => "[facility_name]"
 facil_sf$propname <- gsub("\\:.*", "", facil_sf$propname) 
 facil_labels <- data.frame(sf::st_coordinates(facil_sf), NAME=facil_sf$propname)
@@ -126,45 +145,47 @@ sf_use_s2(FALSE) # switch off Spherical geometry (s20
 domain <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .2)
 nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
 
-#--Facility-Metric Data--
-metric_runid1 <- facil_sf$metric_runid1
-metric_runid2 <- facil_sf$metric_runid2
-```
-
-```{r, echo =FALSE, warning = FALSE, message = FALSE}
-#Modifying stream order to be plotted 
+# Modifying stream order to be plotted 
 flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger nhd object
 flowline <- flowline[!flowline$StreamOrde ==1,] #removing all rows with a strem order of 1
 flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoining with nhd object
 nhd$flowline <- flowline_sf
 # NOT successful
+
+#--Facility-Metric Data--
+metric_runid1 <- facil_sf$metric_runid1
+metric_runid2 <- facil_sf$metric_runid2
 ```
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
-basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 11)
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 12)
 basemap <- ggmap(basemap)
 ```
 
 ```{r Generate Map Object, echo=FALSE}
-map <- basemap + 
-    ggplot2::geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
+map <- basemap + #ggplot2::
+    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
+
+    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#009999", fill = NA, size = 0.5) +
+    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
+    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
+  
+    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 0.5) +
-    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
-    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#0000FF", fill = NA, size = 1) +
-    # 2020 MGD
+    
+  # 2020 MGD
     geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
                #alpha = .7, 
-               col="yellow", shape = 19, stroke = 1) +
+               col="yellow", shape = 19, stroke = 0.75) +
       scale_size(range = c(10,35), 
                  breaks = c(0, metric_runid1[metric_runid1!=0]),
                  labels = c(0, metric_runid1[metric_runid1!=0]),
                  #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
-      scale_alpha(range = c(0.7, 0.95),
+      scale_alpha(range = c(0.5, 0.95),
                  breaks = c(0, metric_runid1[metric_runid1!=0]),
                  labels = c(0, metric_runid1[metric_runid1!=0]),
                  #guide = FALSE
@@ -189,7 +210,10 @@ map <- basemap +
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
     # plot labels
-    geom_text(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", size = 7) +
+    geom_label(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", fill=NA, size=7,
+               label.size=0, label.r= unit(0.3, "mm")) +
+    geom_label(data = fips_labels, aes(X, Y, label = NAME), colour = "#003333", fill= NA, size=9, 
+               label.size=0, label.r= unit(0.3, "mm")) +
     geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
