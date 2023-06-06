@@ -174,6 +174,78 @@ map <- basemap +
                                       style = north_arrow_orienteering(text_size = 35)
                                       )
 ```
+# Pulling All Regions/Counties
+```{r Pulling all Regions/Counties, warning=FALSE, echo=TRUE, message=FALSE}
+all_counties <- RomFeature$new(ds,list(bundle='usafips'),TRUE)
+counties.df <- cbind(all_counties[["name"]], all_counties[["hydrocode"]])
+  colnames(counties.df) <- c("County", "hydrocode_fips")
+
+all_regions <- RomFeature$new(ds,list(ftype= 'wsp_plan_region'),TRUE)
+regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
+  colnames(regions.df) <- c("Region", "hydrocode")
+```
+
+#Create table for map
+```{r Create table w/ more facility info, echo= FALSE}
+
+#base table with facility name and number(related to map)
+tableData <- data.frame(Facility=facil_sf$propname, NUM=seq(1, nrow(facil_sf)))
+
+#add locations(locality or subwatershed)
+i <-1
+while (i:length(facil_sf)) {
+  if(facil_sf$riverseg == basin_featr$riverseg){
+    tableData[i,] <- basin_featr$name
+    i <- i + 1
+  }
+}
+
+  
+for(i in 1:nrow(facil_in_basin)){
+facil_loc <- RomFeature$new(ds,list(hydroid= facil_in_basin$pid[i], bundle= "usafips"), 
+  TRUE)}
+facil_loc.df <- cbind(facil_loc[["name"]], facil_loc[["hydroid"]])
+ # colnames(counties.df) <- c("County", "hydrocode_fips")
+
+
+
+Location
+
+#add source(river name?)
+
+#add type(GW or SW)
+
+gw <- RomFeature$new(ds,list(
+    ftype= "gw2_private", #gw specifications on some but no sw specifications, whats what?
+    bundle= "facility"), 
+  TRUE)
+
+municipal_facil.df <- data.frame(cbind(municipal_facilities[["name"]], 
+                            municipal_facilities[["hydrocode"]],
+                            municipal_facilities[["geom"]]))
+  colnames(municipal_facil.df) <- c("Municipal Facility", "hydrocode", "geom")
+  
+
+
+#add upstream or downstream
+for(i in 1:nrow(facil_in_basin)){ 
+  if(facil_in_basin$riverseg[i] == rivseg)
+  {
+    up_down<- "Upstream"
+      tableData$new <- up_down
+  }
+ # else
+  {
+    up_down <- "Downstream"
+      tableData$new <- up_down
+  }
+}
+#add permitted capacity
+
+#add 5 yr avg use(MGY)
+
+tableData
+```
 
 ```{r Save Map.png, echo=FALSE}
 library(flextable)
