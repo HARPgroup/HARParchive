@@ -31,6 +31,7 @@ ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 site <- 'http://deq1.bse.vt.edu/d.dh'
 ```
+
 ```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg
 model_version <- params$model_version
@@ -151,7 +152,6 @@ flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger n
 flowline <- flowline[!flowline$StreamOrde ==1,] #removing all rows with a strem order of 1
 flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoining with nhd object
 nhd$flowline <- flowline_sf
-# NOT successful
 
 #--Facility-Metric Data--
 metric_runid1 <- facil_sf$metric_runid1
@@ -159,10 +159,10 @@ metric_runid2 <- facil_sf$metric_runid2
 ```
 
 ```{r}
-#Labeling major rivers 
+# Labeling major rivers 
 rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
 
-riv.centroid.df <-  data.frame(feature=rivs_layer$feature,
+riv.centroid.df <-  data.frame(feature=rivs_layer$feature, #creating data frame containing names and centroid locations 
                                 GNIS_NAME=rivs_layer$GNIS_NAME,
                                 centroid_longitude="",
                                 centroid_latitude="",
@@ -182,6 +182,35 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
     }
 }
 ```
+
+```{r}
+# Labeling order 4 streams 
+# Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
+streams_order4 <- flowline[flowline$StreamOrde == 4,]
+streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
+streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
+
+stream4.centroid.df <-  data.frame(feature=(1:length(streams$id)), #creating data frame containing names and centroid locations 
+                                GNIS_NAME=streams$gnis_name,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
+
+for (r in 1:length(streams$id)) { #adding coordinates to the centroids df for labeling
+    stream_geom_centroid <- st_centroid(streams4$geometry[r])
+    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
+    stream4.centroid.df$centroid_longitude[r] <- cent.coords$X
+    stream4.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    }
+```
+
+```{r, eval=FALSE}
+# Labeling major reservoirs 
+setwd(export_path)
+unzip(paste0(export_path,"MajorReservoirs.zip")) #must be downloaded to your working directory 
+reservoir_sf <- read_sf('MajorReservoirs.shp')
+```
+
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
@@ -245,6 +274,8 @@ map <- basemap + #ggplot2::
      #          nudge_x = -0.01, nudge_y = 0.01) +
     geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
                     color = "dodgerblue3") + #labeling major rivers
+    geom_text(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 5, 
+                    color = "dodgerblue3") + #labeling order 4 streams
     # scalebar
     ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
                    transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
