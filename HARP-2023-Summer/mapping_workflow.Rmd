@@ -4,11 +4,11 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JA4_7280_7340"]
+  rivseg: ["JA4_7280_7340"] #["JA4_7280_7340"]
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomattox_wd_mgd_zoom14"]
+  map_name: ["Appomatox_wd_mgd"]
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
