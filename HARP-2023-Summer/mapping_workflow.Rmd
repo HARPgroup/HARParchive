@@ -162,7 +162,7 @@ metric_runid2 <- facil_sf$metric_runid2
 # Labeling major rivers 
 rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
 
-riv.centroid.df <-  data.frame(feature=rivs_layer$feature,
+riv.centroid.df <-  data.frame(feature=rivs_layer$feature, #creating data frame containing names and centroid locations 
                                 GNIS_NAME=rivs_layer$GNIS_NAME,
                                 centroid_longitude="",
                                 centroid_latitude="",
@@ -187,14 +187,20 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
 # Labeling streams 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
-# Need to have only 1 row per stream name and 1 geometry representative of that stream (centroid?)
-stream.centroid.df <-  data.frame(feature=(1:length(streams_order4$id)),
-                                GNIS_NAME=streams_order4$gnis_name,
+streams <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
+
+stream.centroid.df <-  data.frame(feature=(1:length(streams$id)), #creating data frame containing names and centroid locations 
+                                GNIS_NAME=streams$gnis_name,
                                 centroid_longitude="",
                                 centroid_latitude="",
                                 stringsAsFactors=FALSE) 
 
-
+for (r in 1:length(streams$id)) { #adding coordinates to the centroids df for labeling
+    stream_geom_centroid <- st_centroid(streams$geometry[r])
+    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
+    stream.centroid.df$centroid_longitude[r] <- cent.coords$X
+    stream.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    }
 ```
 
 
