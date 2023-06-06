@@ -184,28 +184,25 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
 ```
 
 ```{r}
-# Labeling streams 
+# Labeling order 4 streams 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
-streams <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
+streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
+streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
 
-stream.centroid.df <-  data.frame(feature=(1:length(streams$id)), #creating data frame containing names and centroid locations 
+stream4.centroid.df <-  data.frame(feature=(1:length(streams$id)), #creating data frame containing names and centroid locations 
                                 GNIS_NAME=streams$gnis_name,
                                 centroid_longitude="",
                                 centroid_latitude="",
                                 stringsAsFactors=FALSE) 
 
 for (r in 1:length(streams$id)) { #adding coordinates to the centroids df for labeling
-    stream_geom_centroid <- st_centroid(streams$geometry[r])
+    stream_geom_centroid <- st_centroid(streams4$geometry[r])
     cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
-    stream.centroid.df$centroid_longitude[r] <- cent.coords$X
-    stream.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    stream4.centroid.df$centroid_longitude[r] <- cent.coords$X
+    stream4.centroid.df$centroid_latitude[r] <- cent.coords$Y
     }
 ```
-
-
-
-
 
 ```{r, eval=FALSE}
 # Labeling major reservoirs 
@@ -277,6 +274,8 @@ map <- basemap + #ggplot2::
      #          nudge_x = -0.01, nudge_y = 0.01) +
     geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
                     color = "dodgerblue3") + #labeling major rivers
+    geom_text(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 5, 
+                    color = "dodgerblue3") + #labeling order 4 streams
     # scalebar
     ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
                    transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
