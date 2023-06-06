@@ -31,6 +31,7 @@ ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 site <- 'http://deq1.bse.vt.edu/d.dh'
 ```
+
 ```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg
 model_version <- params$model_version
@@ -181,6 +182,24 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
     }
 }
 ```
+
+```{r}
+# Labeling streams 
+# Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
+streams_order4 <- flowline[flowline$StreamOrde == 4,]
+# Need to have only 1 row per stream name and 1 geometry representative of that stream (centroid?)
+stream.centroid.df <-  data.frame(feature=(1:length(streams_order4$id)),
+                                GNIS_NAME=streams_order4$gnis_name,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
+
+
+```
+
+
+
+
 
 ```{r, eval=FALSE}
 # Labeling major reservoirs 
