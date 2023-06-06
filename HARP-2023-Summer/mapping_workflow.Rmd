@@ -151,7 +151,6 @@ flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger n
 flowline <- flowline[!flowline$StreamOrde ==1,] #removing all rows with a strem order of 1
 flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoining with nhd object
 nhd$flowline <- flowline_sf
-# NOT successful
 
 #--Facility-Metric Data--
 metric_runid1 <- facil_sf$metric_runid1
@@ -159,7 +158,7 @@ metric_runid2 <- facil_sf$metric_runid2
 ```
 
 ```{r}
-#Labeling major rivers 
+# Labeling major rivers 
 rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
 
 riv.centroid.df <-  data.frame(feature=rivs_layer$feature,
@@ -182,6 +181,14 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
     }
 }
 ```
+
+```{r, eval=FALSE}
+# Labeling major reservoirs 
+setwd(export_path)
+unzip(paste0(export_path,"MajorReservoirs.zip")) #must be downloaded to your working directory 
+reservoir_sf <- read_sf('MajorReservoirs.shp')
+```
+
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
