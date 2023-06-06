@@ -160,7 +160,7 @@ metric_runid2 <- facil_sf$metric_runid2
 
 ```{r, eval = FALSE}
 #### Manual bbox creation -- FOR TESTING
-bbox <- c('-79.3699','36.6035','-77.1043','38.1543')
+bbox <- c('-81.0','36.6035','-77.1043','38.1543')
 bbox_df <- matrix(nrow=2, ncol=2)
 bbox_df <- as.data.frame(bbox_df)
 bbox_df[,1] <- as.numeric(c(bbox[1], bbox[3]))
@@ -217,6 +217,14 @@ for (r in 1:length(streams6$id)) { #adding coordinates to the centroids df for l
 ```
 
 ```{r}
+# Creating subset of order 6 stream flowlines for mapping thicker lines 
+flowline6 <- flowline[flowline$StreamOrde == 6,] #removing all rows with a strem order of 1
+flowline6_sf <- st_sf(flowline6) #converting to simple feature format for rejoining with nhd object
+nhd$flowline6 <- flowline6_sf
+```
+
+
+```{r}
 # Labeling order 4 streams 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
@@ -244,10 +252,6 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
 #reservoir_sf <- read_sf('MajorReservoirs.shp')
 ```
 
-
-
-
-
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
@@ -259,7 +263,8 @@ basemap <- ggmap(basemap)
 map <- basemap + #ggplot2::
 #    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
 
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#009999", fill = NA, size = 0.5) +
+    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#009999", fill = NA, lwd = 0.3) + 
+    geom_sf(data = nhd$flowline6,inherit.aes = FALSE,color = "blue", fill = NA, lwd = 0.6) + 
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
   
@@ -310,8 +315,10 @@ map <- basemap + #ggplot2::
      #          nudge_x = -0.01, nudge_y = 0.01) +
     geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 10, 
                     color = "dodgerblue3") + #labeling major rivers
-    geom_text(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 6, 
-                    color = "dodgerblue3") + #labeling order 4 streams
+    geom_text(data = stream6.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 10, 
+                    color = "red") + #labeling order 6 streams -- also majopr rivers
+#    geom_text(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 6, 
+#                    color = "dodgerblue3") + #labeling order 4 streams
     # scalebar
 #    ggsn::scalebar(basin_sf, location = 'bottomleft', dist = 2, dist_unit = 'mi',
 #                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
@@ -327,7 +334,7 @@ library(flextable)
 table <- qflextable(facil_labels[,c("NUM", "NAME")])
 
 ggsave(
-  filename = paste(export_path, map_name, '2',".png",sep=""),
+  filename = paste(export_path, map_name, '3',".png",sep=""),
   plot = map,
   width = 25,
   height = 20
