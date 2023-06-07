@@ -459,7 +459,7 @@ tableData
 table <- qflextable(facil_labels[,c("NUM", "NAME")])
 
 ggsave(
-  filename = paste(export_path, map_name, '9', ".png", sep=""),
+  filename = paste(export_path, map_name, ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
