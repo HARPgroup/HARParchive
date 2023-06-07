@@ -186,16 +186,8 @@ bbox <- c('-80.0','36.8','-78.5','37.5')
 bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4]))
 bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
 bbox_ <- st_bbox(bbox_sf)
-ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
-nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
-```
-
-```{r Remove 1st Order Streams}
-#Removing all 1st order streams for cleaner mapping
-flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger nhd object
-flowline <- flowline[!flowline$StreamOrde == 1,] #removing all rows with a strem order of 1
-flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoining with nhd object
-nhd$flowline <- flowline_sf
+#ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
+#nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
 ```
 
 ```{r Labeling major rivers w/ MajorRivers.csv}
@@ -294,6 +286,19 @@ dist_mi <- dist_m / 1609.34
 dist <- round((dist_mi/20), digits = 0)
 extent <- as.data.frame(bbox_points)
 colnames(extent) <- c('x','y')
+```
+
+```{r}
+# Adjusting which flowlines to map based on boundary box size for clean mapping 
+if (dist_mi > 500) {
+  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
+} 
+if (dist_mi > 300 && dist_mi <= 500) {
+  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2),]
+} 
+if (dist_mi > 150 && dist_mi <= 300) {
+  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+} 
 ```
 
 ```{r Generate Map Object, echo=FALSE}
