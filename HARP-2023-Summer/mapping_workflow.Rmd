@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomatox_wd_mgd"]
+  map_name: ["Appomatox_June7"]
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -123,7 +123,7 @@ for(i in 1:10){
   facil_featr$dh_geofield[i] <- facil.i$geom
 }
 
-manor_golf <- RomFeature$new(ds,list(hydroid='90467'), TRUE)
+facil.i <- RomFeature$new(ds,list(hydroid='90416'), TRUE)
 ##########
 
 # Convert to sp
@@ -249,7 +249,7 @@ nhd$flowline67 <- flowline67_sf
 ```
 
 
-```{r}
+```{r, warning=FALSE}
 # Labeling order 4 streams 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
@@ -297,21 +297,21 @@ map <- basemap + #ggplot2::
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
     
   # 2020 MGD
-    geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
+   ## geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
                #alpha = .7, 
-               col="yellow", shape = 19, stroke = 0.75) +
-      scale_size(range = c(10,35), 
-                 breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
+   ##            col="yellow", shape = 19, stroke = 0.75) +
+   ##   scale_size(range = c(10,35), 
+   ##              breaks = c(0, metric_runid1[metric_runid1!=0]),
+   ##              labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
                  #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
-                 name = paste(metric, runid_list[1], sep="_")
-                 ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
-      scale_alpha(range = c(0.5, 0.95),
-                 breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
+   ##              name = paste(metric, runid_list[1], sep="_")
+   ##              ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
+   ##   scale_alpha(range = c(0.5, 0.95),
+   ##              breaks = c(0, metric_runid1[metric_runid1!=0]),
+   ##              labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
                  #guide = FALSE
-                 name = paste(metric, runid_list[1], sep="_")
-                 ) +
+   ##              name = paste(metric, runid_list[1], sep="_")
+   ##              ) +
     # 2040 MGD
     #new_scale("size") + new_scale("color") + new_scale("alpha") +
     #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
@@ -335,13 +335,13 @@ map <- basemap + #ggplot2::
                label.size=0, label.r= unit(0.3, "mm")) +
     geom_label(data = fips_labels, aes(X, Y, label = NAME), colour = "#003333", fill= NA, size=9, 
                label.size=0, label.r= unit(0.3, "mm")) +
-    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
+ ##   geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
     geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 10, 
-                    color = "dodgerblue3") + #labeling major rivers
-    geom_text_repel(data = stream67.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
-                    size = 10, color = "red") + #labeling order 6 & 7 streams -- also major rivers
+                    color = "#009999") + #labeling major rivers
+ ##   geom_text_repel(data = stream67.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
+ ##                   size = 10, color = "red") + #labeling order 6 & 7 streams -- also major rivers
     geom_text(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 6, 
                     color = "dodgerblue3") + #labeling order 4 streams
     # scalebar
@@ -427,8 +427,8 @@ tableData
 ```
 
 ```{r Save Map.png, echo=FALSE}
-library(flextable)
-table <- qflextable(facil_labels[,c("NUM", "NAME")])
+#library(flextable)
+#table <- qflextable(facil_labels[,c("NUM", "NAME")])
 
 ggsave(
   filename = paste(export_path, map_name,".png",sep=""),
