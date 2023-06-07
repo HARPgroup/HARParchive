@@ -368,7 +368,7 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```{r Create table w/ more facility info, echo= FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=facil_sf$propname, NUM=seq(1, nrow(facil_sf)))
+tableData <- data.frame(Facility=facil_in_basin$propname, NUM=seq(1, nrow(facil_in_basin))) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
 
 #add locations(locality or subwatershed)
 i <-1
@@ -413,7 +413,7 @@ for(i in 1:nrow(facil_in_basin)){
     up_down<- "Upstream"
       tableData$new <- up_down
   }
- # else
+  if(facil_in_basin$riverseg[i] != rivseg)
   {
     up_down <- "Downstream"
       tableData$new <- up_down
