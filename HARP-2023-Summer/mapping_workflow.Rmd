@@ -304,9 +304,10 @@ colnames(extent) <- c('x','y')
 
 ```{r Generate Map Object, echo=FALSE}
 map <- basemap + #ggplot2::
-    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
+   geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
 
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#009999", fill = NA, lwd = 0.3) + # mapping all flowlines
+    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#009999", fill = NA, mapping = aes(lwd = nhd$flowline$StreamOrde), show.legend = FALSE) + 
+       scale_linewidth(range = c(0.25,2)) + # mapping all flowlines with thickness based on stream order
     geom_sf(data = nhd$flowline567,inherit.aes = FALSE,color = "#009999", fill = NA, lwd = 0.5) + # mapping flowlines of major rivers
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
@@ -459,7 +460,7 @@ tableData
 table <- qflextable(facil_labels[,c("NUM", "NAME")])
 
 ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
+  filename = paste(export_path, map_name, '10', ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
