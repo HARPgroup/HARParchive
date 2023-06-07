@@ -30,6 +30,7 @@ source('/var/www/R/config.R')
 ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
 ds$get_token(rest_pw)
 site <- 'http://deq1.bse.vt.edu/d.dh'
+
 ```
 ```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg
@@ -62,8 +63,20 @@ process_geom <- function(features) {
 
 ```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
 # Get all vahydro watershed features
-allsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed'))
+#allsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed'))
+#allsegs$riverseg <- str_replace(allsegs$hydrocode, 'vahydrosw_wshed_', '')
+
+#####TEMPORARY allsegs ds$get error work-around#########
+localpath <- tempdir()
+filename <- paste("vahydro_riversegs_export.csv",sep="")
+destfile <- paste(localpath,filename,sep="\\")
+download.file(paste(site,"/vahydro_riversegs_export",sep=""), destfile = destfile, method = "libcurl")
+allsegs <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep=",")
+#AllSegList <- substring(RSeg.csv$hydrocode, 17)
 allsegs$riverseg <- str_replace(allsegs$hydrocode, 'vahydrosw_wshed_', '')
+colnames(allsegs) <- gsub("geom", "dh_geofield", colnames(allsegs))
+##############
+
 # Then, extract the basin using fn_extract_basin()
 basin_featr <- fn_extract_basin(allsegs, rivseg)
 # Convert to sp
@@ -100,6 +113,17 @@ for(i in 1:nrow(facil_in_basin)){
   facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
   facil_in_basin$dh_geofield[i] <- facil.i$geom
 }
+
+
+#####TEMPORARY#####
+for(i in 1:10){
+  facil.i <- RomFeature$new(ds,list(hydroid=facil_featr$featureid[i]), TRUE)
+  facil_featr$dh_geofield[i] <- facil.i$geom
+}
+
+manor_golf <- RomFeature$new(ds,list(hydroid='90467'), TRUE)
+##########
+
 # Convert to sp
 facil_sp <- process_geom(facil_in_basin)
 
@@ -276,4 +300,41 @@ base_scale <-  ggsn::scalebar(data = bbDF, location = 'bottomleft', dist = 25, d
                                   y = extent$y[1]+(extent$y[1])*0.001
                                 ))
 ```
+
+```{r Shape Files in R, echo=FALSE, eval=FALSE}
+#minor_basins <- fread('https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/MinorBasins.csv')
+#James <- minor_basins[grep("\\James.*", minor_basins$name),]
+
+
+setwd(wd)
+majorR <- read_sf(dsn = "HARParchive/GIS_layers/MajorReservoirs", layer = "MajorReservoirs")
+droughtReg <- read_sf(dsn = "HARParchive/GIS_layers/DroughtEvaluationRegions", layer = "DroughtEvaluationRegions")
+majorRivs <- read_sf(dsn = "HARParchive/GIS_layers/MajorRivers", layer = "MajorRivers")
+  majorRivs <- st_zm(majorRivs) #ZM data not supported --> drop the M
+
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(droughtReg)), .05)
+ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 9)
+basemap <- ggmap(basemap)
+
+
+sf_use_s2(FALSE) # switch off Spherical geometry (s20)
+nhd  <- plot_nhdplus(bbox = st_bbox(ggmap_bbox), actually_plot = FALSE)
+
+
+VA <- basemap +
+  geom_sf(data = droughtReg, inherit.aes = FALSE, color = "#003333", fill = NA, lwd=1) +
+  geom_sf(data = majorR, inherit.aes = FALSE, color = "red", fill = NA, lwd=0.3) +
+  geom_sf(data = majorRivs, inherit.aes = FALSE, color = "blue", fill = NA, lwd=0.3)
+
+VA
+
+
+regions <- RomFeature$new(ds,list(
+  ftype='wsp_plan_region', 
+  bundle='landunit'),
+  TRUE)
+
+```
+
 
