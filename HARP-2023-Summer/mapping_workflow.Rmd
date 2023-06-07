@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JA4_7280_7340"] #["JA4_7280_7340"]
+  rivseg: ["JA4_7280_7340"] #["JL7_7070_0001"] test with bigger data
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -368,62 +368,63 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```{r Create table w/ more facility info, echo= FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=facil_in_basin$propname, NUM=seq(1, nrow(facil_in_basin))) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
+tableData <- data.frame(Facility=facil_in_basin$propname, NUM=seq(1, nrow(facil_in_basin)), Rivseg= facil_in_basin$riverseg) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
 
 #add locations(locality or subwatershed)
-i <-1
-while (i:length(facil_sf)) {
-  if(facil_sf$riverseg == basin_featr$riverseg){
-    tableData[i,] <- basin_featr$name
-    i <- i + 1
-  }
+for(i in 1:nrow(tableData)){ 
+    loc_basin <- (basin_featr[grep(facil_in_basin$riverseg[i], basin_featr$riverseg),])
+    tableData$Location_Basin[i] <- loc_basin$name
 }
 
-  
-for(i in 1:nrow(facil_in_basin)){
-facil_loc <- RomFeature$new(ds,list(hydroid= facil_in_basin$pid[i], bundle= "usafips"), 
-  TRUE)}
-facil_loc.df <- cbind(facil_loc[["name"]], facil_loc[["hydroid"]])
- # colnames(counties.df) <- c("County", "hydrocode_fips")
+#loc_basin <- (basin_featr[grep(facil_in_basin$riverseg[1], basin_featr$riverseg),])
 
-
-
-Location
+ # for (i in seq_along(tableData)) {
+  #  tableData$Rivseg[[i]][   tableData$Rivseg[[i]] %in% basin_featr$riverseg] <- basin_featr$name
+#}
 
 #add source(river name?)
 
 #add type(GW or SW)
 
-gw <- RomFeature$new(ds,list(
-    ftype= "gw2_private", #gw specifications on some but no sw specifications, whats what?
-    bundle= "facility"), 
-  TRUE)
-
-municipal_facil.df <- data.frame(cbind(municipal_facilities[["name"]], 
-                            municipal_facilities[["hydrocode"]],
-                            municipal_facilities[["geom"]]))
-  colnames(municipal_facil.df) <- c("Municipal Facility", "hydrocode", "geom")
+# gw <- RomFeature$new(ds,list(
+#     ftype= "gw2_private", #gw specifications on some but no sw specifications, whats what?
+#     bundle= "facility"), 
+#   TRUE)
+# 
+# municipal_facil.df <- data.frame(cbind(municipal_facilities[["name"]], 
+#                             municipal_facilities[["hydrocode"]],
+#                             municipal_facilities[["geom"]]))
+#   colnames(municipal_facil.df) <- c("Municipal Facility", "hydrocode", "geom")
   
 
 
-#add upstream or downstream
+#add upstream or downstream- this works just need to adjust numbers(see above)
 for(i in 1:nrow(facil_in_basin)){ 
   if(facil_in_basin$riverseg[i] == rivseg)
   {
     up_down<- "Upstream"
-      tableData$new <- up_down
+    tableData$Upstream_Downstream[i] <- up_down
   }
-  if(facil_in_basin$riverseg[i] != rivseg)
+  else if (facil_in_basin$riverseg[i] != rivseg)
   {
     up_down <- "Downstream"
-      tableData$new <- up_down
+    tableData$Upstream_Downstream[i] <- up_down
   }
 }
+  
+
+  
 #add permitted capacity
 
 #add 5 yr avg use(MGY)
 
-tableData
+library(flextable)
+set_flextable_defaults(
+  font.size = 10, theme_fun = theme_vanilla,
+  padding = 6,
+  background.color = "#009999")
+table <- flextable(tableData)
+table
 ```
 
 ```{r Save Map.png, echo=FALSE}
