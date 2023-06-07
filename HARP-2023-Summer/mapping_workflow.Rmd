@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomatox_wd_mgd"]
+  map_name: ["Appomatox_June7"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -190,7 +190,7 @@ ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # ne
 nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
 ```
 
-```{r}
+```{r Remove 1st Order Streams}
 #Removing all 1st order streams for cleaner mapping
 flowline <- as.data.frame(nhd$flowline) #extracting flowlines only from larger nhd object
 flowline <- flowline[!flowline$StreamOrde == 1,] #removing all rows with a strem order of 1
@@ -198,8 +198,7 @@ flowline_sf <- st_sf(flowline) #converting to simple feature format for rejoinin
 nhd$flowline <- flowline_sf
 ```
 
-```{r}
-# Labeling major rivers 
+```{r Labeling major rivers w/ MajorRivers.csv}
 rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
 
 riv.centroid.df <-  data.frame(feature=rivs_layer$feature, #creating data frame containing names and centroid locations 
@@ -243,6 +242,7 @@ for (r in 1:length(streams67$id)) { #adding coordinates to the centroids df for 
     }
 ```
 
+
 ```{r}
 # Labeling order 4 streams 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
@@ -267,7 +267,7 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
     }
 ```
 
-```{r}
+```{r Don't Ovrlap Labels}
 # Process to combine coords and labels into 1 data frame for mapping and labeling without overlapping 
 riv.centroid.df$class <- 9 # Adding columns to each df for unique labeling 
 stream4.centroid.df$class <- 6
@@ -345,7 +345,7 @@ map <- basemap + #ggplot2::
                label.size=0, label.r= unit(0.3, "mm")) +
     geom_label(data = fips_labels, aes(X, Y, label = NAME), colour = "#003333", fill= NA, size=9, 
                label.size=0, label.r= unit(0.3, "mm")) +
-    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
+##    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
 #    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
@@ -372,7 +372,6 @@ map <- basemap + #ggplot2::
 #                                  x = (((extent$x[2] - extent$x[1])/3)+extent$x[1])-0.45,
 #                                  y = extent$y[1]+(extent$y[1])*0.001
 #                                ))
-  
 ```
 
 ```{r Save Map.png, echo=FALSE}
