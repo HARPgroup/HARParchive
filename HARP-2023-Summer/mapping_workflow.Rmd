@@ -180,9 +180,9 @@ metric_runid1 <- facil_sf$metric_runid1
 metric_runid2 <- facil_sf$metric_runid2
 ```
 
-```{r, eval = FALSE}
+```{r, eval = FALSE, message=FALSE}
 #### FOR TESTING -- Custom/manual bbox creation 
-bbox <- c('-81.5','36.0','-76.5','38.5')
+bbox <- c('-80.5','36.5','-78','37.5')
 bbox_df <- matrix(nrow=2, ncol=2)
 bbox_df <- as.data.frame(bbox_df)
 bbox_df[,1] <- as.numeric(c(bbox[1], bbox[3]))
@@ -294,10 +294,7 @@ basemap <- ggmap(basemap)
 
 ```{r}
 # Adjusting scalebar size based on extent of boundary box
-bbox_points <- matrix(nrow = 2, ncol = 2)
-bbox_points[,1] = c(ggmap_bbox[1], ggmap_bbox[3])
-bbox_points[,2] = c(ggmap_bbox[2], ggmap_bbox[4])
-colnames(bbox_points) <- c('long','lat')
+bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
 dist_m <-  distHaversine(bbox_points) # default unit for output distance is meters , scalebar needs to be in miles 
 dist_mi <- dist_m / 1609.34
 dist <- round((dist_mi/20), digits = 0)
