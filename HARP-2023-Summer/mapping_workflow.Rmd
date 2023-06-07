@@ -183,10 +183,7 @@ metric_runid2 <- facil_sf$metric_runid2
 ```{r, eval = FALSE, message=FALSE}
 #### FOR TESTING -- Custom/manual bbox creation 
 bbox <- c('-80.5','36.5','-78','37.5')
-bbox_df <- matrix(nrow=2, ncol=2)
-bbox_df <- as.data.frame(bbox_df)
-bbox_df[,1] <- as.numeric(c(bbox[1], bbox[3]))
-bbox_df[,2] <- as.numeric(c(bbox[2], bbox[4]))
+bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4]))
 bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
 bbox_ <- st_bbox(bbox_sf)
 #ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
@@ -306,32 +303,32 @@ colnames(extent) <- c('x','y')
 
 ```{r Generate Map Object, echo=FALSE}
 map <- basemap + #ggplot2::
-    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
+#    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
 
     geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#009999", fill = NA, lwd = 0.3) + # mapping all flowlines
     geom_sf(data = nhd$flowline567,inherit.aes = FALSE,color = "#009999", fill = NA, lwd = 0.5) + # mapping flowlines of major rivers
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "#009999", fill = NA, size = 1) +
   
-    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
+#    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
     
   # 2020 MGD
-    geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
+#    geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
                #alpha = .7, 
-               col="yellow", shape = 19, stroke = 0.75) +
-      scale_size(range = c(10,35), 
-                 breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
+#               col="yellow", shape = 19, stroke = 0.75) +
+#      scale_size(range = c(10,35), 
+#                 breaks = c(0, metric_runid1[metric_runid1!=0]),
+#                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
                  #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
-                 name = paste(metric, runid_list[1], sep="_")
-                 ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
-      scale_alpha(range = c(0.5, 0.95),
-                 breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
+#                 name = paste(metric, runid_list[1], sep="_")
+#                 ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
+#      scale_alpha(range = c(0.5, 0.95),
+#                 breaks = c(0, metric_runid1[metric_runid1!=0]),
+#                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
                  #guide = FALSE
-                 name = paste(metric, runid_list[1], sep="_")
-                 ) +
+#                 name = paste(metric, runid_list[1], sep="_")
+#                 ) +
     # 2040 MGD
     #new_scale("size") + new_scale("color") + new_scale("alpha") +
     #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
@@ -351,11 +348,11 @@ map <- basemap + #ggplot2::
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
     # plot labels
-    geom_label(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", fill=NA, size=7,
-               label.size=0, label.r= unit(0.3, "mm")) +
-    geom_label(data = fips_labels, aes(X, Y, label = NAME), colour = "#003333", fill= NA, size=9, 
-               label.size=0, label.r= unit(0.3, "mm")) +
-    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
+#    geom_label(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", fill=NA, size=7,
+#               label.size=0, label.r= unit(0.3, "mm")) +
+#    geom_label(data = fips_labels, aes(X, Y, label = NAME), colour = "#003333", fill= NA, size=9, 
+#               label.size=0, label.r= unit(0.3, "mm")) +
+#    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
 #    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
@@ -367,21 +364,21 @@ map <- basemap + #ggplot2::
     geom_text_repel(data = labs_bind, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME, size = class),
                     color = "dodgerblue3", show.legend = FALSE) + scale_size(range = c(5,10)) + #labeling both major rivers and smaller rivers/streams
     # scalebar
-    ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
-                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
+#    ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
+#                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
     # north arrow
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
                                       style = north_arrow_orienteering(text_size = 35)
                                       ) +
   #### Test Scale Bar Using Joey's anchoring method 
-#    ggsn::scalebar(data = bbox_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi', 
-#                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
-#                                st.size = 9,
-#                                anchor = c(
-#                                  x = (((extent$x[2] - extent$x[1])/2)+extent$x[1])-0.45,
-#                                  y = extent$y[1]+(extent$y[1])*0.001
-#                                ))
+    ggsn::scalebar(data = bbox_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi', 
+                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
+                                st.size = 9,
+                                anchor = c(
+                                  x = (((extent$x[2] - extent$x[1])/2)+extent$x[1])-0.45,
+                                  y = extent$y[1]+(extent$y[1])*0.001
+                                ))
   
 ```
 # Pulling All Regions/Counties
@@ -461,7 +458,7 @@ tableData
 table <- qflextable(facil_labels[,c("NUM", "NAME")])
 
 ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
+  filename = paste(export_path, map_name, '9', ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
