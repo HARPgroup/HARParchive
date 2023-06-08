@@ -278,7 +278,7 @@ ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
 bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
 bbox_sf <- st_as_sf(bbox_points, coords = c('long','lat'), crs = 4326) # for use in data arg within scalebar (optionally)
 dist_m <-  distHaversine(bbox_points) #  calculating the geographic distance between corners of the boundary box 
-dist_mi <- dist_m / 1609.34 # default unit for output distance is meters , scalebar needs to be in miles
+dist_mi <- dist_m / 1609.34 # default unit for output distance is meters , scale bar needs to be in miles
 dist <- round((dist_mi/20), digits = 0)
 extent <- as.data.frame(bbox_points)
 colnames(extent) <- c('x','y')
@@ -303,9 +303,20 @@ if (dist_mi > 500) {
 
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
-basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = as.numeric(zoom))
+basemap <- ggmap::get_stamenmap(maptype = "terrain-background", color="color", bbox = ggmap_bbox, zoom = as.numeric(zoom))
 basemap <- ggmap(basemap)
 ```
+
+```{r, eval = FALSE}
+# TESTING for now 
+## City locations for labeling -- need to put file in permanent place on github 
+setwd(export_path)
+cities_csv <- fread("~/Desktop/HARPteam23/uscities.csv") ## reads in cities data, need to change to common location 
+cities_va <- cities_csv[cities_csv$state_id == 'VA',] # filters to only cities within VA
+#cities_va <- st_as_sf(cities_va, coords = c('lat', 'lng'), crs = 4326) # create sf obj from the given lat longs 
+#cities <- st_filter(bbox_sf, cities_va) # selecting only the cities within the bounding box -- doesn't work
+```
+
 
 
 ```{r Generate Map Object, echo=FALSE}
@@ -317,7 +328,7 @@ map <- basemap + #ggplot2::
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "cornflowerblue", fill = NA, size = 1) +
 #    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
-    
+  
   # 2020 MGD
 #      geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
                #alpha = .7, 
@@ -361,8 +372,10 @@ map <- basemap + #ggplot2::
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
     geom_text_repel(data = labs_bind, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-                                          group = 1, label = GNIS_NAME, size = class),
-                    color = "dodgerblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + #labeling both major rivers and smaller rivers/streams
+                  group = 1, label = GNIS_NAME, size = class), color = "dodgerblue4", show.legend = FALSE) + 
+                  scale_size(range = c(6,10)) + #labeling both major rivers and smaller rivers/streams
+        geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
+          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 4) + #label cities
     # Original scalebar
 #    ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of bbox 
 #                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
@@ -383,7 +396,7 @@ map <- basemap + #ggplot2::
 
 ```{r Save Map.png, echo=FALSE}
 ggsave(
-  filename = paste(export_path, map_name, '.3',".png", sep=""),
+  filename = paste(export_path, map_name, '.5',".png", sep=""),
   plot = map,
   width = 25,
   height = 20
