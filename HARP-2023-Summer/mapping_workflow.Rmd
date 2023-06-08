@@ -188,6 +188,7 @@ bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
 bbox_ <- st_bbox(bbox_sf)
 #ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to use custom bbox 
 #nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
+#flowline <- nhd$flowline
 ```
 
 ```{r Labeling major rivers w/ MajorRivers.csv}
@@ -286,30 +287,31 @@ colnames(extent) <- c('x','y')
 ```{r}
 ## Adjusting zoom AND which flowlines to map based on boundary box size for clean mapping 
 if (dist_mi > 500) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
   zoom = 7
 } else if (dist_mi > 300) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2),]
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
   zoom = 8
 } else if (dist_mi > 150) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
   zoom = 9
 } else {
+  nhd$flowline_plot <- nhd$flowline
   zoom = 10
 }
 ```
 
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
-basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = zoom)
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = as.numeric(zoom))
 basemap <- ggmap(basemap)
 ```
 
 
 ```{r Generate Map Object, echo=FALSE}
 map <- basemap + #ggplot2::
-    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "skyblue3", fill = NA, mapping = aes(lwd = nhd$flowline$StreamOrde), 
+#    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
+    geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "skyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
             show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping all flowlines with thickness based on stream order
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "cornflowerblue", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "cornflowerblue", fill = NA, size = 1) +
@@ -381,7 +383,7 @@ map <- basemap + #ggplot2::
 
 ```{r Save Map.png, echo=FALSE}
 ggsave(
-  filename = paste(export_path, map_name, '.1',".png", sep=""),
+  filename = paste(export_path, map_name, '.3',".png", sep=""),
   plot = map,
   width = 25,
   height = 20
