@@ -183,7 +183,7 @@ metric_runid2 <- facil_sf$metric_runid2
 ```{r, eval = FALSE, message=FALSE}
 #### FOR TESTING -- Custom/manual bbox creation 
 bbox <- c('-80.0','36.8','-78.5','37.5')
-bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4]))
+bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4])))
 bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
 bbox_ <- st_bbox(bbox_sf)
 #ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
@@ -191,6 +191,7 @@ bbox_ <- st_bbox(bbox_sf)
 ```
 
 ```{r Labeling major rivers w/ MajorRivers.csv}
+### LABELING MAJOR RIVERS
 rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
 
 riv.centroid.df <-  data.frame(feature=rivs_layer$feature, #creating data frame containing names and centroid locations 
@@ -236,13 +237,12 @@ for (r in 1:length(streams67$id)) { #adding coordinates to the centroids df for 
 
 
 ```{r}
-# Labeling order 4 streams 
+### LABELING SMALLER RIVERS & STREAMS 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
 streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
 streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
-# Removing rows which already match a major river from MajorRivers.csv
-shared_rivs <- generics::intersect(streams4$gnis_name, rivs_layer$GNIS_NAME) #finding the rivers which show up in both data frames 
+shared_rivs <- generics::intersect(streams4$gnis_name, rivs_layer$GNIS_NAME) #finding the rivers which are also classified as major rivers
 streams4 <- streams4[!streams4$gnis_name %in% shared_rivs, ] # Removing rows with names matching any in shared rivers list
 
 stream4.centroid.df <-  data.frame(feature=(1:length(streams4$id)), #creating data frame containing names and centroid locations 
@@ -260,17 +260,33 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
 ```
 
 ```{r Don't Ovrlap Labels}
-# Process to combine coords and labels into 1 data frame for mapping and labeling without overlapping 
+## Combining labels & centroids for Major Rivers & smaller Rivers & streams 
 riv.centroid.df$class <- 9 # Adding columns to each df for unique labeling 
 stream4.centroid.df$class <- 6
 labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
 ```
 
 ```{r}
-#Create boundary box based on basin layer with a buffer 
+## Create boundary box based on basin layer with a buffer 
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
 ```
+
+```{r}
+## Auto-adjusting scalebar
+bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
+bbox_sf <- st_as_sf(bbox_points, coords = c('long','lat'), crs = 4326) # for use in data arg within scalebar (optionally)
+dist_m <-  distHaversine(bbox_points) #  calculating the geographic distance between corners of the boundary box 
+dist_mi <- dist_m / 1609.34 # default unit for output distance is meters , scalebar needs to be in miles
+dist <- round((dist_mi/20), digits = 0)
+extent <- as.data.frame(bbox_points)
+colnames(extent) <- c('x','y')
+```
+
+```{r}
+## Auto-adjusting zoom level 
+```
+
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
 basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 10)
@@ -278,25 +294,12 @@ basemap <- ggmap(basemap)
 ```
 
 ```{r}
-# Adjusting scalebar size based on extent of boundary box
-bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
-bbox_sf <- st_as_sf(bbox_points, coords = c('long','lat'), crs = 4326) # for use in data arg within scalebar (optionally)
-dist_m <-  distHaversine(bbox_points) # default unit for output distance is meters , scalebar needs to be in miles 
-dist_mi <- dist_m / 1609.34
-dist <- round((dist_mi/20), digits = 0)
-extent <- as.data.frame(bbox_points)
-colnames(extent) <- c('x','y')
-```
-
-```{r}
-# Adjusting which flowlines to map based on boundary box size for clean mapping 
+## Adjusting which flowlines to map based on boundary box size for clean mapping 
 if (dist_mi > 500) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
-} 
-if (dist_mi > 300 && dist_mi <= 500) {
+} else if (dist_mi > 300) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2),]
-} 
-if (dist_mi > 150 && dist_mi <= 300) {
+} else if (dist_mi > 150) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
 } 
 ```
