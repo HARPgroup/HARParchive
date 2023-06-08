@@ -431,16 +431,19 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```{r Create table w/ more facility info, echo= FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=sub("\\:.*","",facil_in_basin$propname), NUM=seq(1, nrow(facil_in_basin)), Rivseg= facil_in_basin$riverseg) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
+tableData <- data.frame(Facility=facil_sf$propname,Number= facil_labels$NUM, Rivseg= facil_sf$riverseg, wd_mgd=facil_sf$metric_runid1) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
 
 #add locations(locality or subwatershed)
 for(i in 1:nrow(tableData)){ 
-    loc_basin <- (basin_featr[grep(facil_in_basin$riverseg[i], basin_featr$riverseg),])
+    loc_basin <- (basin_featr[grep(facil_sf$riverseg[i], basin_featr$riverseg),])
     tableData$Location_Basin[i]  <- loc_basin$name 
 }
 
 #add locality/county
-
+county <- RomFeature$new(ds,list(
+    bundle= "usafips", ftype= "facility"), 
+  TRUE)
+  
 #add source(instake-measuring point)
 
 #add type(GW or SW)
@@ -458,13 +461,13 @@ for(i in 1:nrow(tableData)){
 
 
 #add upstream or downstream- this works just need to adjust numbers(see above)
-for(i in 1:nrow(facil_in_basin)){ 
-  if(facil_in_basin$riverseg[i] == rivseg)
+for(i in 1:nrow(facil_sf)){ 
+  if(facil_sf$riverseg[i] == rivseg)
   {
     up_down<- "Upstream"
     tableData$Upstream_Downstream[i] <- up_down
   }
-  else if (facil_in_basin$riverseg[i] != rivseg)
+  else if (facil_sf$riverseg[i] != rivseg)
   {
     up_down <- "Downstream"
     tableData$Upstream_Downstream[i] <- up_down
@@ -477,7 +480,11 @@ for(i in 1:nrow(facil_in_basin)){
 
 #add 5 yr avg use(MGY)
 
-#call table
+
+```
+
+```{r Call Table}
+
 library(flextable)
 set_flextable_defaults(
   font.size = 10, theme_fun = theme_vanilla,
@@ -489,11 +496,9 @@ table <- flextable(tableData)
 table <- set_header_labels(table,
   Facility = "Facility Name",
   NUM = "Facility Number", Rivseg= "River Segment", Location_Basin = "Location(Basins)",
-  Upstream_Downstream = "Upstream Vs. Downstream"
+  Upstream_Downstream = "Upstream Vs. Downstream", wd_mgd="2020 Cummulative Withdraw in mgd"
 )
 table
-
-
 ```
 
 ```{r Simple Table}
