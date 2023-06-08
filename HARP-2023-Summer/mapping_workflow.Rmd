@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JA4_7280_7340"] #["JL7_7070_0001"] test with bigger data
+  rivseg: ["JA4_7280_7340"] #["JL7_7070_0001"]  test with bigger data
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -431,21 +431,17 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```{r Create table w/ more facility info, echo= FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=facil_in_basin$propname, NUM=seq(1, nrow(facil_in_basin)), Rivseg= facil_in_basin$riverseg) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
+tableData <- data.frame(Facility=sub("\\:.*","",facil_in_basin$propname), NUM=seq(1, nrow(facil_in_basin)), Rivseg= facil_in_basin$riverseg) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
 
 #add locations(locality or subwatershed)
 for(i in 1:nrow(tableData)){ 
     loc_basin <- (basin_featr[grep(facil_in_basin$riverseg[i], basin_featr$riverseg),])
-    tableData$Location_Basin[i] <- loc_basin$name
+    tableData$Location_Basin[i]  <- loc_basin$name 
 }
 
-#loc_basin <- (basin_featr[grep(facil_in_basin$riverseg[1], basin_featr$riverseg),])
+#add locality/county
 
- # for (i in seq_along(tableData)) {
-  #  tableData$Rivseg[[i]][   tableData$Rivseg[[i]] %in% basin_featr$riverseg] <- basin_featr$name
-#}
-
-#add source(river name?)
+#add source(instake-measuring point)
 
 #add type(GW or SW)
 
@@ -481,13 +477,23 @@ for(i in 1:nrow(facil_in_basin)){
 
 #add 5 yr avg use(MGY)
 
+#call table
 library(flextable)
 set_flextable_defaults(
   font.size = 10, theme_fun = theme_vanilla,
   padding = 6,
-  background.color = "#009999")
+  background.color = "cornflowerblue")
+
 table <- flextable(tableData)
+
+table <- set_header_labels(table,
+  Facility = "Facility Name",
+  NUM = "Facility Number", Rivseg= "River Segment", Location_Basin = "Location(Basins)",
+  Upstream_Downstream = "Upstream Vs. Downstream"
+)
 table
+
+
 ```
 
 ```{r Simple Table}
