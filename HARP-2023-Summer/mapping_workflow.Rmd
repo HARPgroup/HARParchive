@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomatox_June7"]
+  map_name: ["Appomatox_June8"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -79,7 +79,7 @@ download.file(paste(site,"/vahydro_riversegs_export",sep=""), destfile = destfil
 allsegs <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep=",")
 #AllSegList <- substring(RSeg.csv$hydrocode, 17)
 allsegs$riverseg <- str_replace(allsegs$hydrocode, 'vahydrosw_wshed_', '')
-colnames(allsegs) <- gsub("geom", "dh_geofield", colnames(allsegs))
+colnames(allsegs) <- gsub("geom", "dh_geofield", colnames(allsegs)) #needed for process_geom()
 ##############
 
 # Then, extract the basin using fn_extract_basin()
@@ -114,19 +114,21 @@ facil_in_basin <- sqldf(
 facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like 'wsp_%'")
 
 # Get facility coordinates
-for(i in 1:nrow(facil_in_basin)){
-  facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
-  facil_in_basin$dh_geofield[i] <- facil.i$geom
-}
-
+#for(i in 1:nrow(facil_in_basin)){
+#  facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
+# facil_in_basin$dh_geofield[i] <- facil.i$geom
+#}
 
 #####TEMPORARY#####
-for(i in 1:10){
-  facil.i <- RomFeature$new(ds,list(hydroid=facil_featr$featureid[i]), TRUE)
-  facil_featr$dh_geofield[i] <- facil.i$geom
+for(i in 1:nrow(facil_in_basin)){
+  facil.i <- ds$get('dh_feature',config=list(hydroid=facil_in_basin$featureid[i]))
+  facil_in_basin$dh_geofield[i] <- facil.i$dh_geofield.geom
 }
 
-manor_golf <- RomFeature$new(ds,list(hydroid='90467'), TRUE)
+###
+#manor_golf <- RomFeature$new(ds,list(hydroid='90467'), TRUE)
+#seg = ds$get('dh_feature', config = list(hydroid=68310))
+#facil = ds$get('dh_feature', config = list(hydroid=72150))
 ##########
 
 # Convert to sp
@@ -155,12 +157,12 @@ st_crs(fips_sf) <- 4326
 #--Points Layer--
 facil_sf <- st_as_sf(facil_sp)
 st_crs(facil_sf) <- 4326
-facil_sf <- facil_sf[order(facil_sf$metric_runid1),]
+facil_sf <- facil_sf[order(-facil_sf$metric_runid1),]
 
 #--Labels & Placement--
 rsegs_centroids <- rgeos::gCentroid(basin_sp,byid=TRUE)
 #rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$riverseg)
-rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$name)
+rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$name, SEG=basin_sf$riverseg)
 rseg_labels$NAME <- gsub("\\River.*", "River", rseg_labels$NAME) #remove extraneous descriptors after "River"
 
 fips_labels <- data.frame(sf::st_coordinates(st_as_sf(fips_centroid_sp)), NAME=fips_sf$fips_name)
@@ -180,12 +182,12 @@ metric_runid1 <- facil_sf$metric_runid1
 metric_runid2 <- facil_sf$metric_runid2
 ```
 
-```{r, eval = FALSE, message=FALSE}
+```{r FOR TESTING -- Custom/manual bbox creation, eval = FALSE, message=FALSE}
 #### FOR TESTING -- Custom/manual bbox creation 
-bbox <- c('-80.0','36.8','-78.5','37.5')
-bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4]))
-bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
-bbox_ <- st_bbox(bbox_sf)
+#bbox <- c('-80.0','36.8','-78.5','37.5')
+#bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4]))
+#bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
+#bbox_ <- st_bbox(bbox_sf)
 #ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
 #nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
 ```
@@ -214,30 +216,30 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
 }
 ```
 
-```{r, eval = FALSE}
+```{r Labeling major rivers alternate method, eval = FALSE}
 # Labeling major rivers alternate method to using MajorRivers.csv, best method TBD
-streams_order67 <- flowline[flowline$StreamOrde == c(6,7),]
-streams67 <- streams_order67[!streams_order67$gnis_name==' ',] # Need to remove rows without names 
-streams67 <- streams67[!duplicated(streams67$gnis_id),] #Only want 1 row per stream name 
+#streams_order67 <- flowline[flowline$StreamOrde == c(6,7),]
+#streams67 <- streams_order67[!streams_order67$gnis_name==' ',] # Need to remove rows without names 
+#streams67 <- streams67[!duplicated(streams67$gnis_id),] #Only want 1 row per stream name 
 
-stream67.centroid.df <-  data.frame(feature=(1:length(streams67$id)), #creating data frame containing names and centroid locations 
-                                GNIS_NAME=streams67$gnis_name,
-                                centroid_longitude="",
-                                centroid_latitude="",
-                                stringsAsFactors=FALSE) 
+#stream67.centroid.df <-  data.frame(feature=(1:length(streams67$id)), #creating data frame containing names and centroid locations 
+#                                GNIS_NAME=streams67$gnis_name,
+#                                centroid_longitude="",
+#                                centroid_latitude="",
+#                                stringsAsFactors=FALSE) 
 
-for (r in 1:length(streams67$id)) { #adding coordinates to the centroids df for labeling
-    stream_geom_centroid <- st_centroid(streams67$geometry[r])
-    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
-    stream67.centroid.df$centroid_longitude[r] <- cent.coords$X
-    stream67.centroid.df$centroid_latitude[r] <- cent.coords$Y
-    }
+#for (r in 1:length(streams67$id)) { #adding coordinates to the centroids df for labeling
+#    stream_geom_centroid <- st_centroid(streams67$geometry[r])
+#    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
+#    stream67.centroid.df$centroid_longitude[r] <- cent.coords$X
+#    stream67.centroid.df$centroid_latitude[r] <- cent.coords$Y
+#    }
 ```
 
-
-```{r}
+```{r Labeling order 4 streams, warning=FALSE}
 # Labeling order 4 streams 
 # Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
+flowline <- nhd$flowline
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
 streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
 streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
@@ -259,25 +261,25 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
     }
 ```
 
-```{r Don't Ovrlap Labels}
+```{r Don't Overlap Labels}
 # Process to combine coords and labels into 1 data frame for mapping and labeling without overlapping 
 riv.centroid.df$class <- 9 # Adding columns to each df for unique labeling 
 stream4.centroid.df$class <- 6
 labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
 ```
 
-```{r}
+```{r Boundary Box, message=FALSE}
 #Create boundary box based on basin layer with a buffer 
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
 ```
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
-basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 10)
-basemap <- ggmap(basemap)
+basemap_0 <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 11)
+basemap <- ggmap(basemap_0) # basemap_0 is used for reverse polygon fill
 ```
 
-```{r}
+```{r Scalebar Size}
 # Adjusting scalebar size based on extent of boundary box
 bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
 bbox_sf <- st_as_sf(bbox_points, coords = c('long','lat'), crs = 4326) # for use in data arg within scalebar (optionally)
@@ -288,7 +290,7 @@ extent <- as.data.frame(bbox_points)
 colnames(extent) <- c('x','y')
 ```
 
-```{r}
+```{r Flowline Orders Based on Extent}
 # Adjusting which flowlines to map based on boundary box size for clean mapping 
 if (dist_mi > 500) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
@@ -301,32 +303,76 @@ if (dist_mi > 150 && dist_mi <= 300) {
 } 
 ```
 
+```{r Reverse Fill Rseg polygons, message=FALSE}
+library(raster)
+
+bb <- unlist(attr(basemap_0, "bb"))
+coords <- cbind(
+  bb[c(2,2,4,4)],
+  bb[c(1,3,3,1)])
+basemap_sp <- SpatialPolygons(
+  list(Polygons(list(Polygon(coords)), "id")), 
+  proj4string = CRS(proj4string(basin_sp)))
+
+nonbasin_sp <- erase(basemap_sp, basin_sp)
+nonbasin_sf <- st_as_sf(nonbasin_sp)
+st_crs(nonbasin_sf) <- 4326
+
+```
+
 ```{r Generate Map Object, echo=FALSE}
 map <- basemap + #ggplot2::
-    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033335F", fill = NA, lwd=1) +
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "skyblue3", fill = NA, mapping = aes(lwd = nhd$flowline$StreamOrde), show.legend = FALSE) + 
+    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
+    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline$StreamOrde), show.legend = FALSE) + 
        scale_linewidth(range = c(0.4,2)) + # mapping all flowlines with thickness based on stream order
-    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "cornflowerblue", fill = NA, size = 1) +
-    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "cornflowerblue", fill = NA, size = 1) +
-    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = "#0022974C", lwd=1) +
+    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
+    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
+    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=1) + # fill = #0022974C
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
+
+    theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
+    # Labels
+    geom_label(data = rseg_labels, 
+               aes(X, Y, label = SEG, fontface="bold", family="mono"), 
+               colour = "#002269", fill=NA, size=7, label.size=0, label.r= unit(0.3, "mm")) +
+    geom_label(data = fips_labels, 
+               aes(X, Y, label = NAME, fontface="bold.italic", family="serif"), 
+               colour = "#003333", fill= NA, size=10, label.size=0, label.r= unit(0.3, "mm")) +
+  #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
+     #          nudge_x = -0.01, nudge_y = 0.01) +
+#    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
+#                    color = "dodgerblue3") + #labeling major rivers
+#    geom_text_repel(data = stream67.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
+#                    size = 8, color = "dodgerblue3") + #labeling order 6 & 7 streams -- also major rivers
+#    geom_text_repel(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
+#                    size = 4, color = "dodgerblue3") + #labeling order 4 streams
+    geom_text_repel(data = labs_bind, 
+                    aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
+                        group = 1, label = GNIS_NAME, size = class, fontface="bold", angle=20),
+                    color = "deepskyblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + 
+                    #labeling both major rivers and smaller rivers/streams
+  # Reverse Fill
+    geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#002289", fill = "#CCCCCC8F", lwd=1) +
+  
   # 2020 MGD
-      geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1), 
-               #alpha = .7, 
+      new_scale("size") +
+      geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1),
                col="yellow", shape = 19, stroke = 0.75) +
       scale_size(range = c(10,35), 
-                 breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
+                 breaks = c(metric_runid1[metric_runid1!=0], 0),
+                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
                  #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
       scale_alpha(range = c(0.5, 0.95),
-                 breaks = c(0, metric_runid1[metric_runid1!=0]),
-                 labels = round(c(0, metric_runid1[metric_runid1!=0]), digits = 3),
+                 breaks = c(metric_runid1[metric_runid1!=0], 0),
+                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
                  #guide = FALSE
                  name = paste(metric, runid_list[1], sep="_")
                  ) +
+  # Facility Labels
+      geom_text(data = facil_labels, aes(X, Y, label = NUM, fontface="bold"), colour = "black", size = 6) +
     # 2040 MGD
     #new_scale("size") + new_scale("color") + new_scale("alpha") +
     #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
@@ -342,33 +388,15 @@ map <- basemap + #ggplot2::
     #             labels = c(0, metric_runid1[metric_runid1!=0]),
     #             guide = FALSE
     #             ) +
-
-    theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
-    
-    # plot labels
-    geom_label(data = rseg_labels, aes(X, Y, label = NAME), colour = "#002269", fill=NA, size=7,
-               label.size=0, label.r= unit(0.3, "mm")) +
-    geom_label(data = fips_labels, aes(X, Y, label = NAME), colour = "#003333", fill= NA, size=9, 
-               label.size=0, label.r= unit(0.3, "mm")) +
-##    geom_text(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 7) +
-  #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
-     #          nudge_x = -0.01, nudge_y = 0.01) +
-#    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
-#                    color = "dodgerblue3") + #labeling major rivers
-#    geom_text_repel(data = stream67.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
-#                    size = 8, color = "dodgerblue3") + #labeling order 6 & 7 streams -- also major rivers
-#    geom_text_repel(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
-#                    size = 4, color = "dodgerblue3") + #labeling order 4 streams
-    geom_text_repel(data = labs_bind, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME, size = class),
-                    color = "dodgerblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + #labeling both major rivers and smaller rivers/streams
-    # Original scalebar
+  
+  # Original scalebar
     ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
                    transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
     # north arrow
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
                                       style = north_arrow_orienteering(text_size = 35)
-                                      ) +
+                                      )
   #### Adjustable Scale Bar Using Joey's anchoring method 
 #    ggsn::scalebar(data = bbox_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi', 
 #                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
@@ -462,7 +490,7 @@ table <- flextable(tableData)
 table
 ```
 
-```{r}
+```{r Simple Table}
 table <- qflextable(facil_labels[,c("NUM", "NAME")])
 ```
 
