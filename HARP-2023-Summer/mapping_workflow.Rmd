@@ -6,7 +6,7 @@ output: html_document
 params:
   rivseg: ["JA4_7280_7340"] #["JL7_7070_0001"]  test with bigger data
   model_version: ["vahydro-1.0"]
-  runid_list: [ "runid_401","runid_13" ]
+  runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
   map_name: ["Appomatox_June9"]
 ---
