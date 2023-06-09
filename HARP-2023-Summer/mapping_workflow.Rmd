@@ -434,23 +434,24 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```
 
 #Create table for map
-```{r Create table w/ more facility info, echo= FALSE}
+```{r Create table w/ more facility info, echo= FALSE, warning=FALSE, message=FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=facil_sf$propname,Number= facil_labels$NUM, Rivseg= facil_sf$riverseg, wd_mgd=facil_sf$metric_runid1) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
+tableData <- data.frame(Facility=facil_sf$propname,
+                        Number= facil_labels$NUM, 
+                        Rivseg= facil_sf$riverseg  #can be removed if unhelpful later, right now used for ensuring correct data
+                        #wd_mgd=facil_sf$metric_runid1   #for metric runids...unsure if helpful to include
+                        ) 
 
-#add locations(locality or subwatershed)
+#add locations(subwatershed basin)
 for(i in 1:nrow(tableData)){ 
     loc_basin <- (basin_featr[grep(facil_sf$riverseg[i], basin_featr$riverseg),])
     tableData$Location_Basin[i]  <- loc_basin$name 
 }
 
-#add locality/county
-county <- RomFeature$new(ds,list(
-    bundle= "usafips", ftype= "facility"), 
-  TRUE)
+
   
-#add source(instake-measuring point)
+#add source(intake-measuring point)
 
 #add type(GW or SW)
 
@@ -466,7 +467,7 @@ county <- RomFeature$new(ds,list(
   
 
 
-#add upstream or downstream- this works just need to adjust numbers(see above)
+#add upstream or downstream
 for(i in 1:nrow(facil_sf)){ 
   if(facil_sf$riverseg[i] == rivseg)
   {
@@ -482,11 +483,67 @@ for(i in 1:nrow(facil_sf)){
   
 
   
+#add locality/county
+# right now they are all filling in blank, in the fipsnew data a lot of the dh_link_admin_dha_usafips are blank, if you try to pull one that isnt blank it will result in the fips code
+
+token <- rest_token(base_url = site,
+                    rest_uname = rest_uname,
+                    rest_pw = rest_pw)
+
+for (i in 1:nrow(facil_sf)){
+fipsnew <- getAdminregFeature(inputs = list(bundle = 'permit'), 
+                              base_url = site)
+usafips <- fipsnew$dh_link_admin_dha_usafips
+tableData$usafips[i] <- usafips
+}
+
+
+
 #add permitted capacity
 
+#dh_link_admin_location seems to not exist in the getadminregfeature fipsnew as shown above, unsure how to use it
+#trying other option given, but this returns all values as NA
+
+for (i in 1:nrow(facil_sf)){
+val2 <- RomProperty$new(ds,list(
+    riverseg= facil_sf$riverseg[i],
+    propname= "fac_current_mgy"), 
+  TRUE)
+permitMax <- val2$propvalue
+tableData$permitMax[i] <- permitMax
+}
+
+
+
+#finding current mgy and 2040 predicted mgy
+# for (i in 1:nrow(facil_sf)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facil_sf$featureid[i],
+#     propname= "wsp2020_2020_mgy"), 
+#   TRUE)
+# current_mgy <- val$propvalue
+# tableData$Current_mgy[i] <- current_mgy
+# }
+# 
+# for (i in 1:nrow(facil_sf)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facil_sf$featureid[i],
+#     propname= "wsp2020_2040_mgy"), 
+#   TRUE)
+# current_mgy <- val$propvalue
+# tableData$Predicted_mgy[i] <- current_mgy
+# }
+
+
 #add 5 yr avg use(MGY)
-
-
+for (i in 1:nrow(facil_sf)){
+val <- RomProperty$new(ds,list(
+    featureid= facil_sf$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+tableData$five_mgy[i] <- five_mgy
+}
 ```
 
 ```{r Call Table}
@@ -501,8 +558,14 @@ table <- flextable(tableData)
 
 table <- set_header_labels(table,
   Facility = "Facility Name",
-  NUM = "Facility Number", Rivseg= "River Segment", Location_Basin = "Location(Basins)",
-  Upstream_Downstream = "Upstream Vs. Downstream", wd_mgd="2020 Cummulative Withdraw in mgd"
+  NUM = "Facility Number", 
+  Rivseg= "River Segment", 
+  Location_Basin = "Location(Basins)",
+  Upstream_Downstream = "Upstream Vs. Downstream", 
+  #wd_mgd="2020 Cumulative Withdraw in mgd", 
+  #Current_mgy="2020 Cumulative Withdraw Demand(mgy)", 
+  #Predicted_mgy= "2040 Cumulative Withdraw Demand(mgy)"
+  five_mgy = "5 Year Average Use (mgy)"
 )
 table
 ```
