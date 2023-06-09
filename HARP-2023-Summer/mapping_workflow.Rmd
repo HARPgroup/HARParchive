@@ -216,25 +216,26 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
 }
 ```
 
-```{r Labeling major rivers alternate method, eval = FALSE}
-# Labeling major rivers alternate method to using MajorRivers.csv, best method TBD
-#streams_order67 <- flowline[flowline$StreamOrde == c(6,7),]
-#streams67 <- streams_order67[!streams_order67$gnis_name==' ',] # Need to remove rows without names 
-#streams67 <- streams67[!duplicated(streams67$gnis_id),] #Only want 1 row per stream name 
+```{r Labeling Waterbodies, warning=FALSE}
+## Labeling Lakes & Reservoirs
+waterbodies_net <- nhd$network_wtbd[!(nhd$network_wtbd$gnis_name==' ' | nhd$network_wtbd$gnis_name=='Noname') ,] # only selecting waterbodies with names 
+waterbodies_off <- nhd$off_network_wtbd[!(nhd$off_network_wtbd$gnis_name==' ' | nhd$off_network_wtbd$gnis_name=='Noname') ,]
+waterbodies <- rbind(waterbodies_net, waterbodies_off)
 
-#stream67.centroid.df <-  data.frame(feature=(1:length(streams67$id)), #creating data frame containing names and centroid locations 
-#                                GNIS_NAME=streams67$gnis_name,
-#                                centroid_longitude="",
-#                                centroid_latitude="",
-#                                stringsAsFactors=FALSE) 
+waterbodies.centroid.df <-  data.frame(feature=(1:length(waterbodies$id)), #creating data frame containing names and centroid locations 
+                                GNIS_NAME=waterbodies$gnis_name,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
 
-#for (r in 1:length(streams67$id)) { #adding coordinates to the centroids df for labeling
-#    stream_geom_centroid <- st_centroid(streams67$geometry[r])
-#    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
-#    stream67.centroid.df$centroid_longitude[r] <- cent.coords$X
-#    stream67.centroid.df$centroid_latitude[r] <- cent.coords$Y
-#    }
+for (r in 1:length(waterbodies$id)) { #adding coordinates to the centroids df for labeling
+    wbody_geom_centroid <- st_centroid(waterbodies$geometry[r])
+    cent.coords <- as.data.frame(st_coordinates(wbody_geom_centroid))
+    waterbodies.centroid.df$centroid_longitude[r] <- cent.coords$X
+    waterbodies.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    }
 ```
+
 
 ```{r Labeling order 4 streams, warning=FALSE}
 # Labeling order 4 streams 
@@ -339,8 +340,8 @@ map <- basemap + #ggplot2::
     geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
     geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
             show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
-    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
-    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
+    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = 'deepskyblue3', size = 1) +
+    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = 'deepskyblue3', size = 1) +
     geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=1) + # fill = #0022974C
     #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
 
@@ -360,6 +361,8 @@ map <- basemap + #ggplot2::
                         group = 1, label = GNIS_NAME, size = class, fontface="bold", angle=20),
                     color = "deepskyblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + 
                     #labeling both major rivers and smaller rivers/streams
+    geom_text_repel(data = waterbodies.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
+                    label = GNIS_NAME), color = '#002289', size = 5) + #label waterbodies
     geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
           geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
