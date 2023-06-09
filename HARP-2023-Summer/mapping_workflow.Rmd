@@ -6,7 +6,7 @@ output: html_document
 params:
   rivseg: ["JA4_7280_7340"] #["JL7_7070_0001"]  test with bigger data
   model_version: ["vahydro-1.0"]
-  runid_list: [ "runid_11","runid_13" ]
+  runid_list: [ "runid_401","runid_13" ]
   metric: ["wd_mgd"]
   map_name: ["Appomatox_June9"]
 ---
@@ -243,7 +243,11 @@ flowline <- nhd$flowline
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
 streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
 streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
-# Removing rows which already match a major river from MajorRivers.csv
+streams4$gnis_name <- gsub('North Fork', 'NF', streams4$gnis_name) 
+streams4$gnis_name <- gsub('South Fork', 'SF', streams4$gnis_name)
+streams4$gnis_name <- gsub('East Fork', 'EF', streams4$gnis_name)
+streams4$gnis_name <- gsub('West Fork', 'WF', streams4$gnis_name)
+streams4$gnis_name <- gsub('Middle Fork', 'MF', streams4$gnis_name)
 shared_rivs <- generics::intersect(streams4$gnis_name, rivs_layer$GNIS_NAME) #finding the rivers which show up in both data frames 
 streams4 <- streams4[!streams4$gnis_name %in% shared_rivs, ] # Removing rows with names matching any in shared rivers list
 
@@ -402,7 +406,7 @@ map <- basemap + #ggplot2::
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
                                       style = north_arrow_orienteering(text_size = 35)
-                                      )
+                                      ) 
   #### Adjustable Scale Bar Using Joey's anchoring method 
 #    ggsn::scalebar(data = bbox_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi', 
 #                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
