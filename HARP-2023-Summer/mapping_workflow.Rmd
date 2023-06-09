@@ -368,7 +368,7 @@ map <- basemap + #ggplot2::
           scale_size(range = textsize[3:4]) + 
                     #labeling both major rivers and smaller rivers/streams
     geom_text_repel(data = waterbodies.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-                    label = GNIS_NAME), color = '#002289', size = 4) + #label waterbodies
+                    label = GNIS_NAME), color = '#002289', size = 5) + #label waterbodies
     geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
           geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
@@ -431,7 +431,8 @@ map <- basemap + #ggplot2::
 
 ```{r Save Map.png, echo=FALSE}
 ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
+  #filename = paste(export_path, map_name, ".png", sep=""),
+  filename = paste(export_path, rivseg, '.runid13', ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
