@@ -357,7 +357,7 @@ map <- basemap + #ggplot2::
                     color = "deepskyblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + 
                     #labeling both major rivers and smaller rivers/streams
     geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
-          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 4) + #label cities
+          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
     geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#002289", fill = "#CCCCCC8F", lwd=1) +
   
@@ -397,7 +397,7 @@ map <- basemap + #ggplot2::
   
   # Original scalebar
     ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
-                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
+                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12, st.dist = 0.03) +
     # north arrow
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
