@@ -271,6 +271,9 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
 riv.centroid.df$class <- 9 # Adding columns to each df for unique labeling 
 stream4.centroid.df$class <- 6
 waterbodies.centroid.df$class <- 5
+riv.centroid.df$angle <- 20 # angles to display text
+stream4.centroid.df$angle <- 20
+waterbodies.centroid.df$angle <- 0
 labs_bind <- rbind(riv.centroid.df, stream4.centroid.df, waterbodies.centroid.df) # binding data frames together
 ```
 
@@ -364,7 +367,7 @@ map <- basemap + #ggplot2::
      #          nudge_x = -0.01, nudge_y = 0.01) +
     geom_text_repel(data = labs_bind, 
                     aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-                        group = 1, label = GNIS_NAME, size = class, fontface="bold", family="serif", angle=20 ),
+                        group = 1, label = GNIS_NAME, size = class, fontface="bold", family="serif", angle= angle ),
                     color = "deepskyblue4", show.legend = FALSE, max.overlaps=1 ) + 
           scale_size(range = textsize[3:4]) + 
                     #labeling both major rivers and smaller rivers/streams
@@ -430,8 +433,7 @@ map <- basemap + #ggplot2::
 
 ```{r Save Map.png, echo=FALSE}
 ggsave(
-  #filename = paste(export_path, map_name, ".png", sep=""),
-  filename = paste(export_path, rivseg, '.labs', ".png", sep=""),
+  filename = paste(export_path, map_name, ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
