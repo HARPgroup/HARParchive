@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JA4_7280_7340"] #["JL7_7070_0001"]  test with bigger data
+  rivseg: ["JA4_7280_7340"] #["JA4_7280_7340" , "JB3_6820_7053", "JL7_7070_0001"]  <-use last to test with bigger data
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -294,13 +294,19 @@ colnames(extent) <- c('x','y')
 # Adjusting which flowlines to map based on boundary box size for clean mapping 
 if (dist_mi > 500) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
+  textsize <- c(6,5,0,4, 0) #c(county names, facility num, streams, rivers,  basin_sf lwd)
 } 
 if (dist_mi > 300 && dist_mi <= 500) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2),]
+  textsize <- c(6,5,0,5, 0)
 } 
 if (dist_mi > 150 && dist_mi <= 300) {
   nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  textsize <- c(7,5,4,6, 0)
 } 
+if (dist_mi < 150){
+  textsize <- c(10,6,6,10, 1)
+}
 ```
 
 ```{r Reverse Fill Rseg polygons, message=FALSE}
@@ -327,18 +333,17 @@ map <- basemap + #ggplot2::
        scale_linewidth(range = c(0.4,2)) + # mapping all flowlines with thickness based on stream order
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
-    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=1) + # fill = #0022974C
-    #geom_sf(data = facil_sf, inherit.aes = FALSE, color = "white", fill = "black", size = 10, pch = 21) +
+    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=textsize[5]) + # fill = #0022974C
 
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
     # Labels
-    geom_label(data = rseg_labels, 
-               aes(X, Y, label = SEG, fontface="bold", family="mono"), 
-               colour = "#002269", fill=NA, size=7, label.size=0, label.r= unit(0.3, "mm")) +
-    geom_label(data = fips_labels, 
+##    geom_text(data = rseg_labels, 
+##               aes(X, Y, label = SEG, fontface="bold", family="mono"), 
+##               colour = "#002269", fill=NA, size=textsize[3]) +
+    geom_text(data = fips_labels, 
                aes(X, Y, label = NAME, fontface="bold.italic", family="serif"), 
-               colour = "#003333", fill= NA, size=10, label.size=0, label.r= unit(0.3, "mm")) +
+               colour = "#003333", size=textsize[1], check_overlap=TRUE ) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
 #    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
@@ -349,30 +354,31 @@ map <- basemap + #ggplot2::
 #                    size = 4, color = "dodgerblue3") + #labeling order 4 streams
     geom_text_repel(data = labs_bind, 
                     aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-                        group = 1, label = GNIS_NAME, size = class, fontface="bold", angle=20),
-                    color = "deepskyblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + 
+                        group = 1, label = GNIS_NAME, size = class, fontface="bold", family="serif", angle=20 ),
+                    color = "deepskyblue4", show.legend = FALSE, max.overlaps=1 ) + 
+          scale_size(range = textsize[3:4]) + 
                     #labeling both major rivers and smaller rivers/streams
   # Reverse Fill
-    geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#002289", fill = "#CCCCCC8F", lwd=1) +
+    geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#4040409F", fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
   
   # 2020 MGD
       new_scale("size") +
       geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1),
-               col="yellow", shape = 19, stroke = 0.75) +
+               col="#F7FF00", shape = 19, stroke = 0.75) +
       scale_size(range = c(10,35), 
-                 breaks = c(metric_runid1[metric_runid1!=0], 0),
-                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 #guide = guide_legend(title = paste(metric, runid_list[1], sep="_"))
+##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
+##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
+                 breaks = seq(max(metric_runid1), 0, length.out=7), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=7), digits=3),
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
-      scale_alpha(range = c(0.5, 0.95),
-                 breaks = c(metric_runid1[metric_runid1!=0], 0),
-                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 #guide = FALSE
+      scale_alpha(range = c(0.4, 0.9),
+##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
+##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
+                 breaks = seq(max(metric_runid1), 0, length.out=7), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=7), digits=3),
                  name = paste(metric, runid_list[1], sep="_")
                  ) +
-  # Facility Labels
-      geom_text(data = facil_labels, aes(X, Y, label = NUM, fontface="bold"), colour = "black", size = 6) +
     # 2040 MGD
     #new_scale("size") + new_scale("color") + new_scale("alpha") +
     #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
@@ -389,9 +395,12 @@ map <- basemap + #ggplot2::
     #             guide = FALSE
     #             ) +
   
+  # Facility Labels
+    geom_text(data = facil_labels, aes(X, Y, label = NUM, fontface="bold"), colour = "black", size = textsize[2], check_overlap=TRUE) +
+  
   # Original scalebar
     ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
-                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=12 ) +
+                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=textsize[1]+1 ) +
     # north arrow
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
