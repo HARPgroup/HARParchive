@@ -268,6 +268,13 @@ stream4.centroid.df$class <- 6
 labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
 ```
 
+```{r, eval = FALSE}
+## Labeling city locations 
+cities_csv <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv") ## reads in cities data
+cities_va <- cities_csv[cities_csv$state_id == 'VA',] # filters to only cities within VA
+```
+
+
 ```{r Boundary Box, message=FALSE}
 #Create boundary box based on basin layer with a buffer 
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
@@ -317,7 +324,6 @@ basemap_sp <- SpatialPolygons(
 nonbasin_sp <- erase(basemap_sp, basin_sp)
 nonbasin_sf <- st_as_sf(nonbasin_sp)
 st_crs(nonbasin_sf) <- 4326
-
 ```
 
 ```{r Generate Map Object, echo=FALSE}
@@ -346,6 +352,8 @@ map <- basemap + #ggplot2::
                         group = 1, label = GNIS_NAME, size = class, fontface="bold", angle=20),
                     color = "deepskyblue4", show.legend = FALSE) + scale_size(range = c(6,10)) + 
                     #labeling both major rivers and smaller rivers/streams
+    geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
+          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 4) + #label cities
   # Reverse Fill
     geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#002289", fill = "#CCCCCC8F", lwd=1) +
   
