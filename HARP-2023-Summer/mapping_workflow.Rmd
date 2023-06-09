@@ -270,7 +270,8 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
 # Process to combine coords and labels into 1 data frame for mapping and labeling without overlapping 
 riv.centroid.df$class <- 9 # Adding columns to each df for unique labeling 
 stream4.centroid.df$class <- 6
-labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
+waterbodies.centroid.df$class <- 5
+labs_bind <- rbind(riv.centroid.df, stream4.centroid.df, waterbodies.centroid.df) # binding data frames together
 ```
 
 ```{r, eval = FALSE}
@@ -367,8 +368,6 @@ map <- basemap + #ggplot2::
                     color = "deepskyblue4", show.legend = FALSE, max.overlaps=1 ) + 
           scale_size(range = textsize[3:4]) + 
                     #labeling both major rivers and smaller rivers/streams
-    geom_text_repel(data = waterbodies.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-                    label = GNIS_NAME), color = '#002289', size = 5) + #label waterbodies
     geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
           geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
@@ -432,7 +431,7 @@ map <- basemap + #ggplot2::
 ```{r Save Map.png, echo=FALSE}
 ggsave(
   #filename = paste(export_path, map_name, ".png", sep=""),
-  filename = paste(export_path, rivseg, '.legend', ".png", sep=""),
+  filename = paste(export_path, rivseg, '.labs', ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
