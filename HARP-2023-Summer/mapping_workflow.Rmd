@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomatox_June8"]
+  map_name: ["Appomatox_June9"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -281,11 +281,6 @@ ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
 ```
 
-```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
-basemap_0 <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 11)
-basemap <- ggmap(basemap_0) # basemap_0 is used for reverse polygon fill
-```
-
 ```{r Scalebar Size}
 # Adjusting scalebar size based on extent of boundary box
 bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
@@ -312,6 +307,11 @@ if (dist_mi > 500) {
   nhd$flowline_plot <- nhd$flowline
   zoom = 10
 }
+```
+
+```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
+basemap_0 <- ggmap::get_stamenmap(maptype = "terrain-background", color="color", bbox = ggmap_bbox, zoom = zoom)
+basemap <- ggmap(basemap_0) # basemap_0 is used for reverse polygon fill
 ```
 
 ```{r Reverse Fill Rseg polygons, message=FALSE}
