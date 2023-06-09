@@ -298,16 +298,20 @@ colnames(extent) <- c('x','y')
 ```
 
 ```{r Flowline Orders Based on Extent}
-# Adjusting which flowlines to map based on boundary box size for clean mapping 
+## Adjusting zoom AND which flowlines to map based on boundary box size for clean mapping 
 if (dist_mi > 500) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
-} 
-if (dist_mi > 300 && dist_mi <= 500) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2),]
-} 
-if (dist_mi > 150 && dist_mi <= 300) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
-} 
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
+  zoom = 7
+} else if (dist_mi > 300) {
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
+  zoom = 8
+} else if (dist_mi > 150) {
+  nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  zoom = 9
+} else {
+  nhd$flowline_plot <- nhd$flowline
+  zoom = 10
+}
 ```
 
 ```{r Reverse Fill Rseg polygons, message=FALSE}
