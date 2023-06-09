@@ -333,8 +333,8 @@ st_crs(nonbasin_sf) <- 4326
 ```{r Generate Map Object, echo=FALSE}
 map <- basemap + #ggplot2::
     geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline$StreamOrde), show.legend = FALSE) + 
-       scale_linewidth(range = c(0.4,2)) + # mapping all flowlines with thickness based on stream order
+    geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
+            show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=1) + # fill = #0022974C
