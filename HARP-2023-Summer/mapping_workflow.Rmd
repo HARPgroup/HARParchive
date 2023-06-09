@@ -8,7 +8,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["Appomatox_June8"]
+  map_name: ["Appomatox_June9"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -268,15 +268,17 @@ stream4.centroid.df$class <- 6
 labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
 ```
 
+```{r, eval = FALSE}
+## Labeling city locations 
+cities_csv <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv") ## reads in cities data
+cities_va <- cities_csv[cities_csv$state_id == 'VA',] # filters to only cities within VA
+```
+
+
 ```{r Boundary Box, message=FALSE}
 #Create boundary box based on basin layer with a buffer 
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
-```
-
-```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
-basemap_0 <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 11)
-basemap <- ggmap(basemap_0) # basemap_0 is used for reverse polygon fill
 ```
 
 ```{r Scalebar Size}
@@ -291,22 +293,29 @@ colnames(extent) <- c('x','y')
 ```
 
 ```{r Flowline Orders Based on Extent}
-# Adjusting which flowlines to map based on boundary box size for clean mapping 
+## Adjusting zoom AND which flowlines to map based on boundary box size for clean mapping 
 if (dist_mi > 500) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2,3),]
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
+  zoom = 7
   textsize <- c(6,5,0,4, 0) #c(county names, facility num, streams, rivers,  basin_sf lwd)
-} 
-if (dist_mi > 300 && dist_mi <= 500) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == c(1,2),]
+} else if (dist_mi > 300) {
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
+  zoom = 8
   textsize <- c(6,5,0,5, 0)
-} 
-if (dist_mi > 150 && dist_mi <= 300) {
-  nhd$flowline <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+} else if (dist_mi > 150) {
+  nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  zoom = 9
   textsize <- c(7,5,4,6, 0)
-} 
-if (dist_mi < 150){
+} else {
+  nhd$flowline_plot <- nhd$flowline
+  zoom = 10
   textsize <- c(10,6,6,10, 1)
 }
+```
+
+```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
+basemap_0 <- ggmap::get_stamenmap(maptype = "terrain-background", color="color", bbox = ggmap_bbox, zoom = zoom)
+basemap <- ggmap(basemap_0) # basemap_0 is used for reverse polygon fill
 ```
 
 ```{r Reverse Fill Rseg polygons, message=FALSE}
@@ -323,14 +332,13 @@ basemap_sp <- SpatialPolygons(
 nonbasin_sp <- erase(basemap_sp, basin_sp)
 nonbasin_sf <- st_as_sf(nonbasin_sp)
 st_crs(nonbasin_sf) <- 4326
-
 ```
 
 ```{r Generate Map Object, echo=FALSE}
 map <- basemap + #ggplot2::
     geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
-    geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline$StreamOrde), show.legend = FALSE) + 
-       scale_linewidth(range = c(0.4,2)) + # mapping all flowlines with thickness based on stream order
+    geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
+            show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=textsize[5]) + # fill = #0022974C
@@ -346,18 +354,14 @@ map <- basemap + #ggplot2::
                colour = "#003333", size=textsize[1], check_overlap=TRUE ) +
   #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
      #          nudge_x = -0.01, nudge_y = 0.01) +
-#    geom_text(data = riv.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),size = 8, 
-#                    color = "dodgerblue3") + #labeling major rivers
-#    geom_text_repel(data = stream67.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
-#                    size = 8, color = "dodgerblue3") + #labeling order 6 & 7 streams -- also major rivers
-#    geom_text_repel(data = stream4.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), group = 1, label = GNIS_NAME),
-#                    size = 4, color = "dodgerblue3") + #labeling order 4 streams
     geom_text_repel(data = labs_bind, 
                     aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
                         group = 1, label = GNIS_NAME, size = class, fontface="bold", family="serif", angle=20 ),
                     color = "deepskyblue4", show.legend = FALSE, max.overlaps=1 ) + 
           scale_size(range = textsize[3:4]) + 
                     #labeling both major rivers and smaller rivers/streams
+    geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
+          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
     geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#4040409F", fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
   
@@ -400,7 +404,7 @@ map <- basemap + #ggplot2::
   
   # Original scalebar
     ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
-                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=textsize[1]+1 ) +
+                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=textsize[1]+1, st.dist = 0.03) +
     # north arrow
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
@@ -440,16 +444,19 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```{r Create table w/ more facility info, echo= FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=sub("\\:.*","",facil_in_basin$propname), NUM=seq(1, nrow(facil_in_basin)), Rivseg= facil_in_basin$riverseg) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
+tableData <- data.frame(Facility=facil_sf$propname,Number= facil_labels$NUM, Rivseg= facil_sf$riverseg, wd_mgd=facil_sf$metric_runid1) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
 
 #add locations(locality or subwatershed)
 for(i in 1:nrow(tableData)){ 
-    loc_basin <- (basin_featr[grep(facil_in_basin$riverseg[i], basin_featr$riverseg),])
+    loc_basin <- (basin_featr[grep(facil_sf$riverseg[i], basin_featr$riverseg),])
     tableData$Location_Basin[i]  <- loc_basin$name 
 }
 
 #add locality/county
-
+county <- RomFeature$new(ds,list(
+    bundle= "usafips", ftype= "facility"), 
+  TRUE)
+  
 #add source(instake-measuring point)
 
 #add type(GW or SW)
@@ -467,13 +474,13 @@ for(i in 1:nrow(tableData)){
 
 
 #add upstream or downstream- this works just need to adjust numbers(see above)
-for(i in 1:nrow(facil_in_basin)){ 
-  if(facil_in_basin$riverseg[i] == rivseg)
+for(i in 1:nrow(facil_sf)){ 
+  if(facil_sf$riverseg[i] == rivseg)
   {
     up_down<- "Upstream"
     tableData$Upstream_Downstream[i] <- up_down
   }
-  else if (facil_in_basin$riverseg[i] != rivseg)
+  else if (facil_sf$riverseg[i] != rivseg)
   {
     up_down <- "Downstream"
     tableData$Upstream_Downstream[i] <- up_down
@@ -486,7 +493,11 @@ for(i in 1:nrow(facil_in_basin)){
 
 #add 5 yr avg use(MGY)
 
-#call table
+
+```
+
+```{r Call Table}
+
 library(flextable)
 set_flextable_defaults(
   font.size = 10, theme_fun = theme_vanilla,
@@ -498,11 +509,9 @@ table <- flextable(tableData)
 table <- set_header_labels(table,
   Facility = "Facility Name",
   NUM = "Facility Number", Rivseg= "River Segment", Location_Basin = "Location(Basins)",
-  Upstream_Downstream = "Upstream Vs. Downstream"
+  Upstream_Downstream = "Upstream Vs. Downstream", wd_mgd="2020 Cummulative Withdraw in mgd"
 )
 table
-
-
 ```
 
 ```{r Simple Table}
