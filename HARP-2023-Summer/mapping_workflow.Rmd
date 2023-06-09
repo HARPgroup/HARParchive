@@ -221,7 +221,7 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
 waterbodies_net <- nhd$network_wtbd[!(nhd$network_wtbd$gnis_name==' ' | nhd$network_wtbd$gnis_name=='Noname') ,] # only selecting waterbodies with names 
 waterbodies_off <- nhd$off_network_wtbd[!(nhd$off_network_wtbd$gnis_name==' ' | nhd$off_network_wtbd$gnis_name=='Noname') ,]
 waterbodies <- rbind(waterbodies_net, waterbodies_off)
-
+waterbodies <- waterbodies[waterbodies$AreaSqKM > quantile(waterbodies$AreaSqKM, 0.5), ] #filter to largest 50%
 waterbodies.centroid.df <-  data.frame(feature=(1:length(waterbodies$id)), #creating data frame containing names and centroid locations 
                                 GNIS_NAME=waterbodies$gnis_name,
                                 centroid_longitude="",
@@ -343,7 +343,7 @@ st_crs(nonbasin_sf) <- 4326
 map <- basemap + #ggplot2::
     geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
     geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
-            show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
+            show.legend = FALSE) + scale_linewidth(range = c(0.4,1.5)) + # mapping flowlines with thickness based on stream order
 
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = 'deepskyblue3', size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = 'deepskyblue3', size = 1) +
@@ -368,7 +368,7 @@ map <- basemap + #ggplot2::
           scale_size(range = textsize[3:4]) + 
                     #labeling both major rivers and smaller rivers/streams
     geom_text_repel(data = waterbodies.centroid.df, aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-                    label = GNIS_NAME), color = '#002289', size = 5) + #label waterbodies
+                    label = GNIS_NAME), color = '#002289', size = 4) + #label waterbodies
     geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
           geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
