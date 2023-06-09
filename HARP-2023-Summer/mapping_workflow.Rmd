@@ -381,15 +381,15 @@ map <- basemap + #ggplot2::
       scale_size(range = c(10,35), 
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 breaks = seq(max(metric_runid1), 0, length.out=7), 
-                 labels = round(seq(max(metric_runid1), 0, length.out=7), digits=3),
+                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
       scale_alpha(range = c(0.4, 0.9),
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 breaks = seq(max(metric_runid1), 0, length.out=7), 
-                 labels = round(seq(max(metric_runid1), 0, length.out=7), digits=3),
+                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
                  name = paste(metric, runid_list[1], sep="_")
                  ) +
     # 2040 MGD
@@ -432,7 +432,7 @@ map <- basemap + #ggplot2::
 ```{r Save Map.png, echo=FALSE}
 ggsave(
   #filename = paste(export_path, map_name, ".png", sep=""),
-  filename = paste(export_path, rivseg, '.runid13', ".png", sep=""),
+  filename = paste(export_path, rivseg, '.legend', ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
