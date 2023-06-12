@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053", "JL7_7070_0001"]  <-use last to test with bigger data
+  rivseg: ["JA4_7280_7340"] #"JL6_7320_7150", "JB3_6820_7053", "JL7_7070_0001"]  <-use last to test with bigger data
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -69,6 +69,11 @@ process_geom <- function(features) {
   }
   return(features_sp)
 }
+```
+
+```{r Foundational Data, message=FALSE}
+setwd(wd)
+foundatn <- fread(file="Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv", header=TRUE, sep=",")
 ```
 
 ```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
@@ -556,6 +561,12 @@ for(i in 1:nrow(tableData)){
     tableData$Location_Basin[i]  <- loc_basin$name 
 }
 
+# add location based on county
+for(i in 1:nrow(tableData)){ 
+    loc_county<- foundatn[grep(facil_sf$featureid[i], foundatn$Facility_hydroid),]
+    tableData$Location_County[i]  <- loc_county$Locality 
+}
+
 
   
 #add source(intake-measuring point)
@@ -577,23 +588,6 @@ for(i in 1:nrow(facil_sf)){
   }
 }
   
-
-  
-#add locality/county
-# right now they are all filling in blank, in the fipsnew data a lot of the dh_link_admin_dha_usafips are blank, if you try to pull one that isnt blank it will result in the fips code
-
-token <- rest_token(base_url = site,
-                    rest_uname = rest_uname,
-                    rest_pw = rest_pw)
-
-for (i in 1:nrow(facil_sf)){
-fipsnew <- getAdminregFeature(inputs = list(bundle = 'permit'), 
-                              base_url = site)
-usafips <- fipsnew$dh_link_admin_dha_usafips
-tableData$usafips[i] <- usafips
-}
-
-
 
 #add permitted capacity
 
@@ -618,6 +612,7 @@ for (i in 1:nrow(facil_sf)){
 
   tableData$vwp_max_mgy[i] <- permCapac$propcode  
 }
+
 
 #add 5 yr avg use(MGY) with wd current
 for (i in 1:nrow(facil_sf)){
