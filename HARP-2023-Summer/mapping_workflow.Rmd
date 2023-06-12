@@ -174,6 +174,10 @@ foundatn_basin <- sqldf( "select * from foundatn_join as a
   on (a.riverseg = b.riverseg)
   where b.riverseg is not null"
   )
+
+# Turning into a spatial object with geometry column 
+foundatn_sf <- st_as_sf(foundatn_basin, coords = c('Latitude','Longitude'), crs = 4326, na.fail = FALSE) #changes coords to point geometries
+
 ```
 
 ```{r Process Data for Plotting, echo=FALSE, warning=FALSE, message=FALSE}
@@ -670,6 +674,68 @@ tableData$five_mgy[i] <- five_mgy
 
 
 ```
+```{r, warning=FALSE, message=FALSE}
+## NEW - Creating table to accompany map using new joined foundational data frame
+ 
+facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
+facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
+  
+
+tableData2 <- data.frame(Facility=foundatn_sf$Facility, # creating initial data frame that will accompany map
+                        Number= facil_labels$NUM, 
+                        Source_Type = foundatn_sf$`Source Type`,
+                        Source = foundatn_basin$`MP Name`,
+                        Rivseg= foundatn_sf$riverseg,
+                        Locality = foundatn_sf$Locality
+                        ) 
+
+# add locations(subwatershed basin)
+for(i in 1:nrow(tableData2)){ 
+    loc_basin <- (basin_featr[grep(foundatn_sf$riverseg[i], basin_featr$riverseg),])
+    tableData2$Location_Basin[i]  <- loc_basin$name 
+}
+
+#add upstream or downstream
+for(i in 1:nrow(foundatn_sf)){ 
+  if(foundatn_sf$riverseg[i] == rivseg)
+  {
+    up_down<- "Upstream"
+    tableData2$Upstream_Downstream[i] <- up_down
+  }
+  else if (foundatn_sf$riverseg[i] != rivseg)
+  {
+    up_down <- "Downstream"
+    tableData2$Upstream_Downstream[i] <- up_down
+  }
+}
+
+#add permitted capacity
+for (i in 1:nrow(facil_sf)){
+  systemObj <- RomProperty$new(ds,list(
+    featureid = foundatn_sf$featureid[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  permCapac <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'vwp_max_mgy'),
+  TRUE)
+  tableData2$vwp_max_mgy[i] <- permCapac$propcode  
+}
+
+#add 5 yr avg use (MGY) with wd current
+for (i in 1:nrow(foundatn_sf)){
+val <- RomProperty$new(ds,list(
+    featureid= foundatn_sf$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+tableData2$five_mgy[i] <- five_mgy
+}
+
+```
+
+
+
 
 
 ```{r Call Table}
