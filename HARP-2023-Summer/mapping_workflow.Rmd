@@ -531,6 +531,23 @@ permitMax <- val2$propvalue
 tableData$permitMax[i] <- permitMax
 }
 
+##new, from glenn -- seems to be successful 
+for (i in 1:nrow(facil_sf)){
+
+  systemObj <- RomProperty$new(ds,list(
+    featureid = facil_sf$featureid[i],
+    pid = facil_sf$pid[i],
+    propname= facil_sf$propname[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  
+  fiveYrAvg <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'fac_current_mgy'),
+  TRUE)
+
+  facil_sf$fac_current_mgy[i] <- fiveYrAvg$propcode #adds 5-yr avg use as a new col to facil_sf data frame 
+}
 
 
 #finding current mgy and 2040 predicted mgy
@@ -563,6 +580,7 @@ five_mgy <- val$propvalue
 tableData$five_mgy[i] <- five_mgy
 }
 ```
+
 
 ```{r Call Table}
 
