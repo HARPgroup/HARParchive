@@ -218,25 +218,26 @@ for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids d
 }
 ```
 
-```{r Labeling major rivers alternate method, eval = FALSE}
-# Labeling major rivers alternate method to using MajorRivers.csv, best method TBD
-#streams_order67 <- flowline[flowline$StreamOrde == c(6,7),]
-#streams67 <- streams_order67[!streams_order67$gnis_name==' ',] # Need to remove rows without names 
-#streams67 <- streams67[!duplicated(streams67$gnis_id),] #Only want 1 row per stream name 
+```{r Labeling Waterbodies, warning=FALSE}
+## Labeling Lakes & Reservoirs
+waterbodies_net <- nhd$network_wtbd[!(nhd$network_wtbd$gnis_name==' ' | nhd$network_wtbd$gnis_name=='Noname') ,] # only selecting waterbodies with names 
+waterbodies_off <- nhd$off_network_wtbd[!(nhd$off_network_wtbd$gnis_name==' ' | nhd$off_network_wtbd$gnis_name=='Noname') ,]
+waterbodies <- rbind(waterbodies_net, waterbodies_off)
+waterbodies <- waterbodies[waterbodies$AreaSqKM > quantile(waterbodies$AreaSqKM, 0.5), ] #filter to largest 50%
+waterbodies.centroid.df <-  data.frame(feature=(1:length(waterbodies$id)), #creating data frame containing names and centroid locations 
+                                GNIS_NAME=waterbodies$gnis_name,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
 
-#stream67.centroid.df <-  data.frame(feature=(1:length(streams67$id)), #creating data frame containing names and centroid locations 
-#                                GNIS_NAME=streams67$gnis_name,
-#                                centroid_longitude="",
-#                                centroid_latitude="",
-#                                stringsAsFactors=FALSE) 
-
-#for (r in 1:length(streams67$id)) { #adding coordinates to the centroids df for labeling
-#    stream_geom_centroid <- st_centroid(streams67$geometry[r])
-#    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
-#    stream67.centroid.df$centroid_longitude[r] <- cent.coords$X
-#    stream67.centroid.df$centroid_latitude[r] <- cent.coords$Y
-#    }
+for (r in 1:length(waterbodies$id)) { #adding coordinates to the centroids df for labeling
+    wbody_geom_centroid <- st_centroid(waterbodies$geometry[r])
+    cent.coords <- as.data.frame(st_coordinates(wbody_geom_centroid))
+    waterbodies.centroid.df$centroid_longitude[r] <- cent.coords$X
+    waterbodies.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    }
 ```
+
 
 ```{r Labeling order 4 streams, warning=FALSE}
 # Labeling order 4 streams 
@@ -245,7 +246,11 @@ flowline <- nhd$flowline
 streams_order4 <- flowline[flowline$StreamOrde == 4,]
 streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
 streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
-# Removing rows which already match a major river from MajorRivers.csv
+streams4$gnis_name <- gsub('North Fork', 'NF', streams4$gnis_name) 
+streams4$gnis_name <- gsub('South Fork', 'SF', streams4$gnis_name)
+streams4$gnis_name <- gsub('East Fork', 'EF', streams4$gnis_name)
+streams4$gnis_name <- gsub('West Fork', 'WF', streams4$gnis_name)
+streams4$gnis_name <- gsub('Middle Fork', 'MF', streams4$gnis_name)
 shared_rivs <- generics::intersect(streams4$gnis_name, rivs_layer$GNIS_NAME) #finding the rivers which show up in both data frames 
 streams4 <- streams4[!streams4$gnis_name %in% shared_rivs, ] # Removing rows with names matching any in shared rivers list
 
@@ -438,15 +443,15 @@ map <- basemap + #ggplot2::
       scale_size(range = c(10,35), 
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 breaks = seq(max(metric_runid1), 0, length.out=7), 
-                 labels = round(seq(max(metric_runid1), 0, length.out=7), digits=3),
+                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
       scale_alpha(range = c(0.4, 0.9),
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 breaks = seq(max(metric_runid1), 0, length.out=7), 
-                 labels = round(seq(max(metric_runid1), 0, length.out=7), digits=3),
+                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
                  name = paste(metric, runid_list[1], sep="_")
                  ) +
     # 2040 MGD
@@ -475,7 +480,7 @@ map <- basemap + #ggplot2::
     ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
                                       height = unit(4, "cm"),width = unit(3, "cm"), 
                                       style = north_arrow_orienteering(text_size = 35)
-                                      )
+                                      ) 
   #### Adjustable Scale Bar Using Joey's anchoring method 
 #    ggsn::scalebar(data = bbox_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi', 
 #                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
@@ -507,23 +512,24 @@ regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
 ```
 
 #Create table for map
-```{r Create table w/ more facility info, echo= FALSE}
+```{r Create table w/ more facility info, echo= FALSE, warning=FALSE, message=FALSE}
 
 #base table with facility name and number(related to map)
-tableData <- data.frame(Facility=facil_sf$propname,Number= facil_labels$NUM, Rivseg= facil_sf$riverseg, wd_mgd=facil_sf$metric_runid1) #need to fix numbers so they coordinate with mapping numbers, right now it just makes a new set 
+tableData <- data.frame(Facility=facil_sf$propname,
+                        Number= facil_labels$NUM, 
+                        Rivseg= facil_sf$riverseg  #can be removed if unhelpful later, right now used for ensuring correct data
+                        #wd_mgd=facil_sf$metric_runid1   #for metric runids...unsure if helpful to include
+                        ) 
 
-#add locations(locality or subwatershed)
+#add locations(subwatershed basin)
 for(i in 1:nrow(tableData)){ 
     loc_basin <- (basin_featr[grep(facil_sf$riverseg[i], basin_featr$riverseg),])
     tableData$Location_Basin[i]  <- loc_basin$name 
 }
 
-#add locality/county
-county <- RomFeature$new(ds,list(
-    bundle= "usafips", ftype= "facility"), 
-  TRUE)
+
   
-#add source(instake-measuring point)
+#add source(intake-measuring point)
 
 #add type(GW or SW)
 
@@ -539,7 +545,7 @@ county <- RomFeature$new(ds,list(
   
 
 
-#add upstream or downstream- this works just need to adjust numbers(see above)
+#add upstream or downstream
 for(i in 1:nrow(facil_sf)){ 
   if(facil_sf$riverseg[i] == rivseg)
   {
@@ -555,12 +561,86 @@ for(i in 1:nrow(facil_sf)){
   
 
   
+#add locality/county
+# right now they are all filling in blank, in the fipsnew data a lot of the dh_link_admin_dha_usafips are blank, if you try to pull one that isnt blank it will result in the fips code
+
+token <- rest_token(base_url = site,
+                    rest_uname = rest_uname,
+                    rest_pw = rest_pw)
+
+for (i in 1:nrow(facil_sf)){
+fipsnew <- getAdminregFeature(inputs = list(bundle = 'permit'), 
+                              base_url = site)
+usafips <- fipsnew$dh_link_admin_dha_usafips
+tableData$usafips[i] <- usafips
+}
+
+
+
 #add permitted capacity
 
+#dh_link_admin_location seems to not exist in the getadminregfeature fipsnew as shown above, unsure how to use it
+#trying other option given, but this returns all values as NA
+
+for (i in 1:nrow(facil_sf)){
+val2 <- RomProperty$new(ds,list(
+    riverseg= facil_sf$riverseg[i],
+    propname= "fac_current_mgy"), 
+  TRUE)
+permitMax <- val2$propvalue
+tableData$permitMax[i] <- permitMax
+}
+
+##new, from glenn -- seems to be successful 
+for (i in 1:nrow(facil_sf)){
+
+  systemObj <- RomProperty$new(ds,list(
+    featureid = facil_sf$featureid[i],
+    pid = facil_sf$pid[i],
+    propname= facil_sf$propname[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  
+  fiveYrAvg <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'fac_current_mgy'),
+  TRUE)
+
+  facil_sf$fac_current_mgy[i] <- fiveYrAvg$propcode #adds 5-yr avg use as a new col to facil_sf data frame 
+}
+
+
+#finding current mgy and 2040 predicted mgy
+# for (i in 1:nrow(facil_sf)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facil_sf$featureid[i],
+#     propname= "wsp2020_2020_mgy"), 
+#   TRUE)
+# current_mgy <- val$propvalue
+# tableData$Current_mgy[i] <- current_mgy
+# }
+# 
+# for (i in 1:nrow(facil_sf)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facil_sf$featureid[i],
+#     propname= "wsp2020_2040_mgy"), 
+#   TRUE)
+# current_mgy <- val$propvalue
+# tableData$Predicted_mgy[i] <- current_mgy
+# }
+
+
 #add 5 yr avg use(MGY)
-
-
+for (i in 1:nrow(facil_sf)){
+val <- RomProperty$new(ds,list(
+    featureid= facil_sf$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+tableData$five_mgy[i] <- five_mgy
+}
 ```
+
 
 ```{r Call Table}
 
@@ -574,8 +654,14 @@ table <- flextable(tableData)
 
 table <- set_header_labels(table,
   Facility = "Facility Name",
-  NUM = "Facility Number", Rivseg= "River Segment", Location_Basin = "Location(Basins)",
-  Upstream_Downstream = "Upstream Vs. Downstream", wd_mgd="2020 Cummulative Withdraw in mgd"
+  NUM = "Facility Number", 
+  Rivseg= "River Segment", 
+  Location_Basin = "Location(Basins)",
+  Upstream_Downstream = "Upstream Vs. Downstream", 
+  #wd_mgd="2020 Cumulative Withdraw in mgd", 
+  #Current_mgy="2020 Cumulative Withdraw Demand(mgy)", 
+  #Predicted_mgy= "2040 Cumulative Withdraw Demand(mgy)"
+  five_mgy = "5 Year Average Use (mgy)"
 )
 table
 ```
