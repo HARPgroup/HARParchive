@@ -153,12 +153,16 @@ fips_centroid_sp <- process_geom(fips.csv)
 #counties <- ds$get('dh_feature', config=list(bundle='usafips'))
 ```
 
-
-```{r}
-## Joining model data to the foundational dataset
-foundatn_join <- sqldf("select * from foundatn left outer join facil_featr on foundatn.Facility_hydroid = facil_featr.featureid 
+```{r Join foundational data frame, warning=FALSE}
+## Joining model data to the foundational dataset -- should be a Full Join
+foundatn_join <- sqldf("select * from foundatn 
+      left outer join facil_featr 
+      on (foundatn.Facility_hydroid = facil_featr.featureid) 
       UNION 
-      select * from facil_featr left outer join foundatn on foundatn.Facility_hydroid = facil_featr.featureid")
+      select * from facil_featr 
+      left outer join foundatn 
+      on (foundatn.Facility_hydroid = facil_featr.featureid)"
+      )
 
 #remove hydrocode column to allow for another join
 #without removal, next join gives a duplicated column error 
@@ -166,13 +170,11 @@ foundatn_join <- subset(foundatn_join, select = -c(hydrocode))
 
 # filter to only facilities within the basin 
 foundatn_basin <- sqldf( "select * from foundatn_join as a
-   left outer join basin_featr as b
-   on (a.riverseg = b.riverseg)
-  where b.riverseg is not null 
-  ")
-
+  left outer join basin_featr as b
+  on (a.riverseg = b.riverseg)
+  where b.riverseg is not null"
+  )
 ```
-
 
 ```{r Process Data for Plotting, echo=FALSE, warning=FALSE, message=FALSE}
 #--Polygons Layer--
