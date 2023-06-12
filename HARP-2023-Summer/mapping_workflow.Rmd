@@ -522,6 +522,7 @@ tableData <- data.frame(Facility=facil_sf$propname,
                         ) 
 
 #add locations(subwatershed basin)
+
 for(i in 1:nrow(tableData)){ 
     loc_basin <- (basin_featr[grep(facil_sf$riverseg[i], basin_featr$riverseg),])
     tableData$Location_Basin[i]  <- loc_basin$name 
@@ -532,17 +533,6 @@ for(i in 1:nrow(tableData)){
 #add source(intake-measuring point)
 
 #add type(GW or SW)
-
-# gw <- RomFeature$new(ds,list(
-#     ftype= "gw2_private", #gw specifications on some but no sw specifications, whats what?
-#     bundle= "facility"), 
-#   TRUE)
-# 
-# municipal_facil.df <- data.frame(cbind(municipal_facilities[["name"]], 
-#                             municipal_facilities[["hydrocode"]],
-#                             municipal_facilities[["geom"]]))
-#   colnames(municipal_facil.df) <- c("Municipal Facility", "hydrocode", "geom")
-  
 
 
 #add upstream or downstream
@@ -582,16 +572,8 @@ tableData$usafips[i] <- usafips
 #dh_link_admin_location seems to not exist in the getadminregfeature fipsnew as shown above, unsure how to use it
 #trying other option given, but this returns all values as NA
 
-for (i in 1:nrow(facil_sf)){
-val2 <- RomProperty$new(ds,list(
-    riverseg= facil_sf$riverseg[i],
-    propname= "fac_current_mgy"), 
-  TRUE)
-permitMax <- val2$propvalue
-tableData$permitMax[i] <- permitMax
-}
+#pulling with vwp max
 
-##new, from glenn -- seems to be successful 
 for (i in 1:nrow(facil_sf)){
 
   systemObj <- RomProperty$new(ds,list(
@@ -601,14 +583,43 @@ for (i in 1:nrow(facil_sf)){
     propcode= "vahydro-1.0"), 
   TRUE)
   
-  fiveYrAvg <- RomProperty$new(ds,list(
+  permCapac <- RomProperty$new(ds,list(
   featureid = systemObj$pid,
-  propname = 'fac_current_mgy'),
+  propname = 'vwp_max_mgy'),
   TRUE)
 
-  facil_sf$fac_current_mgy[i] <- fiveYrAvg$propcode #adds 5-yr avg use as a new col to facil_sf data frame 
+  tableData$vwp_max_mgy[i] <- permCapac$propcode  
 }
 
+#add 5 yr avg use(MGY) with wd current
+for (i in 1:nrow(facil_sf)){
+val <- RomProperty$new(ds,list(
+    featureid= facil_sf$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+tableData$five_mgy[i] <- five_mgy
+}
+
+
+# 
+# ##pulling 5 year avg with fac current 
+# for (i in 1:nrow(facil_sf)){
+# 
+#   systemObj <- RomProperty$new(ds,list(
+#     featureid = facil_sf$featureid[i],
+#     pid = facil_sf$pid[i],
+#     propname= facil_sf$propname[i],
+#     propcode= "vahydro-1.0"), 
+#   TRUE)
+#   
+#   fiveYrAvg <- RomProperty$new(ds,list(
+#   featureid = systemObj$pid,
+#   propname = 'fac_current_mgy'),
+#   TRUE)
+# 
+#   tableData$fac_current_mgy[i] <- fiveYrAvg$propcode #adds 5-yr avg use as a new col to facil_sf data frame 
+# }
 
 #finding current mgy and 2040 predicted mgy
 # for (i in 1:nrow(facil_sf)){
@@ -630,15 +641,6 @@ for (i in 1:nrow(facil_sf)){
 # }
 
 
-#add 5 yr avg use(MGY)
-for (i in 1:nrow(facil_sf)){
-val <- RomProperty$new(ds,list(
-    featureid= facil_sf$featureid[i],
-    propname= "wd_current_mgy"), 
-  TRUE)
-five_mgy <- val$propvalue
-tableData$five_mgy[i] <- five_mgy
-}
 ```
 
 
@@ -661,7 +663,9 @@ table <- set_header_labels(table,
   #wd_mgd="2020 Cumulative Withdraw in mgd", 
   #Current_mgy="2020 Cumulative Withdraw Demand(mgy)", 
   #Predicted_mgy= "2040 Cumulative Withdraw Demand(mgy)"
-  five_mgy = "5 Year Average Use (mgy)"
+  five_mgy = "5 Year Average Use (wd way)",
+  vwp_max_mgy = "permitted capacity(vwp way)"
+  
 )
 table
 ```
