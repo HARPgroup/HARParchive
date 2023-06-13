@@ -4,11 +4,11 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053", "JL7_7070_0001"]  <-use last to test with bigger data
+  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-use last to test with bigger data
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["James_JL6_7320_7150_text"]
+  map_name: ["James_JL6_7320_7150_June12_2"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -66,6 +66,12 @@ process_geom <- function(features) {
 }
 ```
 
+```{r Foundational Data, message=FALSE, warning=FALSE}
+setwd(wd)
+foundatn <- fread(file="Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv", header=TRUE, sep=",")
+
+```
+
 ```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
 # Get all vahydro watershed features
 #allsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed'))
@@ -114,10 +120,10 @@ facil_in_basin <- sqldf(
 facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like 'wsp_%'")
 
 # Get facility coordinates
-#for(i in 1:nrow(facil_in_basin)){
-#  facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
-# facil_in_basin$dh_geofield[i] <- facil.i$geom
-#}
+for(i in 1:nrow(facil_in_basin)){
+  facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
+ facil_in_basin$dh_geofield[i] <- facil.i$geom
+}
 
 #####TEMPORARY#####
 for(i in 1:nrow(facil_in_basin)){
@@ -272,6 +278,8 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
 ## Labeling city locations 
 cities_csv <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv") ## reads in cities data
 cities_va <- cities_csv[cities_csv$state_id == 'VA',] # filters to only cities within VA
+
+maj_cities <- cities_va[cities_va$population >= quantile(cities_va$population, probs = c(0.75)),]
 ```
 
 ```{r Don't Overlap Labels}
@@ -297,21 +305,18 @@ repetitions <- function(class) {
   num <- length(labs_bind$class[labs_bind$class==class])
   return(num)
 }
-
 fontfaces <- c( #c(cnty, maj, str, city)
                 rep("bold.italic",  repetitions(4)),
                 rep("bold",  repetitions(3)),
                 rep("bold",  repetitions(2)),
                 rep("plain",  repetitions(1))
               ) 
-
 fontfams <- c( #c(cnty, maj, str, city)
                 rep("serif",  repetitions(4)),
                 rep("serif",  repetitions(3)),
                 rep("serif",  repetitions(2)),
                 rep("sans",  repetitions(1))
               )
-
 angles <- c( #c(cnty, maj, str, city)
                 rep(0,  repetitions(4)),
                 rep(20,  repetitions(3)),
@@ -403,35 +408,42 @@ map <- basemap + #ggplot2::
 ##    geom_text(data = rseg_labels, 
 ##               aes(X, Y, label = SEG, fontface="bold", family="mono"), 
 ##               colour = "#002269", fill=NA, size=textsize[3]) +
-##    geom_text(data = fips_labels, 
-##               aes(X, Y, label = NAME, fontface="bold.italic", family="serif"), 
-##               colour = "#003333", size=textsize[1], check_overlap=TRUE ) +
-  #  geom_label(data = facil_labels, aes(X, Y, label = NUM), colour = "black", size = 10, 
-     #          nudge_x = -0.01, nudge_y = 0.01) +
+  
+    geom_text_repel(data=riv.centroid.df,
+                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, fontface="bold", family="serif", angle=20),
+                colour="deepskyblue4", size=textsize[2], show.legend=FALSE, max.overlaps=1) +
+    geom_text_repel(data=stream4.centroid.df,
+                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, fontface="bold", family="serif", angle=20),
+                colour="deepskyblue4", size=textsize[3], show.legend=FALSE, max.overlaps=2) +
+    # County Labels
+    geom_text_repel(data = fips_labels, 
+               aes(X, Y, label = NAME, fontface="bold.italic", family="serif"), 
+               colour = "#003333", size=textsize[1], show.legend=FALSE, force=6 ) +
+  
 ##    geom_text_repel(data = labs_bind, 
 ##                    aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
 ##                        group = 1, label = GNIS_NAME, size = class, fontface="bold", family="serif", angle=20 ),
 ##                    color = "deepskyblue4", show.legend = FALSE, max.overlaps=1 ) + 
 ##          scale_size(range = textsize[3:4]) + 
   
-    geom_text_repel(data = labs_bind, 
-                    aes( x = as.numeric(centroid_longitude),
-                         y = as.numeric(centroid_latitude), 
-                         group = 1, 
-                         label = GNIS_NAME,
-                         size= class,
-                         fontface= fontfaces, 
-                         family= fontfams, 
-                         angle= angles, 
-                         color= as.character(class)
-                        ), 
-                    show.legend = FALSE #, max.overlaps=3 #, force=2
-                    ) + 
-          scale_size(range= range(textsize[4:1]), breaks=textsize[4:1]) + 
-          scale_colour_manual(values=text_color) +
+##    geom_text_repel(data = labs_bind, 
+##                    aes( x = as.numeric(centroid_longitude),
+##                         y = as.numeric(centroid_latitude), 
+##                         group = 1, 
+##                         label = GNIS_NAME,
+##                         size= class,
+##                         fontface= fontfaces, 
+##                         family= fontfams, 
+##                         angle= angles, 
+##                         color= as.character(class)
+##                        ), 
+##                    show.legend = FALSE #, max.overlaps=3 #, force=2
+##                    ) + 
+##          scale_size(range= range(textsize[4:1]), breaks=textsize[4:1]) + 
+##          scale_colour_manual(values=text_color) +
   
                     #labeling both major rivers and smaller rivers/streams
-    geom_point(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
+    geom_point(data = maj_cities, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
 ##          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
   # Reverse Fill
     geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#4040409F", fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
@@ -472,6 +484,13 @@ map <- basemap + #ggplot2::
   
   # Facility Labels
     geom_text(data = facil_labels, aes(X, Y, label = NUM, fontface="bold"), colour = "black", size = textsize[5], check_overlap=TRUE) +
+  
+  # Cities
+    ggrepel::geom_label_repel(data=maj_cities,
+                aes(x = as.numeric(lng), y = as.numeric(lat), label=city, fontface="plain", family="sans"),
+                colour="black", size=textsize[4], label.size=0, fill=NA, show.legend=FALSE,
+                label.r=unit(0,"lines"),box.padding=unit(0,"lines"), label.padding=unit(0,"lines"))
+               # min.segment.length= 0.1, segment.color = "black", segment.size = 0.5) +
   
   # Original scalebar
     ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
