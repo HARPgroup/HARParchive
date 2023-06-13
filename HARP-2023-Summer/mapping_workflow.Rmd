@@ -10,7 +10,7 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["James_JL6_7320_7150_June12_2"]
+  map_name: ["James_JL6_7320_7150_dashed2"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -39,7 +39,7 @@ site <- 'http://deq1.bse.vt.edu/d.dh'
 
 ```
 
-```{r}
+```{r Foundational Data, message=FALSE, warning=FALSE}
 ### Retrieve foundational data frame 
 foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv')) # wd set uniquely in analysts' config.local.private
 ```
@@ -71,12 +71,6 @@ process_geom <- function(features) {
   }
   return(features_sp)
 }
-```
-
-```{r Foundational Data, message=FALSE, warning=FALSE}
-setwd(wd)
-foundatn <- fread(file="Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv", header=TRUE, sep=",")
-
 ```
 
 ```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
@@ -323,17 +317,22 @@ maj_cities <- cities_va[cities_va$population >= quantile(cities_va$population, p
 
 ```{r Don't Overlap Labels}
 # Process to combine coords and labels into 1 data frame for mapping and labeling without overlapping 
-riv.centroid.df$class <- 3 # Adding columns to each df for unique labeling 
-stream4.centroid.df$class <- 2
+riv.centroid.df$class <- 3 # Adding columns to each df for unique labeling
+riv.centroid.df$size <- 2
+
+stream4.centroid.df$class <- 1
+stream4.centroid.df$size <- 1
 labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
 labs_bind <- labs_bind[,-1]
 
-cities <- cities_va[,c("city", "lng", "lat")]
-cities$class <- 1
+cities <- maj_cities[,c("city", "lng", "lat")]
+cities$class <- 2
+cities$size <- 1
 colnames(cities) <- colnames(labs_bind)
 
 counties <- fips_labels[, c("NAME", "X", "Y")]
 counties$class <- 4
+counties$size <- 3
 colnames(counties) <- colnames(labs_bind)
 
 labs_bind <- rbind(counties, labs_bind, cities)
@@ -347,26 +346,45 @@ repetitions <- function(class) {
 fontfaces <- c( #c(cnty, maj, str, city)
                 rep("bold.italic",  repetitions(4)),
                 rep("bold",  repetitions(3)),
-                rep("bold",  repetitions(2)),
-                rep("plain",  repetitions(1))
+                rep("bold",  repetitions(1)),
+                rep("plain",  repetitions(2))
               ) 
 fontfams <- c( #c(cnty, maj, str, city)
                 rep("serif",  repetitions(4)),
                 rep("serif",  repetitions(3)),
-                rep("serif",  repetitions(2)),
-                rep("sans",  repetitions(1))
+                rep("serif",  repetitions(1)),
+                rep("sans",  repetitions(2))
               )
 angles <- c( #c(cnty, maj, str, city)
                 rep(0,  repetitions(4)),
                 rep(20,  repetitions(3)),
-                rep(20,  repetitions(2)),
-                rep(0,  repetitions(1))
+                rep(20,  repetitions(1)),
+                rep(0,  repetitions(2))
               )
-text_color <- c("black","deepskyblue4","deepskyblue4","#003333") #c(cnty, maj, str, city)
+bgrs <- c( #c(cnty, maj, str, city)
+                rep(.03,  repetitions(4)),
+                rep(.05,  repetitions(3)),
+                rep(.1,  repetitions(1)),
+                rep(.05,  repetitions(2))
+              )
+seg_cols <- c( #c(cnty, maj, str, city)
+                rep("#003333",  repetitions(4)),
+                rep("deepskyblue4",  repetitions(3)),
+                rep("deepskyblue4",  repetitions(1)),
+                rep("black",  repetitions(2))
+              )
+text_color <- c("deepskyblue4","black","deepskyblue4","#003333") #c(str, city, maj, cnty)
+
+seg_size <- c( #c(cnty, maj, str, city)
+            rep(1,  repetitions(4)),
+            rep(0.75,  repetitions(3)),
+            rep(0.5,  repetitions(1)),
+            rep(0.5,  repetitions(2))
+            )
 
 ```
 
-```{r Boundary Box, message=FALSE}
+```{r Boundary Box, message=FALSE, warning=FALSE}
 #Create boundary box based on basin layer with a buffer 
 ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
 ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
@@ -388,27 +406,21 @@ colnames(extent) <- c('x','y')
 if (dist_mi > 500) {
   nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
   zoom = 7
-  textsize <- c(6,4,0,4,  5, 0) #c(cnty,maj,str,city,  facility num, basin_sf lwd)
+  textsize <- c(6,4,4,  5, 0) #c(cnty,maj,city/str,  facility num, basin_sf lwd)
 } else if (dist_mi > 300) {
   nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
   zoom = 8
-  textsize <- c(6,5,0,4,  5, 0) 
+  textsize <- c(6,5,4,  5, 0) 
 } else if (dist_mi > 150) {
   nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
   zoom = 9
-  textsize <- c(7,6,4,5, 5, 1)
+  textsize <- c(7,6,4, 5, 1)
 } else {
   nhd$flowline_plot <- nhd$flowline
   zoom = 10
-  textsize <- c(10,8,4,5, 6, 1)
+  textsize <- c(10,8,5, 6, 1)
 }
 
-sizes <- c( #c(cnty, maj, str, city)
-            rep(textsize[1],  repetitions(4)),
-            rep(textsize[2],  repetitions(3)),
-            rep(textsize[3],  repetitions(2)),
-            rep(textsize[4],  repetitions(1))
-            )
 ```
 
 ```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
@@ -430,75 +442,121 @@ basemap_sp <- sp::SpatialPolygons(
 nonbasin_sp <- raster::erase(basemap_sp, basin_sp)
 nonbasin_sf <- st_as_sf(nonbasin_sp)
 st_crs(nonbasin_sf) <- 4326
+
+# Lighten terrain basemap:
+basemap_sf <- st_as_sf(basemap_sp)
+st_crs(basemap_sf) <- 4326
 ```
 
 ```{r Generate Map Object, echo=FALSE}
+
 map <- basemap + #ggplot2::
+    # Lighten base-map to help readability
+    geom_sf(data = basemap_sf, inherit.aes = FALSE, color = NA, fill="honeydew", alpha=0.3) +
+    # County & River Lines
     geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
     geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
             show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
-##    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "#002289", fill = NA, lwd=textsize[6]) + # fill = #0022974C
+    #new_scale("linewidth") +
+    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "sienna1", fill = NA, lwd=textsize[5], linetype="dashed") +
+              # color = "#002289", fill = #0022974C
 
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
     
-    # Labels
-##    geom_text(data = rseg_labels, 
+  # Labels
+    # Facility Labels Placeholder (to have other labels repel)
+    geom_text(data = facil_labels, 
+                  aes(X, Y, label = NUM, fontface="bold"), 
+                  colour = NA, size = textsize[4]+1
+                  #check_overlap=TRUE
+                  #min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
+                  ) +
+    # Rsegs
+##  geom_text(data = rseg_labels, 
 ##               aes(X, Y, label = SEG, fontface="bold", family="mono"), 
 ##               colour = "#002269", fill=NA, size=textsize[3]) +
-  
-    geom_text_repel(data=riv.centroid.df,
-                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, fontface="bold", family="serif", angle=20),
-                colour="deepskyblue4", size=textsize[2], show.legend=FALSE, max.overlaps=1) +
-    geom_text_repel(data=stream4.centroid.df,
-                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, fontface="bold", family="serif", angle=20),
-                colour="deepskyblue4", size=textsize[3], show.legend=FALSE, max.overlaps=2) +
-    # County Labels
-    geom_text_repel(data = fips_labels, 
-               aes(X, Y, label = NAME, fontface="bold.italic", family="serif"), 
-               colour = "#003333", size=textsize[1], show.legend=FALSE, force=6 ) +
-  
-##    geom_text_repel(data = labs_bind, 
-##                    aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), 
-##                        group = 1, label = GNIS_NAME, size = class, fontface="bold", family="serif", angle=20 ),
-##                    color = "deepskyblue4", show.legend = FALSE, max.overlaps=1 ) + 
-##          scale_size(range = textsize[3:4]) + 
-  
-##    geom_text_repel(data = labs_bind, 
-##                    aes( x = as.numeric(centroid_longitude),
-##                         y = as.numeric(centroid_latitude), 
-##                         group = 1, 
-##                         label = GNIS_NAME,
-##                         size= class,
-##                         fontface= fontfaces, 
-##                         family= fontfams, 
-##                         angle= angles, 
-##                         color= as.character(class)
-##                        ), 
-##                    show.legend = FALSE #, max.overlaps=3 #, force=2
-##                    ) + 
-##          scale_size(range= range(textsize[4:1]), breaks=textsize[4:1]) + 
-##          scale_colour_manual(values=text_color) +
-  
-                    #labeling both major rivers and smaller rivers/streams
-    geom_point(data = maj_cities, aes(x = as.numeric(lng), y = as.numeric(lat)), color = "black", size = 2) + # points for cities
-##          geom_text_repel(data = cities_va, aes(x = as.numeric(lng), y = as.numeric(lat), label = city), color = 'black', size = 5) + #label cities
-  # Reverse Fill
-    geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = "#4040409F", fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
+    # Cities
+    geom_point(data = maj_cities, 
+               aes(x = as.numeric(lng), y = as.numeric(lat)),
+               color = "black", size = 2
+               ) +
+#    ggrepel::geom_text_repel(data=maj_cities,
+#                aes(x = as.numeric(lng), y = as.numeric(lat), label=city, 
+#                    fontface="plain", family="sans"), show.legend=FALSE,
+#                size=textsize[3],
+#                colour="black", bg.color="white", bg.r=0.05,
+#                min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
+#                force=30,
+#                direction="both",
+#                ) +
+    # Rivers
+#    geom_text_repel(data=riv.centroid.df,
+#                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, 
+#                    fontface="bold", family="serif", angle=17), show.legend=FALSE,
+#                size=textsize[2],
+#                colour="deepskyblue4", bg.color="white", bg.r=0.05,
+#                min.segment.length= 0.1, segment.color = "deepskyblue4", segment.size = 0.75,
+#                force=40,
+#                direction="both",
+#                ) +
+    # Streams
+#    geom_text_repel(data=stream4.centroid.df,
+#                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, 
+#                    fontface="bold", family="serif", angle=17), show.legend=FALSE,
+#                size=textsize[3],
+#                colour="deepskyblue4", bg.color="white", bg.r=0.1,
+#                min.segment.length= 0.1, segment.color = "deepskyblue4", segment.size = 0.5,
+#                force=30,
+#                direction="both",
+#                ) +
+    # Counties
+#    geom_text_repel(data = fips_labels, 
+#               aes(X, Y, label = NAME, 
+#                   fontface="bold.italic", family="serif"), show.legend=FALSE,
+#               size=textsize[1],
+#               colour="#003333", bg.color="white", bg.r=0.03,
+#               min.segment.length= 0.5, segment.color = "#003333", segment.size = 1,
+#               force=40,
+#               direction="both",
+#               ) +
+
+ 
+ # Labels
+    new_scale("size") +
+    geom_text_repel(data = labs_bind, 
+                    aes( x = as.numeric(centroid_longitude),
+                         y = as.numeric(centroid_latitude), 
+                         group = 1, 
+                         label = GNIS_NAME,
+                         size= size,
+                         fontface= fontfaces, 
+                         family= fontfams, 
+                         angle= angles, 
+                         color= as.character(class)
+                        ), 
+                    show.legend = FALSE,
+                    force=35,
+                    direction="both",
+                    bg.color="white", bg.r= bgrs,
+                    min.segment.length= 0.5, segment.color = seg_cols, segment.size = seg_size,
+                    ) + 
+          scale_size(range= range(textsize[3:1]), breaks=textsize[3:1]) + 
+          scale_colour_manual(values=text_color) +
   
   # 2020 MGD
       new_scale("size") +
       geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1),
                col="#F7FF00", shape = 19, stroke = 0.75) +
-      scale_size(range = c(10,35), 
+      scale_size(range = c(10,33), 
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
                  breaks = seq(max(metric_runid1), 0, length.out=5), 
                  labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
-      scale_alpha(range = c(0.4, 0.9),
+      scale_alpha(range = c(0.4, 0.85),
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
                  breaks = seq(max(metric_runid1), 0, length.out=5), 
@@ -520,16 +578,17 @@ map <- basemap + #ggplot2::
     #             labels = c(0, metric_runid1[metric_runid1!=0]),
     #             guide = FALSE
     #             ) +
+
+# Facility Labels
+    geom_text(data = facil_labels, 
+                    aes(X, Y, label = NUM, fontface="bold"), 
+                    colour = "black", size = textsize[4],
+                    check_overlap=TRUE
+                    #min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
+                    ) +
   
-  # Facility Labels
-    geom_text(data = facil_labels, aes(X, Y, label = NUM, fontface="bold"), colour = "black", size = textsize[5], check_overlap=TRUE) +
-  
-  # Cities
-    ggrepel::geom_label_repel(data=maj_cities,
-                aes(x = as.numeric(lng), y = as.numeric(lat), label=city, fontface="plain", family="sans"),
-                colour="black", size=textsize[4], label.size=0, fill=NA, show.legend=FALSE,
-                label.r=unit(0,"lines"),box.padding=unit(0,"lines"), label.padding=unit(0,"lines"))
-               # min.segment.length= 0.1, segment.color = "black", segment.size = 0.5) +
+  # Reverse Fill
+    geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = NA, fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
   
   # Original scalebar
     ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
@@ -677,6 +736,7 @@ tableData$five_mgy[i] <- five_mgy
 
 
 ```
+
 ```{r NEW Table, warning=FALSE, message=FALSE}
 ## NEW - Creating table to accompany map using new joined foundational data frame
  
