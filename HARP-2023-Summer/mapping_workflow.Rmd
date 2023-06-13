@@ -823,4 +823,27 @@ regions <- RomFeature$new(ds,list(
 
 ```
 
-
+```{r}
+## VAhydro map customization storage, example of extent Retrieval 
+broadway_wtp <- RomProperty$new(ds,list(
+    featureid = '74345',
+    propcode= "vahydro-1.0"), 
+  TRUE)
+reports <- RomProperty$new(ds,list(
+    featureid = broadway_wtp$pid,
+    propname= "reports"), 
+  TRUE)
+map <-  RomProperty$new(ds,list(
+    featureid = reports$pid,
+    propname= "map"), 
+  TRUE)
+extent <- RomProperty$new(ds,list(
+    featureid = map$pid,
+    propname= "extent"), 
+  TRUE)
+extent_map <- extent$propcode
+extent_map <- strsplit(extent_map, split = ',')
+bbox_points_vah <- tibble(long = c(extent_map[[1]][1], extent_map[[1]][3]), lat = c(extent_map[[1]][2], extent_map[[1]][4]))
+bbox_sf_vah <- st_bbox(st_as_sf(bbox_points_vah, coords = c('long','lat'), crs = 4326))
+ggmap_bbox_vah <- setNames(st_bbox(bbox_sf_vah), c("left", "bottom", "right", "top"))
+```
