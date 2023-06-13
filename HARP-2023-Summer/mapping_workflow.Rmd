@@ -41,6 +41,11 @@ site <- 'http://deq1.bse.vt.edu/d.dh'
 ### Retrieve foundational data frame 
 foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv')) # wd set uniquely in analysts' config.local.private
 ```
+ or use:
+```{r Foundational Data, message=FALSE}
+setwd(wd)
+foundatn <- fread(file="Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv", header=TRUE, sep=",")
+``` 
 
 ```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg
@@ -69,11 +74,6 @@ process_geom <- function(features) {
   }
   return(features_sp)
 }
-```
-
-```{r Foundational Data, message=FALSE}
-setwd(wd)
-foundatn <- fread(file="Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv", header=TRUE, sep=",")
 ```
 
 ```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
@@ -113,15 +113,15 @@ facil_featr <- om_vahydro_metric_grid(
 )
 
 # Filter down to facilities within the basin
-facil_in_basin <- sqldf(
-  "select a.* from facil_featr as a
-   left outer join basin_featr as b
-   on (a.riverseg = b.riverseg)
-  where b.riverseg is not null 
-  "
-)
+#facil_in_basin <- sqldf(
+#  "select a.* from facil_featr as a
+#   left outer join basin_featr as b
+#   on (a.riverseg = b.riverseg)
+#  where b.riverseg is not null 
+#  "
+#)
 # filter out WSP entries (optional)
-facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like 'wsp_%'")
+#facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like 'wsp_%'")
 
 # Get facility coordinates
 #for(i in 1:nrow(facil_in_basin)){
@@ -130,10 +130,10 @@ facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like '
 #}
 
 #####TEMPORARY#####
-for(i in 1:nrow(facil_in_basin)){
-  facil.i <- ds$get('dh_feature',config=list(hydroid=facil_in_basin$featureid[i]))
-  facil_in_basin$dh_geofield[i] <- facil.i$dh_geofield.geom
-}
+#for(i in 1:nrow(facil_in_basin)){
+#  facil.i <- ds$get('dh_feature',config=list(hydroid=facil_in_basin$featureid[i]))
+#  facil_in_basin$dh_geofield[i] <- facil.i$dh_geofield.geom
+#}
 ###
 #manor_golf <- RomFeature$new(ds,list(hydroid='90467'), TRUE)
 #seg = ds$get('dh_feature', config = list(hydroid=68310))
@@ -141,7 +141,7 @@ for(i in 1:nrow(facil_in_basin)){
 ##########
 
 # Convert to sp
-facil_sp <- process_geom(facil_in_basin)
+#facil_sp <- process_geom(facil_in_basin)
 
 # Get County fips
 fips_filename <- paste("vahydro_usafips_export.csv",sep="")
@@ -194,7 +194,7 @@ fips_sf <- st_as_sf(fips_sp)
 st_crs(fips_sf) <- 4326
 
 #--Points Layer--
-facil_sf <- st_as_sf(facil_sp)
+facil_sf <- st_as_sf(facil_sp)   #can this be created from the foundational dataset instead?
 st_crs(facil_sf) <- 4326
 facil_sf <- facil_sf[order(-facil_sf$metric_runid1),]
 
