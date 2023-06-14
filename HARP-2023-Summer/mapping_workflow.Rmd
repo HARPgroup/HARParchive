@@ -487,15 +487,15 @@ map <- basemap + #ggplot2::
                aes(x = as.numeric(lng), y = as.numeric(lat)),
                color = "black", size = 2
                ) +
-    ggrepel::geom_text_repel(data=maj_cities,
-                aes(x = as.numeric(lng), y = as.numeric(lat), label=city, 
-                    fontface="plain", family="sans"), show.legend=FALSE,
-                size=textsize[3],
-                colour="black", bg.color="white", bg.r=0.05,
-                min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
-                force=30,
-                direction="both",
-                ) +
+#    ggrepel::geom_text_repel(data=maj_cities,
+#                aes(x = as.numeric(lng), y = as.numeric(lat), label=city, 
+#                    fontface="plain", family="sans"), show.legend=FALSE,
+#                size=textsize[3],
+#                colour="black", bg.color="white", bg.r=0.05,
+#                min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
+#                force=30,
+#                direction="both",
+#                ) +
     # Rivers
 #    geom_text_repel(data=riv.centroid.df,
 #                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, 
@@ -517,15 +517,15 @@ map <- basemap + #ggplot2::
 #                direction="both",
 #                ) +
     # Counties
-    geom_text_repel(data = fips_labels, 
-               aes(X, Y, label = NAME, 
-                   fontface="bold.italic", family="serif"), show.legend=FALSE,
-               size=textsize[1],
-               colour="#003333", bg.color="white", bg.r=0.03,
-               min.segment.length= 0.5, segment.color = "#003333", segment.size = 1,
-               force=40,
-               direction="both",
-               ) +
+#    geom_text_repel(data = fips_labels, 
+#               aes(X, Y, label = NAME, 
+#                   fontface="bold.italic", family="serif"), show.legend=FALSE,
+#               size=textsize[1],
+#               colour="#003333", bg.color="white", bg.r=0.03,
+#               min.segment.length= 0.5, segment.color = "#003333", segment.size = 1,
+#               force=40,
+#               direction="both",
+#               ) +
 
  
  # Labels
