@@ -179,7 +179,13 @@ foundatn_basin <- sqldf( "select * from foundatn_join as a
 
 # Turning into a spatial object with geometry column 
 foundatn_sf <- st_as_sf(foundatn_basin, coords = c('Latitude','Longitude'), crs = 4326, na.fail = FALSE) #changes coords to point geometries
+```
 
+```{r}
+## To label measuring points using foundational data frame 
+mp_labs <- subset(foundatn_basin, select = c(MP_hydroid, `MP Name`, Latitude, Longitude, metric_runid1)) #creating a df with only the needed data
+mp_labs <- mp_labs[order(-mp_labs$metric_runid1),] #sort by decreasing metric values 
+mp_labs$NUM <- seq(1:length(mp_labs$`MP Name`)) # adding column for labeling by number 
 ```
 
 ```{r Process Data for Plotting, echo=FALSE, warning=FALSE, message=FALSE}
@@ -449,7 +455,6 @@ st_crs(basemap_sf) <- 4326
 ```
 
 ```{r Generate Map Object, echo=FALSE}
-
 map <- basemap + #ggplot2::
     # Lighten base-map to help readability
     geom_sf(data = basemap_sf, inherit.aes = FALSE, color = NA, fill="honeydew", alpha=0.3) +
@@ -586,6 +591,12 @@ map <- basemap + #ggplot2::
                     check_overlap=TRUE
                     #min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
                     ) +
+
+# Measuring Points and Labels 
+#  geom_point(data = mp_labs, aes(Longitude, Latitude, size = metric_runid1, alpha = metric_runid1), color = '#FF00FF') +
+#      scale_size(range = c(10,33)) + scale_alpha(range = c(0.3, 0.85)) +
+#  geom_text(data = mp_labs, aes(Longitude, Latitude, label = NUM), size = 5, check_overlap = TRUE) +
+
   
   # Reverse Fill
     geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = NA, fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
@@ -745,8 +756,8 @@ tableData$five_mgy[i] <- five_mgy
   
 
 # creating initial data frame that will accompany map
-tableData2 <- data.frame(Facility=foundatn_sf$Facility, 
-                        Number= facil_labels$NUM, 
+tableData2 <- data.frame(Number= facil_labels$NUM,
+                        Facility=foundatn_sf$Facility, 
                         Source_Type = foundatn_sf$`Source Type`,
                         Source = foundatn_basin$`MP Name`,
                         Rivseg= foundatn_sf$riverseg,
