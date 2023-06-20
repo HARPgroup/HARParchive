@@ -4,13 +4,11 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-
   rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-use last to test with bigger data
-
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["James_JL6_7320_7150_dashed2"]
+  map_name: ["James_JL6_7320_7150_roads3"]
 ---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -21,12 +19,12 @@ library(rgeos)
 library(sf)
 library(nhdplusTools)
 library(ggmap)
+library(raster)
 library(ggplot2)
 library(ggnewscale)   
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
-library(nhdplusTools)
 library(dplyr)
 library(flextable)
 library(geosphere)
@@ -42,6 +40,9 @@ site <- 'http://deq1.bse.vt.edu/d.dh'
 ```{r Foundational Data, message=FALSE, warning=FALSE}
 ### Retrieve foundational data frame 
 foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv')) # wd set uniquely in analysts' config.local.private
+
+# remove cols not expected to use: ?
+#foundatn <- foundatn %>% dplyr::select(-(contains("19") | contains("20") | contains("OWS Planner")) )
 ```
 
 ```{r UserInputs, echo=FALSE}
@@ -210,14 +211,15 @@ rseg_labels$NAME <- gsub("\\River.*", "River", rseg_labels$NAME) #remove extrane
 fips_labels <- data.frame(sf::st_coordinates(st_as_sf(fips_centroid_sp)), NAME=fips_sf$fips_name)
 
 # gsub to shorten facility names: "[facility_name]:[river_containing_facility]" => "[facility_name]"
-facil_sf$propname <- gsub("\\:.*", "", facil_sf$propname) 
-#facil_labels <- data.frame(sf::st_coordinates(facil_sf), NAME=facil_sf$propname)
-#facil_labels$NUM <- seq(1, nrow(facil_labels))
+facil_sf$propname <- gsub("\\:.*", "", facil_sf$propname)
+
+facil_labels <- data.frame(sf::st_coordinates(facil_sf), NAME=facil_sf$propname)
+facil_labels$NUM <- seq(1, nrow(facil_labels))
 
 #new labels with foundation
-foundatn_sf <- foundatn_sf[order(-foundatn_sf$metric_runid1),]
-facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
-facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
+#foundatn_sf <- foundatn_sf[order(-foundatn_sf$metric_runid1),]
+#facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
+#facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
   
 #--NHD Flowline Data--
 sf_use_s2(FALSE) # switch off Spherical geometry (s20
@@ -237,6 +239,37 @@ metric_runid2 <- facil_sf$metric_runid2
 #bbox_ <- st_bbox(bbox_sf)
 #ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
 #nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
+```
+
+```{r US Hwy Data, warning=FALSE}
+# State Routes (shp)
+localpath <- tempdir()
+url <- "https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip"
+filename <- basename(url)
+download.file(url, filename)
+unzip(filename, exdir=localpath)
+roads <- read_sf(dsn=localpath, layer="tl_2022_us_primaryroads") #US primary roads
+
+url <- "https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip"
+filename <- basename(url)
+download.file(url, filename)
+unzip(filename, exdir=localpath)
+VA <- read_sf(dsn=localpath, layer="tl_2022_us_state") #US states
+
+VA <- states[states$NAME=="Virginia", ] 
+roads <- st_intersection(roads, VA) #only VA primary roads
+
+roads <- subset(roads, RTTYP=="I") #only interstates
+roads$FULLNAME <- gsub("\\- ", "", roads$FULLNAME) #shorten names; no space too
+
+rd_names <- roads[!duplicated(roads$FULLNAME),] #don't label the same name multiple times, but still plot full road geometry
+
+for (r in 1:nrow(rd_names)) { #adding centroid coord. for labeling
+    rd_centroid <- st_centroid(rd_names$geometry[r])
+    centroid <- as.data.frame(st_coordinates(rd_centroid))
+    rd_names$lng[r] <- centroid$X
+    rd_names$lat[r] <- centroid$Y
+    }
 ```
 
 ```{r Labeling major rivers w/ MajorRivers.csv, message=FALSE}
@@ -313,7 +346,7 @@ for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for l
     }
 ```
 
-```{r, eval = FALSE}
+```{r Cities, eval = FALSE}
 ## Labeling city locations 
 cities_csv <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv") ## reads in cities data
 cities_va <- cities_csv[cities_csv$state_id == 'VA',] # filters to only cities within VA
@@ -424,7 +457,7 @@ if (dist_mi > 500) {
 } else {
   nhd$flowline_plot <- nhd$flowline
   zoom = 10
-  textsize <- c(10,8,5, 6, 1)
+  textsize <- c(10,8,5, 6, 1.2)
 }
 
 ```
@@ -464,19 +497,28 @@ map <- basemap + #ggplot2::
             show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
     geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
     geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
-    #new_scale("linewidth") +
+    # Road Lines
+    geom_sf(data = roads, inherit.aes = FALSE, color = "black", fill = NA, lwd=0.75, linetype="twodash") +
+    # Basin Outlines
     geom_sf(data = basin_sf, inherit.aes = FALSE, color = "sienna1", fill = NA, lwd=textsize[5], linetype="dashed") +
               # color = "#002289", fill = #0022974C
 
     theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
-    
+  
+  # Road Labels
+    geom_label_repel(data=rd_names,
+                aes(x = lng, y = lat, label=FULLNAME, 
+                    fontface="plain", family="Comic Sans MS"), show.legend=FALSE,
+                size=textsize[3]-1,
+                colour="black", #bg.color="white", bg.r=0.15,
+                label.r=0.6, label.size=0.12, 
+                force=0, max.overlaps=1
+                ) +
   # Labels
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = facil_labels, 
                   aes(X, Y, label = NUM, fontface="bold"), 
                   colour = NA, size = textsize[4]+1
-                  #check_overlap=TRUE
-                  #min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
                   ) +
     # Rsegs
 ##  geom_text(data = rseg_labels, 
@@ -552,7 +594,7 @@ map <- basemap + #ggplot2::
   
   # 2020 MGD
       new_scale("size") +
-      geom_point(data = facil_labels, aes(X, Y, size=metric_runid1, alpha=metric_runid1),
+      geom_point(data = facil_labels, aes(X, Y, size=metric_runid1 ), alpha=0.75, #, alpha=metric_runid1),
                col="#F7FF00", shape = 19, stroke = 0.75) +
       scale_size(range = c(10,33), 
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
@@ -561,13 +603,13 @@ map <- basemap + #ggplot2::
                  labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
                  name = paste(metric, runid_list[1], sep="_")
                  ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
-      scale_alpha(range = c(0.4, 0.85),
+#      scale_alpha(range = c(0.4, 0.85),
 ##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
 ##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
-                 breaks = seq(max(metric_runid1), 0, length.out=5), 
-                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
-                 name = paste(metric, runid_list[1], sep="_")
-                 ) +
+#                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+#                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
+#                 name = paste(metric, runid_list[1], sep="_")
+#                 ) +
     # 2040 MGD
     #new_scale("size") + new_scale("color") + new_scale("alpha") +
     #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
@@ -626,6 +668,24 @@ ggsave(
   width = 25,
   height = 20
   )
+```
+
+```{r Road Experiment}
+roads_no_overlap <- geom_text_repel(data=rd_names,
+                aes(x = lng, y = lat, label=FULLNAME, 
+                    fontface="plain", family="Comic Sans MS", angle=0), #show.legend=FALSE,
+                size=textsize[3]-1,
+                colour="black", bg.color="white", bg.r=0.15,
+                force=0, max.overlaps=1
+                )
+  
+  
+road_diamonds <- geom_point(data = roads_no_overlap[["data"]], aes(lng, lat),
+               col="black", fill="white", shape = 23, size=8, stroke = 0.9)
+
+map <- basemap +
+    road_diamonds +
+    roads_no_overlap
 ```
 
 ```{r OLD Create table w/ more facility info, echo= FALSE, warning=FALSE, message=FALSE, eval=FALSE}
@@ -813,10 +873,6 @@ tableData2$five_mgy[i] <- round(five_mgy,2)
 
 ```
 
-
-
-
-
 ```{r Call Table}
 
 library(flextable)
@@ -877,7 +933,6 @@ ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
 basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 9)
 basemap <- ggmap(basemap)
 
-
 sf_use_s2(FALSE) # switch off Spherical geometry (s20)
 nhd  <- plot_nhdplus(bbox = st_bbox(ggmap_bbox), actually_plot = FALSE)
 
@@ -894,6 +949,43 @@ regions <- RomFeature$new(ds,list(
   ftype='wsp_plan_region', 
   bundle='landunit'),
   TRUE)
+
+
+# Checking out Road data:
+setwd(wd)
+#roads <- read_sf(dsn="/aa_HARP/tl_2021_us_primaryroads", layer="tl_2021_us_primaryroads")
+roads <- read_sf(dsn="/aa_HARP/tl_2021_51_prisecroads", layer="tl_2021_51_prisecroads") #VA's primary and secondary roads
+roads <- roads[grep("\\State Rte.*", roads$FULLNAME),] #filter to State Rte only
+roads$FULLNAME <- gsub("\\State Rte ", "Rte", roads$FULLNAME) #shorten route names; no space too
+rd_names <- roads[!duplicated(roads$FULLNAME),] #don't label the same name multiple times, but still plot full road geometry
+
+for (r in 1:nrow(rd_names)) { #adding centroid coord. for labeling
+    rd_centroid <- st_centroid(rd_names$geometry[r])
+    centroid <- as.data.frame(st_coordinates(rd_centroid))
+    rd_names$lng[r] <- centroid$X
+    rd_names$lat[r] <- centroid$Y
+    }
+
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(roads)), .05)
+ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 9)
+basemap <- ggmap(basemap)
+VA <- basemap +
+    geom_sf(data = roads, inherit.aes = FALSE, color = "black", fill = NA, lwd=0.2) +
+    geom_text_repel(data=rd_names,
+                aes(x = lng, y = lat, label=FULLNAME, 
+                    fontface="plain", family="Optima", angle=0), #show.legend=FALSE,
+                size=3,
+                colour="black", bg.color="white", bg.r=0.1,
+                force=0, max.overlaps=1
+                )
+
+ggsave(
+  filename = paste(export_path, "VA_roads", ".png", sep=""),
+  plot = VA,
+  width = 25,
+  height = 20
+  )
 
 ```
 
