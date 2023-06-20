@@ -1,0 +1,351 @@
+---
+title: "Mapping Workflow"
+author: "HARP Analysts"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-use last to test with bigger data
+  model_version: ["vahydro-1.0"]
+  runid_list: [ "runid_11","runid_13" ]
+  metric: ["wd_mgd"]
+  labels: [""]
+  map_name: ["James_JL6_7320_7150_cleanup"]
+---
+`
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(hydrotools)
+library(mgsub)
+library(sp)
+library(rgeos)
+library(sf)
+library(nhdplusTools)
+library(ggmap)
+library(raster)
+library(ggplot2)
+library(ggnewscale)   
+library(ggsn)
+library(ggspatial)
+library(ggrepel)
+library(dplyr)
+library(flextable)
+library(geosphere)
+
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+site <- 'http://deq1.bse.vt.edu/d.dh'
+```
+
+```{r UserInputs, echo=FALSE}
+rivseg <- params$rivseg
+model_version <- params$model_version
+runid_list <- params$runid_list
+metric <- params$metric
+labels <- params$labels
+map_name <- params$map_name
+```
+
+```{r Establish Functions, echo=FALSE}
+# Read data that requires file download
+download_read <- function(url, filetype) {
+  localpath <- tempdir()
+  filename <- basename(url)
+
+  if(filetype=="csv"){
+    destfile <- paste(localpath,"\\",filename,".csv",sep="")
+    download.file(url, destfile, method = "libcurl")
+    df <- read.csv(file=destfile, header=TRUE, sep=",")
+  }
+  if(filetype=="shp"){
+    download.file(url, filename)
+    unzip(filename, exdir=localpath)
+    layer <- gsub("\\.zip", "", filename)
+    df <- read_sf(dsn=localpath, layer=layer)
+  } 
+  if(filetype!="csv" & filetype!="shp"){
+    message(paste("Error in download_read(): filetype must be 'csv' or 'shp'"))
+  }
+  return(df)
+}
+
+#- - - - - - - - - - -
+
+# Convert any data frame w/ geometry stored as Well Known Text to "SpatialXxxDataFrame" (Xx_sp)
+## Specify the data frame and the character name of the geometry column
+process_geom <- function(data, geom_col) {
+  for (i in 1:nrow(data)) {
+    sp.i <- sp::addAttrToGeom(
+      x=readWKT(data[i,geom_col]), 
+      y=as.data.frame(as.list(subset(data[i,],select=-c(names(data)==geom_col)))),      
+      match.ID=TRUE
+    )
+    if (i == 1) {
+      # start with one 
+      data_sp <- sp.i
+    } else {
+      # append
+      data_sp <- rbind(data_sp, sp.i)
+    }
+  }
+  return(data_sp)
+}
+
+#- - - - - - - - - - -
+
+# Add centroid coords to a data frame
+centroid_coords <- function(data, geom_col) {
+  for (r in 1:nrow(data)) { #get centroid coord. for labeling
+    centroid <- st_centroid(data[r, geom_col])
+    centroid <- as.data.frame(st_coordinates(centroid))
+    data$lng[r] <- centroid$X
+    data$lat[r] <- centroid$Y
+  }
+  return(data.frame(data))
+}
+
+```
+
+# PULL Data 
+```{r PULL data, echo=FALSE, message=FALSE, warning=FALSE}
+#----From Local Machine----
+# Foundational Facilities data
+## config.local.private determines wd variable
+## wd includes path from main drive up to where individual stores GitHub Repo's
+foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv'))
+
+#----From VAhydro----
+# All vahydro watershed features
+#segs_all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors 
+segs_all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv") ##TEMPORARY work-around
+
+# All facility model data
+df <- data.frame(runid=runid_list, model_version, metric=metric)
+for(i in 1:length(runid_list)){
+  df$runlabel[i] <- paste("metric_","runid", i, sep="")
+}
+facil_mdat <- om_vahydro_metric_grid( 
+  metric=FALSE, runids=df, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version = model_version,
+  base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+  ds = ds
+)
+remove(df) #job finished?
+
+# County Features data
+counties <- ds$get('dh_feature', config=list(bundle='usafips'))
+
+#----From Public Webpages----
+# (shp) for US states & primary roads
+## VA state is used to filter road data & determine extent levels
+state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip", filetype="shp")
+roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip", filetype="shp")
+# (csv) for cities & major rivers
+cities <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv")
+rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
+## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
+## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
+
+```
+
+# PROCESS Data
+```{r PROCESS data, echo=FALSE}
+
+#----General data organization----
+
+# Full join facility model data & facility foundation data
+## merge() documentation says "all=TRUE" gives a full outer join by SQL terms
+facil_all <- merge(x=facil_mdat, y=foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
+## To place rows with matches at the top:
+#facil_all <- facil_all[order(facil_all$riverseg, na.last=TRUE),]
+
+## Remove excess df's now that they're joined?
+remove(facil_mdat)
+remove(foundatn)
+
+# Extract basin of user-input rivseg, from segs_all
+segs_all$riverseg <- str_replace(segs_all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
+segs_basin <- fn_extract_basin(segs_all, rivseg)
+
+# Filter down to facilities within the basin
+## first rename column so it doesn't have the same name as basin's hydrocode column
+colnames(facil_all) <- gsub("hydrocode", "facil_hydrocode", colnames(facil_all))
+facil_basin <- sqldf(
+  "select a.* from facil_all as a
+   left outer join segs_basin as b
+   on (a.riverseg = b.riverseg)
+  where b.riverseg is not null 
+  "
+)
+# Filter out WSP entries (optional)
+facil_basin <- sqldf("select * from facil_basin where facil_hydrocode not like 'wsp_%'")
+
+#- - - - - - - - - - -
+
+# Filter roads to only Interstate, US Hwy, State Rte
+state <- state[state$NAME=="Virginia", ] 
+roads <- st_intersection(roads, state) #only VA primary roads
+roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
+## shorten names to number only; column RTTYP gives classification I, U, or S
+roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
+roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
+
+# Road label coordinates
+## don't label the same name multiple times, but still plot full road geometry
+roads_L <- roads[!duplicated(roads$FULLNAME),] 
+roads_L <- centroid_coords(roads_L, "geometry") #add centroid coords
+
+# Filter/classify major cities & small towns
+cities <- cities[cities$state_id == 'VA',] #VA cities
+popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
+cities <- cities %>%
+  mutate(class = case_when(
+    population < popul["75%"] & population > popul["50%"] | population < popul["25%"] ~ "NULL",
+    population >= popul["75%"] ~ "majC",
+    population <= popul["50%"] & population >= popul["25%"] ~ "town" #exclude smallest populations of 0-400
+    ))
+cities <- cities[cities$class!="NULL"]
+
+#- - - - - - - - - - -
+
+# Process Polygons; text-> spatial -> simple features
+## basin watersheds
+segs_sp <- process_geom(segs_basin, "geom")
+segs_sf <- st_as_sf(segs_sp)
+st_crs(segs_sf) <- 4326 #Set coord. reference syst.
+## counties
+counties_sp <- process_geom(counties, "dh_geofield.geom")
+counties_sf <- st_as_sf(counties_sp)
+st_crs(counties_sf) <- 4326
+
+#- - - - - - - - - - -
+
+# NHD data within the basin area
+sf_use_s2(FALSE) # switch off Spherical geometry
+domain <- st_buffer(st_as_sfc(st_bbox(segs_sf)), .2)
+nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
+
+# Major river labels (via csv from earlier)
+#rivr_maj <- process_geom(rivr_maj, "geom") #sp
+#rivr_maj <- st_as_sf(rivr_maj) #sf
+#st_crs(rivr_maj) <- 4326
+#rivr_maj <- centroid_coords(rivr_maj, "geometry")
+
+# River & stream labels
+## major rivs = order 6; streams = order 4
+rivr_L <- nhd$flowline[nhd$flowline$gnis_name!=' ' & (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==4),] #name!=blank & order 4 or 6
+## no duplicate names; prioritize order 6 names and then the longest segment of each duplicate
+rivr_L <- rivr_L[order(-rivr_L$StreamOrde, rivr_L$gnis_name, -rivr_L$LENGTHKM) & !duplicated(rivr_L$gnis_name),]
+## shorten long names
+rivr_L$gnis_name <- mgsub(rivr_L$gnis_name, 
+                             c('North Fork','South Fork','East Fork','West Fork','Middle Fork'), #pattern
+                             c('NF','SF','EF','WF','MF')) #replacement
+rivr_L$StreamOrde <- mgsub(rivr_L$StreamOrde, c(4,6), c("str", "majR"))
+## calculate label coordinates
+rivr_L <- centroid_coords(rivr_L, "geometry")
+
+# Waterbody labels
+wtbd_L <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
+## remove ones without names & filter to largest 50%
+wtbd_L <- wtbd_L[!(wtbd_L$gnis_name==' ' | wtbd_L$gnis_name=='Noname') & wtbd_L$AreaSqKM > quantile(wtbd_L$AreaSqKM, 0.5),]
+wtbd_L <- centroid_coords(wtbd_L, "geometry")
+
+#- - - - - - - - - - -
+
+# Combine labels into one data frame
+labels <- data.frame(
+  name= c(counties$name, cities$city, rivr_L$gnis_name, wtbd_L$gnis_name),
+  class= c(counties$ftype, cities$class, rivr_L$StreamOrde, wtbd_L$FTYPE),
+  lng= c(counties$dh_geofield.lon, cities$lng, rivr_L$lng, wtbd_L$lng),
+  lat=c(counties$dh_geofield.lat,cities$lat, rivr_L$lat, wtbd_L$lat)
+) #note: does not contain road labels
+
+#- - - - - - - - - - -
+
+# Basemap boundary box
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(segs_sf)), .05) #slightly larger than basin
+ggmap_bbox <- st_bbox(ggmap_bbox)
+
+#- - - - - - - - - - -
+```
+
+# INCOMPLETE
+```{r Determinations based on extent}
+
+# Calculation of extent = get diagonal of bbox in miles
+extent <- tibble(lng = ggmap_bbox[c("xmin", "xmax")], lat = ggmap_bbox[c("ymin", "ymax")])
+## distHaversine() defaults to meters, so convert to miles
+extent <-  distHaversine(extent) / 1609.34
+scalebar <- round((extent/20), digits = 0) #dist for scalebar
+
+# Via same calculation, extent of all of VA state's bbox (aka absolute max extent): ~506 mi
+## James JL6_7320_7150 basin's extent is ~140 mi ; considering this a large basin relative to most maps
+## Roanoke city's extent < 13 mi ; Craig's creek < 15 mi; basing absolute minimum extents off of these
+
+#IDEA: duplicate class column but with names"fontface", etc. and mgsub those few columns !!!
+for(i in 1:nrow(labels)){
+  if(labels$class[i]=="county"){
+    labels$fontface[i] <- "bold.italic"
+    labels$fontfam[i] <- "serif"
+    labels$angle[i] <- 0
+    labels$bg.r[i] <- .03
+    labels$segcol[i] <- "#003333"
+    labels$segwidth[i] <- 1
+  } else{
+    labels$fontface[i] <- "NULL"
+    labels$fontfam[i] <- "NULL"
+    labels$angle[i] <- "NULL"
+    labels$bg.r[i] <- "NULL"
+    labels$segcol[i] <- "NULL"
+    labels$segwidth[i] <- "NULL"
+  }
+}
+
+
+if(extent > 300) {
+  zoom = 8 #basemap resolution
+  roads2 <- roads[roads$RTTYP="I"]
+  roads_L2 <- roads_L[roads_L$RTTYP="I"]
+  labels2 <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC",]
+  textsizes <- c(6,5,4,  5, 0) #c(cnty,maj,city/str/wtbd,  facility num, segs_sf lwd)
+  # Filter streamlines:
+  nhd$flow_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2 | nhd$flowline$StreamOrde == 3),]
+  
+}
+
+
+if (dist_mi > 500) {
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
+  zoom = 7
+  textsize <- c(6,4,4,  5, 0) #c(cnty,maj,city/str,  facility num, basin_sf lwd)
+} else if (dist_mi > 300) {
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
+  zoom = 8
+  textsize <- c(6,5,4,  5, 0) 
+} else if (dist_mi > 150) {
+  nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  zoom = 9
+  textsize <- c(7,6,4, 5, 1)
+} else {
+  nhd$flowline_plot <- nhd$flowline
+  zoom = 10
+  textsize <- c(10,8,5, 6, 1.2)
+}
+
+
+
+
+# Create map base
+basemap_0 <- ggmap::get_stamenmap(maptype = "terrain-background", color="color", bbox = ggmap_bbox, zoom = zoom)
+basemap <- ggmap(basemap_0)
+
+#- - - - - - - - - - -
+
+# have var nhd_L for river/stream/waterbody labels?
+```
+
+# PLOT Data
