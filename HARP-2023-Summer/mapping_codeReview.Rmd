@@ -4,14 +4,13 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-use last to test with bigger data
+  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  labels: [""]
-  map_name: ["James_JL6_7320_7150_cleanup"]
+  map_name: ["James_JL6_7320_7150_cleanup2"]
 ---
-`
+
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
@@ -44,7 +43,6 @@ rivseg <- params$rivseg
 model_version <- params$model_version
 runid_list <- params$runid_list
 metric <- params$metric
-labels <- params$labels
 map_name <- params$map_name
 ```
 
@@ -70,7 +68,6 @@ download_read <- function(url, filetype) {
   }
   return(df)
 }
-
 #- - - - - - - - - - -
 
 # Convert any data frame w/ geometry stored as Well Known Text to "SpatialXxxDataFrame" (Xx_sp)
@@ -92,7 +89,6 @@ process_geom <- function(data, geom_col) {
   }
   return(data_sp)
 }
-
 #- - - - - - - - - - -
 
 # Add centroid coords to a data frame
@@ -103,30 +99,48 @@ centroid_coords <- function(data, geom_col) {
     data$lng[r] <- centroid$X
     data$lat[r] <- centroid$Y
   }
-  return(data.frame(data))
+  return(data)
+}
+#- - - - - - - - - - -
+
+# Generate user-understandable legend titles
+## Kept up here as a function so that it's easy to add if-statements when user-input options expand
+legend_titling <- function(metric, runid_list){
+  if(metric=="wd_mgd"){
+    name <- "Withdrawal"
+    unit <- "(MGD)"
+  }
+  year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
+  legend_title <- runid_list               
+  for(i in 1:length(runid_list)){
+    legend_title[i] <- paste(year[i],name,unit,sep="\n")
+  }
+  return(legend_title)
 }
 
 ```
 
 # PULL Data 
-```{r PULL data, echo=FALSE, message=FALSE, warning=FALSE}
+```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE}
 #----From Local Machine----
+facils <- list()
 # Foundational Facilities data
 ## config.local.private determines wd variable
 ## wd includes path from main drive up to where individual stores GitHub Repo's
-foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv'))
+facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv'))
 
 #----From VAhydro----
 # All vahydro watershed features
-#segs_all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors 
-segs_all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv") ##TEMPORARY work-around
+#segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
+segs <- list()
+segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv") ##TEMPORARY work-around
 
 # All facility model data
 df <- data.frame(runid=runid_list, model_version, metric=metric)
 for(i in 1:length(runid_list)){
   df$runlabel[i] <- paste("metric_","runid", i, sep="")
 }
-facil_mdat <- om_vahydro_metric_grid( 
+facils$mdat <- om_vahydro_metric_grid( 
   metric=FALSE, runids=df, featureid='all', 
   entity_type='dh_feature', bundle='facility',
   ftype='all', model_version = model_version,
@@ -136,68 +150,67 @@ facil_mdat <- om_vahydro_metric_grid(
 remove(df) #job finished?
 
 # County Features data
-counties <- ds$get('dh_feature', config=list(bundle='usafips'))
+counties <- list()
+counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 
 #----From Public Webpages----
 # (shp) for US states & primary roads
 ## VA state is used to filter road data & determine extent levels
-state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip", filetype="shp")
-roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip", filetype="shp")
+roads <- list()
+roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip", filetype="shp")
+roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
+                          filetype="shp")
 # (csv) for cities & major rivers
 cities <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv")
-rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
+
+#rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
 
 ```
 
 # PROCESS Data
-```{r PROCESS data, echo=FALSE}
-
+```{r PROCESS Data, echo=FALSE}
 #----General data organization----
 
 # Full join facility model data & facility foundation data
 ## merge() documentation says "all=TRUE" gives a full outer join by SQL terms
-facil_all <- merge(x=facil_mdat, y=foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
+facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
 ## To place rows with matches at the top:
-#facil_all <- facil_all[order(facil_all$riverseg, na.last=TRUE),]
+#facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
 
-## Remove excess df's now that they're joined?
-remove(facil_mdat)
-remove(foundatn)
-
-# Extract basin of user-input rivseg, from segs_all
-segs_all$riverseg <- str_replace(segs_all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
-segs_basin <- fn_extract_basin(segs_all, rivseg)
+# Extract basin of user-input rivseg, from segs$all
+segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
+segs$basin <- fn_extract_basin(segs$all, rivseg)
 
 # Filter down to facilities within the basin
 ## first rename column so it doesn't have the same name as basin's hydrocode column
-colnames(facil_all) <- gsub("hydrocode", "facil_hydrocode", colnames(facil_all))
-facil_basin <- sqldf(
-  "select a.* from facil_all as a
-   left outer join segs_basin as b
-   on (a.riverseg = b.riverseg)
-  where b.riverseg is not null 
-  "
-)
+colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
+facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
+
 # Filter out WSP entries (optional)
-facil_basin <- sqldf("select * from facil_basin where facil_hydrocode not like 'wsp_%'")
+##facils$basin <- sqldf("select * from facils$basin where facil_hydrocode not like 'wsp_%'")
+facils$basin <- subset(facils$basin, 
+                       facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
+
+# Order by largest metrics; then number them
+facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),]
+facils$basin$NUM <- seq(1, nrow(facils$basin))
+# Legend title
+legend_title <- legend_titling(metric, runid_list)
 
 #- - - - - - - - - - -
 
 # Filter roads to only Interstate, US Hwy, State Rte
-state <- state[state$NAME=="Virginia", ] 
-roads <- st_intersection(roads, state) #only VA primary roads
-roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
+roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
+roads$sf <- st_intersection(roads$sf, roads$state) #only VA primary roads
+## keep only interstate, US hwy, or state Rte.
+roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S")
 ## shorten names to number only; column RTTYP gives classification I, U, or S
-roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+roads$sf$FULLNAME <- mgsub(roads$sf$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
-roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
-
-# Road label coordinates
-## don't label the same name multiple times, but still plot full road geometry
-roads_L <- roads[!duplicated(roads$FULLNAME),] 
-roads_L <- centroid_coords(roads_L, "geometry") #add centroid coords
+roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
+roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$state_id == 'VA',] #VA cities
@@ -214,138 +227,252 @@ cities <- cities[cities$class!="NULL"]
 
 # Process Polygons; text-> spatial -> simple features
 ## basin watersheds
-segs_sp <- process_geom(segs_basin, "geom")
-segs_sf <- st_as_sf(segs_sp)
-st_crs(segs_sf) <- 4326 #Set coord. reference syst.
+segs$basin_sp <- process_geom(segs$basin, "geom")
+segs$basin_sf <- st_as_sf(segs$basin_sp)
+st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
 ## counties
-counties_sp <- process_geom(counties, "dh_geofield.geom")
-counties_sf <- st_as_sf(counties_sp)
-st_crs(counties_sf) <- 4326
+counties$sp <- process_geom(counties$df, "dh_geofield")
+counties$sf <- st_as_sf(counties$sp)
+counties$sf <- centroid_coords(counties$sf, "geometry")
+st_crs(counties$sf) <- 4326
 
 #- - - - - - - - - - -
 
 # NHD data within the basin area
 sf_use_s2(FALSE) # switch off Spherical geometry
-domain <- st_buffer(st_as_sfc(st_bbox(segs_sf)), .2)
-nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
+bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
+nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
 
-# Major river labels (via csv from earlier)
-#rivr_maj <- process_geom(rivr_maj, "geom") #sp
-#rivr_maj <- st_as_sf(rivr_maj) #sf
-#st_crs(rivr_maj) <- 4326
-#rivr_maj <- centroid_coords(rivr_maj, "geometry")
+```
 
+```{r Labels df & Extent Filters}
 # River & stream labels
-## major rivs = order 6; streams = order 4
-rivr_L <- nhd$flowline[nhd$flowline$gnis_name!=' ' & (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==4),] #name!=blank & order 4 or 6
-## no duplicate names; prioritize order 6 names and then the longest segment of each duplicate
-rivr_L <- rivr_L[order(-rivr_L$StreamOrde, rivr_L$gnis_name, -rivr_L$LENGTHKM) & !duplicated(rivr_L$gnis_name),]
+## major rivs = orders 5 & 6; streams = order 4
+lb_rivr <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6
+                         (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==5 | nhd$flowline$StreamOrde==4),] 
+## no duplicate names; prioritize higher order names and then the longest segment of each duplicate
+lb_rivr <- lb_rivr[order(-lb_rivr$StreamOrde, lb_rivr$gnis_name, -lb_rivr$LENGTHKM) & !duplicated(lb_rivr$gnis_name),]
 ## shorten long names
-rivr_L$gnis_name <- mgsub(rivr_L$gnis_name, 
+lb_rivr$gnis_name <- mgsub(lb_rivr$gnis_name, 
                              c('North Fork','South Fork','East Fork','West Fork','Middle Fork'), #pattern
                              c('NF','SF','EF','WF','MF')) #replacement
-rivr_L$StreamOrde <- mgsub(rivr_L$StreamOrde, c(4,6), c("str", "majR"))
+lb_rivr$StreamOrde <- mgsub(lb_rivr$StreamOrde, c(4,5,6), c("str","majR","majR"))
 ## calculate label coordinates
-rivr_L <- centroid_coords(rivr_L, "geometry")
+lb_rivr <- centroid_coords(lb_rivr, "geometry")
 
 # Waterbody labels
-wtbd_L <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
+lb_wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
 ## remove ones without names & filter to largest 50%
-wtbd_L <- wtbd_L[!(wtbd_L$gnis_name==' ' | wtbd_L$gnis_name=='Noname') & wtbd_L$AreaSqKM > quantile(wtbd_L$AreaSqKM, 0.5),]
-wtbd_L <- centroid_coords(wtbd_L, "geometry")
+lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname') & lb_wtbd$AreaSqKM > quantile(lb_wtbd$AreaSqKM, 0.5),]
+lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 
 #- - - - - - - - - - -
 
-# Combine labels into one data frame
+# Combine all labels into one df
 labels <- data.frame(
-  name= c(counties$name, cities$city, rivr_L$gnis_name, wtbd_L$gnis_name),
-  class= c(counties$ftype, cities$class, rivr_L$StreamOrde, wtbd_L$FTYPE),
-  lng= c(counties$dh_geofield.lon, cities$lng, rivr_L$lng, wtbd_L$lng),
-  lat=c(counties$dh_geofield.lat,cities$lat, rivr_L$lat, wtbd_L$lat)
-) #note: does not contain road labels
+  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
+  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
+  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
+  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
+)
+remove(lb_rivr)
+remove(lb_wtbd)
+
+# Columns for the aesthetics
+## very specific function; just minimizing code lines:
+class_aes <- function(aesthetic){ #input values of an aesthetic to correspond with each label class
+  mgsub(labels$class, c("I","S","U","town","majC","LakePond","str","majR","county"), aesthetic)
+}
+labels$road <- class_aes( c(rep("yes",3), rep("no",6)) )
+
+labels$fontface <- class_aes( c(rep("plain",5),"bold","bold","bold","bold.italic") )
+labels$fontfam <- class_aes( c(rep("Comic Sans MS",3),"sans","sans",rep("serif",4) ) )
+labels$angle <- as.numeric( class_aes( c(0,0,0,0,0,15,15,15,0) ) ) #as.numeric() b/c mgsub() returns character strings
+labels$bg.r <- as.numeric( class_aes( c("NA","NA","NA",.05,.05,.1,.1,.05,.03) ) )
+labels$segsize <- as.numeric( class_aes( c("NA","NA","NA",.5,.5,.5,.5,.75,1) ) )
+
+textcol <- c("red","white","black","deepskyblue4","#003333") #c(I, S, U/town/majC, LakePond/str/majR, county)
+labels$segcol <- class_aes( c("NA","NA","NA", textcol[c(3,3,4,4,4,5)] ) )
+labels$colcode <- class_aes( c(1,2,3,3,3,4,4,4,5) ) #corresponds to textcol for the color scale
+
+labels$sizecode <- as.numeric ( class_aes( c(1,1,1,2,2,2,2,3,4) ) ) #corresponds to textsize for the size scale
+
+label_fill <- c("blue","#0B5F14","white") #for road bubbles c(I,S,U)
+labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
 #- - - - - - - - - - -
 
 # Basemap boundary box
-ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(segs_sf)), .05) #slightly larger than basin
-ggmap_bbox <- st_bbox(ggmap_bbox)
+bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly larger than basin
+bbox <- st_bbox(bbox)
 
 #- - - - - - - - - - -
-```
-
-# INCOMPLETE
-```{r Determinations based on extent}
 
 # Calculation of extent = get diagonal of bbox in miles
-extent <- tibble(lng = ggmap_bbox[c("xmin", "xmax")], lat = ggmap_bbox[c("ymin", "ymax")])
+extent <- tibble(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")] )
 ## distHaversine() defaults to meters, so convert to miles
 extent <-  distHaversine(extent) / 1609.34
-scalebar <- round((extent/20), digits = 0) #dist for scalebar
 
 # Via same calculation, extent of all of VA state's bbox (aka absolute max extent): ~506 mi
 ## James JL6_7320_7150 basin's extent is ~140 mi ; considering this a large basin relative to most maps
-## Roanoke city's extent < 13 mi ; Craig's creek < 15 mi; basing absolute minimum extents off of these
-
-#IDEA: duplicate class column but with names"fontface", etc. and mgsub those few columns !!!
-for(i in 1:nrow(labels)){
-  if(labels$class[i]=="county"){
-    labels$fontface[i] <- "bold.italic"
-    labels$fontfam[i] <- "serif"
-    labels$angle[i] <- 0
-    labels$bg.r[i] <- .03
-    labels$segcol[i] <- "#003333"
-    labels$segwidth[i] <- 1
-  } else{
-    labels$fontface[i] <- "NULL"
-    labels$fontfam[i] <- "NULL"
-    labels$angle[i] <- "NULL"
-    labels$bg.r[i] <- "NULL"
-    labels$segcol[i] <- "NULL"
-    labels$segwidth[i] <- "NULL"
-  }
-}
-
-
+## Roanoke city's extent < 13 mi ; basing absolute minimum extents off of this
 if(extent > 300) {
   zoom = 8 #basemap resolution
-  roads2 <- roads[roads$RTTYP="I"]
-  roads_L2 <- roads_L[roads_L$RTTYP="I"]
-  labels2 <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC",]
-  textsizes <- c(6,5,4,  5, 0) #c(cnty,maj,city/str/wtbd,  facility num, segs_sf lwd)
-  # Filter streamlines:
-  nhd$flow_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2 | nhd$flowline$StreamOrde == 3),]
-  
-}
-
-
-if (dist_mi > 500) {
-  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
-  zoom = 7
-  textsize <- c(6,4,4,  5, 0) #c(cnty,maj,city/str,  facility num, basin_sf lwd)
-} else if (dist_mi > 300) {
-  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
-  zoom = 8
-  textsize <- c(6,5,4,  5, 0) 
-} else if (dist_mi > 150) {
-  nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
+  roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
+  labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
+  textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
+} else if(extent > 130){
   zoom = 9
-  textsize <- c(7,6,4, 5, 1)
-} else {
-  nhd$flowline_plot <- nhd$flowline
+  nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
+  roads$plot <- roads$sf
+  labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
+  textsize <- c(5,5,6,11,  5,1)
+} else if(extent > 70){
   zoom = 10
-  textsize <- c(10,8,5, 6, 1.2)
+  nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
+  roads$plot <- roads$sf
+  labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
+  textsize <- c(6,7,9,12,  5,1.2)
+  labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small extents
+} else {
+  zoom = 10
+  nhd$plot <- nhd$flowline
+  roads$plot <- roads$sf
+  labelsP <- labels
+  textsize <- c(7,8,10,13,  5,1.5)
+  labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
 }
-
-
-
 
 # Create map base
-basemap_0 <- ggmap::get_stamenmap(maptype = "terrain-background", color="color", bbox = ggmap_bbox, zoom = zoom)
+bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #otherwise get_stamenmap() won't run
+basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=zoom)
 basemap <- ggmap(basemap_0)
 
 #- - - - - - - - - - -
 
-# have var nhd_L for river/stream/waterbody labels?
+# Reverse polygon fill (highlight basin)
+bb <- unlist(attr(basemap_0, "bb"))
+coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+basemap_0 <- sp::SpatialPolygons(
+  list(sp::Polygons(list(Polygon(coords)), "id")), 
+  proj4string = CRS(proj4string(segs$basin_sp)))
+remove(coords) #job done
+
+nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+nonbasin <- st_as_sf(nonbasin)
+st_crs(nonbasin) <- 4326
+
+# Lighten terrain basemap
+basemap_0 <- st_as_sf(basemap_0)
+st_crs(basemap_0) <- 4326
+
 ```
 
-# PLOT Data
+# PLOT Map
+```{r PLOT Data, echo=FALSE}
+map <- basemap + #ggplot2::
+    # Titles
+    theme(text=element_text(size=30), title=element_text(size=40),
+          axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
+    ggtitle( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") ) +
+  
+    # Lighten base-map to help readability
+    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+    # County Borders
+    geom_sf(data = counties$sf, inherit.aes=FALSE, color="#0033337F", fill=NA, lwd=2.5) +
+    # Flowlines & Waterbodies
+    geom_sf(data = nhd$plot, 
+            inherit.aes=FALSE, color="deepskyblue3", 
+            mapping=aes(lwd=nhd$plot$StreamOrde), #line thickness based on stream order
+            show.legend=FALSE) + 
+        scale_linewidth(range= c(0.4,2)) + 
+    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),
+            inherit.aes=FALSE, color="deepskyblue3", size=1) +
+    # Road Lines
+    geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
+    # City Points
+    geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
+               aes(x=lng, y=lat), color ="black", size=2) +
+    # Basin Outlines
+    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
+    
+    # Facility Labels Placeholder (to have other labels repel)
+    geom_text(data = facils$basin, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
+    # Road Labels
+    geom_label_repel(data = labelsP[labelsP$road=="yes",],
+                aes(x=lng, y=lat, label=name, 
+                    fontface=fontface, family=fontfam,
+                    color=colcode, 
+                    fill=fill
+                    ), 
+                show.legend=NA,
+                size=textsize[1],
+                label.r=0.6, label.size=0.12, 
+                #force=0, max.overlaps=1
+                ) +
+        scale_colour_manual(values=textcol, breaks=c(1,2,3),
+                            labels=c("Interstate","State Route", "US Hwy"), name="") + 
+        scale_fill_manual(values=label_fill, breaks=c(1,2,3),
+                          labels=c("Interstate","State Route", "US Hwy"), name="" ) +
+     # Text Labels
+        new_scale("size") + new_scale("color") +
+    geom_text_repel(data = labelsP[labelsP$road=="no",], 
+                    aes(x=lng, y=lat, label=name,
+                        fontface=fontface, family=fontfam, angle=angle,
+                        segment.color=segcol, segment.size=segsize,
+                        bg.color="white", bg.r=bg.r,
+                        size=sizecode, 
+                        color=colcode,
+                        ), 
+                    show.legend=FALSE,
+                    force= 40, direction="both",
+                    min.segment.length=0.5
+                    ) + 
+          scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
+          scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) +
+
+    # Facility Points; Metric 1
+        new_scale("size") + new_scale("color") +
+      geom_point(data = facils$basin, 
+                 aes(x=Longitude, y=Latitude, size=metric_runid1, color=facils$basin[,"Source Type"]), 
+                 alpha=0.75, shape = 19, stroke = 0.75 ) +
+      scale_size(range= c(10,28), 
+                 breaks= seq(max(facils$basin$metric_runid1), 0, length.out=5), 
+                 labels= round(seq(max(facils$basin$metric_runid1), 0, length.out=5), digits=3),
+                 name= legend_title[1],
+                 guide= guide_legend(override.aes=list(label=""))
+                 ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+      scale_colour_manual(values=c("#F7FF00","#FF00FF"),
+                 breaks= c("Surface Water", "Groundwater"),
+                 labels= c("Surface Water", "Groundwater"),
+                 name= "Source Type",
+                 guide= guide_legend(override.aes=list(label=""))
+                 ) +
+    # Facility Labels
+    geom_text(data = facils$basin, 
+                    aes(Longitude, Latitude, label=NUM, fontface="bold"), 
+                    colour="black", size=textsize[5], check_overlap=TRUE ) +
+    # Reverse Fill
+    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
+    # Scalebar & North Arrow
+    ggsn::scalebar(data = segs$basin_sf, dist= round((extent/20),digits=0), 
+                   dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
+                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03
+                   ) +
+    ggspatial::annotation_north_arrow(which_north="true", location="tr",
+                                      height= unit(4,"cm"), width= unit(3, "cm"), 
+                                      style= north_arrow_orienteering(text_size=35)
+                                      )
+```
+
+```{r Save PNG, echo=FALSE}
+ggsave(
+  filename = paste(export_path, map_name, ".png", sep=""),
+  plot = map,
+  width = 25,
+  height = 20
+  )
+```
+
+# Create Table
