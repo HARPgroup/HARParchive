@@ -690,6 +690,8 @@ map <- basemap +
 
 ```{r OLD Create table w/ more facility info, echo= FALSE, warning=FALSE, message=FALSE, eval=FALSE}
 
+#KEEP ONLY FOR REFERNCE, DONT RUN THIS SECTION, GENERATES INCOMPLETE TABLE 
+
 #base table with facility name and number(related to map)
 tableData <- data.frame(Facility=facil_sf$propname,
                         Number= facil_labels$NUM, 
@@ -811,12 +813,13 @@ tableData$five_mgy[i] <- five_mgy
 ```{r NEW Table, warning=FALSE, message=FALSE}
 ## NEW - Creating table to accompany map using new joined foundational data frame
  
-#facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
-#facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
+#might want to add this to the join later to be cleaner
+facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
+facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
   
 
 # creating initial data frame that will accompany map
-tableData2 <- data.frame(Number= facil_labels$NUM,
+tableData2 <- data.frame(Number= facil_labels$NUM, #commented out to be fixed later with updates 
                         Facility=foundatn_sf$Facility, 
                         Source_Type = foundatn_sf$`Source Type`,
                         Source = foundatn_basin$`MP Name`,
@@ -824,13 +827,14 @@ tableData2 <- data.frame(Number= facil_labels$NUM,
                         Locality = foundatn_sf$Locality
                         ) 
 
-# add locations(subwatershed basin)
-for(i in 1:nrow(tableData2)){ 
-    loc_basin <- (basin_featr[grep(foundatn_sf$riverseg[i], basin_featr$riverseg),])
-    tableData2$Location_Basin[i]  <- loc_basin$name 
-}
+# add locations(subwatershed basin) not required anymore
+# for(i in 1:nrow(tableData2)){ 
+#     loc_basin <- (basin_featr[grep(foundatn_sf$riverseg[i], basin_featr$riverseg),])
+#     tableData2$Location_Basin[i]  <- loc_basin$name 
+# }
 
-#add upstream or downstream
+#add upstream or downstream 
+#needs to be adjusted 
 for(i in 1:nrow(foundatn_sf)){ 
   if(foundatn_sf$riverseg[i] == rivseg)
   {
@@ -871,6 +875,14 @@ five_mgy <- val$propvalue
 tableData2$five_mgy[i] <- round(five_mgy,2)
 }
 
+#5 year avg for sources 
+
+#what 5 years should we be using 
+#why is 
+for (i in 1:nrow(foundatn_sf)){
+  fiveavg <- mean(na.omit(foundatn_sf$'2022'[i],foundatn_sf$'2021'[i],foundatn_sf$'2020'[i],foundatn_sf$'2019'[i],foundatn_sf$'2018'[i], na.rm= TRUE))
+  tableData2$five_mgy_new[i] <- round(fiveavg, 2)
+}
 ```
 
 ```{r Call Table}
@@ -884,12 +896,11 @@ set_flextable_defaults(
 table <- flextable(tableData2)
 
 table <- set_header_labels(table,
-  Facility = "Facility Name",
+  Facility = "Facility Name", 
   NUM = "Facility Number", 
   Source_Type = "Source Type",
   Rivseg= "River Segment", 
   Locality = "Location(County)",
-  Location_Basin = "Location(Basins)",
   Upstream_Downstream = "Upstream Vs. Downstream", 
   #wd_mgd="2020 Cumulative Withdraw in mgd", 
   #Current_mgy="2020 Cumulative Withdraw Demand(mgy)", 
@@ -900,7 +911,7 @@ table <- set_header_labels(table,
 )
 table %>% 
   autofit() %>%
-  flextable::align(align = "center", j = c(1:10), part = "all")
+  flextable::align(align = "center", j = c(1:9), part = "all") 
 ```
 
 ```{r Simple Table}
