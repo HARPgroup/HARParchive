@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
+  rivseg: ["JA4_7280_7340"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -458,7 +458,7 @@ map <- basemap + #ggplot2::
     # Scalebar & North Arrow
     ggsn::scalebar(data = segs$basin_sf, dist= round((extent/20),digits=0), 
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
-                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03
+                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, box.color= "#FF00FF", boarder.size= 12 
                    ) +
     ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
@@ -466,7 +466,7 @@ map <- basemap + #ggplot2::
                                       )
 ```
 
-```{r Save PNG, echo=FALSE}
+```{r Save PNG, echo=FALSE }
 ggsave(
   filename = paste(export_path, map_name, ".png", sep=""),
   plot = map,
@@ -475,4 +475,96 @@ ggsave(
   )
 ```
 
-# Create Table
+#Create Table Data
+``` {r Create Table Data, warning=FALSE, message=FALSE }
+
+# - - - - creating initial data frame  - - - -
+table <- data.frame(Number= facils$basin$NUM, 
+                        Facility=facils$basin$Facility, 
+                        Source_Type = facils$basin$`Source Type`,
+                        Source = facils$basin$`MP Name`,
+                        Rivseg= facils$basin$riverseg,
+                        Locality = facils$basin$Locality
+                        ) 
+
+#- - - -add upstream or downstream - - -
+
+#needs to be adjusted 
+for(i in 1:nrow(facils$basin)){ 
+  if(facils$basin$riverseg[i] == rivseg)
+  {
+    up_down<- "Upstream"
+    table$Upstream_Downstream[i] <- up_down
+  }
+  else if (facils$basin$riverseg[i] != rivseg)
+  {
+    up_down <- "Downstream"
+    table$Upstream_Downstream[i] <- up_down
+  }
+}
+
+#- - - - add permitted capacity - - -
+
+for (i in 1:nrow(facils$basin)){
+  systemObj <- RomProperty$new(ds,list(
+    featureid = facils$basin$featureid[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  permCapac <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'vwp_max_mgy'),
+  TRUE)
+  table$vwp_max_mgy[i] <- permCapac$propcode  
+}
+
+#Replace zeros with "no permit"
+table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
+
+#- - - - add 5 yr avg use (MGY) with wd current- PER FACILITY - - -
+
+for (i in 1:nrow(facils$basin)){
+val <- RomProperty$new(ds,list(
+    featureid= facils$basin$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+table$five_mgy[i] <- round(five_mgy,2)
+}
+
+#- - -  5 year avg PER SOURCE - - - 
+
+#what 5 years should we be using 
+#why are the numbers sometimes very different
+for (i in 1:nrow(facils$basin)){
+  fiveavg <- mean(na.omit(facils$basin$'2022'[i],facils$basin$'2021'[i],facils$basin$'2020'[i],facils$basin$'2019'[i],facils$basin$'2018'[i], na.rm= TRUE))
+  table$five_mgy_new[i] <- round(fiveavg, 2)
+}
+
+```
+# Call Table 
+``` {r Call Table, echo= False, warning= False}
+#set table defaults of theme and font and make sure theres no blanks from nas 
+set_flextable_defaults(
+  font.size = 10, theme_fun = theme_zebra, 
+  padding = 6, 
+  na_str = "NA", nan_str = "NA")
+
+table <- flextable(table)
+
+#change titles of columns in table
+table <- set_header_labels(table,
+  Facility = "Facility Name", 
+  NUM = "Facility Number", 
+  Source_Type = "Source Type",
+  Rivseg= "River Segment", 
+  Locality = "Location(County)",
+  Upstream_Downstream = "Upstream Vs. Downstream", 
+  five_mgy = "5 Year Average Use(mgy)",
+  vwp_max_mgy = "Permitted Capacity(mgy)"
+  
+)
+#alignment of table
+table %>% 
+  autofit() %>%
+  flextable::align(align = "center", j = c(1:9), part = "all") 
+```
