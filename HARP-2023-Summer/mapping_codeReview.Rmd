@@ -173,9 +173,8 @@ cities <- download_read("https://simplemaps.com/static/data/us-cities/1.76/basic
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
 
 ```
-
 # PROCESS Data
-```{r PROCESS Data, echo=FALSE}
+```{r PROCESS Data, echo=FALSE, warning=FALSE}
 #----General data organization----
 
 # Full join facility model data & facility foundation data
@@ -249,6 +248,15 @@ bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
 nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
 
 ```
+
+
+```{r}
+## Calculating 5-year average use by source from the foundational data frame 
+facils$found_num <- facils$basin[, (ncol(facils$basin)-5):(ncol(facils$basin)-1)]  #create new df with only the numeric use/withdrawal data
+fiveyr_avg_mgy <- round(rowMeans(facils$found_num, na.rm = TRUE), 2)
+facils$basin$fiveyr_avg_mgy_2 <- fiveyr_avg_mgy
+```
+
 
 ```{r Labels df & Extent Filters}
 # River & stream labels
@@ -540,11 +548,13 @@ table$five_mgy[i] <- round(five_mgy,2)
 
 #what 5 years should we be using 
 #why are the numbers sometimes very different
-for (i in 1:nrow(facils$basin)){
-  fiveavg <- mean(na.omit(facils$basin$'2022'[i],facils$basin$'2021'[i],facils$basin$'2020'[i],facils$basin$'2019'[i],facils$basin$'2018'[i], na.rm= TRUE))
-  table$five_mgy_new[i] <- round(fiveavg, 2)
-}
 
+#for (i in 1:nrow(facils$basin)){
+#  fiveavg <- mean(na.omit(facils$basin$'2022'[i],facils$basin$'2021'[i],facils$basin$'2020'[i],facils$basin$'2019'[i],facils$basin$'2018'[i], na.rm= TRUE))
+#  table$five_mgy_new[i] <- round(fiveavg, 2)
+#}
+
+table$five_mgy_new <- facils$basin$fiveyr_avg_mgy_2
 ```
 # Call Table 
 ``` {r Call Table, echo= False, warning= False}
@@ -564,8 +574,9 @@ table <- set_header_labels(table,
   Rivseg= "River Segment", 
   Locality = "Location(County)",
   Upstream_Downstream = "Upstream Vs. Downstream", 
-  five_mgy = "5 Year Average Use(mgy)",
-  vwp_max_mgy = "Permitted Capacity(mgy)"
+  five_mgy = "5 Year Average Use - Facility(mgy)",
+  vwp_max_mgy = "Permitted Capacity(mgy)",
+  five_mgy_new = "5 Year Average Use - Source(mgy)"
   
 )
 #alignment of table
