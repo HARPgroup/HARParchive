@@ -27,7 +27,6 @@ library(ggnewscale)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
-library(dplyr)
 library(flextable)
 library(geosphere)
 
@@ -492,21 +491,29 @@ table <- data.frame(Number= facils$basin$NUM,
                         Locality = facils$basin$Locality
                         ) 
 
-#- - - -add upstream or downstream - - -
+# - - - - add rivseg names- - - - - -
 
-#needs to be adjusted 
-for(i in 1:nrow(facils$basin)){ 
-  if(facils$basin$riverseg[i] == rivseg)
-  {
-    up_down<- "Upstream"
-    table$Upstream_Downstream[i] <- up_down
-  }
-  else if (facils$basin$riverseg[i] != rivseg)
-  {
-    up_down <- "Downstream"
-    table$Upstream_Downstream[i] <- up_down
-  }
+for(i in 1:nrow(table)){ 
+    loc_rivseg <- (segs$basin[grep(facils$basin$riverseg[i], segs$basin$riverseg),])
+    table$rivsegName[i]  <- loc_rivseg$name 
 }
+
+
+# #- - - -add upstream or downstream - - - removed for now, not priority
+# 
+# #needs to be adjusted 
+# for(i in 1:nrow(facils$basin)){ 
+#   if(facils$basin$riverseg[i] == rivseg)
+#   {
+#     up_down<- "Upstream"
+#     table$Upstream_Downstream[i] <- up_down
+#   }
+#   else if (facils$basin$riverseg[i] != rivseg)
+#   {
+#     up_down <- "Downstream"
+#     table$Upstream_Downstream[i] <- up_down
+#   }
+# }
 
 #- - - - add permitted capacity - - -
 
@@ -562,6 +569,7 @@ table <- set_header_labels(table,
   NUM = "Facility Number", 
   Source_Type = "Source Type",
   Rivseg= "River Segment", 
+  rivsegName = " River Segment Names",
   Locality = "Location(County)",
   Upstream_Downstream = "Upstream Vs. Downstream", 
   five_mgy = "5 Year Average Use(mgy)",
