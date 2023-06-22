@@ -48,18 +48,21 @@ map_name <- params$map_name
 
 ```{r Establish Functions, echo=FALSE}
 # Read data that requires file download
-download_read <- function(url, filetype) {
+download_read <- function(url, filetype, zip) {
   localpath <- tempdir()
   filename <- basename(url)
+  filepath <- paste(localpath,"\\", filename, sep="")
 
+  download.file(url, filepath)
+  
+  if(zip==TRUE){
+   folder <- unzip(filepath, exdir=localpath)
+   filepath <- grep(".*.csv.*", folder, value=TRUE)
+  }
   if(filetype=="csv"){
-    destfile <- paste(localpath,"\\",filename,".csv",sep="")
-    download.file(url, destfile, method = "libcurl")
-    df <- read.csv(file=destfile, header=TRUE, sep=",")
+    df <- read.csv(file=filepath, header=TRUE, sep=",")
   }
   if(filetype=="shp"){
-    download.file(url, filename)
-    unzip(filename, exdir=localpath)
     layer <- gsub("\\.zip", "", filename)
     df <- read_sf(dsn=localpath, layer=layer)
   } 
@@ -133,7 +136,7 @@ facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_m
 # All vahydro watershed features
 #segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
 segs <- list()
-segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv") ##TEMPORARY work-around
+segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) ##TEMPORARY work-around
 
 # All facility model data
 df <- data.frame(runid=runid_list, model_version, metric=metric)
@@ -157,11 +160,13 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 # (shp) for US states & primary roads
 ## VA state is used to filter road data & determine extent levels
 roads <- list()
-roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip", filetype="shp")
+roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip",
+                             filetype="shp", zip=TRUE)
 roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
-                          filetype="shp")
-# (csv) for cities & major rivers
-cities <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv")
+                          filetype="shp", zip=TRUE)
+# (csv) for US cities
+cities <- download_read("https://simplemaps.com/static/data/us-cities/1.76/basic/simplemaps_uscities_basicv1.76.zip",
+                        filetype="csv", zip=TRUE)
 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
@@ -221,7 +226,7 @@ cities <- cities %>%
     population >= popul["75%"] ~ "majC",
     population <= popul["50%"] & population >= popul["25%"] ~ "town" #exclude smallest populations of 0-400
     ))
-cities <- cities[cities$class!="NULL"]
+cities <- cities[cities$class!="NULL",]
 
 #- - - - - - - - - - -
 
