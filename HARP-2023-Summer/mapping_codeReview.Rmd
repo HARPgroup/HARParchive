@@ -4,12 +4,12 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-  rivseg: ["JL6_7320_7150"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
+        #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
-  map_name: ["multisegs"]
+  map_name: ["James_Appomatox"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -33,7 +33,6 @@ library(geosphere)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-#site <- 'http://deq1.bse.vt.edu/d.dh' in config?
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 ```
@@ -180,17 +179,17 @@ cities <- download_read("https://simplemaps.com/static/data/us-cities/1.76/basic
 
 # Full join facility model data & facility foundation data
 ## baseR merge() documentation says "all=TRUE" gives a full outer join by SQL terms
-facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
+#facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
 
-#facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
-#      left outer join mdat
-#      on (foundatn.Facility_hydroid = mdat.featureid)
-#      UNION
-#      select foundatn.* , mdat.* from mdat
-#      left outer join foundatn
-#      on (foundatn.Facility_hydroid = mdat.featureid)
-#      where foundatn.Facility_hydroid is null"
-#      ) )
+facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
+      left outer join mdat
+      on (foundatn.Facility_hydroid = mdat.featureid)
+      UNION
+      select foundatn.* , mdat.* from mdat
+      left outer join foundatn
+      on (foundatn.Facility_hydroid = mdat.featureid)
+      where foundatn.Facility_hydroid is null"
+      ) )
 
 ## To place rows with matches at the top:
 #facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
@@ -206,6 +205,8 @@ for(i in rivseg){
     segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
   }
 }
+## don't duplicate riversegs for overlapping basins... 
+## unless we wanted to show them in different colors? transparent overlap?
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
 
 # Filter down to facilities within the basin
@@ -274,14 +275,12 @@ nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
 ```
 
 
-```{r, eval= FALSE}
+```{r Testing: 5-Yr Avg., eval=FALSE}
 ## Calculating 5-year average use by source from the foundational data frame 
 facils$found_num <- facils$basin[, (ncol(facils$basin)-5):(ncol(facils$basin)-1)]  #create new df with only the numeric use/withdrawal data
 fiveyr_avg_mgy <- round(rowMeans(facils$found_num, na.rm = TRUE), 2)
 facils$basin$fiveyr_avg_mgy_2 <- fiveyr_avg_mgy
-```
 
-```{r, eval= FALSE}
 ## Pulling 5-year average use from VAhydro
 
 for (i in 1:nrow(facils$basin)) {  #nrow used instead of length to overcome yesterday's error
@@ -300,7 +299,6 @@ for (i in 1:nrow(facils$basin)) {  #nrow used instead of length to overcome yest
 }
 # facils$basin$fiveYrAvg is a list rather than added to the data frame .. to fix tmrw
 ```
-
 
 ```{r Labels df & Extent Filters}
 # River & stream labels
