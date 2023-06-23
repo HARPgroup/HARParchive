@@ -25,7 +25,6 @@ library(ggnewscale)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
-library(dplyr)
 library(flextable)
 library(geosphere)
 
