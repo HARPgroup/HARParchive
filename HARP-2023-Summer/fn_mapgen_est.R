@@ -1,6 +1,5 @@
 ## Etsablishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
-
 library(sp)
 library(rgeos)
 library(sf)
@@ -16,11 +15,12 @@ library(geosphere)
 
 # Parameters likely needed for mapping: boundarybox/extent, points layer, shapes/boundary layer, aesthetics data frame, rsegs layer (segs), metric to be plotted
 
-fn_mapgen <- function(bbox, zoomval, points, boundaries, aesthetics_config, map_type, segs, metric) {
+fn_mapgen <- function(bbox, zoomval, labels, boundaries, map_type, segs, metric) {
   
- #Assumption that the points and boundaries will be data frames and contain their respective labels under a column called 'labels'
+ #Assumption that the labels data frame contains coordinates, labels, and aesthetics
  #Extent should be of type bbox with correct labels right,left etc.
- #Metrics will be contained in the points data frame as they're associated with source or facility point locations 
+ #Metrics will be contained in the points data frame as they're associated with source or facility point locations
+ #Metric param will be the specific value that bubble sizes are based on 
   
  #Generate nhd layer based on the boundary box provided 
  
