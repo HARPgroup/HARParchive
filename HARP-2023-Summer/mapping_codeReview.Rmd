@@ -143,7 +143,7 @@ segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 # All facility model data
 df <- data.frame(runid=runid_list, model_version, metric=metric)
 for(i in 1:length(runid_list)){
-  df$runlabel[i] <- paste("metric_","runid", i, sep="")
+  df$runlabel[i] <- paste0(runid_list[i], '_', metric)
 }
 facils$mdat <- om_vahydro_metric_grid( 
   metric=FALSE, runids=df, featureid='all', 
@@ -152,7 +152,7 @@ facils$mdat <- om_vahydro_metric_grid(
   base_url = paste(site, "/entity-model-prop-level-export", sep=""),
   ds = ds
 )
-remove(df) #job finished?
+#remove(df) #job finished? -- used later on for ordering process 
 
 # County Features data
 counties <- list()
@@ -224,7 +224,10 @@ facils$basin <- subset(facils$basin,
                        facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
 
 # Order by largest metrics; then number them
-facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),]
+facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),] # needs to be modified for new metric names
+
+
+
 facils$basin$NUM <- seq(1, nrow(facils$basin))
 # Legend title
 legend_title <- legend_titling(metric, runid_list)
