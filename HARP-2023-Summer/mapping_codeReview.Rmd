@@ -271,7 +271,6 @@ st_crs(counties$sf) <- 4326
 sf_use_s2(FALSE) # switch off Spherical geometry
 bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
 nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
-
 ```
 
 
@@ -357,11 +356,30 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
 #- - - - - - - - - - -
 
-# Basemap boundary box
+# auto bbox generation to be passed into mapping function
 bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly larger than basin
 bbox <- st_bbox(bbox)
+# end of bbox processing before it will be passed into the mapping function
+```
 
-#- - - - - - - - - - -
+```{r, warning=FALSE, message=FALSE}
+### Testing mapping function
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function
+fn_mapgen(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute function
+```
+
+```{r Save PNG, echo=FALSE }
+# Saving map as a png
+ggsave(
+  filename = paste(export_path, map_name, ".png", sep=""),
+  plot = map,
+  width = 25,
+  height = 20
+  )
+```
+
+```{r}
+##### Everything below has been copied into the mapping function called above 
 
 # Calculation of extent = get diagonal of bbox in miles
 extent <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")] )
@@ -421,23 +439,6 @@ st_crs(nonbasin) <- 4326
 # Lighten terrain basemap
 basemap_0 <- st_as_sf(basemap_0)
 st_crs(basemap_0) <- 4326
-
-```
-
-```{r}
-### Testing mapping function
-source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with function
-fn_mapgen(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP)
-```
-
-```{r}
-### Saving test map from function 
-ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
-  plot = map,
-  width = 25,
-  height = 20
-  )
 ```
 
 # PLOT Map
@@ -535,15 +536,6 @@ map <- basemap + #ggplot2::
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)
                                       )
-```
-
-```{r Save PNG, echo=FALSE }
-ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
-  plot = map,
-  width = 25,
-  height = 20
-  )
 ```
 
 #Create Table Data

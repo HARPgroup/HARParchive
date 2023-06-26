@@ -45,26 +45,26 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
   
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
-    zoom = 8 #basemap resolution
+    #zoom = 8 #basemap resolution
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
-    zoom = 9
+    #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
-    zoom = 10
+    #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
-    zoom = 10
+    #zoom = 10
     nhd$plot <- nhd$flowline
     roads$plot <- roads$sf
     labelsP <- labels
@@ -158,7 +158,7 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
     # Reverse Fill
     geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
-    ggsn::scalebar(data = segs$basin_sf, dist= round((extent/20),digits=0), 
+    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), 
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03 #,box.color="#FF00FF", border.size=12 
     ) +
@@ -168,5 +168,5 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
   
-  return(map) #display the map
+  print('Map stored in environment as: map')
 }
