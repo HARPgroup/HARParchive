@@ -13,46 +13,29 @@ library(ggspatial)
 library(ggrepel)
 library(geosphere)
 
-# Parameters likely needed for mapping: boundarybox/extent, points layer, shapes/boundary layer, aesthetics/styles data frame, rsegs layer (segs), metric to be plotted
+## nhd layer will be pulled and processed before function is called but filtering of 
+# which flowlines to plot will be done within the function 
+## bounding box will be a parameter passed into the function and basemap processing willbe done within the function
 
-#fn_mapgen <- function(bbox, zoomval, labels, boundaries, map_type, segs, metric) {
+#fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP) {  
 
-fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP) {  
+fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
 
- #Extent should be of type bbox with correct labels right,left etc.
- #Metric param will be the specific value that bubble sizes are based on 
+ #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
+  distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
+  distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
- #Generate nhd layer based on the boundary box provided 
- 
-#  nhd  <- plot_nhdplus(bbox=bbox, actually_plot = FALSE)
+ #Generate basemap using the given boundary box 
+  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
+  basemap_0 <- ggmap::get_stamenmap(maptype=map_type, color="color", bbox=bbox, zoom=zoomval) #used for reverse fill
+  basemap <- ggmap(basemap_0)
   
-  # River & stream labels
-  ## major rivs = orders 5 & 6; streams = order 4
-#  lb_rivr <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6
-#                            (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==5 | nhd$flowline$StreamOrde==4),] 
-  ## no duplicate names; prioritize higher order names and then the longest segment of each duplicate
-#  lb_rivr <- lb_rivr[order(-lb_rivr$StreamOrde, lb_rivr$gnis_name, -lb_rivr$LENGTHKM) & !duplicated(lb_rivr$gnis_name),]
-  ## shorten long names
-#  lb_rivr$gnis_name <- mgsub(lb_rivr$gnis_name, 
-#                             c('North Fork','South Fork','East Fork','West Fork','Middle Fork'), #pattern
-#                             c('NF','SF','EF','WF','MF')) #replacement
-#  lb_rivr$StreamOrde <- mgsub(lb_rivr$StreamOrde, c(4,5,6), c("str","majR","majR"))
-  ## calculate label coordinates
-#  lb_rivr <- centroid_coords(lb_rivr, "geometry")
+### Add reverse fill process based on basemap_0 
   
-  # Waterbody labels
-#  lb_wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-  ## remove ones without names & filter to largest 50%
-#  lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname') & lb_wtbd$AreaSqKM > quantile(lb_wtbd$AreaSqKM, 0.5),]
-#  lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
+### Add filtering of NHD flowlines to plot 
   
- #Generate basemap using the given boundary box/extent, map type, and zoom  
-#  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #otherwise get_stamenmap() won't run -- example of setting bbox names
-#  basemap_0 <- ggmap::get_stamenmap(maptype=map_type, color="color", bbox=bbox, zoom=zoomval)
-#  basemap <- ggmap(basemap_0)
+  # Generate map gg object
   
-  # generate map gg object
-  # copied from the mapping_codeReview rmd
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
