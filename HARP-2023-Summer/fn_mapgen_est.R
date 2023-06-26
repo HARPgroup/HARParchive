@@ -1,4 +1,4 @@
-## Etsablishing a function to generate maps when given data and aesthetics 
+## Establishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
 library(sp)
 library(rgeos)
@@ -13,46 +13,66 @@ library(ggspatial)
 library(ggrepel)
 library(geosphere)
 
-# Parameters likely needed for mapping: boundarybox/extent, points layer, shapes/boundary layer, aesthetics/styles data frame, rsegs layer (segs), metric to be plotted
+## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
+## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 
-#fn_mapgen <- function(bbox, zoomval, labels, boundaries, map_type, segs, metric) {
+fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
 
-fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP) {  
-
- #Extent should be of type bbox with correct labels right,left etc.
- #Metric param will be the specific value that bubble sizes are based on 
+ #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
+  distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
+  distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
- #Generate nhd layer based on the boundary box provided 
- 
-#  nhd  <- plot_nhdplus(bbox=bbox, actually_plot = FALSE)
+ #Generate basemap using the given boundary box 
+  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
+  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
+  basemap <- ggmap(basemap_0)
   
-  # River & stream labels
-  ## major rivs = orders 5 & 6; streams = order 4
-#  lb_rivr <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6
-#                            (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==5 | nhd$flowline$StreamOrde==4),] 
-  ## no duplicate names; prioritize higher order names and then the longest segment of each duplicate
-#  lb_rivr <- lb_rivr[order(-lb_rivr$StreamOrde, lb_rivr$gnis_name, -lb_rivr$LENGTHKM) & !duplicated(lb_rivr$gnis_name),]
-  ## shorten long names
-#  lb_rivr$gnis_name <- mgsub(lb_rivr$gnis_name, 
-#                             c('North Fork','South Fork','East Fork','West Fork','Middle Fork'), #pattern
-#                             c('NF','SF','EF','WF','MF')) #replacement
-#  lb_rivr$StreamOrde <- mgsub(lb_rivr$StreamOrde, c(4,5,6), c("str","majR","majR"))
-  ## calculate label coordinates
-#  lb_rivr <- centroid_coords(lb_rivr, "geometry")
+ #Reverse polygon fill (highlight basin)
+  bb <- unlist(attr(basemap_0, "bb"))
+  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+  basemap_0 <- sp::SpatialPolygons(
+    list(sp::Polygons(list(Polygon(coords)), "id")), 
+    proj4string = CRS(proj4string(segs$basin_sp)))
+  remove(coords) #job done
   
-  # Waterbody labels
-#  lb_wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-  ## remove ones without names & filter to largest 50%
-#  lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname') & lb_wtbd$AreaSqKM > quantile(lb_wtbd$AreaSqKM, 0.5),]
-#  lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
+  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+  nonbasin <- st_as_sf(nonbasin)
+  st_crs(nonbasin) <- 4326
   
- #Generate basemap using the given boundary box/extent, map type, and zoom  
-#  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #otherwise get_stamenmap() won't run -- example of setting bbox names
-#  basemap_0 <- ggmap::get_stamenmap(maptype=map_type, color="color", bbox=bbox, zoom=zoomval)
-#  basemap <- ggmap(basemap_0)
+ #Lighten terrain basemap
+  basemap_0 <- st_as_sf(basemap_0)
+  st_crs(basemap_0) <- 4326
   
-  # generate map gg object
-  # copied from the mapping_codeReview rmd
+ #Filtering what's plotted by size of boundary box  
+  if(distance > 300) {
+    #zoom = 8 #basemap resolution
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
+    roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
+    labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
+    textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
+  } else if(distance > 130){
+    #zoom = 9
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
+    roads$plot <- roads$sf
+    labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
+    textsize <- c(5,5,6,11,  5,1)
+  } else if(distance > 70){
+    #zoom = 10
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
+    roads$plot <- roads$sf
+    labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
+    textsize <- c(6,7,9,12,  5,1.2)
+    labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
+  } else {
+    #zoom = 10
+    nhd$plot <- nhd$flowline
+    roads$plot <- roads$sf
+    labelsP <- labels
+    textsize <- c(7,8,10,13,  5,1.5)
+    labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
+  }
+   
+ #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
@@ -138,7 +158,7 @@ fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads,
     # Reverse Fill
     geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
-    ggsn::scalebar(data = segs$basin_sf, dist= round((extent/20),digits=0), 
+    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), 
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03 #,box.color="#FF00FF", border.size=12 
     ) +
@@ -146,7 +166,7 @@ fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads,
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)
     )
-  assign('map', map, envir = globalenv())
+  assign('map', map, envir = globalenv()) #save the map in the global environment
   
-  return(map)
+  print('Map stored in environment as: map')
 }

@@ -6,6 +6,7 @@ output: html_document
 params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  rivseg: ["JL6_7430_7320"]      
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -33,6 +34,7 @@ library(geosphere)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function -- does this path work for other analysts?
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 ```
@@ -165,8 +167,10 @@ roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/ST
 roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-cities <- download_read("https://simplemaps.com/static/data/us-cities/1.76/basic/simplemaps_uscities_basicv1.76.zip",
-                        filetype="csv", zip=TRUE)
+#cities <- download_read("https://simplemaps.com/static/data/us-cities/1.76/basic/simplemaps_uscities_basicv1.76.zip",
+#                        filetype="csv", zip=TRUE)
+
+cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
@@ -271,33 +275,6 @@ st_crs(counties$sf) <- 4326
 sf_use_s2(FALSE) # switch off Spherical geometry
 bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
 nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
-
-```
-
-
-```{r Testing: 5-Yr Avg., eval=FALSE}
-## Calculating 5-year average use by source from the foundational data frame 
-facils$found_num <- facils$basin[, (ncol(facils$basin)-5):(ncol(facils$basin)-1)]  #create new df with only the numeric use/withdrawal data
-fiveyr_avg_mgy <- round(rowMeans(facils$found_num, na.rm = TRUE), 2)
-facils$basin$fiveyr_avg_mgy_2 <- fiveyr_avg_mgy
-
-## Pulling 5-year average use from VAhydro
-
-for (i in 1:nrow(facils$basin)) {  #nrow used instead of length to overcome yesterday's error
- mp <- RomFeature$new(ds,list(
-  hydroid=facils$basin$MP_hydroid[i],
-  bundle = 'intake'), 
-  TRUE) 
- 
- fiveYrAvg <- RomProperty$new(ds,list(
-  featureid = mp$hydroid,
-  propname = 'wd_current_mgy'),
-  TRUE)
- 
- facils$basin$fiveYrAvg[i] <- as.numeric(fiveYrAvg$propvalue)
-
-}
-# facils$basin$fiveYrAvg is a list rather than added to the data frame .. to fix tmrw
 ```
 
 ```{r Labels df & Extent Filters}
@@ -357,11 +334,30 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
 #- - - - - - - - - - -
 
-# Basemap boundary box
+# auto bbox generation to be passed into mapping function
 bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly larger than basin
 bbox <- st_bbox(bbox)
+# end of bbox processing before it will be passed into the mapping function
+```
 
-#- - - - - - - - - - -
+```{r, warning=FALSE, message=FALSE}
+### Testing mapping function
+
+fn_mapgen(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute function
+```
+
+```{r Save PNG, echo=FALSE }
+# Saving map as a png
+ggsave(
+  filename = paste(export_path, map_name, ".png", sep=""),
+  plot = map,
+  width = 25,
+  height = 20
+  )
+```
+
+```{r}
+##### Everything below has been copied into the mapping function called above 
 
 # Calculation of extent = get diagonal of bbox in miles
 extent <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")] )
@@ -421,23 +417,6 @@ st_crs(nonbasin) <- 4326
 # Lighten terrain basemap
 basemap_0 <- st_as_sf(basemap_0)
 st_crs(basemap_0) <- 4326
-
-```
-
-```{r}
-### Testing mapping function
-source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with function
-fn_mapgen(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP)
-```
-
-```{r}
-### Saving test map from function 
-ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
-  plot = map,
-  width = 25,
-  height = 20
-  )
 ```
 
 # PLOT Map
@@ -535,15 +514,6 @@ map <- basemap + #ggplot2::
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)
                                       )
-```
-
-```{r Save PNG, echo=FALSE }
-ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
-  plot = map,
-  width = 25,
-  height = 20
-  )
 ```
 
 #Create Table Data
