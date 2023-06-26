@@ -16,7 +16,7 @@ library(geosphere)
 ## nhd layer will be pulled and processed before function is called but filtering of 
 # which flowlines to plot will be done within the function 
 ## bounding box will be a parameter passed into the function and basemap processing willbe done within the function
-
+## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 #fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP) {  
 
 fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
@@ -27,10 +27,24 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
   
  #Generate basemap using the given boundary box 
   bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
-  basemap_0 <- ggmap::get_stamenmap(maptype=map_type, color="color", bbox=bbox, zoom=zoomval) #used for reverse fill
+  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
   
-### Add reverse fill process based on basemap_0 
+  # Reverse polygon fill (highlight basin)
+  bb <- unlist(attr(basemap_0, "bb"))
+  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+  basemap_0 <- sp::SpatialPolygons(
+    list(sp::Polygons(list(Polygon(coords)), "id")), 
+    proj4string = CRS(proj4string(segs$basin_sp)))
+  remove(coords) #job done
+  
+  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+  nonbasin <- st_as_sf(nonbasin)
+  st_crs(nonbasin) <- 4326
+  
+  # Lighten terrain basemap
+  basemap_0 <- st_as_sf(basemap_0)
+  st_crs(basemap_0) <- 4326
   
 ### Add filtering of NHD flowlines to plot 
   
