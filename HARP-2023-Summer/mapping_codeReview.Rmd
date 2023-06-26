@@ -424,6 +424,22 @@ st_crs(basemap_0) <- 4326
 
 ```
 
+```{r}
+### Testing mapping function
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with function
+fn_mapgen(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP)
+```
+
+```{r}
+### Saving test map from function 
+ggsave(
+  filename = paste(export_path, map_name, ".png", sep=""),
+  plot = map,
+  width = 25,
+  height = 20
+  )
+```
+
 # PLOT Map
 ```{r PLOT Data, echo=FALSE}
 map <- basemap + #ggplot2::
