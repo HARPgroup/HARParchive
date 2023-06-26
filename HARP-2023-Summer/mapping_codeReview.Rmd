@@ -167,9 +167,6 @@ roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/ST
 roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-#cities <- download_read("https://simplemaps.com/static/data/us-cities/1.76/basic/simplemaps_uscities_basicv1.76.zip",
-#                        filetype="csv", zip=TRUE)
-
 cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
@@ -224,10 +221,15 @@ facils$basin <- subset(facils$basin,
                        facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
 
 # Order by largest metrics; then number them
-facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),] # needs to be modified for new metric names
-
-
-
+#facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),] #modified for new specific metric names
+facils_basin <- facils$basin #create temporary df for use in sqldf for ordering
+facils_basin <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_basin.*  
+   FROM facils_basin 
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC")
+)
+facils$basin <- facils_basin 
+rm(facils_basin) #removing the ordered data frame since we're finished with it 
 facils$basin$NUM <- seq(1, nrow(facils$basin))
 # Legend title
 legend_title <- legend_titling(metric, runid_list)
@@ -344,9 +346,7 @@ bbox <- st_bbox(bbox)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-### Testing mapping function
-
-fn_mapgen(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute function
+fn_mapgen(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
