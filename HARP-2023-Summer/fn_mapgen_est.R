@@ -1,4 +1,4 @@
-## Etsablishing a function to generate maps when given data and aesthetics 
+## Establishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
 library(sp)
 library(rgeos)
@@ -13,11 +13,8 @@ library(ggspatial)
 library(ggrepel)
 library(geosphere)
 
-## nhd layer will be pulled and processed before function is called but filtering of 
-# which flowlines to plot will be done within the function 
-## bounding box will be a parameter passed into the function and basemap processing willbe done within the function
+## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
-#fn_mapgen <- function(rivseg, basemap, basemap_0, segs, facils, counties, roads, nhd, labelsP) {  
 
 fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
 
@@ -30,7 +27,7 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
   
-  # Reverse polygon fill (highlight basin)
+ #Reverse polygon fill (highlight basin)
   bb <- unlist(attr(basemap_0, "bb"))
   coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
   basemap_0 <- sp::SpatialPolygons(
@@ -42,14 +39,40 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
-  # Lighten terrain basemap
+ #Lighten terrain basemap
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
   
-### Add filtering of NHD flowlines to plot 
-  
-  # Generate map gg object
-  
+ #Filtering what's plotted by size of boundary box  
+  if(distance > 300) {
+    zoom = 8 #basemap resolution
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
+    roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
+    labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
+    textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
+  } else if(distance > 130){
+    zoom = 9
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
+    roads$plot <- roads$sf
+    labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
+    textsize <- c(5,5,6,11,  5,1)
+  } else if(distance > 70){
+    zoom = 10
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
+    roads$plot <- roads$sf
+    labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
+    textsize <- c(6,7,9,12,  5,1.2)
+    labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
+  } else {
+    zoom = 10
+    nhd$plot <- nhd$flowline
+    roads$plot <- roads$sf
+    labelsP <- labels
+    textsize <- c(7,8,10,13,  5,1.5)
+    labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
+  }
+   
+ #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
@@ -143,7 +166,7 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)
     )
-  assign('map', map, envir = globalenv())
+  assign('map', map, envir = globalenv()) #save the map in the global environment
   
-  return(map)
+  return(map) #display the map
 }
