@@ -34,7 +34,7 @@ library(geosphere)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function -- does this path work for other analysts?
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 ```
@@ -346,7 +346,7 @@ bbox <- st_bbox(bbox)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-fn_mapgen(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
+fn_mapgen( metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }

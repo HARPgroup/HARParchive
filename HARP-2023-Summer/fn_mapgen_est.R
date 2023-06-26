@@ -15,8 +15,9 @@ library(geosphere)
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
+## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 
-fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
+fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
 
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
@@ -72,6 +73,10 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
    
+ #Create a vector of only the metric column of interest
+  metric_vect <- facils$basin[, metric] # for use in scalebar
+  max <- max(metric_vect)
+  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -137,14 +142,14 @@ fn_mapgen <- function(rivseg, bbox, segs, facils, counties, roads, nhd, labelsP)
     # Facility Points; Metric 1
     new_scale("size") + new_scale("color") +
     geom_point(data = facils$basin, 
-               aes(x=Longitude, y=Latitude, size=metric_runid1, color=facils$basin[,"Source Type"]), 
+               aes(x=Longitude, y=Latitude, size= metric, color=facils$basin[,"Source Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
-    scale_size(range= c(10,28), 
-               breaks= seq(max(facils$basin$metric_runid1), 0, length.out=5), 
-               labels= round(seq(max(facils$basin$metric_runid1), 0, length.out=5), digits=3),
-               name= legend_title[1],
-               guide= guide_legend(override.aes=list(label=""))
-    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+#    scale_size(range= c(10,28), 
+#               breaks= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits =3), # source of error 
+#               labels= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits=3), # source of error 
+#               name= legend_title[1],
+#               guide= guide_legend(override.aes=list(label=""))
+#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
