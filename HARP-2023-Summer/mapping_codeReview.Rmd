@@ -282,6 +282,15 @@ bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
 nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
 ```
 
+```{r}
+## Remove city/town names that match their county/locality name 
+cities <- sqldf( 
+  "SELECT cities.*  
+   FROM cities
+  where city is not county_name"
+)
+```
+
 ```{r Labels df & Extent Filters, warning=FALSE}
 # River & stream labels
 ## major rivs = orders 5 & 6; streams = order 4

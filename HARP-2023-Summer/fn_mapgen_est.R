@@ -73,10 +73,6 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
    
- #Create a vector of only the metric column of interest
-  metric_vect <- facils$basin[, metric] # for use in scalebar
-  max <- max(metric_vect)
-  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
