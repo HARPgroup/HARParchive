@@ -91,7 +91,7 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
             mapping=aes(lwd=nhd$plot$lines$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2)) + 
-    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  #modify with nhd$plot once filtering by size is completed 
+    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, color="deepskyblue3", size=1) +
     # Road Lines
     geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
