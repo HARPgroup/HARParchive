@@ -273,17 +273,40 @@ counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
 counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
+```
 
-#- - - - - - - - - - -
+## Only run 1 of next 2 chunks: 2 different optins for bbox creation
 
-# NHD data within the basin area
+```{r, warning=FALSE}
+## EITHER generate bbox from basin geometry
 sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
-nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
+bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
+bbox <- st_bbox(bbox)
 ```
 
 ```{r}
-## Remove city/town names that match their county/locality name 
+## OR retrieve bbox from vahydro property
+for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
+ hid <- segs$basin$hydroid[i] 
+ map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
+ extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+ extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+ extent_coords <- extent_coords[c('propname','propvalue')]
+ extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+ bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
+ bbox_ex <- st_bbox(bbox_ex)
+ assign("bbox", bbox_ex)
+}
+```
+
+
+```{r, message=FALSE}
+# NHD data within the bbox
+nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+```
+
+```{r}
+## Remove city/town names that match their county/locality name -- for clean mapping
 cities <- sqldf( 
   "SELECT cities.*  
    FROM cities
@@ -347,16 +370,6 @@ labels$sizecode <- as.numeric ( class_aes( c(1,1,1,2,2,2,2,3,4) ) ) #corresponds
 label_fill <- c("blue","#0B5F14","white") #for road bubbles c(I,S,U)
 labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
-#- - - - - - - - - - -
-
-# auto bbox generation to be passed into mapping function
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly larger than basin
-bbox <- st_bbox(bbox)
-# end of bbox processing before it will be passed into the mapping function
-```
-
-```{r}
-#Retrieve bbox/extent from VAhydro property if it exists, and have it override the auto-generated bbox
 ```
 
 ```{r, warning=FALSE, message=FALSE}
@@ -366,7 +379,7 @@ fn_mapgen( metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roa
 ```{r Save PNG, echo=FALSE }
 # Saving map as a png
 ggsave(
-  filename = paste(export_path, map_name, ".png", sep=""),
+  filename = paste(export_path, map_name, ".1", ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
