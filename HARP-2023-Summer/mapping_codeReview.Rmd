@@ -6,7 +6,7 @@ output: html_document
 params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_7430_7320"]      
+  rivseg: ["JB3_6820_7053"]      
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -282,6 +282,15 @@ bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
 nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
 ```
 
+```{r}
+## Remove city/town names that match their county/locality name 
+cities <- sqldf( 
+  "SELECT cities.*  
+   FROM cities
+  where city is not county_name"
+)
+```
+
 ```{r Labels df & Extent Filters, warning=FALSE}
 # River & stream labels
 ## major rivs = orders 5 & 6; streams = order 4
@@ -299,9 +308,10 @@ lb_rivr <- centroid_coords(lb_rivr, "geometry")
 
 # Waterbody labels
 lb_wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-## remove ones without names & filter to largest 50%
-lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname') & lb_wtbd$AreaSqKM > quantile(lb_wtbd$AreaSqKM, 0.5),]
+## remove ones without names & filter to largest 25%
+lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname') & lb_wtbd$AreaSqKM > quantile(lb_wtbd$AreaSqKM, 0.75),]
 lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
+## Consider: move labeling of waterbodies to mapping function in order to filter by distance
 
 #- - - - - - - - - - -
 
@@ -360,7 +370,7 @@ ggsave(
 ```
 
 ```{r}
-##### Everything below has been copied into the mapping function called above 
+##### Everything for mapping below has been copied into the mapping function called above 
 
 # Calculation of extent = get diagonal of bbox in miles
 extent <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")] )
