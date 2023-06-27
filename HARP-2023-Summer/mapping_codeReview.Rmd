@@ -286,17 +286,9 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
-## Only run 1 of next 2 chunks: 2 different optins for bbox creation
 
-```{r, warning=FALSE}
-## EITHER generate bbox from basin geometry
-sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
-bbox <- st_bbox(bbox)
-```
-
-```{r}
-## OR retrieve bbox from vahydro property
+```{r, eval=FALSE}
+## Retrieve bbox from vahydro property?
 for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
  hid <- segs$basin$hydroid[i] 
  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
