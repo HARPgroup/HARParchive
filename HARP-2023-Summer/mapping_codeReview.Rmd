@@ -4,9 +4,10 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
+         #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_7430_7320"]      
+  rivseg: ["JL6_7430_7320"]
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -213,12 +214,16 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
 # Filter down to facilities within the basin
 ## first rename column so it doesn't have the same name as basin's hydrocode column
 colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
-facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
+#facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
+
+facils_all <- facils$all #create temporary df for use in sqldf for ordering
+segs_basin <- segs$basin
+facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
 
 # Filter out WSP entries (optional)
-#facils$basin <- with(facils, sqldf("select * from basin where hydrocode not like 'wsp_%'") )
-facils$basin <- subset(facils$basin, 
-                       facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
+facils$basin <- with(facils, sqldf("select * from basin where hydrocode not like 'wsp_%'") )
+#facils$basin <- subset(facils$basin, 
+                       #facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
 
 # Order by largest metrics; then number them
 #facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),] #modified for new specific metric names
