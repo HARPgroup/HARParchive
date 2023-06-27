@@ -2,8 +2,6 @@
 # Loading required libraries for mapping
 library(sp)
 library(rgeos)
-library(sf)
-library(nhdplusTools)
 library(ggmap)
 library(raster)
 library(ggplot2)
