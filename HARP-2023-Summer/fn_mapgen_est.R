@@ -90,8 +90,6 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     
     # Lighten base-map to help readability
     geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
-    # County Borders
-    geom_sf(data = counties$sf, inherit.aes=FALSE, color="#0033337F", fill=NA, lwd=2.5) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd$plot$lines, 
             inherit.aes=FALSE, color="deepskyblue3", 
@@ -100,6 +98,8 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     scale_linewidth(range= c(0.4,2)) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, color="deepskyblue3", size=1) +
+    # County Borders
+    geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
     # Road Lines
     geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
