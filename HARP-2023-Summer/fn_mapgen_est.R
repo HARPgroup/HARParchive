@@ -2,8 +2,6 @@
 # Loading required libraries for mapping
 library(sp)
 library(rgeos)
-library(sf)
-library(nhdplusTools)
 library(ggmap)
 library(raster)
 library(ggplot2)
@@ -18,7 +16,14 @@ library(geosphere)
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 
 fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
-
+ 
+  #For the scalebar:  
+  bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
+  colnames(bbox_points) <- c('x','y')
+  bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326) # for use within scalebar 
+  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1])-0.45, y = bbox_points$y[1]+(bbox_points$y[1])*0.001)
+  
+  
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
  #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
@@ -83,8 +88,6 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     
     # Lighten base-map to help readability
     geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
-    # County Borders
-    geom_sf(data = counties$sf, inherit.aes=FALSE, color="#0033337F", fill=NA, lwd=2.5) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd$plot$lines, 
             inherit.aes=FALSE, color="deepskyblue3", 
@@ -93,6 +96,8 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     scale_linewidth(range= c(0.4,2)) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, color="deepskyblue3", size=1) +
+    # County Borders
+    geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
     # Road Lines
     geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
@@ -160,9 +165,9 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     # Reverse Fill
     geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
-    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), 
+    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
-                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03 #,box.color="#FF00FF", border.size=12 
+                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
     ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 

@@ -7,7 +7,10 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_7430_7320"]
+  rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
+  locality: ["Montgomery"]
+  region: [""]    
+  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -41,7 +44,10 @@ ds$get_token(rest_pw)
 ```
 
 ```{r UserInputs, echo=FALSE}
-rivseg <- params$rivseg
+rivseg <- params$rivseg #for mapping extent of basin(s)
+locality <- params$locality #for mapping extent of a locality
+region <- params$region #for mapping extent of a region 
+type <- params$type #to tell script what type/extent of map to create
 model_version <- params$model_version
 runid_list <- params$runid_list
 metric <- params$metric
@@ -280,17 +286,9 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
-## Only run 1 of next 2 chunks: 2 different optins for bbox creation
 
-```{r, warning=FALSE}
-## EITHER generate bbox from basin geometry
-sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
-bbox <- st_bbox(bbox)
-```
-
-```{r}
-## OR retrieve bbox from vahydro property
+```{r, eval=FALSE}
+## Retrieve bbox from vahydro property?
 for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
  hid <- segs$basin$hydroid[i] 
  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
@@ -304,6 +302,28 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
 }
 ```
 
+```{r}
+## Setting bbox variable based on what type of map we want 
+# 'type' variable will either be: basin, locality, or region 
+
+if (type == "basin") {
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
+  bbox <- st_bbox(bbox)
+}
+
+if (type == "locality") {
+  ## pull locality and geometry out of data frame with the locality parameter given
+  locality_sf <- counties$sf[counties$sf$name == locality, ]
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
+  bbox <- st_bbox(bbox)
+}
+
+if (type == "region") {
+  # not functional yet
+}
+```
 
 ```{r, message=FALSE}
 # NHD data within the bbox
