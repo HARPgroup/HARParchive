@@ -175,7 +175,7 @@ cities <- fread(paste0(getwd(), '/', 'uscities.csv'))
 
 ```
 # PROCESS Data
-```{r PROCESS Data, echo=FALSE, warning=FALSE}
+```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
 
 # Full join facility model data & facility foundation data
@@ -226,7 +226,7 @@ facils_basin <- facils$basin #create temporary df for use in sqldf for ordering
 facils_basin <- sqldf(paste0( #ordering the data using sqldf 
   "SELECT facils_basin.*  
    FROM facils_basin 
-   ORDER BY", ' ', df$runlabel[1], ' ', "DESC")
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
 )
 facils$basin <- facils_basin 
 rm(facils_basin) #removing the ordered data frame since we're finished with it 
@@ -282,7 +282,7 @@ bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .2) #slightly past basin
 nhd  <- plot_nhdplus(bbox = st_bbox(bbox), actually_plot = FALSE)
 ```
 
-```{r Labels df & Extent Filters}
+```{r Labels df & Extent Filters, warning=FALSE}
 # River & stream labels
 ## major rivs = orders 5 & 6; streams = order 4
 lb_rivr <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6

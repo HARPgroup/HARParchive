@@ -142,14 +142,14 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     # Facility Points; Metric 1
     new_scale("size") + new_scale("color") +
     geom_point(data = facils$basin, 
-               aes(x=Longitude, y=Latitude, size= metric, color=facils$basin[,"Source Type"]), 
+               aes(x=Longitude, y=Latitude, size= facils$basin[, metric], color=facils$basin[,"Source Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
-#    scale_size(range= c(10,28), 
-#               breaks= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits =3), # source of error 
-#               labels= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits=3), # source of error 
-#               name= legend_title[1],
-#               guide= guide_legend(override.aes=list(label=""))
-#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+    scale_size(range= c(10,28), 
+               breaks= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits =3), # source of error 
+               labels= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits=3), # source of error 
+               name= legend_title[1],
+               guide= guide_legend(override.aes=list(label=""))
+    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
