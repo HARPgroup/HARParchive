@@ -20,6 +20,7 @@ library(geosphere)
 fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
 
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
+ #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
@@ -47,26 +48,26 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
     #zoom = 8 #basemap resolution
-    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
+    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
-    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
+    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
-    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
+    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
-    nhd$plot <- nhd$flowline
+    nhd$plot$lines <- nhd$flowline
     roads$plot <- roads$sf
     labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
@@ -85,12 +86,12 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     # County Borders
     geom_sf(data = counties$sf, inherit.aes=FALSE, color="#0033337F", fill=NA, lwd=2.5) +
     # Flowlines & Waterbodies
-    geom_sf(data = nhd$plot, 
+    geom_sf(data = nhd$plot$lines, 
             inherit.aes=FALSE, color="deepskyblue3", 
-            mapping=aes(lwd=nhd$plot$StreamOrde), #line thickness based on stream order
+            mapping=aes(lwd=nhd$plot$lines$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2)) + 
-    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),
+    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  #modify with nhd$plot once filtering by size is completed 
             inherit.aes=FALSE, color="deepskyblue3", size=1) +
     # Road Lines
     geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
