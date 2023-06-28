@@ -296,6 +296,16 @@ st_crs(counties$sf) <- 4326
 
 ```{r}
 ## Processing and combining locality geometries into their regions 
+
+#### TEMPORARY - alternate way to get county geometries 
+fips_filename <- paste("vahydro_usafips_export.csv",sep="")
+fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
+download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
+fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
+fips.csv$dh_geofield <- fips.csv$fips_geom 
+counties <- fips.csv
+####
+
 # needs to be adjusted once REST is working again 
 regions_geo <- sqldf( #adds geometries from counties df to the regions df
   "SELECT regions.*, counties.dh_geofield  
