@@ -296,25 +296,31 @@ st_crs(counties$sf) <- 4326
 
 ```{r}
 ## Processing and combining locality geometries into their regions 
-# I think we will use either st_combine or st_union and by_feature param = FALSE
-regions_geo <- sqldf(
+# needs to be adjusted once REST is working again 
+regions_geo <- sqldf( #adds geometries from counties df to the regions df
   "SELECT regions.*, counties.dh_geofield  
    FROM regions
    left outer join counties
    on (regions.county = counties.fips_name)
    ")
 
-regions_grouped <- sqldf( # I don't think this does what I want it to yet
-  "SELECT regions_geo.dh_geofield  
-   FROM regions_geo
-   left outer join 
-   GROUP BY VMDWA_Reg2
-   ")
-
-## 
-
+reg_split <- split(regions_geo, regions_geo$VMDWA_Reg2) #creates a new dataframe for each region containing the county names and geometries 
 ```
 
+```{r}
+## Combining the polygon geometries in each region df into 1 polygon for the whole region 
+for (i in 1:length(reg_split)) {
+  reg_df <- as.data.frame(reg_split[i])
+  reg_df <- na.omit(reg_df) #remove rows with NA geometry so loop doesn't fail
+  colnames(reg_df) <- c("county","region", "dh_geofield")
+  reg_name <- as.character(reg_df[1,2])
+  reg_sf <- st_as_sf(reg_df, wkt = "dh_geofield")
+  reg_geom_whole <- st_union(reg_sf)
+  assign(paste0(reg_name, "_geom"), reg_geom_whole)
+}
+# OGR error caused by NA in richmond geometry
+# implement bypass of NA geometries 
+```
 
 ```{r, eval=FALSE}
 ## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
