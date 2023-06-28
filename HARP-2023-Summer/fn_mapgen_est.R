@@ -14,9 +14,10 @@ library(geosphere)
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
+## type will be either basin, locality, or region
 
-fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
- 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
+  
   #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
@@ -33,19 +34,21 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
   bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
-  
- #Reverse polygon fill (highlight basin)
-  bb <- unlist(attr(basemap_0, "bb"))
-  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-  basemap_0 <- sp::SpatialPolygons(
-    list(sp::Polygons(list(Polygon(coords)), "id")), 
-    proj4string = CRS(proj4string(segs$basin_sp)))
-  remove(coords) #job done
-  
-  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
-  nonbasin <- st_as_sf(nonbasin)
-  st_crs(nonbasin) <- 4326
-  
+
+  if (type == "basin"){
+    #Reverse polygon fill (highlight basin) -- for type basin
+    bb <- unlist(attr(basemap_0, "bb"))
+    coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+    basemap_0 <- sp::SpatialPolygons(
+      list(sp::Polygons(list(Polygon(coords)), "id")), 
+      proj4string = CRS(proj4string(segs$basin_sp)))
+    remove(coords) #job done
+    
+    nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+    nonbasin <- st_as_sf(nonbasin)
+    st_crs(nonbasin) <- 4326
+  }
+ 
  #Lighten terrain basemap
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
@@ -161,11 +164,13 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     # Facility Labels
     geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE ) +
-    # Reverse Fill
-    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
+              colour="black", size=textsize[5], check_overlap=TRUE) 
+    if (type == "basin"){
+      # Reverse Fill -- only for map type basin
+      + geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 )
+    }
     # Scalebar & North Arrow
-    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
+    +  ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
