@@ -9,7 +9,7 @@ params:
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
   locality: ["Montgomery"]
-  region: [""]    
+  region: ["Eastern_Shore"]    
   type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
@@ -370,6 +370,9 @@ if (type == "locality") {
 
 if (type == "region") {
   # not functional yet
+  #region geometries stored in region_geom_list under the region name 
+  # pull region of interest given in params from list of region geometries 
+  region_sf <- region_geom_list[names(region_geom_list) == region]
 }
 ```
 
