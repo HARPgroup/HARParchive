@@ -316,6 +316,7 @@ if (type == "basin") {
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
+  facils$within <- facils$basin #generic name for facils within extent to be used by mapping fun 
 }
 
 if (type == "locality") {
@@ -324,6 +325,8 @@ if (type == "locality") {
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
+  #filter to only facilities within the locality specified 
+#  facils$within <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL") ## need to mod for localities 
 }
 
 if (type == "region") {
