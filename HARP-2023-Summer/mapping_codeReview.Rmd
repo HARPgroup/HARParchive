@@ -377,19 +377,21 @@ if (type == "locality") {
   
 #  locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
   
-  ### if REST is NOT working:
-  
+  ### only use if REST is NOT working:
   counties$sp <- process_geom(counties, "fips_geom")
   counties$sf <- st_as_sf(counties$sp)
   locality_sf <- st_as_sf(counties$sf[counties$sf$fips_name == locality, ], sf_column_name = "fips_geom") 
-  
+  st_crs(locality_sf) <- 4326 
   ###
+  
   #filter to only facilities within the locality specified
-  facils$all <- facils$all[!is.na(facils$all$Longitude),]
-  facils$all <- facils$all[!is.na(facils$all$atitude),]## remove rows with missing coords for sf creation
+  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+  facils$all <- facils$all[!is.na(facils$all$Latitude),]
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326 
+  facils$within <- st_filter(facils$sf, locality_sf)
   
+
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
@@ -470,7 +472,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-fn_mapgen( metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
+fn_mapgen( metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
