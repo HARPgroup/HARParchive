@@ -180,6 +180,8 @@ cities <- fread(paste0(getwd(), '/', 'uscities.csv'))
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
 
+#Retrieving regional planning groups 
+regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
 ```
 # PROCESS Data
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
@@ -292,9 +294,30 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
+```{r}
+## Processing and combining locality geometries into their regions 
+# I think we will use either st_combine or st_union and by_feature param = FALSE
+regions_geo <- sqldf(
+  "SELECT regions.*, counties.dh_geofield  
+   FROM regions
+   left outer join counties
+   on (regions.county = counties.fips_name)
+   ")
+
+regions_grouped <- sqldf( # I don't think this does what I want it to yet
+  "SELECT regions_geo.dh_geofield  
+   FROM regions_geo
+   left outer join 
+   GROUP BY VMDWA_Reg2
+   ")
+
+## 
+
+```
+
 
 ```{r, eval=FALSE}
-## Retrieve bbox from vahydro property?
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
 for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
  hid <- segs$basin$hydroid[i] 
  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
@@ -337,10 +360,6 @@ if (type == "region") {
 ```{r, message=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-```
-
-```{r}
-
 ```
 
 ```{r Labels df & Extent Filters, warning=FALSE}
