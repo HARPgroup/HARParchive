@@ -107,7 +107,7 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
     
     # Facility Labels Placeholder (to have other labels repel)
-    geom_text(data = facils$basin, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
+    geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
     geom_label_repel(data = labelsP[labelsP$road=="yes",],
                      aes(x=lng, y=lat, label=name, 
@@ -143,12 +143,12 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     
     # Facility Points; Metric 1
     new_scale("size") + new_scale("color") +
-    geom_point(data = facils$basin, 
-               aes(x=Longitude, y=Latitude, size= facils$basin[, metric], color=facils$basin[,"Source Type"]), 
+    geom_point(data = facils$within, 
+               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
     scale_size(range= c(10,28), 
-               breaks= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits =3), # source of error 
-               labels= round(seq(max(facils$basin[, metric]), 0, length.out=5), digits=3), # source of error 
+               breaks= round(seq(max(facils$within[, metric]), 0, length.out=5), digits =3), # source of error 
+               labels= round(seq(max(facils$within[, metric]), 0, length.out=5), digits=3), # source of error 
                name= legend_title[1],
                guide= guide_legend(override.aes=list(label=""))
     ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
@@ -159,7 +159,7 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
                         guide= guide_legend(override.aes=list(label=""))
     ) +
     # Facility Labels
-    geom_text(data = facils$basin, 
+    geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
               colour="black", size=textsize[5], check_overlap=TRUE ) +
     # Reverse Fill
