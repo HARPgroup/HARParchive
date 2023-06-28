@@ -7,7 +7,10 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_7430_7320"]
+  rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
+  locality: ["Montgomery"]
+  region: ["Eastern_Shore"]    
+  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11","runid_13" ]
   metric: ["wd_mgd"]
@@ -41,7 +44,10 @@ ds$get_token(rest_pw)
 ```
 
 ```{r UserInputs, echo=FALSE}
-rivseg <- params$rivseg
+rivseg <- params$rivseg #for mapping extent of basin(s)
+locality <- params$locality #for mapping extent of a locality
+region <- params$region #for mapping extent of a region 
+type <- params$type #to tell script what type/extent of map to create
 model_version <- params$model_version
 runid_list <- params$runid_list
 metric <- params$metric
@@ -174,6 +180,8 @@ cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv'))
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
 
+#Retrieving regional planning groups 
+regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
 ```
 # PROCESS Data
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
@@ -268,6 +276,14 @@ roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$ST == 'VA',] #VA cities
+
+#adjust for new cities csv
+## Remove city/town names that match their county/locality name
+cities <- sqldf( 
+  "SELECT cities.*  
+   FROM cities
+  where city is not county_name"
+)
 popul <- quantile(cities$POPULATION, probs = c(0.25, 0.5, 0.75)) 
 for(i in cities$population){ #NEEDS TO BE ADJUSTED FOR NEW CSV
   if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
@@ -295,17 +311,46 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
-## Only run 1 of next 2 chunks: 2 different optins for bbox creation
+```{r}
+## Processing and combining locality geometries into their regions 
 
-```{r, warning=FALSE}
-## EITHER generate bbox from basin geometry
-sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
-bbox <- st_bbox(bbox)
+#### TEMPORARY - alternate way to get county geometries 
+fips_filename <- paste("vahydro_usafips_export.csv",sep="")
+fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
+download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
+fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
+fips.csv$dh_geofield <- fips.csv$fips_geom 
+counties <- fips.csv
+####
+
+# needs to be adjusted once REST is working again 
+regions_geo <- sqldf( #adds geometries from counties df to the regions df
+  "SELECT regions.*, counties.dh_geofield  
+   FROM regions
+   left outer join counties
+   on (regions.county = counties.fips_name)
+   ")
+
+reg_split <- split(regions_geo, regions_geo$VMDWA_Reg2) #creates a new dataframe for each region containing the county names and geometries 
 ```
 
 ```{r}
-## OR retrieve bbox from vahydro property
+## Combining the polygon geometries in each region df into 1 polygon for the whole region 
+region_geom_list <- list() #create empty list where regional geometries will be stored 
+for (i in 1:length(reg_split)) {
+  reg_df <- as.data.frame(reg_split[i])
+  reg_df <- na.omit(reg_df) #remove rows with NA geometry so loop doesn't fail
+  colnames(reg_df) <- c("county","region", "dh_geofield")
+  reg_name <- as.character(reg_df[1,2])
+  reg_sf <- st_as_sf(reg_df, wkt = "dh_geofield")
+  reg_geom_whole <- st_union(reg_sf) #combining locality polygons in the same region into 1 polygon
+  region_geom_list[i] <- reg_geom_whole #create list containing all region geoms
+  names(region_geom_list)[i] <- as.character(reg_name) #naming according to the region name 
+}
+```
+
+```{r, eval=FALSE}
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
 for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
  hid <- segs$basin$hydroid[i] 
  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
@@ -319,22 +364,40 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
 }
 ```
 
+```{r}
+## Setting bbox variable based on what type of map we want 
+# 'type' variable will either be: basin, locality, or region 
+
+if (type == "basin") {
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
+  bbox <- st_bbox(bbox)
+  facils$within <- facils$basin #generic name for facils within extent to be used by mapping fun 
+}
+
+if (type == "locality") {
+  ## pull locality and geometry out of data frame with the locality parameter given
+  locality_sf <- counties$sf[counties$sf$name == locality, ]
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
+  bbox <- st_bbox(bbox)
+  #filter to only facilities within the locality specified 
+#  facils$within <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL") ## need to mod for localities 
+}
+
+if (type == "region") {
+  # not functional yet
+  #region geometries stored in region_geom_list under the region name 
+  # pull region of interest given in params from list of region geometries 
+  region_sf <- region_geom_list[names(region_geom_list) == region]
+}
+```
 
 ```{r, message=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
 
-```{r}
-## Remove city/town names that match their county/locality name -- for clean mapping
-
-#ADJUST WITH NEW CITY CSV
-cities <- sqldf( 
-  "SELECT cities.*  
-   FROM cities
-  where city is not county_name"
-)
-```
 
 ```{r Labels df & Extent Filters, warning=FALSE}
 # River & stream labels
