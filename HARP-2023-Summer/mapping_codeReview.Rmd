@@ -309,17 +309,17 @@ reg_split <- split(regions_geo, regions_geo$VMDWA_Reg2) #creates a new dataframe
 
 ```{r}
 ## Combining the polygon geometries in each region df into 1 polygon for the whole region 
+region_geom_list <- list() #create empty list where regional geometries will be stored 
 for (i in 1:length(reg_split)) {
   reg_df <- as.data.frame(reg_split[i])
   reg_df <- na.omit(reg_df) #remove rows with NA geometry so loop doesn't fail
   colnames(reg_df) <- c("county","region", "dh_geofield")
   reg_name <- as.character(reg_df[1,2])
   reg_sf <- st_as_sf(reg_df, wkt = "dh_geofield")
-  reg_geom_whole <- st_union(reg_sf)
-  assign(paste0(reg_name, "_geom"), reg_geom_whole)
+  reg_geom_whole <- st_union(reg_sf) #combining locality polygons in the same region into 1 polygon
+  region_geom_list[i] <- reg_geom_whole #create list containing all region geoms
+  names(region_geom_list)[i] <- as.character(reg_name) #naming according to the region name 
 }
-# OGR error caused by NA in richmond geometry
-# implement bypass of NA geometries 
 ```
 
 ```{r, eval=FALSE}
