@@ -260,6 +260,12 @@ roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$state_id == 'VA',] #VA cities
+## Remove city/town names that match their county/locality name
+cities <- sqldf( 
+  "SELECT cities.*  
+   FROM cities
+  where city is not county_name"
+)
 popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
 for(i in cities$population){
   if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
@@ -331,12 +337,7 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
 
 ```{r}
-## Remove city/town names that match their county/locality name -- for clean mapping
-cities <- sqldf( 
-  "SELECT cities.*  
-   FROM cities
-  where city is not county_name"
-)
+
 ```
 
 ```{r Labels df & Extent Filters, warning=FALSE}
