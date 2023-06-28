@@ -385,7 +385,10 @@ if (type == "locality") {
   
   ###
   #filter to only facilities within the locality specified
-  #  facils$within <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL") ## need to mod for localities 
+  facils$all <- facils$all[!is.na(facils$all$Longitude),]
+  facils$all <- facils$all[!is.na(facils$all$atitude),]## remove rows with missing coords for sf creation
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326 
   
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
