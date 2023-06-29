@@ -35,22 +35,22 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
 
-    #Reverse polygon fill (highlight basin) -- for type basin
-    bb <- unlist(attr(basemap_0, "bb"))
-    coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-    basemap_0 <- sp::SpatialPolygons(
-      list(sp::Polygons(list(Polygon(coords)), "id")), 
-      proj4string = CRS(proj4string(segs$basin_sp)))
-    remove(coords) #job done
-    
-    nonbasin <- raster::erase(basemap_0, segs$basin_sp)
-    nonbasin <- st_as_sf(nonbasin)
-    st_crs(nonbasin) <- 4326
- 
-  #Lighten terrain basemap
+  #Reverse polygon fill (highlight basin) -- for type basin
+  bb <- unlist(attr(basemap_0, "bb"))
+  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+  basemap_0 <- sp::SpatialPolygons(
+    list(sp::Polygons(list(Polygon(coords)), "id")), 
+    proj4string = CRS(proj4string(segs$basin_sp)))
+  remove(coords) #job done
+  
+  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+  nonbasin <- st_as_sf(nonbasin)
+  st_crs(nonbasin) <- 4326
+  
+  #Lighten terrain basemap -- this might be what is causing error in locality mapping
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
-  
+    
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
     #zoom = 8 #basemap resolution
