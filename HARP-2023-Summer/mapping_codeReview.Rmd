@@ -7,10 +7,10 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JB3_6820_7053"]  
+  rivseg: ["JA2_7410_7470", "JA4_7280_7340"]  
   locality: ["Montgomery"]
   region: ["NewRiver_2"]    
-  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
@@ -236,7 +236,8 @@ facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
       where foundatn.Facility_hydroid is null"
       ) ) 
    
-
+colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
+#facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
 
 ## To place rows with matches at the top:
 #facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
@@ -323,14 +324,10 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
 }
 ```
 
-```{r bbox & facils by TYPE Param}
+```{r bbox & facils by TYPE Param, warning=FALSE}
 ## Setting bbox variable based on what type of map we want 
 # 'type' variable will either be: basin, locality, or region 
 
-# Filter down to facilities within the extent chosen
-## first rename column so it doesn't have the same name as basin's hydrocode column
-colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
-#facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
 facils_all <- facils$all #create temporary df for use in sqldf for ordering
 if (type == "basin") {
   segs_basin <- segs$basin
@@ -483,6 +480,46 @@ label_fill <- c("blue","#0B5F14","white") #for road bubbles c(I,S,U)
 labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
 ```
+
+```{r}
+## Putting the metric data into bins for ranged legend for map
+
+facils_within <- facils$within
+mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
+                         FROM facils_within 
+                         WHERE MP_hydroid is not NULL'
+                         , sep="")
+  
+mp_layer <- sqldf(mp_layer_sql)
+
+
+metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
+wd_mgd = c(0.5,1.0,2,5,10,25,50,100,1000) #set ranges for the bins 
+wd_mgy = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+if (metric_unit == "mgd") { #different ranges for mgd and mgy
+  div <- wd_mgd
+} else if (metric_unit == "mgy") {
+  div <- wd_mgy
+}
+
+bins_sql <-  paste("SELECT *,
+	                  CASE WHEN demand_metric <= ",div[1]," THEN '1'
+		                WHEN demand_metric >  ",div[1]," AND demand_metric <= ",div[2]," THEN '2'
+		                WHEN demand_metric >  ",div[2]," AND demand_metric <= ",div[3]," THEN '3'
+		                WHEN demand_metric >  ",div[3]," AND demand_metric <= ",div[4]," THEN '4'
+		                WHEN demand_metric >  ",div[4]," AND demand_metric <= ",div[5]," THEN '5'
+		                WHEN demand_metric > ",div[5]," AND demand_metric <= ",div[6]," THEN '6'
+		                WHEN demand_metric > ",div[6]," AND demand_metric <= ",div[7]," THEN '7'
+		                WHEN demand_metric > ",div[7]," AND demand_metric <= ",div[8]," THEN '8'
+		                WHEN demand_metric > ",div[8]," AND demand_metric <= ",div[9]," THEN '9'
+		                WHEN demand_metric > ",div[9]," THEN '10'
+		                ELSE 'X'
+		                END AS bin
+		                FROM mp_layer",sep="")
+
+mp_layer <- sqldf(bins_sql)  
+```
+
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
 fn_mapgen(type, metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) #execute mapping function
