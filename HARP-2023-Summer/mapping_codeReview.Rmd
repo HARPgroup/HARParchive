@@ -10,11 +10,11 @@ params:
   rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
   locality: ["Montgomery"]
   region: ["Roanoke_1"]    
-  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "NULL" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["Montgomery"]
+  map_name: ["Roanoke_1"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -413,7 +413,7 @@ if (type == "locality") {
   facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
   facils$within <- cbind(facils$within, coords)
   st_crs(facils$within) <- 4326
-  facils$within <- st_drop_geometry(facils$within)
+  #facils$within <- st_drop_geometry(facils$within)
   
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
@@ -429,7 +429,7 @@ if (type == "region") {
   region_list <- region_geom_list[names(region_geom_list) == region]
   region_sf <- st_sfc(region_list) #create sf object from the region specified 
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
-  facils$within_reg <- st_filter(facils$sf, region_sf) #filter to MPs within the region
+  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
   
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(region_sf)), .05) #slightly past basin
