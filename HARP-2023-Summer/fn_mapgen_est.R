@@ -180,7 +180,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
       # Reverse Fill -- only for map type basin
     geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
-    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
+    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf, or bbox_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03 #anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
