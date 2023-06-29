@@ -7,14 +7,14 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
+  rivseg: ["JB3_6820_7053"]  
   locality: ["Montgomery"]
   region: ["Roanoke_1"]    
-  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
-  runid_list: [ "NULL" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
-  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["Roanoke_1"]
+  runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
+  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
+  map_name: ["JB3_6820_7053"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -153,17 +153,10 @@ segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 # note: potential NULLs for newly carved data
 
 # All facility model data
-
-if (runid_list == 'NULL') { # for metrics not associated w model runs
-  df <- data.frame(metric=metric)
-   df$runlabel <- metric
-} else {
   df <- data.frame(runid=runid_list, model_version, metric=metric)
   for(i in 1:length(runid_list)){
   df$runlabel[i] <- paste0(runid_list[i], '_', metric)
 }
-}
-
 
 facils$mdat <- om_vahydro_metric_grid( 
   metric=FALSE, runids=df, featureid='all', 
@@ -199,23 +192,14 @@ regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
 
 ```{r Integrate Locality Geoms into their Regions}
 ## Processing and combining locality geometries into their regions 
-
-#### TEMPORARY - alternate way to get county geometries when REST doesn't work
-fips_filename <- paste("vahydro_usafips_export.csv",sep="")
-fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
-download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
-fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
-counties <- fips.csv
-####
-
-# needs to be adjusted once REST is working again 
+counties_df <- counties$df # for sqldf
 regions_geo <- sqldf( #adds geometries from counties df to the regions df
-  "SELECT regions.*, counties.fips_geom  
+  "SELECT regions.*, counties_df.dh_geofield 
    FROM regions
-   left outer join counties
-   on (regions.county = counties.fips_name)
+   left outer join counties_df
+   on (regions.county = counties_df.name)
    ")
-
+rm(counties_df)
 reg_split <- split(regions_geo, regions_geo$VMDWA_Reg2) #creates a new dataframe for each region containing the county names and geometries 
 ```
 
@@ -257,10 +241,7 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
 ## baseR merge() documentation says "all=TRUE" gives a full outer join by SQL terms
 #facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
 
- if (runid_list == "NULL"){
-   facils$all <- facils$foundatn
- } else {
-   facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
+facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
       left outer join mdat
       on (foundatn.Facility_hydroid = mdat.featureid)
       UNION
@@ -268,8 +249,9 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
       left outer join foundatn
       on (foundatn.Facility_hydroid = mdat.featureid)
       where foundatn.Facility_hydroid is null"
-      ) )
- }
+      ) ) 
+   
+
 
 ## To place rows with matches at the top:
 #facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
@@ -467,18 +449,6 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 
 #- - - - - - - - - - -
 
-## if REST is NOT working:
-#adding ftype column to counties sf df:
-counties$sf$ftype = "county"
-
-labels <- data.frame(
-  name= c(counties$sf$fips_name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
-  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
-  lng= as.numeric( c(counties$sf$fips_longitude, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
-  lat= as.numeric( c(counties$sf$fips_latitude,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
-)
-##
-
 # Combine all labels into one df
 labels <- data.frame(
   name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
@@ -514,7 +484,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) #execute mapping function
+fn_mapgen(type, metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }

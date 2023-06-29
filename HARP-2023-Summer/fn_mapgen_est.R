@@ -35,7 +35,6 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
 
-  if (type == "basin"){
     #Reverse polygon fill (highlight basin) -- for type basin
     bb <- unlist(attr(basemap_0, "bb"))
     coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
@@ -47,13 +46,10 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     nonbasin <- raster::erase(basemap_0, segs$basin_sp)
     nonbasin <- st_as_sf(nonbasin)
     st_crs(nonbasin) <- 4326
-    
-    #Lighten terrain basemap
-    basemap_0 <- st_as_sf(basemap_0)
-    st_crs(basemap_0) <- 4326
-  }
  
-
+  #Lighten terrain basemap
+  basemap_0 <- st_as_sf(basemap_0)
+  st_crs(basemap_0) <- 4326
   
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
@@ -159,7 +155,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Facility Points; Metric 1
     new_scale("size") + new_scale("color") +
     geom_point(data = facils$within, 
-               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source.Type"]), 
+               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
     scale_size(range= c(15,30), 
                breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
@@ -177,7 +173,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
               colour="black", size=textsize[5], check_overlap=TRUE) +
-      # Reverse Fill -- only for map type basin
+    # Reverse Fill
     geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
     ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf, or bbox_sf
