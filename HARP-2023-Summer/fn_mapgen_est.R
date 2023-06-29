@@ -164,9 +164,11 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Facility Labels
     geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE) +
+              colour="black", size=textsize[5], check_overlap=TRUE)
       # Reverse Fill -- only for map type basin
-#    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
+    if (type == "basin"){
+    +  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) 
+    } +
     # Scalebar & North Arrow
     ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
