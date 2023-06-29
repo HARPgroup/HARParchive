@@ -7,7 +7,7 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JA2_7410_7470", "JA4_7280_7340"]  
+  rivseg: ["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"] 
   locality: ["Montgomery"]
   region: ["NewRiver_2"]    
   type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
@@ -40,6 +40,7 @@ basepath='/var/www/R'
 source('/var/www/R/config.R')
 source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function
 source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
+source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 ```
@@ -180,7 +181,7 @@ roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/ST
 roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
+cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
@@ -266,21 +267,36 @@ legend_title <- legend_titling(metric, runid_list)
 roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
 roads$sf <- st_intersection(roads$sf, roads$state) #only VA primary roads
 ## keep only interstate, US hwy, or state Rte.
+
+#change to sqldf
 roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S")
+
+
 ## shorten names to number only; column RTTYP gives classification I, U, or S
 roads$sf$FULLNAME <- mgsub(roads$sf$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
+
+#change to sqldf
 roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
+
 roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
 
 # Filter/classify major cities & small towns
-cities <- cities[cities$state_id == 'VA',] #VA cities
+cities <- cities[cities$ST == 'VA',] #VA cities
 ## Remove city/town names that match their county/locality name
+
+#update for new city csv
+
+counties_df <- counties$df #needed for sqldf
+
+#need to test to ensure this works properly in mapping
 cities <- sqldf( 
   "SELECT cities.*  
    FROM cities
-  where city is not county_name"
+  where NAME is not (select counties_df.name from counties_df)"
 )
+remove(counties_df) #no longer needed
+
 popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
 for(i in cities$population){
   if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
@@ -611,32 +627,21 @@ table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permi
 #}
 
 #table$five_mgy_new <- facils$basin$fiveyr_avg_mgy_2
+
+colnames(table)[2] <- "Facility Name"
+colnames(table)[1] <- "Number"
+colnames(table)[3] <- "Source Type"
+colnames(table)[4] <- "Source Name"
+colnames(table)[5] <- "River Segment"
+colnames(table)[8] <- "River Segment Names"
+colnames(table)[6] <- "County"
+#colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
+colnames(table)[9] <- "Permitted Capacity(MGY)"
+colnames(table)[7] <- "5 Year Avg Use(Source MGY)"
+
+   
 ```
 # Call Table 
 ``` {r Call Table, echo= False, warning= False}
-#set table defaults of theme and font and make sure theres no blanks from nas 
-set_flextable_defaults(
-  font.size = 10, theme_fun = theme_zebra, 
-  padding = 6, 
-  na_str = "NA", nan_str = "NA")
-
-table <- flextable(table)
-
-#change titles of columns in table
-table <- set_header_labels(table,
-  Facility = "Facility Name", 
-  NUM = "Facility Number", 
-  Source_Type = "Source Type",
-  Rivseg= "River Segment", 
-  rivsegName = " River Segment Names",
-  Locality = "Location(County)",
-  Upstream_Downstream = "Upstream Vs. Downstream", 
-  vwp_max_mgy = "Permitted Capacity(mgy)",
-  fiveYr = "5 Year Average Use - Source(mgy)"
-  
-)
-#alignment of table
-table %>% 
-  autofit() %>%
-  flextable::align(align = "center", j = c(1:9), part = "all") 
+fn_tablegen(table)
 ```
