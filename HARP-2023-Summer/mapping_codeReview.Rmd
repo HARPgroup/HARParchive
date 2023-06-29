@@ -209,7 +209,7 @@ counties <- fips.csv
 
 # needs to be adjusted once REST is working again 
 regions_geo <- sqldf( #adds geometries from counties df to the regions df
-  "SELECT regions.*, counties.dh_geofield  
+  "SELECT regions.*, counties.fips_geom  
    FROM regions
    left outer join counties
    on (regions.county = counties.fips_name)
