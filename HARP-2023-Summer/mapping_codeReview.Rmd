@@ -218,21 +218,6 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
-```{r VAhydro bbox if Desired, eval=FALSE}
-## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
-for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
- hid <- segs$basin$hydroid[i] 
- map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
- extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
- extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
- extent_coords <- extent_coords[c('propname','propvalue')]
- extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
- bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
- bbox_ex <- st_bbox(bbox_ex)
- assign("bbox", bbox_ex)
-}
-```
-
 # PROCESS Data
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
@@ -319,6 +304,21 @@ counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
 counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
+```
+
+```{r VAhydro bbox if Desired, eval=FALSE}
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
+for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
+ hid <- segs$basin$hydroid[i] 
+ map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
+ extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+ extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+ extent_coords <- extent_coords[c('propname','propvalue')]
+ extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+ bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
+ bbox_ex <- st_bbox(bbox_ex)
+ assign("bbox", bbox_ex)
+}
 ```
 
 ```{r bbox & facils by TYPE Param}
