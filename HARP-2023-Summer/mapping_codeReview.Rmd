@@ -8,13 +8,13 @@ params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
-  locality: ["Montgomery"]
+  locality: ["Appomattox"]
   region: ["Eastern_Shore"]    
   type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "NULL" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["Montgomery"]
+  map_name: ["Appomattox"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -459,6 +459,18 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 
 #- - - - - - - - - - -
 
+## if REST is NOT working:
+#adding ftype column to counties sf df:
+counties$sf$ftype = "county"
+
+labels <- data.frame(
+  name= c(counties$sf$fips_name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
+  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
+  lng= as.numeric( c(counties$sf$fips_longitude, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
+  lat= as.numeric( c(counties$sf$fips_latitude,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
+)
+##
+
 # Combine all labels into one df
 labels <- data.frame(
   name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
@@ -494,7 +506,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
+fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
