@@ -91,7 +91,8 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     sourcetype = "Source.Type"
   }  
   if (type == "region") {
-    title <- paste0(region)  
+    title <- paste0(region)
+    sourcetype = "Source.Type"
   } 
   
  #Generate map gg object

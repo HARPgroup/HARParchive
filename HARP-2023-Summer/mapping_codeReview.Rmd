@@ -9,12 +9,12 @@ params:
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JB3_6820_7053"]  
   locality: ["Montgomery"]
-  region: ["Roanoke_1"]    
-  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  region: ["NewRiver_2"]    
+  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["Montgomery"]
+  map_name: ["NewRiver_2"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -365,7 +365,6 @@ if (type == "locality") {
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326 
   facils$within <- st_filter(facils$sf, locality_sf)
-  
   ## order and number facils$within df based on metric
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c("Longitude","Latitude")
@@ -383,12 +382,9 @@ if (type == "locality") {
   facils$within <- cbind(facils$within, coords)
   st_crs(facils$within) <- 4326
   facils$within <- st_drop_geometry(facils$within)
-  
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
-   
-
 }
 
 if (type == "region") {
@@ -399,6 +395,24 @@ if (type == "region") {
   region_sf <- st_sfc(region_list) #create sf object from the region specified 
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
   facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
+  
+  ## need to order rows and add NUM column
+  coords <- st_coordinates(facils$within$geometry)
+  colnames(coords) <- c("Longitude","Latitude")
+  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
+  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_within.*  
+   FROM facils_within 
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+  )
+  facils$within <- facils_within 
+  rm(facils_within) #removing the ordered data frame since we're finished with it 
+  facils$within$NUM <- seq(1, nrow(facils$within))
+  facils$within <- cbind(facils$within, coords)
+  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+  facils$within <- cbind(facils$within, coords)
+  st_crs(facils$within) <- 4326
+  facils$within <- st_drop_geometry(facils$within)
   
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(region_sf)), .05) #slightly past basin
