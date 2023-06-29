@@ -14,9 +14,10 @@ library(geosphere)
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
+## type will be either basin, locality, or region
 
-fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
- 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
+  
   #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
@@ -33,52 +34,55 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
   bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
-  
- #Reverse polygon fill (highlight basin)
-  bb <- unlist(attr(basemap_0, "bb"))
-  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-  basemap_0 <- sp::SpatialPolygons(
-    list(sp::Polygons(list(Polygon(coords)), "id")), 
-    proj4string = CRS(proj4string(segs$basin_sp)))
-  remove(coords) #job done
-  
-  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
-  nonbasin <- st_as_sf(nonbasin)
-  st_crs(nonbasin) <- 4326
-  
+
+  if (type == "basin"){
+    #Reverse polygon fill (highlight basin) -- for type basin
+    bb <- unlist(attr(basemap_0, "bb"))
+    coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+    basemap_0 <- sp::SpatialPolygons(
+      list(sp::Polygons(list(Polygon(coords)), "id")), 
+      proj4string = CRS(proj4string(segs$basin_sp)))
+    remove(coords) #job done
+    
+    nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+    nonbasin <- st_as_sf(nonbasin)
+    st_crs(nonbasin) <- 4326
+  }
+ 
  #Lighten terrain basemap
-  basemap_0 <- st_as_sf(basemap_0)
-  st_crs(basemap_0) <- 4326
+#  basemap_0 <- st_as_sf(basemap_0)
+#  st_crs(basemap_0) <- 4326
   
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
     #zoom = 8 #basemap resolution
-    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
+    nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
-    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
-    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
-    nhd$plot$lines <- nhd$flowline
+    nhd$plot <- nhd$flowline
     roads$plot <- roads$sf
     labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
-   
+  st_crs(nhd$plot) <- 4326  
+  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -87,15 +91,15 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     ggtitle( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") ) +
     
     # Lighten base-map to help readability
-    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+#    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
-    geom_sf(data = nhd$plot$lines, 
+    geom_sf(data = nhd$plot, 
             inherit.aes=FALSE, color="deepskyblue3", 
-            mapping=aes(lwd=nhd$plot$lines$StreamOrde), #line thickness based on stream order
+            mapping=aes(lwd=nhd$plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2)) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
-            inherit.aes=FALSE, color="deepskyblue3", size=1) +
+            inherit.aes=FALSE, fill="deepskyblue3", size=1) +
     # County Borders
     geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
     # Road Lines
@@ -104,8 +108,7 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
     # Basin Outlines
-    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
-    
+#    + geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
@@ -144,11 +147,11 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     # Facility Points; Metric 1
     new_scale("size") + new_scale("color") +
     geom_point(data = facils$within, 
-               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source Type"]), 
+               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source.Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
     scale_size(range= c(10,28), 
-               breaks= round(seq(max(facils$within[, metric]), 0, length.out=5), digits =3), # source of error 
-               labels= round(seq(max(facils$within[, metric]), 0, length.out=5), digits=3), # source of error 
+               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
+               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
                name= legend_title[1],
                guide= guide_legend(override.aes=list(label=""))
     ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
@@ -161,9 +164,9 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
     # Facility Labels
     geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE ) +
-    # Reverse Fill
-    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
+              colour="black", size=textsize[5], check_overlap=TRUE) +
+      # Reverse Fill -- only for map type basin
+#    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
     ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
@@ -176,4 +179,5 @@ fn_mapgen <- function(metric, rivseg, bbox, segs, facils, counties, roads, nhd, 
   assign('map', map, envir = globalenv()) #save the map in the global environment
   
   print('Map stored in environment as: map')
+  return(map)
 }

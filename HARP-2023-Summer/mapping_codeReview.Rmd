@@ -10,11 +10,11 @@ params:
   rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
   locality: ["Montgomery"]
   region: ["Eastern_Shore"]    
-  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
-  runid_list: [ "runid_11","runid_13" ]
-  metric: ["wd_mgd"]
-  map_name: ["James_Appomatox"]
+  runid_list: [ "NULL" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
+  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
+  map_name: ["Montgomery"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -120,15 +120,19 @@ legend_titling <- function(metric, runid_list){
   if(metric=="wd_mgd"){
     name <- "Withdrawal"
     unit <- "(MGD)"
-  }
-  year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
-  legend_title <- runid_list               
+    legend_title <- runid_list
+    year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
   for(i in 1:length(runid_list)){
     legend_title[i] <- paste(year[i],name,unit,sep="\n")
   }
+  }
+  if(metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
+    name <- "5-yr Avg Use"
+    unit <- "(MGY)"
+    legend_title<- paste(name,unit,sep="\n")
+  }
   return(legend_title)
 }
-
 ```
 
 # PULL Data 
@@ -148,10 +152,18 @@ segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 # note: potential NULLs for newly carved data
 
 # All facility model data
-df <- data.frame(runid=runid_list, model_version, metric=metric)
-for(i in 1:length(runid_list)){
+
+if (runid_list == 'NULL') { # for metrics not associated w model runs
+  df <- data.frame(metric=metric)
+   df$runlabel <- metric
+} else {
+  df <- data.frame(runid=runid_list, model_version, metric=metric)
+  for(i in 1:length(runid_list)){
   df$runlabel[i] <- paste0(runid_list[i], '_', metric)
 }
+}
+
+
 facils$mdat <- om_vahydro_metric_grid( 
   metric=FALSE, runids=df, featureid='all', 
   entity_type='dh_feature', bundle='facility',
@@ -174,7 +186,7 @@ roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/ST
 roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
+cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
@@ -183,143 +195,15 @@ cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv'))
 #Retrieving regional planning groups 
 regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
 ```
-# PROCESS Data
-```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
-#----General data organization----
-
-# Full join facility model data & facility foundation data
-## baseR merge() documentation says "all=TRUE" gives a full outer join by SQL terms
-#facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
-
-facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
-      left outer join mdat
-      on (foundatn.Facility_hydroid = mdat.featureid)
-      UNION
-      select foundatn.* , mdat.* from mdat
-      left outer join foundatn
-      on (foundatn.Facility_hydroid = mdat.featureid)
-      where foundatn.Facility_hydroid is null"
-      ) )
-
-## To place rows with matches at the top:
-#facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
-
-# Extract basin of user-input rivseg, from segs$all
-segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
-
-for(i in rivseg){
-  if(i==rivseg[1]){
-    segs$basin <- fn_extract_basin(segs$all, i)
-  }
-  if(i!=rivseg[1]){
-    segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
-  }
-}
-## don't duplicate riversegs for overlapping basins... 
-## unless we wanted to show them in different colors? transparent overlap?
-segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
-
-# Filter down to facilities within the basin
-## first rename column so it doesn't have the same name as basin's hydrocode column
-colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
-#facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL") 
-#rewrite for sqldf
-facils_all <- facils$all #create temporary df for use in sqldf for ordering
-segs_basin <- segs$basin
-facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
-#remove temporary dfs
-remove(facils_all)
-remove(segs_basin)
-
-# Filter out WSP entries (optional)
-facils$basin <- with(facils, sqldf("select * from basin where hydrocode not like 'wsp_%'") )
-#facils$basin <- subset(facils$basin, 
-                       #facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
-
-# Order by largest metrics; then number them
-#facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),] #modified for new specific metric names
-facils_basin <- facils$basin #create temporary df for use in sqldf for ordering
-facils_basin <- sqldf(paste0( #ordering the data using sqldf 
-  "SELECT facils_basin.*  
-   FROM facils_basin 
-   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
-)
-facils$basin <- facils_basin 
-rm(facils_basin) #removing the ordered data frame since we're finished with it 
-facils$basin$NUM <- seq(1, nrow(facils$basin))
-# Legend title
-legend_title <- legend_titling(metric, runid_list)
-
-#- - - - - - - - - - -
-
-# Filter roads to only Interstate, US Hwy, State Rte
-roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
-roads$sf <- st_intersection(roads$sf, roads$state) #only VA primary roads
-## keep only interstate, US hwy, or state Rte.
-roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S") #being switched to sqldf
-
-#roads_sf <- roads$sf
-
-#roads_sf_full <- roads$sf$FULLNAME
-#roads$sf <- sqldf("select * from roads_sf where RTTYP= 'I' OR RTTYP= 'S' OR FULLNAME in " ) #STILL EDITING
-
-## shorten names to number only; column RTTYP gives classification I, U, or S
-roads$sf$FULLNAME <- mgsub(roads$sf$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
-## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
-
-roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE))) #Being switched to sqldf
-
-#roads_sf_full <- roads$sf$FULLNAME
-#roads$sf <- sqldf("select * from roads_sf where FULLNAME in roads_sf_full= .*" ) #STILL EDITING
-
-roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
-
-# Filter/classify major cities & small towns
-cities <- cities[cities$ST == 'VA',] #VA cities
-
-#adjust for new cities csv
-## Remove city/town names that match their county/locality name
-cities <- sqldf( 
-  "SELECT cities.*  
-   FROM cities
-  where city is not county_name"
-)
-popul <- quantile(cities$POPULATION, probs = c(0.25, 0.5, 0.75)) 
-for(i in cities$population){ #NEEDS TO BE ADJUSTED FOR NEW CSV
-  if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
-  cities <- cities[cities$population!=i,]
-  }
-  if(i >= popul["75%"]){
-  cities$class[cities$population==i] = "majC"
-  }
-  if(i <= popul["50%"] & i >= popul["25%"]){
-  cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
-  }
-}
-
-#- - - - - - - - - - -
-
-# Process Polygons; text-> spatial -> simple features
-## basin watersheds
-segs$basin_sp <- process_geom(segs$basin, "geom")
-segs$basin_sf <- st_as_sf(segs$basin_sp)
-st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
-## counties
-counties$sp <- process_geom(counties$df, "dh_geofield")
-counties$sf <- st_as_sf(counties$sp)
-counties$sf <- centroid_coords(counties$sf, "geometry")
-st_crs(counties$sf) <- 4326
-```
 
 ```{r}
 ## Processing and combining locality geometries into their regions 
 
-#### TEMPORARY - alternate way to get county geometries 
+#### TEMPORARY - alternate way to get county geometries when REST doesn't work
 fips_filename <- paste("vahydro_usafips_export.csv",sep="")
 fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
 download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
 fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
-fips.csv$dh_geofield <- fips.csv$fips_geom 
 counties <- fips.csv
 ####
 
@@ -364,11 +248,123 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
 }
 ```
 
+# PROCESS Data
+```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
+#----General data organization----
+
+# Full join facility model data & facility foundation data
+## baseR merge() documentation says "all=TRUE" gives a full outer join by SQL terms
+#facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
+
+ if (runid_list == "NULL"){
+   facils$all <- facils$foundatn
+ } else {
+   facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
+      left outer join mdat
+      on (foundatn.Facility_hydroid = mdat.featureid)
+      UNION
+      select foundatn.* , mdat.* from mdat
+      left outer join foundatn
+      on (foundatn.Facility_hydroid = mdat.featureid)
+      where foundatn.Facility_hydroid is null"
+      ) )
+ }
+
+## To place rows with matches at the top:
+#facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
+
+# Extract basin of user-input rivseg, from segs$all
+segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
+
+for(i in rivseg){
+  if(i==rivseg[1]){
+    segs$basin <- fn_extract_basin(segs$all, i)
+  }
+  if(i!=rivseg[1]){
+    segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
+  }
+}
+## don't duplicate riversegs for overlapping basins... 
+## unless we wanted to show them in different colors? transparent overlap?
+segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
+
+# Legend title
+legend_title <- legend_titling(metric, runid_list)
+
+#- - - - - - - - - - -
+
+# Filter roads to only Interstate, US Hwy, State Rte
+roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
+roads$sf <- st_intersection(roads$sf, roads$state) #only VA primary roads
+## keep only interstate, US hwy, or state Rte.
+roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S")
+## shorten names to number only; column RTTYP gives classification I, U, or S
+roads$sf$FULLNAME <- mgsub(roads$sf$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
+roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
+roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
+
+# Filter/classify major cities & small towns
+cities <- cities[cities$state_id == 'VA',] #VA cities
+## Remove city/town names that match their county/locality name
+cities <- sqldf( 
+  "SELECT cities.*  
+   FROM cities
+  where city is not county_name"
+)
+popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
+for(i in cities$population){
+  if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
+  cities <- cities[cities$population!=i,]
+  }
+  if(i >= popul["75%"]){
+  cities$class[cities$population==i] = "majC"
+  }
+  if(i <= popul["50%"] & i >= popul["25%"]){
+  cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
+  }
+}
+#- - - - - - - - - - -
+
+# Process Polygons; text-> spatial -> simple features
+## basin watersheds
+segs$basin_sp <- process_geom(segs$basin, "geom")
+segs$basin_sf <- st_as_sf(segs$basin_sp)
+st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
+## counties
+counties$sp <- process_geom(counties$df, "dh_geofield")
+counties$sf <- st_as_sf(counties$sp)
+counties$sf <- centroid_coords(counties$sf, "geometry")
+st_crs(counties$sf) <- 4326
+```
+
 ```{r}
 ## Setting bbox variable based on what type of map we want 
 # 'type' variable will either be: basin, locality, or region 
 
+# Filter down to facilities within the extent chosen
+## first rename column so it doesn't have the same name as basin's hydrocode column
+colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
+#facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
+facils_all <- facils$all #create temporary df for use in sqldf for ordering
 if (type == "basin") {
+  segs_basin <- segs$basin
+  facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
+  # Filter out WSP entries (optional)
+  facils$basin <- with(facils, sqldf("select * from basin where hydrocode not like 'wsp_%'") )
+#facils$basin <- subset(facils$basin, 
+                       #facil_hydrocode %in% grep("^wsp_", facils$basin$facil_hydrocode, value=TRUE, invert=TRUE) )
+  # Order by largest metrics; then number them
+  #facils$basin <- facils$basin[order(-facils$basin$metric_runid1, -facils$basin$metric_runid2),] #modified for new specific metric names
+  facils_basin <- facils$basin #create temporary df for use in sqldf for ordering
+  facils_basin <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_basin.*  
+   FROM facils_basin 
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+  )
+  facils$basin <- facils_basin 
+  rm(facils_basin) #removing the ordered data frame since we're finished with it 
+  facils$basin$NUM <- seq(1, nrow(facils$basin))
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
@@ -377,12 +373,52 @@ if (type == "basin") {
 
 if (type == "locality") {
   ## pull locality and geometry out of data frame with the locality parameter given
-  locality_sf <- counties$sf[counties$sf$name == locality, ]
+  
+#  locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
+  
+  ### only use if REST is NOT working:
+  # need to turn counties into a df within the list counties 
+  counties_df <- counties
+  counties <- list()
+  counties$df <- as.data.frame(counties_df)
+  rm(counties_df)
+  counties$sp <- process_geom(counties$df, "fips_geom")
+  counties$sf <- st_as_sf(counties$sp)
+  locality_sf <- st_as_sf(counties$sf[counties$sf$fips_name == locality, ], sf_column_name = "fips_geom")
+  st_crs(counties$sf) <- 4326
+  st_crs(locality_sf) <- 4326 
+  ###
+  
+  #filter to only facilities within the locality specified
+  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+  facils$all <- facils$all[!is.na(facils$all$Latitude),]
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326 
+  facils$within <- st_filter(facils$sf, locality_sf)
+  
+  ## order and number facils$within df based on metric
+  coords <- st_coordinates(facils$within$geometry)
+  colnames(coords) <- c("Longitude","Latitude")
+  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
+  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_within.*  
+   FROM facils_within 
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+  )
+  facils$within <- facils_within 
+  rm(facils_within) #removing the ordered data frame since we're finished with it 
+  facils$within$NUM <- seq(1, nrow(facils$within))
+  facils$within <- cbind(facils$within, coords)
+  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+  facils$within <- cbind(facils$within, coords)
+  st_crs(facils$within) <- 4326
+  facils$within <- st_drop_geometry(facils$within)
+  
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
-  #filter to only facilities within the locality specified 
-#  facils$within <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL") ## need to mod for localities 
+   
+
 }
 
 if (type == "region") {
@@ -391,13 +427,13 @@ if (type == "region") {
   # pull region of interest given in params from list of region geometries 
   region_sf <- region_geom_list[names(region_geom_list) == region]
 }
+rm(facils_all)
 ```
 
 ```{r, message=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
-
 
 ```{r Labels df & Extent Filters, warning=FALSE}
 # River & stream labels
@@ -425,10 +461,10 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 
 # Combine all labels into one df
 labels <- data.frame(
-  name= c(counties$sf$name, cities$NAME, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
-  class= c(counties$sf$ftype, cities$CLASS, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
-  lng= as.numeric( c(counties$sf$lng, cities$X, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
-  lat= as.numeric( c(counties$sf$lat,cities$Y, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
+  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
+  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
+  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
+  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
 )
 remove(lb_rivr)
 remove(lb_wtbd)
@@ -458,7 +494,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-fn_mapgen( metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
+fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
@@ -547,45 +583,32 @@ table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permi
 #}
 
 #table$five_mgy_new <- facils$basin$fiveyr_avg_mgy_2
-
-#change column names in df 
-#might want to change naming if we are changing whats mapped by source and whats mapped by facility
-colnames(table)[Facility] <- "Source Name"
-colnames(table)[NUM] <- "Source Number"
-colnames(table)[Source_Type] <- "Source Type"
-colnames(table)[Rivseg] <- "River Segment"
-colnames(table)[rivsegName] <- "River Segment Names"
-colnames(table)[Locality] <- "County"
-colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
-colnames(table)[vwp_max_mgy] <- "Permitted Capacity(mgy)"
-colnames(table)[fiveYr] <- "5 Year Average Use- Source(mgy)"
 ```
 # Call Table 
 ``` {r Call Table, echo= False, warning= False}
-# #set table defaults of theme and font and make sure theres no blanks from nas 
-# set_flextable_defaults(
-#   font.size = 10, theme_fun = theme_zebra, 
-#   padding = 6, 
-#   na_str = "NA", nan_str = "NA")
-# 
-# table <- flextable(table)
-# 
-# #change titles of columns in table
-# table <- set_header_labels(table,
-#   Facility = "Facility Name", 
-#   NUM = "Facility Number", 
-#   Source_Type = "Source Type",
-#   Rivseg= "River Segment", 
-#   rivsegName = " River Segment Names",
-#   Locality = "Location(County)",
-#   Upstream_Downstream = "Upstream Vs. Downstream", 
-#   vwp_max_mgy = "Permitted Capacity(mgy)",
-#   fiveYr = "5 Year Average Use - Source(mgy)"
-#   
-# )
-# #alignment of table
-# table %>% 
-#   autofit() %>%
-#   flextable::align(align = "center", j = c(1:9), part = "all") 
-fn_tablegen(table)
+#set table defaults of theme and font and make sure theres no blanks from nas 
+set_flextable_defaults(
+  font.size = 10, theme_fun = theme_zebra, 
+  padding = 6, 
+  na_str = "NA", nan_str = "NA")
+
+table <- flextable(table)
+
+#change titles of columns in table
+table <- set_header_labels(table,
+  Facility = "Facility Name", 
+  NUM = "Facility Number", 
+  Source_Type = "Source Type",
+  Rivseg= "River Segment", 
+  rivsegName = " River Segment Names",
+  Locality = "Location(County)",
+  Upstream_Downstream = "Upstream Vs. Downstream", 
+  vwp_max_mgy = "Permitted Capacity(mgy)",
+  fiveYr = "5 Year Average Use - Source(mgy)"
+  
+)
+#alignment of table
+table %>% 
+  autofit() %>%
+  flextable::align(align = "center", j = c(1:9), part = "all") 
 ```
