@@ -149,7 +149,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     geom_point(data = facils$within, 
                aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source.Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
-    scale_size(range= c(10,28), 
+    scale_size(range= c(15,30), 
                breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
                labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
                name= legend_title[1],
