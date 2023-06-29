@@ -47,11 +47,13 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     nonbasin <- raster::erase(basemap_0, segs$basin_sp)
     nonbasin <- st_as_sf(nonbasin)
     st_crs(nonbasin) <- 4326
+    
+    #Lighten terrain basemap
+    basemap_0 <- st_as_sf(basemap_0)
+    st_crs(basemap_0) <- 4326
   }
  
- #Lighten terrain basemap
-#  basemap_0 <- st_as_sf(basemap_0)
-#  st_crs(basemap_0) <- 4326
+
   
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
