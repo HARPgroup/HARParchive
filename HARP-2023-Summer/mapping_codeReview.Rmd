@@ -358,22 +358,7 @@ if (type == "basin") {
 
 if (type == "locality") {
   ## pull locality and geometry out of data frame with the locality parameter given
-  
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
-  
-  ### only use if REST is NOT working:
-  # need to turn counties into a df within the list counties 
-#  counties_df <- counties
-#  counties <- list()
-#  counties$df <- as.data.frame(counties_df)
-#  rm(counties_df)
-#  counties$sp <- process_geom(counties$df, "fips_geom")
-#  counties$sf <- st_as_sf(counties$sp)
-#  locality_sf <- st_as_sf(counties$sf[counties$sf$fips_name == locality, ], sf_column_name = "fips_geom")
-#  st_crs(counties$sf) <- 4326
-#  st_crs(locality_sf) <- 4326 
-  ###
-  
   #filter to only facilities within the locality specified
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
@@ -397,7 +382,7 @@ if (type == "locality") {
   facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
   facils$within <- cbind(facils$within, coords)
   st_crs(facils$within) <- 4326
-  #facils$within <- st_drop_geometry(facils$within)
+  facils$within <- st_drop_geometry(facils$within)
   
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
