@@ -39,6 +39,7 @@ library(geosphere)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function
+source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 ```
@@ -196,7 +197,7 @@ cities <- fread(paste0(getwd(), '/', 'uscities.csv'))
 regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
 ```
 
-```{r}
+```{r Integrate Locality Geoms into their Regions}
 ## Processing and combining locality geometries into their regions 
 
 #### TEMPORARY - alternate way to get county geometries when REST doesn't work
@@ -218,7 +219,7 @@ regions_geo <- sqldf( #adds geometries from counties df to the regions df
 reg_split <- split(regions_geo, regions_geo$VMDWA_Reg2) #creates a new dataframe for each region containing the county names and geometries 
 ```
 
-```{r}
+```{r One Joint Polygon Per Region}
 ## Combining the polygon geometries in each region df into 1 polygon for the whole region 
 region_geom_list <- list() #create empty list where regional geometries will be stored 
 for (i in 1:length(reg_split)) {
@@ -233,7 +234,7 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
-```{r, eval=FALSE}
+```{r VAhydro bbox if Desired, eval=FALSE}
 ## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
 for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
  hid <- segs$basin$hydroid[i] 
@@ -338,7 +339,7 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
-```{r}
+```{r bbox & facils by TYPE Param}
 ## Setting bbox variable based on what type of map we want 
 # 'type' variable will either be: basin, locality, or region 
 
@@ -430,7 +431,7 @@ if (type == "region") {
 rm(facils_all)
 ```
 
-```{r, message=FALSE}
+```{r Get NHD in bbox, message=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
@@ -505,7 +506,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
 ```
 
-```{r, warning=FALSE, message=FALSE}
+```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
 fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality) #execute mapping function
 ```
 
