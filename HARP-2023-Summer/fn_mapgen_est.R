@@ -16,7 +16,7 @@ library(geosphere)
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## type will be either basin, locality, or region
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) { 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality) { 
   
   #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
@@ -82,14 +82,21 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
   st_crs(nhd$plot) <- 4326  
+
+  #For map title:
+  if (type == "basin") {
+    title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") ) 
+  } 
+  if (type == "locality") {
+    title <- paste0(locality)  
+  }  
   
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
-    ggtitle( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") ) +
-    
+   ggtitle(title) +
     # Lighten base-map to help readability
 #    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
@@ -164,11 +171,11 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Facility Labels
     geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE)
+              colour="black", size=textsize[5], check_overlap=TRUE) +
       # Reverse Fill -- only for map type basin
-    if (type == "basin"){
-    +  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) 
-    } +
+#    if (type == "basin"){
+#    +  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) 
+#    }
     # Scalebar & North Arrow
     ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 

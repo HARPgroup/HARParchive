@@ -506,7 +506,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
+fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
