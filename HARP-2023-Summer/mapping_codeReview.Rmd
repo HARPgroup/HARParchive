@@ -9,7 +9,7 @@ params:
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
   locality: ["Montgomery"]
-  region: ["Eastern_Shore"]    
+  region: ["Roanoke_1"]    
   type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "NULL" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
@@ -425,8 +425,15 @@ if (type == "locality") {
 if (type == "region") {
   # not functional yet
   #region geometries stored in region_geom_list under the region name 
-  # pull region of interest given in params from list of region geometries 
-  region_sf <- region_geom_list[names(region_geom_list) == region]
+  #pull region of interest given in params from list of region geometries 
+  region_list <- region_geom_list[names(region_geom_list) == region]
+  region_sf <- st_sfc(region_list) #create sf object from the region specified 
+  st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
+  facils$within_reg <- st_filter(facils$sf, region_sf) #filter to MPs within the region
+  
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(region_sf)), .05) #slightly past basin
+  bbox <- st_bbox(bbox)
 }
 rm(facils_all)
 ```
@@ -507,7 +514,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality) #execute mapping function
+fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
