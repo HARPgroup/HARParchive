@@ -5,19 +5,23 @@ library(flextable)
 #create function
 fn_tablegen <- function(tabledf) { 
   
+tabledf <- flextable(tabledf)
+
 #set table defaults of theme and font and make sure theres no blanks from nas 
 set_flextable_defaults(
   font.size = 10, theme_fun = theme_zebra, 
   padding = 6, 
   na_str = "NA", nan_str = "NA")
+
+tabledf<- autofit(tabledf)
+tabledf <- flextable::align(tabledf, align = "center", j = c(1:9), part = "all") 
+tabledf
   
   
 #alignment of table
-table %>%
-  autofit() %>%
-  flextable::align(align = "center", j = c(1:9),part = "all") 
-
-tabledf <- flextable(tabledf)
+ #table %>% 
+  # autofit() %>%
+  # flextable::align(align = "center", j = c(1:9), part = "all") 
 
 #change titles of columns in table
 #not needed if declared in data frame
