@@ -7,14 +7,14 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
+  rivseg: ["JB3_6820_7053"]  
   locality: ["Montgomery"]
   region: ["Roanoke_1"]    
   type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["Roanoke_1"]
+  map_name: ["JB3_6820_7053"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
