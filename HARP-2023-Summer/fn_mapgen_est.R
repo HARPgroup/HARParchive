@@ -179,7 +179,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
 #    +  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) 
 #    }
     # Scalebar & North Arrow
-    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
+    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +

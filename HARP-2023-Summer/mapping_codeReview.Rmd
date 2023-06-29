@@ -8,13 +8,13 @@ params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_6890_6990", "JL6_7320_7150"]  
-  locality: ["Appomattox"]
+  locality: ["Montgomery"]
   region: ["Eastern_Shore"]    
   type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "NULL" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["Appomattox"]
+  map_name: ["Montgomery"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -512,7 +512,7 @@ fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties,
 ```{r Save PNG, echo=FALSE }
 # Saving map as a png
 ggsave(
-  filename = paste(export_path, map_name, ".1", ".png", sep=""),
+  filename = paste(export_path, map_name, ".png", sep=""),
   plot = map,
   width = 25,
   height = 20
