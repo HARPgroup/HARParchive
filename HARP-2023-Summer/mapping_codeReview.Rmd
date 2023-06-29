@@ -204,7 +204,6 @@ fips_filename <- paste("vahydro_usafips_export.csv",sep="")
 fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
 download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
 fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
-fips.csv$dh_geofield <- fips.csv$fips_geom 
 counties <- fips.csv
 ####
 
@@ -378,9 +377,15 @@ if (type == "locality") {
 #  locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
   
   ### only use if REST is NOT working:
-  counties$sp <- process_geom(counties, "fips_geom")
+  # need to turn counties into a df within the list counties 
+  counties_df <- counties
+  counties <- list()
+  counties$df <- as.data.frame(counties_df)
+  rm(counties_df)
+  counties$sp <- process_geom(counties$df, "fips_geom")
   counties$sf <- st_as_sf(counties$sp)
-  locality_sf <- st_as_sf(counties$sf[counties$sf$fips_name == locality, ], sf_column_name = "fips_geom") 
+  locality_sf <- st_as_sf(counties$sf[counties$sf$fips_name == locality, ], sf_column_name = "fips_geom")
+  st_crs(counties$sf) <- 4326
   st_crs(locality_sf) <- 4326 
   ###
   
@@ -391,7 +396,21 @@ if (type == "locality") {
   st_crs(facils$sf) <- 4326 
   facils$within <- st_filter(facils$sf, locality_sf)
   
-
+  ## order and number facils$within df based on metric
+  geometry <- facils$within$geometry
+  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
+  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_within.*  
+   FROM facils_within 
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+  )
+  facils$within <- facils_within 
+  rm(facils_within) #removing the ordered data frame since we're finished with it 
+  facils$within$NUM <- seq(1, nrow(facils$within))
+  facils$within$geometry <- geometry
+  facils$within<- st_as_sf(facils$within)
+## NEED facils$within to keep long and lat columns !!!  
+  
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
@@ -472,7 +491,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-fn_mapgen( metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
+fn_mapgen(type, metric = 'fiveyr_avg_mgy', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }

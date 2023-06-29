@@ -50,38 +50,39 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   }
  
  #Lighten terrain basemap
-  basemap_0 <- st_as_sf(basemap_0)
-  st_crs(basemap_0) <- 4326
+#  basemap_0 <- st_as_sf(basemap_0)
+#  st_crs(basemap_0) <- 4326
   
  #Filtering what's plotted by size of boundary box  
   if(distance > 300) {
     #zoom = 8 #basemap resolution
-    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
+    nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
-    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
-    nhd$plot$lines <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
+    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads$plot <- roads$sf
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
-    nhd$plot$lines <- nhd$flowline
+    nhd$plot <- nhd$flowline
     roads$plot <- roads$sf
     labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
-   
+  st_crs(nhd$plot) <- 4326  
+  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -90,11 +91,11 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     ggtitle( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") ) +
     
     # Lighten base-map to help readability
-    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+#    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
-    geom_sf(data = nhd$plot$lines, 
+    geom_sf(data = nhd$plot, 
             inherit.aes=FALSE, color="deepskyblue3", 
-            mapping=aes(lwd=nhd$plot$lines$StreamOrde), #line thickness based on stream order
+            mapping=aes(lwd=nhd$plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2)) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
@@ -107,10 +108,9 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
     # Basin Outlines
-    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
-    
+#    + geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
     # Facility Labels Placeholder (to have other labels repel)
-    geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
+#    geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
     geom_label_repel(data = labelsP[labelsP$road=="yes",],
                      aes(x=lng, y=lat, label=name, 
@@ -149,12 +149,12 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     geom_point(data = facils$within, 
                aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
-    scale_size(range= c(10,28), 
-               breaks= round(seq(max(facils$within[, metric]), 0, length.out=5), digits =3), # source of error 
-               labels= round(seq(max(facils$within[, metric]), 0, length.out=5), digits=3), # source of error 
-               name= legend_title[1],
-               guide= guide_legend(override.aes=list(label=""))
-    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+#    scale_size(range= c(10,28), 
+#               breaks= round(seq(max(facils$within[, metric]), 0, length.out=5), digits =3), # source of error 
+#               labels= round(seq(max(facils$within[, metric]), 0, length.out=5), digits=3), # source of error 
+#               name= legend_title[1],
+#               guide= guide_legend(override.aes=list(label=""))
+#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
@@ -162,15 +162,13 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                         guide= guide_legend(override.aes=list(label=""))
     ) +
     # Facility Labels
-    geom_text(data = facils$within, 
-              aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE) 
-    if (type == "basin"){
+#    geom_text(data = facils$within, 
+#              aes(Longitude, Latitude, label=NUM, fontface="bold"), 
+#              colour="black", size=textsize[5], check_overlap=TRUE) +
       # Reverse Fill -- only for map type basin
-      + geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 )
-    }
+#    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
-    +  ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
+    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
