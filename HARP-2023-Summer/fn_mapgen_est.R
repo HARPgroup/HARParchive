@@ -16,7 +16,7 @@ library(geosphere)
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## type will be either basin, locality, or region
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality) { 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) { 
   
   #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
@@ -92,15 +92,18 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   if (type == "locality") {
     title <- paste0(locality)  
   }  
+  if (type == "region") {
+    title <- paste0(region)  
+  } 
   
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
-   ggtitle(title) +
+    ggtitle(title) +
     # Lighten base-map to help readability
-#    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd$plot, 
             inherit.aes=FALSE, color="deepskyblue3", 
@@ -117,7 +120,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
     # Basin Outlines
-#    + geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
+    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
@@ -175,13 +178,11 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
               colour="black", size=textsize[5], check_overlap=TRUE) +
       # Reverse Fill -- only for map type basin
-#    if (type == "basin"){
-#    +  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) 
-#    }
+    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
-    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
+    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf, or bbox_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
-                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
+                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03 #anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
     ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
