@@ -47,7 +47,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
-  #Lighten terrain basemap -- this might be what is causing error in locality mapping
+  #Lighten terrain basemap 
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
     
@@ -174,9 +174,15 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Facility Labels
     geom_text(data = facils$within, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE) +
-    # Reverse Fill
-    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
+              colour="black", size=textsize[5], check_overlap=TRUE)
+  
+  if (type == "basin"){ #only do reverse fill by basin for map type basin
+    map <- map +
+      # Reverse Fill
+      geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 )
+  }
+  
+  map <- map +   
     # Scalebar & North Arrow
     ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf, or bbox_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
