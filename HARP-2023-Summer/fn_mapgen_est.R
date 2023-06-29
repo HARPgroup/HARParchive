@@ -99,7 +99,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2)) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
-            inherit.aes=FALSE, color="deepskyblue3", size=1) +
+            inherit.aes=FALSE, fill="deepskyblue3", size=1) +
     # County Borders
     geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
     # Road Lines
@@ -110,7 +110,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Basin Outlines
 #    + geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
     # Facility Labels Placeholder (to have other labels repel)
-#    geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
+    geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
     geom_label_repel(data = labelsP[labelsP$road=="yes",],
                      aes(x=lng, y=lat, label=name, 
@@ -147,14 +147,14 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Facility Points; Metric 1
     new_scale("size") + new_scale("color") +
     geom_point(data = facils$within, 
-               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source Type"]), 
+               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[,"Source.Type"]), 
                alpha=0.75, shape = 19, stroke = 0.75 ) +
-#    scale_size(range= c(10,28), 
-#               breaks= round(seq(max(facils$within[, metric]), 0, length.out=5), digits =3), # source of error 
-#               labels= round(seq(max(facils$within[, metric]), 0, length.out=5), digits=3), # source of error 
-#               name= legend_title[1],
-#               guide= guide_legend(override.aes=list(label=""))
-#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+    scale_size(range= c(10,28), 
+               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
+               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
+               name= legend_title[1],
+               guide= guide_legend(override.aes=list(label=""))
+    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
@@ -162,9 +162,9 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                         guide= guide_legend(override.aes=list(label=""))
     ) +
     # Facility Labels
-#    geom_text(data = facils$within, 
-#              aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-#              colour="black", size=textsize[5], check_overlap=TRUE) +
+    geom_text(data = facils$within, 
+              aes(Longitude, Latitude, label=NUM, fontface="bold"), 
+              colour="black", size=textsize[5], check_overlap=TRUE) +
       # Reverse Fill -- only for map type basin
 #    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) +
     # Scalebar & North Arrow
@@ -179,4 +179,5 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   assign('map', map, envir = globalenv()) #save the map in the global environment
   
   print('Map stored in environment as: map')
+  return(map)
 }
