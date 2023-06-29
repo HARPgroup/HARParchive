@@ -235,9 +235,9 @@ facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
       on (foundatn.Facility_hydroid = mdat.featureid)
       where foundatn.Facility_hydroid is null"
       ) ) 
-   
+
 colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
-#facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
+
 
 ## To place rows with matches at the top:
 #facils$all <- facils$all[order(facils$all$riverseg, na.last=TRUE),]
@@ -332,6 +332,7 @@ facils_all <- facils$all #create temporary df for use in sqldf for ordering
 if (type == "basin") {
   segs_basin <- segs$basin
   facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
+  #facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
   # Filter out WSP entries (optional)
   facils$basin <- with(facils, sqldf("select * from basin where hydrocode not like 'wsp_%'") )
 #facils$basin <- subset(facils$basin, 
@@ -486,8 +487,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 
 facils_within <- facils$within
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
-                         FROM facils_within 
-                         WHERE MP_hydroid is not NULL'
+                         FROM facils_within'
                          , sep="")
   
 mp_layer <- sqldf(mp_layer_sql)
