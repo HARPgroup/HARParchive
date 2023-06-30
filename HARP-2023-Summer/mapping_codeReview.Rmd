@@ -589,6 +589,8 @@ mp_bin_7 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 7')
 mp_bin_8 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 8')
 mp_bin_9 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 9')
 mp_bin_10 <-  sqldf('SELECT * FROM mp_layer WHERE bin = 10')
+
+mp_bin_list <- list(mp_bin_1, mp_bin_2, mp_bin_3, mp_bin_4, mp_bin_5, mp_bin_6, mp_bin_7, mp_bin_8, mp_bin_9, mp_bin_10)
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}

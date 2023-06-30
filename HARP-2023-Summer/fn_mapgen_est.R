@@ -165,16 +165,16 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                guide= guide_legend(override.aes=list(label=""))
     ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     ## plotting using bins:
-#    geom_point(data = mp_bin_1, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 1, alpha = 0.3) +
-#    geom_point(data = mp_bin_2, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 2, alpha = 0.4) +
-#    geom_point(data = mp_bin_3, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 3, alpha = 0.5) +
-#    geom_point(data = mp_bin_4, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 4, alpha = 0.6) +
-#    geom_point(data = mp_bin_5, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 5, alpha = 0.7) +
-#    geom_point(data = mp_bin_6, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 6, alpha = 0.8) +
-#    geom_point(data = mp_bin_7, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 7, alpha = 0.9) +
-#    geom_point(data = mp_bin_8, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 8, alpha = 0.95) +
-#    geom_point(data = mp_bin_9, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 9, alpha = 0.975) +
-#    geom_point(data = mp_bin_10, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 10, alpha = 1.0) +
+#    geom_point(data = mp_bin_list[[1]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 1, alpha = 0.3) +
+#    geom_point(data = mp_bin_list[[2]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 2, alpha = 0.4) +
+#    geom_point(data = mp_bin_list[[3]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 3, alpha = 0.5) +
+#    geom_point(data = mp_bin_list[[4]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 4, alpha = 0.6) +
+#    geom_point(data = mp_bin_list[[5]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 5, alpha = 0.7) +
+#    geom_point(data = mp_bin_list[[6]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 6, alpha = 0.8) +
+#    geom_point(data = mp_bin_list[[7]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 7, alpha = 0.9) +
+#    geom_point(data = mp_bin_list[[8]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 8, alpha = 0.95) +
+#    geom_point(data = mp_bin_list[[9]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 9, alpha = 0.975) +
+#    geom_point(data = mp_bin_list[[10]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 10, alpha = 1.0) +
     
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
