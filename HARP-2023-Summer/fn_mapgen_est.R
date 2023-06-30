@@ -85,12 +85,10 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   if (type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
     sourcetype = "Source Type"
-  } 
-  if (type == "locality") {
+  } else if (type == "locality") {
     title <- paste0(locality)
     sourcetype = "Source.Type"
-  }  
-  if (type == "region") {
+  }  else if (type == "region") {
     title <- paste0(region)
     sourcetype = "Source.Type"
   } 
@@ -197,9 +195,9 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   
   map <- map +   
     # Scalebar & North Arrow
-    ggsn::scalebar(data = segs$basin_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf, or bbox_sf
+    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
-                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03 #anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
+                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
     ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
