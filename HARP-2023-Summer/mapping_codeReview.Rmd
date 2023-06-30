@@ -10,11 +10,11 @@ params:
   rivseg: ["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"] 
   locality: ["Montgomery"]
   region: ["NewRiver_2"]    
-  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["NewRiver_2"]
+  map_name: ["Montgomery"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -323,23 +323,6 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
-## SKIP unless VAhydro bbox is wanted
-
-```{r VAhydro bbox if Desired, eval=FALSE}
-## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
-for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
- hid <- segs$basin$hydroid[i] 
- map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
- extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
- extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
- extent_coords <- extent_coords[c('propname','propvalue')]
- extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
- bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
- bbox_ex <- st_bbox(bbox_ex)
- assign("bbox", bbox_ex)
-}
-```
-
 ```{r bbox & facils by TYPE Param, warning=FALSE}
 ## Setting bbox variable based on what type of map we want 
 # 'type' variable will either be: basin, locality, or region 
@@ -402,11 +385,11 @@ if (type == "locality") {
 }
 
 if (type == "region") {
-  # not functional yet
   #region geometries stored in region_geom_list under the region name 
   #pull region of interest given in params from list of region geometries 
   region_list <- region_geom_list[names(region_geom_list) == region]
-  region_sf <- st_sfc(region_list) #create sf object from the region specified 
+  region_sf <- st_sfc(region_list) #create sf object from the region specified
+  #region_sf <- st_as_sf(region_sf[1])
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
@@ -436,6 +419,23 @@ if (type == "region") {
   bbox <- st_bbox(bbox)
 }
 rm(facils_all)
+```
+
+## SKIP unless VAhydro bbox is wanted
+
+```{r VAhydro bbox if Desired, eval=FALSE}
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
+for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
+ hid <- segs$basin$hydroid[i] 
+ map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
+ extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+ extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+ extent_coords <- extent_coords[c('propname','propvalue')]
+ extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+ bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
+ bbox_ex <- st_bbox(bbox_ex)
+ assign("bbox", bbox_ex)
+}
 ```
 
 ```{r Get NHD in bbox, message=FALSE}
@@ -537,7 +537,6 @@ bins_sql <-  paste("SELECT *,
 
 mp_layer <- sqldf(bins_sql)  
 ```
-
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
 fn_mapgen(type, metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) #execute mapping function
