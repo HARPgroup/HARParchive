@@ -261,24 +261,30 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
 legend_title <- legend_titling(metric, runid_list)
 
 #- - - - - - - - - - -
-
 # Filter roads to only Interstate, US Hwy, State Rte
 roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
 roads$sf <- st_intersection(roads$sf, roads$state) #only VA primary roads
+roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
+
 ## keep only interstate, US hwy, or state Rte.
 
 #change to sqldf
-roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S")
-
+#roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S")
+roads_sf <- st_drop_geometry(roads$sf )
+roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
+                  FULLNAME LIKE 'US Hwy_%' OR RTTYP is 'I' OR RTTYP is 'S'")
+remove(roads_sf)
 
 ## shorten names to number only; column RTTYP gives classification I, U, or S
 roads$sf$FULLNAME <- mgsub(roads$sf$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
-
 #change to sqldf
-roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
+#roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
+roads_sf <- roads$sf
+roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
+                  FULLNAME NOT LIKE '___%'")
 
-roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
+
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$ST == 'VA',] #VA cities
@@ -296,18 +302,19 @@ cities <- sqldf(
 )
 remove(counties_df) #no longer needed
 
-popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
-for(i in cities$population){
-  if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
-  cities <- cities[cities$population!=i,]
-  }
-  if(i >= popul["75%"]){
-  cities$class[cities$population==i] = "majC"
-  }
-  if(i <= popul["50%"] & i >= popul["25%"]){
-  cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
-  }
-}
+#not needed for new dataset, need to start new process  
+# popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
+# for(i in cities$population){
+#   if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
+#   cities <- cities[cities$population!=i,]
+#   }
+#   if(i >= popul["75%"]){
+#   cities$class[cities$population==i] = "majC"
+#   }
+#   if(i <= popul["50%"] & i >= popul["25%"]){
+#   cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
+#   }
+# }
 #- - - - - - - - - - -
 
 # Process Polygons; text-> spatial -> simple features
@@ -467,6 +474,7 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 #- - - - - - - - - - -
 
 # Combine all labels into one df
+#finish adjusting cities
 labels <- data.frame(
   name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
   class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
