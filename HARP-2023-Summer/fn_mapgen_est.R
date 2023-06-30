@@ -18,11 +18,10 @@ library(geosphere)
 
 fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) { 
   
-  #For the scalebar:  
+ #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
-  bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326) # for use within scalebar 
-#  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1])-0.45, y = bbox_points$y[1]+(bbox_points$y[1])*0.001)
+  bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326)
   anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/5) + bbox_points$x[1]), y = bbox_points$y[1]+((bbox_points$y[1])/3)*0.001) 
   
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
@@ -35,7 +34,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
 
-  #Reverse polygon fill (highlight basin) -- for type basin
+ #Reverse polygon fill (highlight basin) -- for type basin
   bb <- unlist(attr(basemap_0, "bb"))
   coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
   basemap_0 <- sp::SpatialPolygons(
@@ -47,7 +46,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
-  #Lighten terrain basemap 
+ #Lighten terrain basemap 
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
     
@@ -161,17 +160,19 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) +
     
     # Facility Points; Metric 1
-    
+## Old way of plotting    
 #    geom_point(data = facils$within, 
 #               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
 #               alpha=0.75, shape = 19, stroke = 0.75 ) +
-    
+#                scale_size(range = c(10,20),
 #               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3),
 #               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), 
 #               name= legend_title[1],
 #               guide= guide_legend(override.aes=list(label=""))
 #    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
-    ## plotting using bins in a single layer:
+    
+   ## Plotting using bins in a single layer:
+  
     new_scale("size") + new_scale("color") +
     
     geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, 
@@ -199,8 +200,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   
   if (type == "basin"){ #only do reverse fill by basin for map type basin
     map <- map +
-      # Reverse Fill
-      geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 )
+      geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) # Reverse Fill
   }
   
   map <- map +   
@@ -214,7 +214,5 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
                                       style= north_arrow_orienteering(text_size=35)
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
-  
   print('Map stored in environment as: map')
-  #return(map)
 }
