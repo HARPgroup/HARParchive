@@ -92,11 +92,12 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     sourcetype = "Source.Type"
   } 
   
-  #For legend breaks
+  #For binned legend 
+  breaks <- seq(1:9)
   if (metric_unit == "mgd") { 
-    breaks = c(0.5,1.0,2,5,10,25,50,100,1000) 
+    labels = c(0.5,1.0,2,5,10,25,50,100,1000) 
   } else if (metric_unit == "mgy") {
-    breaks = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+    labels = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
   }
   
  #Generate map gg object
@@ -181,7 +182,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     
     scale_size(range = c(10,20),
                breaks= breaks, 
-               labels= breaks, 
+               labels= labels, 
                name= legend_title[1],
                guide= guide_legend(override.aes=list(label=""))  
                ) +
