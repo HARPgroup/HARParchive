@@ -16,14 +16,13 @@ library(geosphere)
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## type will be either basin, locality, or region
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) { 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) { 
   
-  #For the scalebar:  
+ #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
-  bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326) # for use within scalebar 
-#  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1])-0.45, y = bbox_points$y[1]+(bbox_points$y[1])*0.001)
-  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1]), y = bbox_points$y[1]+((bbox_points$y[1])/3)*0.001) 
+  bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326)
+  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/5) + bbox_points$x[1]), y = bbox_points$y[1]+((bbox_points$y[1])/3)*0.001) 
   
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
  #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
@@ -35,7 +34,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
 
-  #Reverse polygon fill (highlight basin) -- for type basin
+ #Reverse polygon fill (highlight basin) -- for type basin
   bb <- unlist(attr(basemap_0, "bb"))
   coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
   basemap_0 <- sp::SpatialPolygons(
@@ -47,7 +46,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
-  #Lighten terrain basemap 
+ #Lighten terrain basemap 
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
     
@@ -93,6 +92,13 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     sourcetype = "Source.Type"
   } 
   
+  #For legend breaks
+  if (metric_unit == "mgd") { 
+    breaks = c(0.5,1.0,2,5,10,25,50,100,1000) 
+  } else if (metric_unit == "mgy") {
+    breaks = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+  }
+  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -119,7 +125,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     # Basin Outlines
     geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
     # Facility Labels Placeholder (to have other labels repel)
-    geom_text(data = facils$within, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
+    geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
     geom_label_repel(data = labelsP[labelsP$road=="yes",],
                      aes(x=lng, y=lat, label=name, 
@@ -154,43 +160,47 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) +
     
     # Facility Points; Metric 1
-    new_scale("size") + new_scale("color") +
-    geom_point(data = facils$within, 
-               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
-               alpha=0.75, shape = 19, stroke = 0.75 ) +
-    scale_size(range= c(10,30), 
-               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
-               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
-               name= legend_title[1],
-               guide= guide_legend(override.aes=list(label=""))
-    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
-    ## plotting using bins:
-#    geom_point(data = mp_bin_list[[1]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 1, alpha = 0.3) +
-#    geom_point(data = mp_bin_list[[2]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 2, alpha = 0.4) +
-#    geom_point(data = mp_bin_list[[3]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 3, alpha = 0.5) +
-#    geom_point(data = mp_bin_list[[4]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 4, alpha = 0.6) +
-#    geom_point(data = mp_bin_list[[5]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 5, alpha = 0.7) +
-#    geom_point(data = mp_bin_list[[6]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 6, alpha = 0.8) +
-#    geom_point(data = mp_bin_list[[7]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 7, alpha = 0.9) +
-#    geom_point(data = mp_bin_list[[8]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 8, alpha = 0.95) +
-#    geom_point(data = mp_bin_list[[9]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 9, alpha = 0.975) +
-#    geom_point(data = mp_bin_list[[10]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 10, alpha = 1.0) +
+## Old way of plotting    
+#    geom_point(data = facils$within, 
+#               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
+#               alpha=0.75, shape = 19, stroke = 0.75 ) +
+#                scale_size(range = c(10,20),
+#               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3),
+#               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), 
+#               name= legend_title[1],
+#               guide= guide_legend(override.aes=list(label=""))
+#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     
+   ## Plotting using bins in a single layer:
+  
+    new_scale("size") + new_scale("color") +
+    
+    geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, 
+              color = mp_layer[, sourcetype], size = (mp_layer$bin)), 
+              shape = 19) +
+    
+    scale_size(range = c(10,20),
+               breaks= breaks, 
+               labels= breaks, 
+               name= legend_title[1],
+               guide= guide_legend(override.aes=list(label=""))  
+               ) +
+                 
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
-                        breaks= c("Surface Water", "Groundwater"),
-                        labels= c("Surface Water", "Groundwater"),
-                        name= "Source Type",
-                        guide= guide_legend(override.aes=list(label=""))
-    ) +
+            breaks= c("Surface Water", "Groundwater"),
+            labels= c("Surface Water", "Groundwater"),
+            name= "Source Type",
+            guide= guide_legend(override.aes=list(label="", size =5))
+                 ) +             
+
     # Facility Labels
-    geom_text(data = facils$within, 
+    geom_text(data = mp_layer, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
               colour="black", size=textsize[5], check_overlap=TRUE)
   
   if (type == "basin"){ #only do reverse fill by basin for map type basin
     map <- map +
-      # Reverse Fill
-      geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 )
+      geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) # Reverse Fill
   }
   
   map <- map +   
@@ -204,7 +214,5 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                                       style= north_arrow_orienteering(text_size=35)
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
-  
   print('Map stored in environment as: map')
-  #return(map)
 }
