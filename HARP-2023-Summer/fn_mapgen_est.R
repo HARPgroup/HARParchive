@@ -22,8 +22,8 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
   bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326) # for use within scalebar 
-  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1])-0.45, y = bbox_points$y[1]+(bbox_points$y[1])*0.001)
-  
+#  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1])-0.45, y = bbox_points$y[1]+(bbox_points$y[1])*0.001)
+  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1]), y = bbox_points$y[1]+((bbox_points$y[1])/3)*0.001) 
   
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
  #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
@@ -165,16 +165,16 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                guide= guide_legend(override.aes=list(label=""))
     ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     ## plotting using bins:
-#    geom_point(data = mp_bin_1, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 1, alpha = 0.3) +
-#    geom_point(data = mp_bin_2, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 2, alpha = 0.4) +
-#    geom_point(data = mp_bin_3, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 3, alpha = 0.5) +
-#    geom_point(data = mp_bin_4, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 4, alpha = 0.6) +
-#    geom_point(data = mp_bin_5, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 5, alpha = 0.7) +
-#    geom_point(data = mp_bin_6, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 6, alpha = 0.8) +
-#    geom_point(data = mp_bin_7, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 7, alpha = 0.9) +
-#    geom_point(data = mp_bin_8, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 8, alpha = 0.95) +
-#    geom_point(data = mp_bin_9, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 9, alpha = 0.975) +
-#    geom_point(data = mp_bin_10, aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 10, alpha = 1.0) +
+#    geom_point(data = mp_bin_list[[1]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 1, alpha = 0.3) +
+#    geom_point(data = mp_bin_list[[2]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 2, alpha = 0.4) +
+#    geom_point(data = mp_bin_list[[3]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 3, alpha = 0.5) +
+#    geom_point(data = mp_bin_list[[4]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 4, alpha = 0.6) +
+#    geom_point(data = mp_bin_list[[5]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 5, alpha = 0.7) +
+#    geom_point(data = mp_bin_list[[6]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 6, alpha = 0.8) +
+#    geom_point(data = mp_bin_list[[7]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 7, alpha = 0.9) +
+#    geom_point(data = mp_bin_list[[8]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 8, alpha = 0.95) +
+#    geom_point(data = mp_bin_list[[9]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 9, alpha = 0.975) +
+#    geom_point(data = mp_bin_list[[10]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 10, alpha = 1.0) +
     
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
