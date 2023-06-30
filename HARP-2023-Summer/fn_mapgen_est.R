@@ -23,7 +23,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   colnames(bbox_points) <- c('x','y')
   bbox_sf <- st_as_sf(bbox_points, coords = c('x','y'), crs = 4326) # for use within scalebar 
 #  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1])-0.45, y = bbox_points$y[1]+(bbox_points$y[1])*0.001)
-  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/3) + bbox_points$x[1]), y = bbox_points$y[1]+((bbox_points$y[1])/3)*0.001) 
+  anchor_vect <- c(x = (((bbox_points$x[2] - bbox_points$x[1])/5) + bbox_points$x[1]), y = bbox_points$y[1]+((bbox_points$y[1])/3)*0.001) 
   
  #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
  #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
