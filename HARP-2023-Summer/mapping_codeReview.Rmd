@@ -7,14 +7,14 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JA4_7280_7340"] 
-  locality: ["Montgomery"]
+  rivseg: ["JL6_7320_7150"] 
+  locality: ["Culpeper"]
   region: ["NewRiver_2"]    
   type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["JA4_7280_7340"]
+  map_name: ["Culpeper"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -108,10 +108,10 @@ process_geom <- function(data, geom_col) {
 centroid_coords <- function(data, geom_col) {
   
   #NEW:
-  if(class(data[[geom_col]])=="character"){
-    data <- process_geom(data, geom_col)
-    data <- st_as_sf(data)
-  } #.
+#  if(class(data[[geom_col]])=="character"){
+#    data <- process_geom(data, geom_col)
+#    data <- st_as_sf(data)
+#  } #.
   
   for (r in 1:nrow(data)) { #get centroid coord. for labeling
     centroid <- st_centroid(data[r, geom_col])
@@ -192,8 +192,8 @@ roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/ST
 roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
-
+#cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
+cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
@@ -304,7 +304,7 @@ counties_df <- counties$df #needed for sqldf
 cities <- sqldf( 
   "SELECT cities.*  
    FROM cities
-  where NAME is not (select counties_df.name from counties_df)"
+  where city is not (select counties_df.name from counties_df)"
 )
 remove(counties_df) #no longer needed
 
@@ -372,6 +372,7 @@ if (type == "locality") {
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326 
+  st_crs(locality_sf) <- 4326 
   facils$within <- st_filter(facils$sf, locality_sf)
   ## order and number facils$within df based on metric
   coords <- st_coordinates(facils$within$geometry)
