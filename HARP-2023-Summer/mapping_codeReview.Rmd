@@ -408,8 +408,11 @@ if (type == "region") {
   region_list <- region_geom_list[names(region_geom_list) == region]
   region_sf <- st_sfc(region_list) #create sf object from the region specified 
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
+  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+  facils$all <- facils$all[!is.na(facils$all$Latitude),]
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326 
   facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
-  
   ## need to order rows and add NUM column
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c("Longitude","Latitude")
