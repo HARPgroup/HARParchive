@@ -16,7 +16,7 @@ library(geosphere)
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## type will be either basin, locality, or region
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region, mp_layer) { 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) { 
   
   #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
@@ -93,6 +93,13 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     sourcetype = "Source.Type"
   } 
   
+  #For legend breaks
+  if (metric_unit == "mgd") { 
+    breaks = c(0.5,1.0,2,5,10,25,50,100,1000) 
+  } else if (metric_unit == "mgy") {
+    breaks = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+  }
+  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -159,26 +166,30 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
 #               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
 #               alpha=0.75, shape = 19, stroke = 0.75 ) +
     
-#               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
-#               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
+#               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3),
+#               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), 
 #               name= legend_title[1],
 #               guide= guide_legend(override.aes=list(label=""))
 #    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
     ## plotting using bins in a single layer:
-    new_scale("size") + 
+    new_scale("size") + new_scale("color") +
     
-    new_scale("color") +
+    geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, 
+              color = mp_layer[, sourcetype], size = (mp_layer$bin)), 
+              shape = 19) +
     
-    geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, color = mp_layer[, "Source Type"]), 
-            size = (mp_layer$bin+10), shape = 19) +
-    
-    scale_size(range= c(8,30)) +
+    scale_size(range = c(10,20),
+               breaks= breaks, 
+               labels= breaks, 
+               name= legend_title[1],
+               guide= guide_legend(override.aes=list(label=""))  
+               ) +
                  
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
             breaks= c("Surface Water", "Groundwater"),
             labels= c("Surface Water", "Groundwater"),
             name= "Source Type",
-            guide= guide_legend(override.aes=list(label=""))
+            guide= guide_legend(override.aes=list(label="", size =5))
                  ) +             
 
     # Facility Labels
