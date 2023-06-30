@@ -16,7 +16,7 @@ library(geosphere)
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## type will be either basin, locality, or region
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) { 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region, mp_layer) { 
   
   #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
@@ -154,27 +154,33 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) +
     
     # Facility Points; Metric 1
-    new_scale("size") + new_scale("color") +
-    geom_point(data = facils$within, 
-               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
-               alpha=0.75, shape = 19, stroke = 0.75 ) +
-    scale_size(range= c(10,30), 
-               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
-               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
-               name= legend_title[1],
-               guide= guide_legend(override.aes=list(label=""))
-    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
-    ## plotting using bins:
-#    geom_point(data = mp_bin_list[[1]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 1, alpha = 0.3) +
-#    geom_point(data = mp_bin_list[[2]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 2, alpha = 0.4) +
-#    geom_point(data = mp_bin_list[[3]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 3, alpha = 0.5) +
-#    geom_point(data = mp_bin_list[[4]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 4, alpha = 0.6) +
-#    geom_point(data = mp_bin_list[[5]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 5, alpha = 0.7) +
-#    geom_point(data = mp_bin_list[[6]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 6, alpha = 0.8) +
-#    geom_point(data = mp_bin_list[[7]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 7, alpha = 0.9) +
-#    geom_point(data = mp_bin_list[[8]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 8, alpha = 0.95) +
-#    geom_point(data = mp_bin_list[[9]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 9, alpha = 0.975) +
-#    geom_point(data = mp_bin_list[[10]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, size = 10, alpha = 1.0) +
+#    new_scale("size") + 
+    new_scale("color") +
+#    geom_point(data = facils$within, 
+#               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
+#               alpha=0.75, shape = 19, stroke = 0.75 ) +
+#    scale_size(range= c(10,30), 
+#               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3), # source of error 
+#               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), # source of error 
+#               name= legend_title[1],
+#               guide= guide_legend(override.aes=list(label=""))
+#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+    ## plotting using bins in a single layer:
+    
+    geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, color= mp_layer[, sourcetype]), 
+               pch = 21, label = mp_layer$NUM, size = (mp_layer$bin + 8)) +
+    
+    ## plotting using individual bins:
+#    geom_point(data = mp_bin_list[[1]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 1, alpha = 0.3) +
+#    geom_point(data = mp_bin_list[[2]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 2, alpha = 0.4) +
+#    geom_point(data = mp_bin_list[[3]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 3, alpha = 0.5) +
+#    geom_point(data = mp_bin_list[[4]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 4, alpha = 0.6) +
+#    geom_point(data = mp_bin_list[[5]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 5, alpha = 0.7) +
+#    geom_point(data = mp_bin_list[[6]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 6, alpha = 0.8) +
+#    geom_point(data = mp_bin_list[[7]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 7, alpha = 0.9) +
+#    geom_point(data = mp_bin_list[[8]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 8, alpha = 0.95) +
+#    geom_point(data = mp_bin_list[[9]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 9, alpha = 0.975) +
+#    geom_point(data = mp_bin_list[[10]], aes(x = Longitude, y = Latitude), colour="black", fill ="purple4", pch = 21, label = NUM, size = 10, alpha = 1.0) +
     
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
@@ -183,7 +189,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                         guide= guide_legend(override.aes=list(label=""))
     ) +
     # Facility Labels
-    geom_text(data = facils$within, 
+    geom_text(data = mp_layer, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
               colour="black", size=textsize[5], check_overlap=TRUE)
   
