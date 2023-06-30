@@ -560,6 +560,7 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgy
 }
 
+#Adding bin column to dataframe based on range which data falls into
 bins_sql <-  paste("SELECT *,
 	                  CASE WHEN demand_metric <= ",div[1]," THEN '1'
 		                WHEN demand_metric >  ",div[1]," AND demand_metric <= ",div[2]," THEN '2'
@@ -576,6 +577,18 @@ bins_sql <-  paste("SELECT *,
 		                FROM mp_layer",sep="")
 
 mp_layer <- sqldf(bins_sql)  
+
+#New layers for each bin 
+mp_bin_1 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 1')
+mp_bin_2 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 2')
+mp_bin_3 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 3')
+mp_bin_4 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 4')
+mp_bin_5 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 5')
+mp_bin_6 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 6')
+mp_bin_7 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 7')
+mp_bin_8 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 8')
+mp_bin_9 <-   sqldf('SELECT * FROM mp_layer WHERE bin = 9')
+mp_bin_10 <-  sqldf('SELECT * FROM mp_layer WHERE bin = 10')
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
