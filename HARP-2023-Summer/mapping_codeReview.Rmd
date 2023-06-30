@@ -105,12 +105,23 @@ process_geom <- function(data, geom_col) {
 
 # Add centroid coords to a data frame
 centroid_coords <- function(data, geom_col) {
+  
+  #NEW:
+  if(class(data[[geom_col]])=="character"){
+    data <- process_geom(data, geom_col)
+    data <- st_as_sf(data)
+  } #.
+  
   for (r in 1:nrow(data)) { #get centroid coord. for labeling
     centroid <- st_centroid(data[r, geom_col])
     centroid <- as.data.frame(st_coordinates(centroid))
     data$lng[r] <- centroid$X
     data$lat[r] <- centroid$Y
   }
+  
+  #NEW:
+  st_crs(data) <- 4326
+  #.
   return(data)
 }
 #- - - - - - - - - - -
@@ -388,12 +399,17 @@ if (type == "locality") {
 }
 
 if (type == "region") {
-  # not functional yet
   #region geometries stored in region_geom_list under the region name 
   #pull region of interest given in params from list of region geometries 
   region_list <- region_geom_list[names(region_geom_list) == region]
   region_sf <- st_sfc(region_list) #create sf object from the region specified 
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
+  
+  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+  facils$all <- facils$all[!is.na(facils$all$Latitude),]
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326 
+
   facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
   
   ## need to order rows and add NUM column
@@ -426,7 +442,7 @@ rm(facils_all)
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
 
-```{r Labels df & Extent Filters, warning=FALSE}
+```{r Labels df, warning=FALSE}
 # River & stream labels
 ## major rivs = orders 5 & 6; streams = order 4
 lb_rivr <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6
@@ -451,37 +467,63 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 #- - - - - - - - - - -
 
 # Combine all labels into one df
-labels <- data.frame(
+#labels <- data.frame(
+#  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
+#  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
+#  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
+#  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
+#)
+#remove(lb_rivr)
+#remove(lb_wtbd)
+
+# Columns for the aesthetics
+## very specific function; just minimizing code lines:
+#class_aes <- function(aesthetic){ #input values of an aesthetic to correspond with each label class
+#  mgsub(labels$class, c("I","S","U","town","majC","LakePond","str","majR","county"), aesthetic)
+#}
+#labels$road <- class_aes( c(rep("yes",3), rep("no",6)) )
+
+#labels$fontface <- class_aes( c(rep("plain",5),"bold","bold","bold","bold.italic") )
+#labels$fontfam <- class_aes( c(rep("Comic Sans MS",3),"sans","sans",rep("serif",4) ) )
+#labels$angle <- as.numeric( class_aes( c(0,0,0,0,0,15,15,15,0) ) ) #as.numeric() b/c mgsub() returns character strings
+#labels$bg.r <- as.numeric( class_aes( c("NA","NA","NA",.05,.05,.1,.1,.05,.03) ) )
+#labels$segsize <- as.numeric( class_aes( c("NA","NA","NA",.5,.5,.5,.5,.75,1) ) )
+
+#textcol <- c("red","white","black","deepskyblue4","#003333") #c(I, S, U/town/majC, LakePond/str/majR, county)
+#labels$segcol <- class_aes( c("NA","NA","NA", textcol[c(3,3,4,4,4,5)] ) )
+#labels$colcode <- class_aes( c(1,2,3,3,3,4,4,4,5) ) #corresponds to textcol for the color scale
+
+#labels$sizecode <- as.numeric ( class_aes( c(1,1,1,2,2,2,2,3,4) ) ) #corresponds to textsize for the size scale
+
+#label_fill <- c("blue","#0B5F14","white") #for road bubbles c(I,S,U)
+#labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
+
+```
+
+```{r Labels df Using mapstyle_config}
+labels <- list()
+labels$aes <- styles$custom
+
+labels$data <- data.frame(
   name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
   class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
   lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
   lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
 )
-remove(lb_rivr)
-remove(lb_wtbd)
 
-# Columns for the aesthetics
-## very specific function; just minimizing code lines:
-class_aes <- function(aesthetic){ #input values of an aesthetic to correspond with each label class
-  mgsub(labels$class, c("I","S","U","town","majC","LakePond","str","majR","county"), aesthetic)
-}
-labels$road <- class_aes( c(rep("yes",3), rep("no",6)) )
+labels$full <- with(labels, sqldf("select data.* , aes.* from data 
+      left outer join aes
+      on (data.class = aes.class)
+    "
+))
 
-labels$fontface <- class_aes( c(rep("plain",5),"bold","bold","bold","bold.italic") )
-labels$fontfam <- class_aes( c(rep("Comic Sans MS",3),"sans","sans",rep("serif",4) ) )
-labels$angle <- as.numeric( class_aes( c(0,0,0,0,0,15,15,15,0) ) ) #as.numeric() b/c mgsub() returns character strings
-labels$bg.r <- as.numeric( class_aes( c("NA","NA","NA",.05,.05,.1,.1,.05,.03) ) )
-labels$segsize <- as.numeric( class_aes( c("NA","NA","NA",.5,.5,.5,.5,.75,1) ) )
+# UNFINISHED integration into fn_mapgen()
+labels <- labels$full
+labels <- labels[ ,!duplicated(colnames(labels))]
 
-textcol <- c("red","white","black","deepskyblue4","#003333") #c(I, S, U/town/majC, LakePond/str/majR, county)
-labels$segcol <- class_aes( c("NA","NA","NA", textcol[c(3,3,4,4,4,5)] ) )
-labels$colcode <- class_aes( c(1,2,3,3,3,4,4,4,5) ) #corresponds to textcol for the color scale
 
-labels$sizecode <- as.numeric ( class_aes( c(1,1,1,2,2,2,2,3,4) ) ) #corresponds to textsize for the size scale
-
-label_fill <- c("blue","#0B5F14","white") #for road bubbles c(I,S,U)
-labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
-
+textcol <- colors$default$text
+label_fill <- colors$default$fill
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}

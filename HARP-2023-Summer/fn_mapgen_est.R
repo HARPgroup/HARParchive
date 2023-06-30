@@ -127,7 +127,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
                      aes(x=lng, y=lat, label=name, 
                          fontface=fontface, family=fontfam,
                          color=colcode, 
-                         fill=fill
+                         fill=fillcode
                      ), 
                      show.legend=NA,
                      size=textsize[1],
@@ -196,5 +196,5 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, facils, counties, roads,
   assign('map', map, envir = globalenv()) #save the map in the global environment
   
   print('Map stored in environment as: map')
-  return(map)
+  #return(map)
 }
