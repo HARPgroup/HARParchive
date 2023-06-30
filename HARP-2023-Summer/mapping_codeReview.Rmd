@@ -412,7 +412,7 @@ if (type == "region") {
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326 
-  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
+  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the regiong
   ## need to order rows and add NUM column
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c("Longitude","Latitude")
@@ -502,6 +502,7 @@ labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
 ```
 
 ```{r}
+### SKIP for now -- not finalized 
 ## Putting the metric data into bins for ranged legend for map
 
 facils_within <- facils$within
@@ -510,8 +511,6 @@ mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
                          , sep="")
   
 mp_layer <- sqldf(mp_layer_sql)
-
-
 metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
 wd_mgd = c(0.5,1.0,2,5,10,25,50,100,1000) #set ranges for the bins 
 wd_mgy = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
