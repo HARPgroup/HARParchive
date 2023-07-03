@@ -7,15 +7,14 @@ params:
          #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"] 
-  locality: ["Montgomery"]
+  rivseg: ["JL6_7320_7150"] 
+  locality: ["Culpeper"]
   region: ["NewRiver_2"]    
   type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["NewRiver_3"]
----
+  map_name: ["Culpeper"]
 
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -38,7 +37,7 @@ library(geosphere)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load script with mapping function
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
 source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
 ds <- RomDataSource$new(site, rest_uname)
@@ -108,10 +107,10 @@ process_geom <- function(data, geom_col) {
 centroid_coords <- function(data, geom_col) {
   
   #NEW:
-  if(class(data[[geom_col]])=="character"){
-    data <- process_geom(data, geom_col)
-    data <- st_as_sf(data)
-  } #.
+#  if(class(data[[geom_col]])=="character"){
+#    data <- process_geom(data, geom_col)
+#    data <- st_as_sf(data)
+#  } #.
   
   for (r in 1:nrow(data)) { #get centroid coord. for labeling
     centroid <- st_centroid(data[r, geom_col])
@@ -195,8 +194,8 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
-
+#cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
+cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
@@ -276,8 +275,8 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
 legend_title <- legend_titling(metric, runid_list)
 
 #- - - - - - - - - - -
-
 # Filter roads to only Interstate, US Hwy, State Rte
+
 #roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
 #roads <- st_intersection(roads, roads$state) #only VA primary roads
 
@@ -287,15 +286,18 @@ roads <- subset(roads, MTFCC=="S1100") #primary roads only
 #change to sqldf
 roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
 
-
 ## shorten names to number only; column RTTYP gives classification I, U, or S
 roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
-
-#change to sqldf
 roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
 
 roads <- centroid_coords(roads, "geometry") #add centroid coords
+
+#roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
+roads_sf <- roads$sf
+roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
+                  FULLNAME NOT LIKE '___%'")
+
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$ST == 'VA',] #VA cities
@@ -309,22 +311,23 @@ counties_df <- counties$df #needed for sqldf
 cities <- sqldf( 
   "SELECT cities.*  
    FROM cities
-  where NAME is not (select counties_df.name from counties_df)"
+  where city is not (select counties_df.name from counties_df)"
 )
 remove(counties_df) #no longer needed
 
-popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
-for(i in cities$population){
-  if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
-  cities <- cities[cities$population!=i,]
-  }
-  if(i >= popul["75%"]){
-  cities$class[cities$population==i] = "majC"
-  }
-  if(i <= popul["50%"] & i >= popul["25%"]){
-  cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
-  }
-}
+#not needed for new dataset, need to start new process  
+# popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
+# for(i in cities$population){
+#   if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
+#   cities <- cities[cities$population!=i,]
+#   }
+#   if(i >= popul["75%"]){
+#   cities$class[cities$population==i] = "majC"
+#   }
+#   if(i <= popul["50%"] & i >= popul["25%"]){
+#   cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
+#   }
+# }
 #- - - - - - - - - - -
 
 # Process Polygons; text-> spatial -> simple features
@@ -337,23 +340,6 @@ counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
 counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
-```
-
-## SKIP unless VAhydro bbox is wanted
-
-```{r VAhydro bbox if Desired, eval=FALSE}
-## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
-for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
- hid <- segs$basin$hydroid[i] 
- map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
- extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
- extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
- extent_coords <- extent_coords[c('propname','propvalue')]
- extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
- bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
- bbox_ex <- st_bbox(bbox_ex)
- assign("bbox", bbox_ex)
-}
 ```
 
 ```{r bbox & facils by TYPE Param, warning=FALSE}
@@ -394,6 +380,7 @@ if (type == "locality") {
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326 
+  st_crs(locality_sf) <- 4326 
   facils$within <- st_filter(facils$sf, locality_sf)
   ## order and number facils$within df based on metric
   coords <- st_coordinates(facils$within$geometry)
@@ -421,7 +408,8 @@ if (type == "region") {
   #region geometries stored in region_geom_list under the region name 
   #pull region of interest given in params from list of region geometries 
   region_list <- region_geom_list[names(region_geom_list) == region]
-  region_sf <- st_sfc(region_list) #create sf object from the region specified 
+  region_sf <- st_sfc(region_list) #create sf object from the region specified
+  #region_sf <- st_as_sf(region_sf[1])
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
 
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
@@ -456,6 +444,23 @@ if (type == "region") {
 rm(facils_all)
 ```
 
+## SKIP unless VAhydro bbox is wanted
+
+```{r VAhydro bbox if Desired, eval=FALSE}
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
+for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
+ hid <- segs$basin$hydroid[i] 
+ map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
+ extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+ extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+ extent_coords <- extent_coords[c('propname','propvalue')]
+ extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+ bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
+ bbox_ex <- st_bbox(bbox_ex)
+ assign("bbox", bbox_ex)
+}
+```
+
 ```{r Get NHD in bbox, message=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
@@ -486,6 +491,7 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 #- - - - - - - - - - -
 
 # Combine all labels into one df
+#finish adjusting cities
 #labels <- data.frame(
 #  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
 #  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
@@ -564,6 +570,7 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgy
 }
 
+#Adding bin column to dataframe based on range which data falls into
 bins_sql <-  paste("SELECT *,
 	                  CASE WHEN demand_metric <= ",div[1]," THEN '1'
 		                WHEN demand_metric >  ",div[1]," AND demand_metric <= ",div[2]," THEN '2'
@@ -575,16 +582,24 @@ bins_sql <-  paste("SELECT *,
 		                WHEN demand_metric > ",div[7]," AND demand_metric <= ",div[8]," THEN '8'
 		                WHEN demand_metric > ",div[8]," AND demand_metric <= ",div[9]," THEN '9'
 		                WHEN demand_metric > ",div[9]," THEN '10'
-		                ELSE 'X'
+		                ELSE '0'
 		                END AS bin
 		                FROM mp_layer",sep="")
 
 mp_layer <- sqldf(bins_sql)  
+
+#change column name back to the specific metric
+names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1]
+
+#remove duplicated columns
+mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))]
+
+#make sure bin column is type numeric for sizing data points 
+class(mp_layer$bin) <- "numeric"
 ```
 
-
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric = 'runid_11_wd_mgd', rivseg, bbox, segs, facils, counties, roads, nhd, labelsP, locality, region) #execute mapping function
+fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
