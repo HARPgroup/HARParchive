@@ -602,7 +602,7 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
 
 #Adding bin column to dataframe based on range which data falls into
 bins_sql <-  paste("SELECT *,
-	                  CASE WHEN demand_metric <= ",div[1]," THEN '1'
+	                  CASE WHEN demand_metric > 0 AND demand_metric <= ",div[1]," THEN '1'
 		                WHEN demand_metric >  ",div[1]," AND demand_metric <= ",div[2]," THEN '2'
 		                WHEN demand_metric >  ",div[2]," AND demand_metric <= ",div[3]," THEN '3'
 		                WHEN demand_metric >  ",div[3]," AND demand_metric <= ",div[4]," THEN '4'
@@ -612,7 +612,8 @@ bins_sql <-  paste("SELECT *,
 		                WHEN demand_metric > ",div[7]," AND demand_metric <= ",div[8]," THEN '8'
 		                WHEN demand_metric > ",div[8]," AND demand_metric <= ",div[9]," THEN '9'
 		                WHEN demand_metric > ",div[9]," THEN '10'
-		                ELSE '0'
+		                WHEN demand_metric = 0 THEN '0'
+		                ELSE 'X'
 		                END AS bin
 		                FROM mp_layer",sep="")
 
@@ -623,11 +624,6 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1]
 
 #remove duplicated columns
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))]
-
-
-
-#make sure bin column is type numeric for sizing data points 
-class(mp_layer$bin) <- "numeric"
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
