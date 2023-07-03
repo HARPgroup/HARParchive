@@ -7,15 +7,16 @@ params:
         #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_7320_7150"] 
+  rivseg: ["JB3_6820_7053"] 
   locality: ["Culpeper"]
   region: ["NewRiver_2"]    
-  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
   map_name: ["Culpeper"]
 ---
+
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
@@ -35,13 +36,18 @@ library(ggrepel)
 library(flextable)
 library(geosphere)
 
+library(tidycensus)
+
 basepath='/var/www/R'
 source('/var/www/R/config.R')
+ds <- RomDataSource$new(site, rest_uname)
+ds$get_token(rest_pw)
+```
+
+```{r Load External Functions, echo=FALSE}
 source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
 source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
-ds <- RomDataSource$new(site, rest_uname)
-ds$get_token(rest_pw)
 ```
 
 ```{r UserInputs, echo=FALSE}
@@ -194,14 +200,15 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-#cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
-cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
+cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
+#cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
 
 #Retrieving regional planning groups 
 regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
+
 ```
 
 ```{r Integrate Locality Geoms into their Regions}
@@ -232,6 +239,28 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
+```{r Facility Data and Coords for Region maps, warning=FALSE}
+## For mapping regions by facility -- requires VAhydro data retrieval 
+if (type == "region") {
+
+  if (exists("facil_featr") == FALSE) { #only retrieve data if needed, process takes time
+  
+  facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
+  metric=FALSE, runids=df, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version = model_version,
+  base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+  ds = ds)
+
+ #Get facility coordinates
+  for(i in 1:nrow(facil_featr)){ #takes a few minutes
+    facil.i <- RomFeature$new(ds,list(hydroid=facil_featr$featureid[i]), TRUE)
+  facil_featr$dh_geofield[i] <- facil.i$geom
+  } # adds point geometry for each facility 
+ }
+}
+```
+
 # PROCESS Data
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
@@ -259,18 +288,6 @@ colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all
 # Extract basin of user-input rivseg, from segs$all
 segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
 
-for(i in rivseg){
-  if(i==rivseg[1]){
-    segs$basin <- fn_extract_basin(segs$all, i)
-  }
-  if(i!=rivseg[1]){
-    segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
-  }
-}
-## don't duplicate riversegs for overlapping basins... 
-## unless we wanted to show them in different colors? transparent overlap?
-segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
-
 # Legend title
 legend_title <- legend_titling(metric, runid_list)
 
@@ -283,35 +300,35 @@ legend_title <- legend_titling(metric, runid_list)
 roads <- subset(roads, MTFCC=="S1100") #primary roads only
 ## keep only interstate, US hwy, or state Rte.
 
-#change to sqldf
+#change to sqldf- need to drop geom to do this, sqldf does not like geom- any other way to do it?
+#roads <- st_drop_geometry(roads)
+#roads <- sqldf("SELECT * FROM roads WHERE FULLNAME like 'US HWY_%' OR RTTYP is 'I' OR RTTYP is 'S'")
+#roads <- sqldf("SELECT * from roads where FULLNAME NOT LIKE '___%'")
+
 roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
 
 ## shorten names to number only; column RTTYP gives classification I, U, or S
 roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
 roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
 
 roads <- centroid_coords(roads, "geometry") #add centroid coords
 
-#roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
-#roads_sf <- roads
-#roads <- sqldf("SELECT * FROM roads_sf WHERE 
-#                  FULLNAME NOT LIKE '___%'")
-
+#- - - - -- -
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$ST == 'VA',] #VA cities
 ## Remove city/town names that match their county/locality name
 
 #update for new city csv
-
 counties_df <- counties$df #needed for sqldf
 
 #need to test to ensure this works properly in mapping
 cities <- sqldf( 
   "SELECT cities.*  
    FROM cities
-  where city is not (select counties_df.name from counties_df)"
+  where NAME is not (select counties_df.name from counties_df)"
 )
 remove(counties_df) #no longer needed
 
@@ -328,13 +345,12 @@ remove(counties_df) #no longer needed
 #   cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
 #   }
 # }
+
+cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
+cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
 #- - - - - - - - - - -
 
 # Process Polygons; text-> spatial -> simple features
-## basin watersheds
-segs$basin_sp <- process_geom(segs$basin, "geom")
-segs$basin_sf <- st_as_sf(segs$basin_sp)
-st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
 ## counties
 counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
@@ -348,7 +364,20 @@ st_crs(counties$sf) <- 4326
 
 facils_all <- facils$all #create temporary df for use in sqldf for ordering
 if (type == "basin") {
+  
+  for(i in rivseg){. #newly moved into this loop
+  if(i==rivseg[1]){
+    segs$basin <- fn_extract_basin(segs$all, i)
+  }
+  if(i!=rivseg[1]){
+    segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
+  }
+  }
+  
   segs_basin <- segs$basin
+  segs$basin_sp <- process_geom(segs$basin, "geom")
+  segs$basin_sf <- st_as_sf(segs$basin_sp)
+  st_crs(segs$basin_sf) <- 4326 
   facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
   #facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
   # Filter out WSP entries (optional)
@@ -375,6 +404,7 @@ if (type == "basin") {
 if (type == "locality") {
   ## pull locality and geometry out of data frame with the locality parameter given
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
+  locality_sp <- process_geom(as.data.frame(locality_sf), "dh_geofield") #for reverse-fill process for map 
   #filter to only facilities within the locality specified
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
@@ -382,44 +412,17 @@ if (type == "locality") {
   st_crs(facils$sf) <- 4326 
   st_crs(locality_sf) <- 4326 
   facils$within <- st_filter(facils$sf, locality_sf)
+  
+  #filter basins to those within the locality
+  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
+  segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
+  rm(segs_all)
+  segs$sf <- st_as_sf(segs$sp)
+  st_crs(segs$sf) <- 4326
+  segs$basin <- st_filter(segs$sf, locality_sf)
+  segs$basin <- st_drop_geometry(segs$basin)
+  
   ## order and number facils$within df based on metric
-  coords <- st_coordinates(facils$within$geometry)
-  colnames(coords) <- c("Longitude","Latitude")
-  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
-  facils_within <- sqldf(paste0( #ordering the data using sqldf 
-  "SELECT facils_within.*  
-   FROM facils_within 
-   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
-  )
-  facils$within <- facils_within 
-  rm(facils_within) #removing the ordered data frame since we're finished with it 
-  facils$within$NUM <- seq(1, nrow(facils$within))
-  facils$within <- cbind(facils$within, coords)
-  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
-  facils$within <- cbind(facils$within, coords)
-  st_crs(facils$within) <- 4326
-  facils$within <- st_drop_geometry(facils$within)
-  sf_use_s2(FALSE) # switch off Spherical geometry
-  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
-  bbox <- st_bbox(bbox)
-}
-
-if (type == "region") {
-  #region geometries stored in region_geom_list under the region name 
-  #pull region of interest given in params from list of region geometries 
-  region_list <- region_geom_list[names(region_geom_list) == region]
-  region_sf <- st_sfc(region_list) #create sf object from the region specified
-  #region_sf <- st_as_sf(region_sf[1])
-  st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
-
-  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
-  facils$all <- facils$all[!is.na(facils$all$Latitude),]
-  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
-  st_crs(facils$sf) <- 4326 
-
-  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
-
-  ## need to order rows and add NUM column
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c("Longitude","Latitude")
   facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
@@ -438,10 +441,100 @@ if (type == "region") {
   facils$within <- st_drop_geometry(facils$within)
   
   sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
+  bbox <- st_bbox(bbox)
+}
+
+if (type == "region") {
+  #region geometries stored in region_geom_list under the region name 
+  #pull region of interest given in params from list of region geometries 
+  region_list <- region_geom_list[names(region_geom_list) == region]
+  region_sf <- st_sfc(region_list) #create sf object from the region specified
+  region_sfd <- st_as_sf(region_sf) #for region_sp
+  region_sp <- as_Spatial(region_sfd, cast = FALSE)
+  st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
+
+  #filter basins to those within the region
+  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
+  segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
+  rm(segs_all)
+  segs$sf <- st_as_sf(segs$sp)
+  st_crs(segs$sf) <- 4326
+  segs$basin <- st_filter(segs$sf, region_sf)
+  segs$basin <- st_drop_geometry(segs$basin)
+  
+  ##### start: for mapping by measuring point:
+  
+#  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+#  facils$all <- facils$all[!is.na(facils$all$Latitude),]
+#  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+#  st_crs(facils$sf) <- 4326 
+#  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
+
+  ## need to order rows and add NUM column
+#  coords <- st_coordinates(facils$within$geometry)
+#  colnames(coords) <- c("Longitude","Latitude")
+#  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
+#  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+#  "SELECT facils_within.*  
+#   FROM facils_within 
+#   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+#  )
+#  facils$within <- facils_within 
+#  rm(facils_within) #removing the ordered data frame since we're finished with it 
+#  facils$within$NUM <- seq(1, nrow(facils$within))
+#  facils$within <- cbind(facils$within, coords)
+#  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+#  facils$within <- cbind(facils$within, coords)
+#  st_crs(facils$within) <- 4326
+#  facils$within <- st_drop_geometry(facils$within)
+
+  ##### end
+  
+  ## mapping by facility (new):
+  facil_featr <- facil_featr[!facil_featr$dh_geofield == "",] #remove rows/facilities that don't have a point geometry
+  facils_sp <- process_geom(facil_featr, "dh_geofield")
+  facils_sf <- st_as_sf(facils_sp) # need an sf object to do spatial filter 
+  st_crs(facils_sf) <- 4326
+  facils_region <- st_filter(facils_sf, region_sf)
+  # add long and lat columns for mapping 
+  coords <- st_coordinates(facils_region$geometry)
+  colnames(coords) <- c("Longitude","Latitude")
+  facils_region <- cbind(facils_region, coords)
+  facils_region <- st_drop_geometry(facils_region)
+  # Ordering by metric of interest and adding NUM column
+  facils_region <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_region.*  
+   FROM facils_region 
+   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+   )
+  facils_region$NUM <- seq(1, nrow(facils_region))
+  
+  facils$within <- facils_region
+  
+  sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(region_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
 }
 rm(facils_all)
+```
+
+```{r, warning=FALSE}
+## Process basin geometries
+
+## don't duplicate riversegs for overlapping basins... 
+## unless we wanted to show them in different colors? transparent overlap?
+segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
+
+if (type == "locality" || type == "region") {
+  ## basin watersheds
+  segs$basin_sp <- process_geom(segs$basin, "geom")
+  segs$basin_sf <- st_as_sf(segs$basin_sp)
+  st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
+}
+
+# adding centroids to the basins for labeling -- using megans centroid function
+segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
 ```
 
 ## SKIP unless VAhydro bbox is wanted
@@ -530,10 +623,10 @@ labels <- list()
 labels$aes <- styles$custom
 
 labels$data <- data.frame(
-  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
-  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
-  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
-  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
+  name= c(counties$sf$name, cities$NAME, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
+  class= c(counties$sf$ftype, cities$CLASS, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
+  lng= as.numeric( c(counties$sf$lng, cities$X, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
+  lat= as.numeric( c(counties$sf$lat,cities$Y, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
 )
 
 labels$full <- with(labels, sqldf("select data.* , aes.* from data 
@@ -553,7 +646,6 @@ label_fill <- colors$default$fill
 
 ```{r Metric Legend Bins}
 ## Putting the metric data into bins for ranged legend for map
-
 facils_within <- facils$within
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
                          FROM facils_within'
@@ -563,6 +655,7 @@ mp_layer <- sqldf(mp_layer_sql)
 metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
 wd_mgd = c(0.5,1.0,2,5,10,25,50,100,1000) #set ranges for the bins 
 wd_mgy = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+
 if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
 } else if (metric_unit == "mgy") {
@@ -571,7 +664,7 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
 
 #Adding bin column to dataframe based on range which data falls into
 bins_sql <-  paste("SELECT *,
-	                  CASE WHEN demand_metric <= ",div[1]," THEN '1'
+	                  CASE WHEN demand_metric > 0 AND demand_metric <= ",div[1]," THEN '1'
 		                WHEN demand_metric >  ",div[1]," AND demand_metric <= ",div[2]," THEN '2'
 		                WHEN demand_metric >  ",div[2]," AND demand_metric <= ",div[3]," THEN '3'
 		                WHEN demand_metric >  ",div[3]," AND demand_metric <= ",div[4]," THEN '4'
@@ -581,7 +674,8 @@ bins_sql <-  paste("SELECT *,
 		                WHEN demand_metric > ",div[7]," AND demand_metric <= ",div[8]," THEN '8'
 		                WHEN demand_metric > ",div[8]," AND demand_metric <= ",div[9]," THEN '9'
 		                WHEN demand_metric > ",div[9]," THEN '10'
-		                ELSE '0'
+		                WHEN demand_metric = 0 THEN '0'
+		                ELSE 'X'
 		                END AS bin
 		                FROM mp_layer",sep="")
 
@@ -592,13 +686,21 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1]
 
 #remove duplicated columns
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))]
+```
 
-#make sure bin column is type numeric for sizing data points 
-class(mp_layer$bin) <- "numeric"
+```{r}
+## Setting sp variable based on map type to do reverse fill for all map types
+if (type == "basin") {
+    sp <- segs$basin_sp
+  } else if (type == "locality") {
+    sp <- locality_sp
+  }  else if (type == "region") {
+    sp <- region_sp
+  } 
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) #execute mapping function
+fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit, sp) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
@@ -615,19 +717,19 @@ ggsave(
 ``` {r Create Table Data, warning=FALSE, message=FALSE }
 
 # - - - - creating initial data frame  - - - -
-table <- data.frame(Number= facils$basin$NUM, 
-                        Facility=facils$basin$Facility, 
-                        Source_Type = facils$basin$`Source Type`,
-                        Source = facils$basin$`MP Name`,
-                        Rivseg= facils$basin$riverseg,
-                        Locality = facils$basin$Locality, 
-                        fiveYr= facils$basin$fiveyr_avg_mgy
+table <- data.frame(Number= facils$within$NUM, 
+                        Facility=facils$within$Facility, 
+                        Source_Type = facils$within$`Source Type`,
+                        Source = facils$within$`MP Name`,
+                        Rivseg= facils$within$riverseg,
+                        Locality = facils$within$Locality, 
+                        fiveYr= facils$within$fiveyr_avg_mgy
                         ) 
 
 # - - - - add rivseg names- - - - - -
 
 for(i in 1:nrow(table)){ 
-    loc_rivseg <- (segs$basin[grep(facils$basin$riverseg[i], segs$basin$riverseg),])
+    loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
     table$rivsegName[i]  <- loc_rivseg$name 
 }
 
@@ -652,7 +754,7 @@ for(i in 1:nrow(table)){
 
 for (i in 1:nrow(facils$basin)){
   systemObj <- RomProperty$new(ds,list(
-    featureid = facils$basin$featureid[i],
+    featureid = facils$within$featureid[i],
     propcode= "vahydro-1.0"), 
   TRUE)
   permCapac <- RomProperty$new(ds,list(

@@ -28,6 +28,7 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
   }
 # Join with aesthestics:
   maplabs$aes <- styles$custom
+
   
   maplabs$final <- with(maplabs, sqldf("select all.*, aes.* from all 
       left outer join aes
@@ -59,8 +60,8 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     list(sp::Polygons(list(Polygon(coords)), "id")), 
     proj4string = CRS(proj4string(segs$basin_sp)))
   remove(coords) #job done
-  
-  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+
+  nonbasin <- raster::erase(basemap_0, sp)
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
@@ -72,26 +73,26 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
   if(distance > 300) {
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
-    roads$plot <- roads[roads$RTTYP=="I",]
+    roads_plot <- roads[roads$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
-    roads$plot <- roads
+    roads_plot <- roads
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
-    roads$plot <- roads
+    roads_plot <- roads
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
     nhd$plot <- nhd$flowline
-    roads$plot <- roads
+    roads_plot <- roads
     labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
@@ -108,7 +109,7 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     sourcetype = "Source.Type"
   }  else if (type == "region") {
     title <- paste0(region)
-    sourcetype = "Source.Type"
+#    sourcetype = "Source.Type"
   } 
   
   #For binned legend 
@@ -117,9 +118,17 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     labels = c(0.5,1.0,2,5,10,25,50,100,1000) 
   } else if (metric_unit == "mgy") {
     labels = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+  } else {
+    labels = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
   }
   
-#----Generate map gg object----
+
+ #We don't want any bubbles for MPs with no metric value -- stored with bin = X
+ mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
+ class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
+
+  
+ #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
@@ -138,7 +147,7 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     # County Borders
     geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
     # Road Lines
-    geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
+    geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
@@ -162,6 +171,8 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3),
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
+    # Basin Labels (by riverseg ID)
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
     new_scale("size") + new_scale("color") +
     geom_text_repel(data = labelsP[labelsP$road=="no",], 
@@ -177,51 +188,59 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) +
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) )
     
-    # Facility Points; Metric 1
-## Old way of plotting    
-#    geom_point(data = facils$within, 
-#               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
-#               alpha=0.75, shape = 19, stroke = 0.75 ) +
-#                scale_size(range = c(10,20),
-#               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3),
-#               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), 
-#               name= legend_title[1],
-#               guide= guide_legend(override.aes=list(label=""))
-#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+## MP plotting only for map types basin and locality 
     
-   ## Plotting using bins in a single layer:
-  
+  if (type == "basin" || type == "locality") {
+    map <- map +
+    # Plotting using bins in a single layer:
     new_scale("size") + new_scale("color") +
     
-    geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, 
-              color = mp_layer[, sourcetype], size = (mp_layer$bin)), 
-              shape = 19) +
+    geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
+              color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
+               shape = 19) +
     
     scale_size(range = c(10,20),
                breaks= breaks, 
                labels= labels, 
                name= legend_title[1],
                guide= guide_legend(override.aes=list(label=""))  
-               ) +
-                 
+    ) +
+    
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
-            breaks= c("Surface Water", "Groundwater"),
-            labels= c("Surface Water", "Groundwater"),
-            name= "Source Type",
-            guide= guide_legend(override.aes=list(label="", size =5))
-                 ) +             
-
-    # Facility Labels
-    geom_text(data = mp_layer, 
-              aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE)
+                        breaks= c("Surface Water", "Groundwater"),
+                        labels= c("Surface Water", "Groundwater"),
+                        name= "Source Type",
+                        guide= guide_legend(override.aes=list(label="", size =5))
+    )            
+  }  
   
-  if (type == "basin"){ #only do reverse fill by basin for map type basin
+## Plotting facilities for regional maps
+  if (type == "region") {
+    map <- map + new_scale("size") +
+    geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
+              size = (mp_layer_plot$bin)), color = "#F7FF00",
+              shape = 19) +
+      scale_size(range = c(10,20),
+                 breaks= breaks, 
+                 labels= labels, 
+                 name= legend_title[1],
+                 guide= guide_legend(override.aes=list(label=""))  
+      )  
+  }
+ 
+  # MP or facility Labels
+  map <- map +
+  geom_text(data = mp_layer, 
+            aes(Longitude, Latitude, label=NUM, fontface="bold"), 
+            colour="black", size=textsize[5], check_overlap=TRUE)
+    
+  
+#  if (type == "basin"){ #only do reverse fill by basin for map type basin
     map <- map +
       geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) # Reverse Fill
-  }
+#  }
   
   map <- map +   
     # Scalebar & North Arrow
@@ -235,4 +254,5 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
   print('Map stored in environment as: map')
+  return(map)
 }
