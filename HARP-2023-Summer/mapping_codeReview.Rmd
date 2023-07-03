@@ -36,6 +36,8 @@ library(ggrepel)
 library(flextable)
 library(geosphere)
 
+library(tidycensus)
+
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 ds <- RomDataSource$new(site, rest_uname)
@@ -198,14 +200,15 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
-#cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
-cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
+cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
+#cities <- fread(paste0(getwd(), '/', 'uscities.csv')) 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ## note for rivr_maj: must use read.csv() so that we can apply process_geom() later
 ## fread() returned class ["data.table" "data.frame"] whereas read.csv() returns class ["data.frame"]
 
 #Retrieving regional planning groups 
 regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv'))
+
 ```
 
 ```{r Integrate Locality Geoms into their Regions}
@@ -297,20 +300,23 @@ legend_title <- legend_titling(metric, runid_list)
 roads <- subset(roads, MTFCC=="S1100") #primary roads only
 ## keep only interstate, US hwy, or state Rte.
 
-#change to sqldf
+#change to sqldf- need to drop geom to do this, sqldf does not like geom- any other way to do it?
+#roads <- st_drop_geometry(roads)
+#roads <- sqldf("SELECT * FROM roads WHERE FULLNAME like 'US HWY_%' OR RTTYP is 'I' OR RTTYP is 'S'")
+#roads <- sqldf("SELECT * from roads where FULLNAME NOT LIKE '___%'")
+
 roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
 
 ## shorten names to number only; column RTTYP gives classification I, U, or S
 roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
 roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
 
 roads <- centroid_coords(roads, "geometry") #add centroid coords
 
-#roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
-#roads_sf <- roads$sf
-#roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
-#                  FULLNAME NOT LIKE '___%'")
+
+#- - - - -- -
 
 # Filter/classify major cities & small towns
 cities <- cities[cities$ST == 'VA',] #VA cities
@@ -323,7 +329,7 @@ counties_df <- counties$df #needed for sqldf
 cities <- sqldf( 
   "SELECT cities.*  
    FROM cities
-  where city is not (select counties_df.name from counties_df)"
+  where NAME is not (select counties_df.name from counties_df)"
 )
 remove(counties_df) #no longer needed
 
@@ -340,6 +346,9 @@ remove(counties_df) #no longer needed
 #   cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
 #   }
 # }
+
+cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
+cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
 #- - - - - - - - - - -
 
 # Process Polygons; text-> spatial -> simple features
@@ -607,10 +616,10 @@ labels <- list()
 labels$aes <- styles$custom
 
 labels$data <- data.frame(
-  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
-  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
-  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
-  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
+  name= c(counties$sf$name, cities$NAME, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
+  class= c(counties$sf$ftype, cities$CLASS, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
+  lng= as.numeric( c(counties$sf$lng, cities$X, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
+  lat= as.numeric( c(counties$sf$lat,cities$Y, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
 )
 
 labels$full <- with(labels, sqldf("select data.* , aes.* from data 
@@ -690,19 +699,19 @@ ggsave(
 ``` {r Create Table Data, warning=FALSE, message=FALSE }
 
 # - - - - creating initial data frame  - - - -
-table <- data.frame(Number= facils$basin$NUM, 
-                        Facility=facils$basin$Facility, 
-                        Source_Type = facils$basin$`Source Type`,
-                        Source = facils$basin$`MP Name`,
-                        Rivseg= facils$basin$riverseg,
-                        Locality = facils$basin$Locality, 
-                        fiveYr= facils$basin$fiveyr_avg_mgy
+table <- data.frame(Number= facils$within$NUM, 
+                        Facility=facils$within$Facility, 
+                        Source_Type = facils$within$`Source Type`,
+                        Source = facils$within$`MP Name`,
+                        Rivseg= facils$within$riverseg,
+                        Locality = facils$within$Locality, 
+                        fiveYr= facils$within$fiveyr_avg_mgy
                         ) 
 
 # - - - - add rivseg names- - - - - -
 
 for(i in 1:nrow(table)){ 
-    loc_rivseg <- (segs$basin[grep(facils$basin$riverseg[i], segs$basin$riverseg),])
+    loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
     table$rivsegName[i]  <- loc_rivseg$name 
 }
 
@@ -727,7 +736,7 @@ for(i in 1:nrow(table)){
 
 for (i in 1:nrow(facils$basin)){
   systemObj <- RomProperty$new(ds,list(
-    featureid = facils$basin$featureid[i],
+    featureid = facils$within$featureid[i],
     propcode= "vahydro-1.0"), 
   TRUE)
   permCapac <- RomProperty$new(ds,list(
