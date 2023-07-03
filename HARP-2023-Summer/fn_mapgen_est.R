@@ -16,10 +16,27 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
-## type will be either basin, locality, or region
+## "type" will be either basin, locality, or region
+## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit, sp) { 
+fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit) { 
+
+# Combine all map labels into one df:
+  for(i in 1:length(maplabs)){
+    if(i==1){ maplabs$all <- maplabs[[i]] }
+    if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
+  }
+# Join with aesthestics:
+  maplabs$aes <- styles$custom
+
   
+  maplabs$final <- with(maplabs, sqldf("select all.*, aes.* from all 
+      left outer join aes
+      on (all.class = aes.class)
+    "
+  ))
+
+#----Generating Basemap-Specific Data----  
  #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
@@ -52,7 +69,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
     
- #Filtering what's plotted by size of boundary box  
+#----Filtering what's plotted by size of boundary box---- 
   if(distance > 300) {
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
@@ -82,6 +99,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   }
   st_crs(nhd$plot) <- 4326  
 
+#----Legend & Titling----
   #For map title:
   if (type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
@@ -104,6 +122,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     labels = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
   }
   
+
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 

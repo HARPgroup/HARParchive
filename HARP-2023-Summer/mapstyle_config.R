@@ -79,7 +79,7 @@ styles$custom$d <- data.frame(class="town",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$e <- data.frame(class="majC",
+styles$custom$e <- data.frame(class="city",
                                fontface="plain",
                                fontfam="sans",
                                angle=0,
@@ -90,7 +90,7 @@ styles$custom$e <- data.frame(class="majC",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$f <- data.frame(class="LakePond",
+styles$custom$f <- data.frame(class="waterbody",
                                fontface="bold",
                                fontfam="serif",
                                angle=0,
@@ -101,7 +101,7 @@ styles$custom$f <- data.frame(class="LakePond",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$g <- data.frame(class="str",
+styles$custom$g <- data.frame(class="stream",
                                fontface="bold",
                                fontfam="serif",
                                angle=15,
@@ -112,7 +112,7 @@ styles$custom$g <- data.frame(class="str",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$h <- data.frame(class="majR",
+styles$custom$h <- data.frame(class="majorRiver",
                                fontface="bold",
                                fontfam="serif",
                                angle=15,

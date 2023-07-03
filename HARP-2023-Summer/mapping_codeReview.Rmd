@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-         #["JL6_7430_7320"]
+        #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JB3_6820_7053"] 
@@ -113,10 +113,10 @@ process_geom <- function(data, geom_col) {
 centroid_coords <- function(data, geom_col) {
   
   #NEW:
-#  if(class(data[[geom_col]])=="character"){
-#    data <- process_geom(data, geom_col)
-#    data <- st_as_sf(data)
-#  } #.
+  if( length(grep("sfc", lapply(data, class)))==0 ){
+    data <- process_geom(data, geom_col)
+    data <- st_as_sf(data)
+  } #.
   
   for (r in 1:nrow(data)) { #get centroid coord. for labeling
     centroid <- st_centroid(data[r, geom_col])
@@ -126,7 +126,7 @@ centroid_coords <- function(data, geom_col) {
   }
   
   #NEW:
-  st_crs(data) <- 4326
+  #st_crs(data) <- 4326
   #.
   return(data)
 }
@@ -314,7 +314,6 @@ roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte
 roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
 
 roads <- centroid_coords(roads, "geometry") #add centroid coords
-
 
 #- - - - -- -
 
@@ -645,7 +644,7 @@ textcol <- colors$default$text
 label_fill <- colors$default$fill
 ```
 
-```{r}
+```{r Metric Legend Bins}
 ## Putting the metric data into bins for ranged legend for map
 facils_within <- facils$within
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
