@@ -4,7 +4,7 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 output: html_document
 params:
-         #["JL6_7430_7320"]
+        #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_7320_7150"] 
@@ -15,7 +15,7 @@ params:
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
   map_name: ["Culpeper"]
-
+---
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
@@ -107,10 +107,10 @@ process_geom <- function(data, geom_col) {
 centroid_coords <- function(data, geom_col) {
   
   #NEW:
-#  if(class(data[[geom_col]])=="character"){
-#    data <- process_geom(data, geom_col)
-#    data <- st_as_sf(data)
-#  } #.
+  if( length(grep("sfc", lapply(data, class)))==0 ){
+    data <- process_geom(data, geom_col)
+    data <- st_as_sf(data)
+  } #.
   
   for (r in 1:nrow(data)) { #get centroid coord. for labeling
     centroid <- st_centroid(data[r, geom_col])
@@ -120,7 +120,7 @@ centroid_coords <- function(data, geom_col) {
   }
   
   #NEW:
-  st_crs(data) <- 4326
+  #st_crs(data) <- 4326
   #.
   return(data)
 }
@@ -293,10 +293,10 @@ roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)
 
 roads <- centroid_coords(roads, "geometry") #add centroid coords
 
-#roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
-roads_sf <- roads$sf
-roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
-                  FULLNAME NOT LIKE '___%'")
+#roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
+#roads_sf <- roads
+#roads <- sqldf("SELECT * FROM roads_sf WHERE 
+#                  FULLNAME NOT LIKE '___%'")
 
 
 # Filter/classify major cities & small towns
@@ -551,8 +551,7 @@ textcol <- colors$default$text
 label_fill <- colors$default$fill
 ```
 
-```{r}
-### SKIP for now -- not finalized 
+```{r Metric Legend Bins}
 ## Putting the metric data into bins for ranged legend for map
 
 facils_within <- facils$within

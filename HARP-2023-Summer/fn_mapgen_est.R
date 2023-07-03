@@ -16,10 +16,26 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
-## type will be either basin, locality, or region
+## "type" will be either basin, locality, or region
+## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) { 
+fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit) { 
+
+# Combine all map labels into one df:
+  for(i in 1:length(maplabs)){
+    if(i==1){ maplabs$all <- maplabs[[i]] }
+    if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
+  }
+# Join with aesthestics:
+  maplabs$aes <- styles$custom
   
+  maplabs$final <- with(maplabs, sqldf("select all.*, aes.* from all 
+      left outer join aes
+      on (all.class = aes.class)
+    "
+  ))
+
+#----Generating Basemap-Specific Data----  
  #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
@@ -52,36 +68,37 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   basemap_0 <- st_as_sf(basemap_0)
   st_crs(basemap_0) <- 4326
     
- #Filtering what's plotted by size of boundary box  
+#----Filtering what's plotted by size of boundary box---- 
   if(distance > 300) {
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
-    roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
+    roads$plot <- roads[roads$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
-    roads$plot <- roads$sf
+    roads$plot <- roads
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
-    roads$plot <- roads$sf
+    roads$plot <- roads
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
     nhd$plot <- nhd$flowline
-    roads$plot <- roads$sf
+    roads$plot <- roads
     labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
   st_crs(nhd$plot) <- 4326  
 
+#----Legend & Titling----
   #For map title:
   if (type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
@@ -102,7 +119,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     labels = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
   }
   
- #Generate map gg object
+#----Generate map gg object----
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
