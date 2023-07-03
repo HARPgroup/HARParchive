@@ -263,18 +263,6 @@ colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all
 # Extract basin of user-input rivseg, from segs$all
 segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
 
-for(i in rivseg){
-  if(i==rivseg[1]){
-    segs$basin <- fn_extract_basin(segs$all, i)
-  }
-  if(i!=rivseg[1]){
-    segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
-  }
-}
-## don't duplicate riversegs for overlapping basins... 
-## unless we wanted to show them in different colors? transparent overlap?
-segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
-
 # Legend title
 legend_title <- legend_titling(metric, runid_list)
 
@@ -302,13 +290,11 @@ roads <- centroid_coords(roads, "geometry") #add centroid coords
 #roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
 #                  FULLNAME NOT LIKE '___%'")
 
-
 # Filter/classify major cities & small towns
 cities <- cities[cities$ST == 'VA',] #VA cities
 ## Remove city/town names that match their county/locality name
 
 #update for new city csv
-
 counties_df <- counties$df #needed for sqldf
 
 #need to test to ensure this works properly in mapping
@@ -335,13 +321,6 @@ remove(counties_df) #no longer needed
 #- - - - - - - - - - -
 
 # Process Polygons; text-> spatial -> simple features
-## basin watersheds
-segs$basin_sp <- process_geom(segs$basin, "geom")
-segs$basin_sf <- st_as_sf(segs$basin_sp)
-st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
-# adding centroids to the basins for labeling -- using megans centroid function
-segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
-
 ## counties
 counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
@@ -355,6 +334,16 @@ st_crs(counties$sf) <- 4326
 
 facils_all <- facils$all #create temporary df for use in sqldf for ordering
 if (type == "basin") {
+  
+  for(i in rivseg){. #newly moved into this loop
+  if(i==rivseg[1]){
+    segs$basin <- fn_extract_basin(segs$all, i)
+  }
+  if(i!=rivseg[1]){
+    segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
+  }
+  }
+  
   segs_basin <- segs$basin
   facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
   #facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
@@ -389,6 +378,16 @@ if (type == "locality") {
   st_crs(facils$sf) <- 4326 
   st_crs(locality_sf) <- 4326 
   facils$within <- st_filter(facils$sf, locality_sf)
+  
+  #filter basins to those within the locality
+  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
+  segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
+  rm(segs_all)
+  segs$sf <- st_as_sf(segs$sp)
+  st_crs(segs$sf) <- 4326
+  segs$basin <- st_filter(segs$sf, locality_sf)
+  segs$basin <- st_drop_geometry(segs$basin)
+  
   ## order and number facils$within df based on metric
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c("Longitude","Latitude")
@@ -406,6 +405,7 @@ if (type == "locality") {
   facils$within <- cbind(facils$within, coords)
   st_crs(facils$within) <- 4326
   facils$within <- st_drop_geometry(facils$within)
+  
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
@@ -419,6 +419,15 @@ if (type == "region") {
   #region_sf <- st_as_sf(region_sf[1])
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
 
+  #filter basins to those within the region
+  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
+  segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
+  rm(segs_all)
+  segs$sf <- st_as_sf(segs$sp)
+  st_crs(segs$sf) <- 4326
+  segs$basin <- st_filter(segs$sf, region_sf)
+  segs$basin <- st_drop_geometry(segs$basin)
+  
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
@@ -449,6 +458,21 @@ if (type == "region") {
   bbox <- st_bbox(bbox)
 }
 rm(facils_all)
+```
+
+```{r, warning=FALSE}
+## Process basin geometries
+
+## don't duplicate riversegs for overlapping basins... 
+## unless we wanted to show them in different colors? transparent overlap?
+segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),]
+
+## basin watersheds
+segs$basin_sp <- process_geom(segs$basin, "geom")
+segs$basin_sf <- st_as_sf(segs$basin_sp)
+st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
+# adding centroids to the basins for labeling -- using megans centroid function
+segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
 ```
 
 ## SKIP unless VAhydro bbox is wanted
@@ -559,9 +583,7 @@ label_fill <- colors$default$fill
 ```
 
 ```{r}
-### SKIP for now -- not finalized 
 ## Putting the metric data into bins for ranged legend for map
-
 facils_within <- facils$within
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
                          FROM facils_within'
