@@ -104,6 +104,11 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     labels = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
   }
   
+ #We don't want any bubbles for MPs with no metric value -- stored with bin = X
+ mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
+ class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
+
+  
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -182,8 +187,8 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   
     new_scale("size") + new_scale("color") +
     
-    geom_point(data = mp_layer, aes(x = Longitude, y = Latitude, 
-              color = mp_layer[, sourcetype], size = (mp_layer$bin)), 
+    geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
+              color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
               shape = 19) +
     
     scale_size(range = c(10,20),
