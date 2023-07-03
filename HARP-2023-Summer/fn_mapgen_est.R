@@ -91,7 +91,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     sourcetype = "Source.Type"
   }  else if (type == "region") {
     title <- paste0(region)
-    sourcetype = "Source.Type"
+#    sourcetype = "Source.Type"
   } 
   
   #For binned legend 
@@ -169,46 +169,54 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) +
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) )
     
-    # Facility Points; Metric 1
-## Old way of plotting    
-#    geom_point(data = facils$within, 
-#               aes(x=Longitude, y=Latitude, size= facils$within[, metric], color=facils$within[, sourcetype]), 
-#               alpha=0.75, shape = 19, stroke = 0.75 ) +
-#                scale_size(range = c(10,20),
-#               breaks= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits =3),
-#               labels= round(seq(max(facils$within[, metric], na.rm = TRUE), 0, length.out=5), digits=3), 
-#               name= legend_title[1],
-#               guide= guide_legend(override.aes=list(label=""))
-#    ) + #NOTE: two scales would need identical "name" and "labels" to become one simultaneous legend
+## MP plotting only for map types basin and locality 
     
-   ## Plotting using bins in a single layer:
-  
+  if (type == "basin" || type == "locality") {
+  map <- map +
+    # Plotting using bins in a single layer:
     new_scale("size") + new_scale("color") +
     
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
-              shape = 19) +
+               shape = 19) +
     
     scale_size(range = c(10,20),
                breaks= breaks, 
                labels= labels, 
                name= legend_title[1],
                guide= guide_legend(override.aes=list(label=""))  
-               ) +
-                 
+    ) +
+    
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
-            breaks= c("Surface Water", "Groundwater"),
-            labels= c("Surface Water", "Groundwater"),
-            name= "Source Type",
-            guide= guide_legend(override.aes=list(label="", size =5))
-                 ) +             
-
-    # MP Labels
-    geom_text(data = mp_layer, 
-              aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-              colour="black", size=textsize[5], check_overlap=TRUE)
+                        breaks= c("Surface Water", "Groundwater"),
+                        labels= c("Surface Water", "Groundwater"),
+                        name= "Source Type",
+                        guide= guide_legend(override.aes=list(label="", size =5))
+    )            
+  }  
+  
+## Plotting facilities for regional maps
+  if (type == "region") {
+    map <- map + new_scale("size") +
+    geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
+              size = (mp_layer_plot$bin)), color = "#F7FF00",
+              shape = 19) +
+      scale_size(range = c(10,20),
+                 breaks= breaks, 
+                 labels= labels, 
+                 name= legend_title[1],
+                 guide= guide_legend(override.aes=list(label=""))  
+      )  
+  }
+ 
+  # MP or facility Labels
+  map <- map +
+  geom_text(data = mp_layer, 
+            aes(Longitude, Latitude, label=NUM, fontface="bold"), 
+            colour="black", size=textsize[5], check_overlap=TRUE)  
+    
   
   if (type == "basin"){ #only do reverse fill by basin for map type basin
     map <- map +
