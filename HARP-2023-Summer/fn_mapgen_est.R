@@ -43,8 +43,14 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     list(sp::Polygons(list(Polygon(coords)), "id")), 
     proj4string = CRS(proj4string(segs$basin_sp)))
   remove(coords) #job done
-  
-  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+
+  #Different reverse fills based on map type 
+  if (type == "basin") {
+    nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+  } #else if (type == "locality" || type == "region") {
+    #nonbasin <- raster::erase(basemap_0, counties$sp)
+ # }  
+
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
@@ -174,7 +180,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
 ## MP plotting only for map types basin and locality 
     
   if (type == "basin" || type == "locality") {
-  map <- map +
+    map <- map +
     # Plotting using bins in a single layer:
     new_scale("size") + new_scale("color") +
     
@@ -215,7 +221,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   map <- map +
   geom_text(data = mp_layer, 
             aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-            colour="black", size=textsize[5], check_overlap=TRUE)  
+            colour="black", size=textsize[5], check_overlap=TRUE)
     
   
   if (type == "basin"){ #only do reverse fill by basin for map type basin
@@ -235,4 +241,5 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
   print('Map stored in environment as: map')
+  return(map)
 }
