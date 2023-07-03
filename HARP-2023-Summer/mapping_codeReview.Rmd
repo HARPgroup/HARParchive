@@ -236,6 +236,29 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
+```{r Facility Data and Coords for Region maps, warning=FALSE}
+## For mapping regions by facility -- requires VAhydro data retrieval 
+
+if (type == "region") {
+  
+  facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
+  metric=FALSE, runids=df, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version = model_version,
+  base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+  ds = ds)
+
+ #Get facility coordinates
+  for(i in 1:nrow(facil_featr)){ #takes a couple minutes
+    facil.i <- RomFeature$new(ds,list(hydroid=facil_featr$featureid[i]), TRUE)
+  facil_featr$dh_geofield[i] <- facil.i$geom
+  } # adds point geometry for each facility
+  
+  
+}
+
+```
+
 # PROCESS Data
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
