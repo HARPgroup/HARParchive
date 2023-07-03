@@ -4,7 +4,9 @@
 #dataframes for labels:
 # roads, waterbodies, flowlines, cities, counties
 ### TESTING
-data <- list(roads$sf, cities, counties$df)
+labels <- list()
+
+data <- list(roads, cities, counties$df)
 classes <- c("roads","city","county")
 
 data <- list(counties$df)
@@ -17,8 +19,14 @@ data <- list(roads$sf)
 classes <- "roads"
 ###
 
+# Renaming a column:
+mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
+                         FROM facils_within'
+                      , sep="") 
+
 
 labels <- fn_labelprep(data, classes){
+  names(data) <- classes
   for(d in 1:length(data)){
     
     
@@ -35,20 +43,45 @@ labels <- fn_labelprep(data, classes){
         #has geometry column --> need to calculate centroid coords
         print(paste(classes[d],"coords can be calculated", sep=" "))
         
-        if(length(grep("sfc", lapply(data[[d]], class)))==0){
+        ###-Special Cases-###
+        
+        if(classes[d]=="roads"){
+          # Filter roads to only Interstate, US Hwy, State Rte
+          data[[d]] <- subset(data[[d]], MTFCC=="S1100") #primary roads only
+          ## Interstate, Us Hwy, or State Rte only
+          data[[d]] <- subset(data[[d]], RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", data[[d]][["FULLNAME"]], value=TRUE) | RTTYP=="S")
+          ## Shorten to rte number only
+          data[[d]][["FULLNAME"]] <- mgsub(data[[d]][["FULLNAME"]], pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+          ## Remove remaining names with spaces (e.g. US Hwy Bus or Alt Rte)
+          data[[d]] <- subset(data[[d]], !(FULLNAME %in% grep(".* .*", data[[d]][["FULLNAME"]], value=TRUE)))
+          
+          #roads <- data[[d]] #save processed roads elsewhere for plotting road lines
+          #return(roads)
+          data[[d]] <- roads[!duplicated(roads$FULLNAME),] #don't want same rte labeled more than once
+          
+        }
+        
+        #if(length(grep("sfc", lapply(data[[d]], class)))==0){
           geoCol <- grep("geo", colnames(data[[d]]), value=TRUE) #returns all geo columns
           if(length(geoCol) > 1){geoCol <- geoCol[geoCol!="geometry"]}
+          print(paste("calculating", classes[d], "coords", sep=' '))
           data[[d]] <- centroid_coords(data[[d]], geoCol)
-        }
+        #}
         
       }
       
     }
     
-    data[[d]] <- with(data, sqldf(
-      # try to replace any column name containing "name", "NAME", or class[[d]] with "label" ??? 
-    ))
-    # labels[[paste(class[[d]])]] <- data[[d]][,c("name","lat","lng")]
+    # Search for possible label name columns and rename to "label":
+    namecol_d <- grep("name", colnames(data[[d]]), ignore.case=TRUE, value=TRUE) #looks for anything containing name or NAME
+    namecol_d <- c(namecol_d, grep(classes[d], colnames(data[[d]]), ignore.case=TRUE, value=TRUE) ) 
+        #^looks for anything containing the label's class name
+    colnames(data[[d]]) <- gsub(namecol_d, "label", colnames(data[[d]]))
+    data[[d]][["class"]] <- rep(classes[d], nrow(data[[d]])) #add a class column
+    data[[d]] <- data.frame(data[[d]]) #get rid of sfc geometry
+    
+    # Add prepared label to labels list:
+    #labels[[paste(classes[d])]] <- data[[d]][,c("label","class","lat","lng")]
   }
   
   

@@ -15,7 +15,6 @@ params:
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
   map_name: ["Culpeper"]
----
 
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -185,11 +184,14 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 
 #----From Public Webpages----
 # (shp) for US states & primary roads
-## VA state is used to filter road data & determine extent levels
-roads <- list()
-roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip",
-                             filetype="shp", zip=TRUE)
-roads$sf <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
+## VA state used to be used to filter road data 
+#roads <- list()
+#roads$state <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip",
+#                             filetype="shp", zip=TRUE)
+#roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip",
+#                          filetype="shp", zip=TRUE)
+
+roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip",
                           filetype="shp", zip=TRUE)
 # (csv) for US cities
 #cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) 
@@ -274,28 +276,27 @@ legend_title <- legend_titling(metric, runid_list)
 
 #- - - - - - - - - - -
 # Filter roads to only Interstate, US Hwy, State Rte
-roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
-roads$sf <- st_intersection(roads$sf, roads$state) #only VA primary roads
-roads$sf <- centroid_coords(roads$sf, "geometry") #add centroid coords
 
+#roads$state <- roads$state[roads$state$NAME=="Virginia", ] 
+#roads <- st_intersection(roads, roads$state) #only VA primary roads
+
+roads <- subset(roads, MTFCC=="S1100") #primary roads only
 ## keep only interstate, US hwy, or state Rte.
 
 #change to sqldf
-#roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf$FULLNAME, value=TRUE) | RTTYP=="S")
-roads_sf <- st_drop_geometry(roads$sf )
-roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
-                  FULLNAME LIKE 'US Hwy_%' OR RTTYP is 'I' OR RTTYP is 'S'")
-remove(roads_sf)
+roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
 
 ## shorten names to number only; column RTTYP gives classification I, U, or S
-roads$sf$FULLNAME <- mgsub(roads$sf$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
 ## remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space
-#change to sqldf
+roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
+
+roads <- centroid_coords(roads, "geometry") #add centroid coords
+
 #roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
 roads_sf <- roads$sf
 roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
                   FULLNAME NOT LIKE '___%'")
-
 
 
 # Filter/classify major cities & small towns
@@ -492,10 +493,10 @@ lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
 # Combine all labels into one df
 #finish adjusting cities
 #labels <- data.frame(
-#  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
-#  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
-#  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
-#  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
+#  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
+#  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
+#  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
+#  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
 #)
 #remove(lb_rivr)
 #remove(lb_wtbd)
@@ -529,10 +530,10 @@ labels <- list()
 labels$aes <- styles$custom
 
 labels$data <- data.frame(
-  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$sf$FULLNAME[!duplicated(roads$sf$FULLNAME)]),
-  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$sf$RTTYP[!duplicated(roads$sf$FULLNAME)]),
-  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$sf$lng[!duplicated(roads$sf$FULLNAME)]) ),
-  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$sf$lat[!duplicated(roads$sf$FULLNAME)]) )
+  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
+  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
+  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
+  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
 )
 
 labels$full <- with(labels, sqldf("select data.* , aes.* from data 

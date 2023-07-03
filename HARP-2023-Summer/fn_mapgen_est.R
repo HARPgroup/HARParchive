@@ -10,6 +10,8 @@ library(ggsn)
 library(ggspatial)
 library(ggrepel)
 library(geosphere)
+source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
+
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
