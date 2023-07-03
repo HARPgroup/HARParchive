@@ -10,11 +10,11 @@ params:
   rivseg: ["JB3_6820_7053"] 
   locality: ["Culpeper"]
   region: ["NewRiver_2"]    
-  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["JB3_6820_7053"]
+  map_name: ["Culpeper"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -405,6 +405,7 @@ if (type == "basin") {
 if (type == "locality") {
   ## pull locality and geometry out of data frame with the locality parameter given
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
+  locality_sp <- process_geom(as.data.frame(locality_sf), "dh_geofield") #for reverse-fill process for map 
   #filter to only facilities within the locality specified
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
@@ -450,7 +451,8 @@ if (type == "region") {
   #pull region of interest given in params from list of region geometries 
   region_list <- region_geom_list[names(region_geom_list) == region]
   region_sf <- st_sfc(region_list) #create sf object from the region specified
-  #region_sf <- st_as_sf(region_sf[1])
+  region_sfd <- st_as_sf(region_sf) #for region_sp
+  region_sp <- as_Spatial(region_sfd, cast = FALSE)
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
 
   #filter basins to those within the region
@@ -687,8 +689,19 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1]
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))]
 ```
 
+```{r}
+## Setting sp variable based on map type to do reverse fill for all map types
+if (type == "basin") {
+    sp <- segs$basin_sp
+  } else if (type == "locality") {
+    sp <- locality_sp
+  }  else if (type == "region") {
+    sp <- region_sp
+  } 
+```
+
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) #execute mapping function
+fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit, sp) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }
