@@ -56,26 +56,26 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
   if(distance > 300) {
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
-    roads$plot <- roads$sf[roads$sf$RTTYP=="I",]
+    roads_plot <- roads[roads$RTTYP=="I",]
     labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
-    roads$plot <- roads$sf
+    roads_plot <- roads
     labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
-    roads$plot <- roads$sf
+    roads_plot <- roads
     labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
     nhd$plot <- nhd$flowline
-    roads$plot <- roads$sf
+    roads_plot <- roads
     labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
@@ -121,7 +121,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     # County Borders
     geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
     # Road Lines
-    geom_sf(data = roads$plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
+    geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +

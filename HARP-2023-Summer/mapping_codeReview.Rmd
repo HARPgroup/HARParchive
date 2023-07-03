@@ -15,6 +15,7 @@ params:
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
   map_name: ["Culpeper"]
+---
 
 ```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -37,12 +38,16 @@ library(geosphere)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
-source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
-source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
-source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 ```
+
+```{r Load External Functions, echo=FALSE}
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
+source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
+source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
+```
+
 
 ```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg #for mapping extent of basin(s)
@@ -294,9 +299,9 @@ roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)
 roads <- centroid_coords(roads, "geometry") #add centroid coords
 
 #roads$sf <- subset(roads$sf, !(FULLNAME %in% grep(".* .*", roads$sf$FULLNAME, value=TRUE)))
-roads_sf <- roads$sf
-roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
-                  FULLNAME NOT LIKE '___%'")
+#roads_sf <- roads$sf
+#roads$sf <- sqldf("SELECT * FROM roads_sf WHERE 
+#                  FULLNAME NOT LIKE '___%'")
 
 
 # Filter/classify major cities & small towns
