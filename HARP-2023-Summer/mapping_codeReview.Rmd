@@ -624,6 +624,8 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1]
 #remove duplicated columns
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))]
 
+
+
 #make sure bin column is type numeric for sizing data points 
 class(mp_layer$bin) <- "numeric"
 ```
