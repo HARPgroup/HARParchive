@@ -340,6 +340,9 @@ remove(counties_df) #no longer needed
 segs$basin_sp <- process_geom(segs$basin, "geom")
 segs$basin_sf <- st_as_sf(segs$basin_sp)
 st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
+# adding centroids to the basins for labeling -- using megans centroid function
+segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
+
 ## counties
 counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
