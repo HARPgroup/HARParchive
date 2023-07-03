@@ -10,7 +10,7 @@ params:
   rivseg: ["JL6_7320_7150"] 
   locality: ["Culpeper"]
   region: ["NewRiver_2"]    
-  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
@@ -593,6 +593,7 @@ mp_layer <- sqldf(mp_layer_sql)
 metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
 wd_mgd = c(0.5,1.0,2,5,10,25,50,100,1000) #set ranges for the bins 
 wd_mgy = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+
 if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
 } else if (metric_unit == "mgy") {

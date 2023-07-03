@@ -100,6 +100,8 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     labels = c(0.5,1.0,2,5,10,25,50,100,1000) 
   } else if (metric_unit == "mgy") {
     labels = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+  } else {
+    labels = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
   }
   
  #Generate map gg object
