@@ -145,6 +145,8 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3),
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
+    # Basin Labels (by riverseg ID)
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
     new_scale("size") + new_scale("color") +
     geom_text_repel(data = labelsP[labelsP$road=="no",], 
@@ -196,7 +198,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
             guide= guide_legend(override.aes=list(label="", size =5))
                  ) +             
 
-    # Facility Labels
+    # MP Labels
     geom_text(data = mp_layer, 
               aes(Longitude, Latitude, label=NUM, fontface="bold"), 
               colour="black", size=textsize[5], check_overlap=TRUE)

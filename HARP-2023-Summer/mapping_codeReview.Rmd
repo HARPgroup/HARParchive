@@ -48,7 +48,6 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
 ```
 
-
 ```{r UserInputs, echo=FALSE}
 rivseg <- params$rivseg #for mapping extent of basin(s)
 locality <- params$locality #for mapping extent of a locality
