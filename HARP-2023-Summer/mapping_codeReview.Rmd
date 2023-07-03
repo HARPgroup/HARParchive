@@ -238,7 +238,7 @@ for (i in 1:length(reg_split)) {
 
 ```{r Facility Data and Coords for Region maps, warning=FALSE}
 ## For mapping regions by facility -- requires VAhydro data retrieval 
-
+## Add: dependence on if variable facil_featr exists yet .. this takes too much time to repeat every run ( use fun exists() )
 if (type == "region") {
   
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
@@ -254,9 +254,7 @@ if (type == "region") {
   facil_featr$dh_geofield[i] <- facil.i$geom
   } # adds point geometry for each facility
   
-  
 }
-
 ```
 
 # PROCESS Data
@@ -451,30 +449,46 @@ if (type == "region") {
   segs$basin <- st_filter(segs$sf, region_sf)
   segs$basin <- st_drop_geometry(segs$basin)
   
-  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
-  facils$all <- facils$all[!is.na(facils$all$Latitude),]
-  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
-  st_crs(facils$sf) <- 4326 
-
-  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
+  ##### start: for mapping by measuring point:
+  
+#  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+#  facils$all <- facils$all[!is.na(facils$all$Latitude),]
+#  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+#  st_crs(facils$sf) <- 4326 
+#  facils$within <- st_filter(facils$sf, region_sf) #filter to MPs within the region
 
   ## need to order rows and add NUM column
-  coords <- st_coordinates(facils$within$geometry)
+#  coords <- st_coordinates(facils$within$geometry)
+#  colnames(coords) <- c("Longitude","Latitude")
+#  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
+#  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+#  "SELECT facils_within.*  
+#   FROM facils_within 
+#   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+#  )
+#  facils$within <- facils_within 
+#  rm(facils_within) #removing the ordered data frame since we're finished with it 
+#  facils$within$NUM <- seq(1, nrow(facils$within))
+#  facils$within <- cbind(facils$within, coords)
+#  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+#  facils$within <- cbind(facils$within, coords)
+#  st_crs(facils$within) <- 4326
+#  facils$within <- st_drop_geometry(facils$within)
+
+  ##### end
+  
+  ## mapping by facility (new):
+  facil_featr <- facil_featr[!facil_featr$dh_geofield == "",] #remove rows/facilities that don't have a point geometry
+  facils_sp <- process_geom(facil_featr, "dh_geofield")
+  facils_sf <- st_as_sf(facils_sp) # need an sf object to do spatial filter 
+  st_crs(facils_sf) <- 4326
+  facils_region <- st_filter(facils_sf, region_sf)
+  # add long and lat columns for mapping 
+  coords <- st_coordinates(facils_region$geometry)
   colnames(coords) <- c("Longitude","Latitude")
-  facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
-  facils_within <- sqldf(paste0( #ordering the data using sqldf 
-  "SELECT facils_within.*  
-   FROM facils_within 
-   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
-  )
-  facils$within <- facils_within 
-  rm(facils_within) #removing the ordered data frame since we're finished with it 
-  facils$within$NUM <- seq(1, nrow(facils$within))
-  facils$within <- cbind(facils$within, coords)
-  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
-  facils$within <- cbind(facils$within, coords)
-  st_crs(facils$within) <- 4326
-  facils$within <- st_drop_geometry(facils$within)
+  facils_region <- cbind(facils_region, coords)
+  
+  facils$within <- facils_region
   
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(region_sf)), .05) #slightly past basin
