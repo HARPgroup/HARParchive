@@ -18,7 +18,7 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## type will be either basin, locality, or region
 
-fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit) { 
+fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit, sp) { 
   
  #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
@@ -44,13 +44,7 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
     proj4string = CRS(proj4string(segs$basin_sp)))
   remove(coords) #job done
 
-  #Different reverse fills based on map type 
-  if (type == "basin") {
-    nonbasin <- raster::erase(basemap_0, segs$basin_sp)
-  } #else if (type == "locality" || type == "region") {
-    #nonbasin <- raster::erase(basemap_0, counties$sp)
- # }  
-
+  nonbasin <- raster::erase(basemap_0, sp)
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
@@ -224,10 +218,10 @@ fn_mapgen <- function(type, metric, rivseg, bbox, segs, counties, roads, nhd, la
             colour="black", size=textsize[5], check_overlap=TRUE)
     
   
-  if (type == "basin"){ #only do reverse fill by basin for map type basin
+#  if (type == "basin"){ #only do reverse fill by basin for map type basin
     map <- map +
       geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) # Reverse Fill
-  }
+#  }
   
   map <- map +   
     # Scalebar & North Arrow
