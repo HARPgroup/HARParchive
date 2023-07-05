@@ -7,14 +7,15 @@ params:
         #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JB3_6820_7053"] 
+  rivseg: ["JL6_7320_7150"] 
   locality: ["Culpeper"]
   region: ["NewRiver_2"]    
-  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
-  runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
-  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["JB3_6820_7053"]
+  runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
+  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
+  metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics not tied to a runid
+  map_name: ["JL6_7320_7150"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -59,6 +60,7 @@ type <- params$type #to tell script what type/extent of map to create
 model_version <- params$model_version
 runid_list <- params$runid_list
 metric <- params$metric
+metric_type <- params$metric_type
 map_name <- params$map_name
 ```
 
@@ -171,18 +173,25 @@ segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 # note: potential NULLs for newly carved data
 
 # All facility model data
+if (metric_type == "modeled") {
   df <- data.frame(runid=runid_list, model_version, metric=metric)
   for(i in 1:length(runid_list)){
   df$runlabel[i] <- paste0(runid_list[i], '_', metric)
+  } } else if (metric_type == "measured") {
+  df <- data.frame(metric=metric, runlabel=metric)
 }
+  
 
-facils$mdat <- om_vahydro_metric_grid( 
+if (metric_type == "modeled") {
+  facils$mdat <- om_vahydro_metric_grid( 
   metric=FALSE, runids=df, featureid='all', 
   entity_type='dh_feature', bundle='facility',
   ftype='all', model_version = model_version,
   base_url = paste(site, "/entity-model-prop-level-export", sep=""),
   ds = ds
 )
+}
+
 #remove(df) #job finished? -- used later on for ordering process 
 
 # County Features data
@@ -269,8 +278,8 @@ if (type == "region") {
 # Full join facility model data & facility foundation data
 ## baseR merge() documentation says "all=TRUE" gives a full outer join by SQL terms
 #facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
-
-facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
+if (metric_type == "modeled") {
+  facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
       left outer join mdat
       on (foundatn.Facility_hydroid = mdat.featureid)
       UNION
@@ -279,6 +288,10 @@ facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
       on (foundatn.Facility_hydroid = mdat.featureid)
       "
       ) ) 
+} else if (metric_type == "measured") {
+  facils$all <- facils$foundatn
+}
+
 #where foundatn.Facility_hydroid is not null
 colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
 
@@ -322,15 +335,13 @@ roads <- centroid_coords(roads, "geometry") #add centroid coords
 cities <- cities[cities$ST == 'VA',] #VA cities
 ## Remove city/town names that match their county/locality name
 
-#update for new city csv
+# Removing cities that are also county names, for cleaner mapping
 counties_df <- counties$df #needed for sqldf
-
-#need to test to ensure this works properly in mapping
-cities <- sqldf( 
-  "SELECT cities.*  
-   FROM cities
-  where NAME is not (select counties_df.name from counties_df)"
-)
+cities <- sqldf("SELECT cities.* 
+                FROM cities 
+                WHERE NAME 
+                NOT IN (select counties_df.name from counties_df) 
+                ")
 remove(counties_df) #no longer needed
 
 #not needed for new dataset, need to start new process  
@@ -375,12 +386,26 @@ if (type == "basin") {
   }
   }
   
+  facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+  facils$all <- facils$all[!is.na(facils$all$Latitude),]
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326 
+  
   segs_basin <- segs$basin
   segs$basin_sp <- process_geom(segs$basin, "geom")
   segs$basin_sf <- st_as_sf(segs$basin_sp)
   st_crs(segs$basin_sf) <- 4326 
-  facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
+  
+  if (metric_type == "modeled") {
+    facils$basin <- sqldf("SELECT facils_all.* FROM facils_all WHERE riverseg IN (select segs_basin.riverseg from segs_basin) AND riverseg IS NOT NULL")
+  } else if (metric_type == "measured") {
+    facils$basin <- st_filter(facils$sf, segs$basin_sf)
+    coords <- st_coordinates(facils$basin$geometry)
+    facils$basin <- st_drop_geometry(facils$basin)
+  }
+  
   #facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
+  
   # Filter out WSP entries (optional)
   facils$basin <- with(facils, sqldf("select * from basin where hydrocode not like 'wsp_%'") )
 #facils$basin <- subset(facils$basin, 
@@ -399,6 +424,9 @@ if (type == "basin") {
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
   bbox <- st_bbox(bbox)
+  
+  
+  facils$basin <- cbind(facils$basin, coords)
   facils$within <- facils$basin #generic name for facils within extent to be used by mapping fun 
 }
 
@@ -641,11 +669,14 @@ labels <- labels$full
 labels <- labels[ ,!duplicated(colnames(labels))]
 
 
-textcol <- colors$default$text #still needed for mapping
-label_fill <- colors$default$fill #still needed for mapping
+
 ```
 
-```{r NEW Labeling with fn_labelprep}
+```{r NEW Labeling with fn_labelprep, warning=FALSE}
+## ALL labeling now done in this chunk
+textcol <- colors$default$text #still needed for mapping
+label_fill <- colors$default$fill #still needed for mapping
+rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 ```
 
@@ -710,7 +741,13 @@ if (type == "basin") {
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit, sp) #execute mapping function
+fn_mapgen(type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit, sp) #execute mapping function
+
+## IF YOU GET AN ERROR:
+# Error debugging:
+
+# Error in if (distance > 300) { : missing value where TRUE/FALSE needed
+# Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
 ```
 
 ```{r Save PNG, echo=FALSE }
