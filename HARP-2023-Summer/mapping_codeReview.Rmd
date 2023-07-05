@@ -8,14 +8,14 @@ params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_7320_7150"] 
-  locality: ["Culpeper"]
-  region: ["NewRiver_2"]    
-  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  locality: ["Fairfax County"]
+  region: ["NorthernVirginia"]    
+  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
   metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics not tied to a runid
-  map_name: ["JL6_7320_7150"]
+  map_name: ["NorthernVirginia"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -249,10 +249,10 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
-```{r Facility Data and Coords for Region maps, warning=FALSE}
+```{r Facility Data and Coords for Region maps, warning=FALSE, message=FALSE}
 ## For mapping regions by facility -- requires VAhydro data retrieval 
 if (type == "region") {
-
+ if (metric_type == "modeled") { 
   if (exists("facil_featr") == FALSE) { #only retrieve data if needed, process takes time
   
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
@@ -267,6 +267,28 @@ if (type == "region") {
     facil.i <- RomFeature$new(ds,list(hydroid=facil_featr$featureid[i]), TRUE)
   facil_featr$dh_geofield[i] <- facil.i$geom
   } # adds point geometry for each facility 
+  }
+ } else if (metric_type =="measured") {
+   ## create df from facils$foundatn by facility, not MPs
+   facils_foundatn <- facils$foundatn
+   facils_sql <- paste('SELECT *, ',df$runlabel[1],' as metric
+                         FROM facils_foundatn'
+                         , sep="")
+  
+   facils_foundatn <- sqldf(facils_sql)
+   # aggregate data using sqldf:
+   facils_foundatn <- sqldf("select facils_foundatn.*,
+                     sum(metric) as sum
+                     from facils_foundatn
+                     group by Facility_hydroid")
+   facils_foundatn <- facils_foundatn[ , !names(facils_foundatn) == df$runlabel[1]]
+   names(facils_foundatn)[names(facils_foundatn) == 'sum'] <- df$runlabel[1]
+   facils_foundatn <- facils_foundatn[, !duplicated(colnames(facils_foundatn))]
+   facils$found_each <- facils_foundatn
+   for(i in 1:nrow(facils$found_each)){ #takes WAY too lomg
+    facil.i <- RomFeature$new(ds,list(hydroid=facils$found_each$Facility_hydroid[i]), TRUE)
+    facils$found_each$dh_geofield[i] <- facil.i$geom
+  } # adds point geometry for each facility
  }
 }
 ```
@@ -520,8 +542,13 @@ if (type == "region") {
   ##### end
   
   ## mapping by facility:
-  facil_featr <- facil_featr[!facil_featr$dh_geofield == "",] #remove rows/facilities that don't have a point geometry
-  facils_sp <- process_geom(facil_featr, "dh_geofield")
+  if (metric_type == "modeled") {
+    facil_featr <- facil_featr[!facil_featr$dh_geofield == "",] #remove rows/facilities that don't have a point geometry
+    facils_sp <- process_geom(facil_featr, "dh_geofield")
+  } else if (metric_type == "measured") {
+    facils$found_each <- facils$found_each[!facils$found_each$dh_geofield == "",] 
+    facils_sp <- process_geom(facils$found_each, "dh_geofield")
+  }
   facils_sf <- st_as_sf(facils_sp) # need an sf object to do spatial filter 
   st_crs(facils_sf) <- 4326
   facils_region <- st_filter(facils_sf, region_sf)
