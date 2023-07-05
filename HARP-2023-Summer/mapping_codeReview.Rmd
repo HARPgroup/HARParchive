@@ -10,11 +10,11 @@ params:
   rivseg: ["JB3_6820_7053"] 
   locality: ["Culpeper"]
   region: ["NewRiver_2"]    
-  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # should be 'NULL' if a non-runid metric used (fiveyr_avg_mgy)
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
-  map_name: ["NewRiver_2"]
+  map_name: ["JB3_6820_7053"]
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -277,9 +277,9 @@ facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn
       select foundatn.* , mdat.* from mdat
       left outer join foundatn
       on (foundatn.Facility_hydroid = mdat.featureid)
-      where foundatn.Facility_hydroid is null"
+      "
       ) ) 
-
+#where foundatn.Facility_hydroid is not null
 colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
 
 
@@ -641,8 +641,8 @@ labels <- labels$full
 labels <- labels[ ,!duplicated(colnames(labels))]
 
 
-textcol <- colors$default$text
-label_fill <- colors$default$fill
+textcol <- colors$default$text #still needed for mapping
+label_fill <- colors$default$fill #still needed for mapping
 ```
 
 ```{r NEW Labeling with fn_labelprep}
@@ -698,7 +698,7 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1]
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))]
 ```
 
-```{r}
+```{r Set sp based on Type}
 ## Setting sp variable based on map type to do reverse fill for all map types
 if (type == "basin") {
     sp <- segs$basin_sp
@@ -710,7 +710,7 @@ if (type == "basin") {
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
-fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, labelsP, locality, region, mp_layer, metric_unit, sp) #execute mapping function
+fn_mapgen(type, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit, sp) #execute mapping function
 ```
 
 ```{r Save PNG, echo=FALSE }

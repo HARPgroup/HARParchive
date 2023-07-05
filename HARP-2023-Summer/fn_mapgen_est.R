@@ -26,15 +26,21 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     if(i==1){ maplabs$all <- maplabs[[i]] }
     if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
   }
-# Join with aesthestics:
-  maplabs$aes <- styles$custom
 
-  
-  maplabs$final <- with(maplabs, sqldf("select all.*, aes.* from all 
-      left outer join aes
-      on (all.class = aes.class)
-    "
-  ))
+
+## aesthetics from styles$custom need to be joined to maplabs$all using the class column 
+styles_cus <- styles$custom
+maplabs_all <- maplabs$all  
+# join with sqldf 
+
+maplabs$final <- sqldf(
+  "SELECT styles_cus.*, maplabs_all.*  
+   FROM styles_cus 
+   LEFT OUTER JOIN maplabs_all
+      on (maplabs_all.class = styles_cus.class)"
+  )
+
+labels <- maplabs$final
 
 #----Generating Basemap-Specific Data----  
  #For the scalebar:  
@@ -70,7 +76,7 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
   st_crs(basemap_0) <- 4326
     
 #----Filtering what's plotted by size of boundary box---- 
-  if(distance > 300) {
+  if (distance > 300) {
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads_plot <- roads[roads$RTTYP=="I",]
@@ -99,6 +105,9 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
   }
   st_crs(nhd$plot) <- 4326  
 
+labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
+class(labelsP$bg.r) = "numeric"
+  
 #----Legend & Titling----
   #For map title:
   if (type == "basin") {
@@ -122,12 +131,10 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     labels = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
   }
   
-
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
-
-  
+ 
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -156,39 +163,40 @@ fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, 
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
-    geom_label_repel(data = labelsP[labelsP$road=="yes",],
-                     aes(x=lng, y=lat, label=name, 
+    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ], #road column no longer exists
+                     aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
-                         color=colcode, 
-                         fill=fillcode
+                         color=as.factor(colcode), 
+                         fill=as.factor(fillcode)
                      ), 
                      show.legend=NA,
                      size=textsize[1],
                      label.r=0.6, label.size=0.12, 
                      #force=0, max.overlaps=1
     ) +
-    scale_colour_manual(values=textcol, breaks=c(1,2,3),
+    scale_colour_manual(values=textcol, breaks=c(1,2,3), 
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
-    scale_fill_manual(values=label_fill, breaks=c(1,2,3),
+    scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
     # Basin Labels (by riverseg ID)
-    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) +
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) + # no error up to here 
     # Text Labels
     new_scale("size") + new_scale("color") +
-    geom_text_repel(data = labelsP[labelsP$road=="no",], 
-                    aes(x=lng, y=lat, label=name,
+    #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
+    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #road column no longer exists
+                    aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
                         segment.color=segcol, segment.size=segsize,
                         bg.color="white", bg.r=bg.r,
                         size=sizecode, 
-                        color=colcode,
+                        color=as.factor(colcode),
                     ), 
                     show.legend=FALSE,
                     force= 40, direction="both",
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) )
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) 
     
 ## MP plotting only for map types basin and locality 
     
