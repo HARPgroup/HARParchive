@@ -10,7 +10,7 @@ params:
   rivseg: ["JL6_7320_7150"] 
   locality: ["Culpeper"]
   region: ["NewRiver_2"]    
-  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
@@ -586,90 +586,6 @@ for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yester
 ```{r Get NHD in bbox, message=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-```
-
-```{r Labels df, warning=FALSE}
-# River & stream labels
-## major rivs = orders 5 & 6; streams = order 4
-lb_rivr <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6
-                         (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==5 | nhd$flowline$StreamOrde==4),] 
-## no duplicate names; prioritize higher order names and then the longest segment of each duplicate
-lb_rivr <- lb_rivr[order(-lb_rivr$StreamOrde, lb_rivr$gnis_name, -lb_rivr$LENGTHKM) & !duplicated(lb_rivr$gnis_name),]
-## shorten long names
-lb_rivr$gnis_name <- mgsub(lb_rivr$gnis_name, 
-                             c('North Fork','South Fork','East Fork','West Fork','Middle Fork'), #pattern
-                             c('NF','SF','EF','WF','MF')) #replacement
-lb_rivr$StreamOrde <- mgsub(lb_rivr$StreamOrde, c(4,5,6), c("str","majR","majR"))
-## calculate label coordinates
-lb_rivr <- centroid_coords(lb_rivr, "geometry")
-
-# Waterbody labels
-lb_wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-## remove ones without names & filter to largest 25%
-lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname') & lb_wtbd$AreaSqKM > quantile(lb_wtbd$AreaSqKM, 0.75),]
-lb_wtbd <- centroid_coords(lb_wtbd, "geometry")
-## Consider: move labeling of waterbodies to mapping function in order to filter by distance
-
-#- - - - - - - - - - -
-
-# Combine all labels into one df
-#finish adjusting cities
-#labels <- data.frame(
-#  name= c(counties$sf$name, cities$city, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
-#  class= c(counties$sf$ftype, cities$class, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
-#  lng= as.numeric( c(counties$sf$lng, cities$lng, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
-#  lat= as.numeric( c(counties$sf$lat,cities$lat, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
-#)
-#remove(lb_rivr)
-#remove(lb_wtbd)
-
-# Columns for the aesthetics
-## very specific function; just minimizing code lines:
-#class_aes <- function(aesthetic){ #input values of an aesthetic to correspond with each label class
-#  mgsub(labels$class, c("I","S","U","town","majC","LakePond","str","majR","county"), aesthetic)
-#}
-#labels$road <- class_aes( c(rep("yes",3), rep("no",6)) )
-
-#labels$fontface <- class_aes( c(rep("plain",5),"bold","bold","bold","bold.italic") )
-#labels$fontfam <- class_aes( c(rep("Comic Sans MS",3),"sans","sans",rep("serif",4) ) )
-#labels$angle <- as.numeric( class_aes( c(0,0,0,0,0,15,15,15,0) ) ) #as.numeric() b/c mgsub() returns character strings
-#labels$bg.r <- as.numeric( class_aes( c("NA","NA","NA",.05,.05,.1,.1,.05,.03) ) )
-#labels$segsize <- as.numeric( class_aes( c("NA","NA","NA",.5,.5,.5,.5,.75,1) ) )
-
-#textcol <- c("red","white","black","deepskyblue4","#003333") #c(I, S, U/town/majC, LakePond/str/majR, county)
-#labels$segcol <- class_aes( c("NA","NA","NA", textcol[c(3,3,4,4,4,5)] ) )
-#labels$colcode <- class_aes( c(1,2,3,3,3,4,4,4,5) ) #corresponds to textcol for the color scale
-
-#labels$sizecode <- as.numeric ( class_aes( c(1,1,1,2,2,2,2,3,4) ) ) #corresponds to textsize for the size scale
-
-#label_fill <- c("blue","#0B5F14","white") #for road bubbles c(I,S,U)
-#labels$fill <- class_aes( c(1,2,3, rep("NA",6) ) )
-
-```
-
-```{r Labels df Using mapstyle_config}
-labels <- list()
-labels$aes <- styles$custom
-
-labels$data <- data.frame(
-  name= c(counties$sf$name, cities$NAME, lb_rivr$gnis_name, lb_wtbd$gnis_name, roads$FULLNAME[!duplicated(roads$FULLNAME)]),
-  class= c(counties$sf$ftype, cities$CLASS, lb_rivr$StreamOrde, lb_wtbd$FTYPE, roads$RTTYP[!duplicated(roads$FULLNAME)]),
-  lng= as.numeric( c(counties$sf$lng, cities$X, lb_rivr$lng, lb_wtbd$lng, roads$lng[!duplicated(roads$FULLNAME)]) ),
-  lat= as.numeric( c(counties$sf$lat,cities$Y, lb_rivr$lat, lb_wtbd$lat, roads$lat[!duplicated(roads$FULLNAME)]) )
-)
-
-labels$full <- with(labels, sqldf("select data.* , aes.* from data 
-      left outer join aes
-      on (data.class = aes.class)
-    "
-))
-
-# UNFINISHED integration into fn_mapgen()
-labels <- labels$full
-labels <- labels[ ,!duplicated(colnames(labels))]
-
-
-
 ```
 
 ```{r NEW Labeling with fn_labelprep, warning=FALSE}
