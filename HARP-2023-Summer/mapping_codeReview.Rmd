@@ -48,6 +48,7 @@ ds$get_token(rest_pw)
 source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
 source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
+source(paste0(getwd(), '/', 'fn_labelprep.R' )) #load labeling function
 ```
 
 ```{r UserInputs, echo=FALSE}
@@ -643,6 +644,11 @@ labels <- labels[ ,!duplicated(colnames(labels))]
 textcol <- colors$default$text
 label_fill <- colors$default$fill
 ```
+
+```{r NEW Labeling with fn_labelprep}
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
+```
+
 
 ```{r Metric Legend Bins}
 ## Putting the metric data into bins for ranged legend for map
