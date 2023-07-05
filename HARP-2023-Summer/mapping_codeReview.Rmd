@@ -36,7 +36,7 @@ library(ggrepel)
 library(flextable)
 library(geosphere)
 
-library(tidycensus)
+#library(tidycensus)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R')
@@ -717,10 +717,27 @@ ggsave(
 ``` {r Create Table Data, warning=FALSE, message=FALSE }
 
 # - - - - creating initial data frame  - - - -
+
+
+  if (type == "basin") {
+    #title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
+    sourcetype = "Source Type"
+    mpname = "MP Name"
+  } else if (type == "locality") {
+   # title <- paste0(locality)
+    sourcetype = "Source.Type"
+    mpname= "MP.Name"
+  }  else if (type == "region") {
+    #title <- paste0(region)
+    sourcetype = "Source.Type"
+    mpname = "MP.Name"
+  } 
+#Source_Type = facils$within[, sourcetype]
+
 table <- data.frame(Number= facils$within$NUM, 
                         Facility=facils$within$Facility, 
-                        Source_Type = facils$within$`Source Type`,
-                        Source = facils$within$`MP Name`,
+                        Source_Type = facils$within[, sourcetype],
+                        Source = facils$within[, mpname],
                         Rivseg= facils$within$riverseg,
                         Locality = facils$within$Locality, 
                         fiveYr= facils$within$fiveyr_avg_mgy
