@@ -122,13 +122,16 @@ class(labelsP$bg.r) = "numeric"
   
   #For binned legend 
   breaks <- seq(1:9)
+  lims <- c(min(breaks),max(breaks)) #limits based on range of breaks
+
   if (metric_unit == "mgd") { 
-    labels = c(0.5,1.0,2,5,10,25,50,100,1000) 
+    labs = c(0.5,1.0,2,5,10,25,50,100,1000)
   } else if (metric_unit == "mgy") {
-    labels = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+    labs = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
   } else {
-    labels = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
+    labs = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
   }
+ 
   
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
@@ -217,16 +220,15 @@ class(labelsP$bg.r) = "numeric"
       
     scale_size_binned(range = c(2,20), 
                       breaks = breaks, 
-                      labels = labels, 
-                      name = legend_title[1],
-                      guide= guide_legend(override.aes=list(label="")) ) +
+                      labels = labs,
+                      limits = lims,
+                      name = legend_title[1]) +
     
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
                         name= "Source Type",
-                        guide= guide_legend(override.aes=list(label="", size =5))
-    )            
+                        guide= guide_legend(override.aes=list(label="", size =5)) )            
   }  
   
 ## Plotting facilities for regional maps
@@ -243,9 +245,9 @@ class(labelsP$bg.r) = "numeric"
 #                 guide= guide_legend(override.aes=list(label="")) 
       scale_size_binned(range = c(2,20), 
                         breaks = breaks, 
-                        labels = labels, 
-                        name = legend_title[1],
-                        guide= guide_legend(override.aes=list(label="")) )
+                        labels = labs,
+                        limits = lims,
+                        name = legend_title[1])
   }
  
   # MP or facility Labels
