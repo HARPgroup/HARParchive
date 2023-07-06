@@ -7,15 +7,16 @@ params:
         #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JA4_7280_7340"] 
+  rivseg: ["JB3_6820_7053"] 
   locality: ["Albemarle"]
   region: ["Chowan_1"]    
-  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["source"] #either 'source' or 'facility'
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics not tied to a runid
-  map_name: ["Chowan_1"]
+  map_name: ["JB3_6820_7053"]
+  map_type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   bbox_type: ["auto"] #either 'auto' or 'vahydro'
 ---
 
@@ -61,6 +62,7 @@ runid_list <- params$runid_list
 metric <- params$metric
 metric_type <- params$metric_type
 map_name <- params$map_name
+map_type <- params$map_type
 bbox_type <- params$bbox_type
 ```
 
@@ -227,9 +229,9 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
-```{r Facility Data and Coords for Region maps, warning=FALSE}
+```{r Facility Data and Coords for Region maps, warning=FALSE, message=FALSE}
 ## For mapping regions by facility -- requires VAhydro data retrieval 
-if (type == "region") {
+if (map_type == "region") {
  if (metric_type == "modeled") { 
   if (exists("facil_featr") == FALSE) { #only retrieve data if needed, process takes time
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
@@ -331,10 +333,10 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 ```
 
-```{r bbox & facils by TYPE Param, warning=FALSE}
+```{r bbox & facils by map_type Param, warning=FALSE}
 ## Setting bbox and filtering MPs by extent we want, 
 facils_all <- facils$all #create temporary df for use in sqldf for ordering
-if (type == "basin") { #'type' variable will either be: basin, locality, or region 
+if (map_type == "basin") { #'type' variable will either be: basin, locality, or region 
   for(i in rivseg){. #newly moved into this loop
     if(i==rivseg[1]){
     segs$basin <- fn_extract_basin(segs$all, i)
@@ -380,7 +382,7 @@ if (type == "basin") { #'type' variable will either be: basin, locality, or regi
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .05) #slightly past basin
 }
-if (type == "locality") {
+if (map_type == "locality") {
   ## pull locality and geometry out of data frame with the locality parameter given
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
   locality_sp <- process_geom(as.data.frame(locality_sf), "dh_geofield") #for reverse-fill process for map 
@@ -417,7 +419,7 @@ if (type == "locality") {
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .05) #slightly past basin
 }
-if (type == "region") {
+if (map_type == "region") {
   #region geometries stored in region_geom_list under the region name 
   #pull region of interest given in params from list of region geometries 
   region_list <- region_geom_list[names(region_geom_list) == region]
@@ -484,9 +486,34 @@ bbox <- st_bbox(bbox)
 rm(facils_all)
 ```
 
+```{r Add riverseg column by spatial join if needed}
+## Adding riversegs to facils$within data frame when not present using a spatial join
+# segs$all contains segment IDs and geometries 
+# facils$within contains MP names and coords
+# first, check if riverseg exists. It will already be in table if model data was pulled & joined 
+ if (!"riverseg" %in% colnames(facils$within)) { # TRUE when riverseg column not present, will execute loop
+  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
+  segs$sp <- process_geom(segs_all, "geom") #takes several seconds
+  rm(segs_all)
+  segs$sf <- st_as_sf(segs$sp)
+  st_crs(segs$sf) <- 4326
+  st_crs(facils$within) <- 4326
+  # do spatial join to determine which seg each MP is in
+  spat_join <- st_join(facils$within, segs$sf) #riverseg column added, polygons in col geom
+  coords <- st_coordinates(spat_join$geometry)
+  colnames(coords) <- c("Longitude","Latitude")
+  spat_join <- spat_join[ , !names(spat_join) == "geom"]
+  spat_join <- st_drop_geometry(spat_join)
+  facils$within <- spat_join
+  facils$within <- cbind(facils$within, coords)
+  # need to remove polygon column
+}
+```
+
 ```{r Process basin geometries, warning=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
-if (type == "locality" || type == "region") {
+if (map_type == "locality" || map_type == "region") {
   ## basin watersheds
   segs$basin_sp <- process_geom(segs$basin, "geom")
   segs$basin_sf <- st_as_sf(segs$basin_sp)
@@ -528,7 +555,7 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("c
 ```{r Metric Legend Bins}
 ## Putting the metric data into bins for ranged legend for map
 #facils$within needs to stay as MPs for table generation
-if (type == "basin" || type == "locality"){ #facils_within already created for region
+if (map_type == "basin" || map_type == "locality"){ #facils_within already created for region
   facils_within <- facils$within
 }
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
@@ -565,20 +592,20 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change co
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
 ```
 
-```{r Set sp based on Type}
+```{r Set sp based on map_type}
 ## Setting sp variable based on map type to do reverse fill for all map types
-if (type == "basin") {
+if (map_type == "basin") {
     sp <- segs$basin_sp
-  } else if (type == "locality") {
+  } else if (map_type == "locality") {
     sp <- locality_sp
-  }  else if (type == "region") {
+  }  else if (map_type == "region") {
     sp <- region_sp
   } 
 ```
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
 # execute mapping function
-fn_mapgen(type, style, metric, rivseg, bbox, segs, counties, roads, 
+fn_mapgen(map_type, style, metric, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit, sp)
 # Error debugging:
 # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
@@ -601,15 +628,15 @@ ggsave(
 # - - - - creating initial data frame  - - - -
 
 
-  if (type == "basin") {
+  if (map_type == "basin") {
     #title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
     sourcetype = "Source Type"
     mpname = "MP Name"
-  } else if (type == "locality") {
+  } else if (map_type == "locality") {
    # title <- paste0(locality)
     sourcetype = "Source.Type"
     mpname= "MP.Name"
-  }  else if (type == "region") {
+  }  else if (map_type == "region") {
     #title <- paste0(region)
     sourcetype = "Source.Type"
     mpname = "MP.Name"
