@@ -42,8 +42,11 @@ fn_labelprep <- function(data, classes){
      
     # Now do the same for the water bodies
       wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-      ## remove ones without names & filter to largest 25%
-      wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.75),]
+      ## remove ones without names, ponds, and & filter to largest 15%
+      wtbd <- wtbd[!grepl("Pond", wtbd$gnis_name),] #remove ponds
+      wtbd <- wtbd[!grepl("Millpond", wtbd$gnis_name),] 
+      wtbd <- wtbd[!grepl("Swamp", wtbd$gnis_name),]
+      wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.85),]
       wtbd$class <- rep("waterbody", nrow(wtbd)) #add class column
       wtbd <- wtbd[,c("gnis_name","class")] #geometry is still attached
       

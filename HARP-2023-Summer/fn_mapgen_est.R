@@ -19,7 +19,7 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 ## "type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 
-fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit, sp) { 
+fn_mapgen <- function(map_type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit) { 
 
 # Combine all map labels into one df:
 for(i in 1:length(maplabs)){
@@ -65,8 +65,7 @@ labels <- maplabs$final
     list(sp::Polygons(list(Polygon(coords)), "id")), 
     proj4string = CRS(proj4string(segs$basin_sp)))
   remove(coords) #job done
-
-  nonbasin <- raster::erase(basemap_0, sp)
+  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
   
@@ -109,30 +108,29 @@ class(labelsP$bg.r) = "numeric"
   
 #----Legend & Titling----
   #For map title:
-  if (type == "basin") {
+  if (map_type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
     sourcetype = "Source Type"
-  } else if (type == "locality") {
+  } else if (map_type == "locality") {
     title <- paste0(locality)
     sourcetype = "Source.Type"
-  }  else if (type == "region") {
+  }  else if (map_type == "region") {
     title <- paste0(region)
 #    sourcetype = "Source.Type"
   } 
   
   #For binned legend 
-  breaks <- seq(1:9)
+  breaks <- seq(1:7)
   lims <- c(min(breaks),max(breaks)) #limits based on range of breaks
-
-  if (metric_unit == "mgd") { 
-    labs = c(0.5,1.0,2,5,10,25,50,100,1000)
-  } else if (metric_unit == "mgy") {
-    labs = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
-  } else {
-    labs = c(0.5,1.0,2,5,10,25,50,100,1000) #default to mgd if unit is neither mgd or mgy
-  }
- 
   
+  if (metric_unit == "mgd") { 
+    labs = c(0.5, 1.0, 2, 10, 25, 100, 1000)
+  } else if (metric_unit == "mgy") {
+    labs = c(1, 5, 10, 50, 100, 1000, 10000)
+  } else {
+    labs = c(0.5, 1.0, 2, 10, 25, 100, 1000) #default to mgd if unit is neither mgd or mgy
+  }
+
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
@@ -154,14 +152,21 @@ class(labelsP$bg.r) = "numeric"
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill="deepskyblue3", size=1) +
     # County Borders
-    geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
+    geom_sf(data = counties$sf, inherit.aes=FALSE, color="gray27", fill=NA, lwd=2.5) +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
     # Basin Outlines
-    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
+    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed")
+  
+  if (map_type == "region") { # thicker boundary around region
+    map <- map + 
+      geom_sf(data = segs$region_sf, inherit.aes=FALSE, color="black", fill=NA, lwd=4.5)
+  }
+   
+  map <- map +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
@@ -202,7 +207,7 @@ class(labelsP$bg.r) = "numeric"
     
 ## MP plotting only for map types basin and locality 
     
-  if (type == "basin" || type == "locality") {
+  if (map_type == "basin" || map_type == "locality") {
     map <- map +
     # Plotting using bins in a single layer:
     new_scale("size") + new_scale("color") +
@@ -211,14 +216,7 @@ class(labelsP$bg.r) = "numeric"
               color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
                shape = 19) +
       
-#    scale_size(range = c(2,20),
-#               breaks= breaks, 
-#               labels= labels, 
-#               name= legend_title[1],
-#               guide= guide_legend(override.aes=list(label=""))  
-#    ) +
-      
-    scale_size_binned(range = c(2,20), 
+    scale_size_binned(range = c(2,25), 
                       breaks = breaks, 
                       labels = labs,
                       limits = lims,
@@ -232,18 +230,14 @@ class(labelsP$bg.r) = "numeric"
   }  
   
 ## Plotting facilities for regional maps
-  if (type == "region") {
+  if (map_type == "region") {
     map <- map + 
       new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               size = (mp_layer_plot$bin)), color = "#F7FF00",
               shape = 19) +
-#      scale_size(range = c(2,20),
-#                 breaks= breaks, 
-#                 labels= labels, 
-#                 name= legend_title[1],
-#                 guide= guide_legend(override.aes=list(label="")) 
-      scale_size_binned(range = c(2,20), 
+
+      scale_size_binned(range = c(2,25), 
                         breaks = breaks, 
                         labels = labs,
                         limits = lims,
