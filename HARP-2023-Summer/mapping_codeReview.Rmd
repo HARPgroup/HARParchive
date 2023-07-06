@@ -593,6 +593,43 @@ names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change co
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
 ```
 
+```{r NEW bin processing}
+# Not yet operational
+if (map_type == "basin" || map_type == "locality"){ #facils_within already created for region
+  facils_within <- facils$within
+}
+
+facils_within <- facils_within[ , !names(facils_within) == "hydrocode"] #remove hydrocode column that came w spatial join riversegs
+
+mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
+                      FROM facils_within'
+                      , sep="")
+
+mp_layer <- sqldf(mp_layer_sql)
+
+bins = as.data.frame(c(0.5, 1.0,2.0,5.0,10.0,50,100,500,1000,2000,5000))
+bins$classid <- index(bins)
+names(bins) <- c("val", "classid")
+
+entity_classes <- sqldf(
+  "select a.NUM, min(b.classid) as classid
+  from mp_layer as a 
+  left outer join bins as b 
+  on (a.demand_metric < b.val) 
+  group by a.NUM"
+)
+
+classified_data <- sqldf(
+  "select a.*, b.classid 
+  from mp_layer as a 
+  left outer join entity_classes as b 
+  on a.NUM = b.NUM "
+)
+# column with bins named 'classid'
+
+```
+
+
 ```{r Set sp based on map_type}
 ## Setting sp variable based on map type to do reverse fill for all map types
 if (map_type == "basin") {
