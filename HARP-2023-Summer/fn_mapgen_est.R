@@ -22,17 +22,16 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 fn_mapgen <- function(type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit, sp) { 
 
 # Combine all map labels into one df:
-  for(i in 1:length(maplabs)){
-    if(i==1){ maplabs$all <- maplabs[[i]] }
-    if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
+for(i in 1:length(maplabs)){
+  if(i==1){ maplabs$all <- maplabs[[i]] }
+  if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
   }
-
 
 ## aesthetics from styles$custom need to be joined to maplabs$all using the class column 
 styles_cus <- styles$custom
 maplabs_all <- maplabs$all  
-# join with sqldf 
 
+# join with sqldf 
 maplabs$final <- sqldf(
   "SELECT styles_cus.*, maplabs_all.*  
    FROM styles_cus 
@@ -208,13 +207,19 @@ class(labelsP$bg.r) = "numeric"
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
                shape = 19) +
-    
-    scale_size(range = c(10,20),
-               breaks= breaks, 
-               labels= labels, 
-               name= legend_title[1],
-               guide= guide_legend(override.aes=list(label=""))  
-    ) +
+      
+#    scale_size(range = c(2,20),
+#               breaks= breaks, 
+#               labels= labels, 
+#               name= legend_title[1],
+#               guide= guide_legend(override.aes=list(label=""))  
+#    ) +
+      
+    scale_size_binned(range = c(2,20), 
+                      breaks = breaks, 
+                      labels = labels, 
+                      name = legend_title[1],
+                      guide= guide_legend(override.aes=list(label="")) ) +
     
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
@@ -226,39 +231,38 @@ class(labelsP$bg.r) = "numeric"
   
 ## Plotting facilities for regional maps
   if (type == "region") {
-    map <- map + new_scale("size") +
+    map <- map + 
+      new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               size = (mp_layer_plot$bin)), color = "#F7FF00",
               shape = 19) +
-      scale_size(range = c(10,20),
-                 breaks= breaks, 
-                 labels= labels, 
-                 name= legend_title[1],
-                 guide= guide_legend(override.aes=list(label=""))  
-      )  
+#      scale_size(range = c(2,20),
+#                 breaks= breaks, 
+#                 labels= labels, 
+#                 name= legend_title[1],
+#                 guide= guide_legend(override.aes=list(label="")) 
+      scale_size_binned(range = c(2,20), 
+                        breaks = breaks, 
+                        labels = labels, 
+                        name = legend_title[1],
+                        guide= guide_legend(override.aes=list(label="")) )
   }
  
   # MP or facility Labels
   map <- map +
   geom_text(data = mp_layer, 
             aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-            colour="black", size=textsize[5], check_overlap=TRUE)
+            colour="black", size=textsize[5], check_overlap=TRUE) +
     
-  
-#  if (type == "basin"){ #only do reverse fill by basin for map type basin
-    map <- map +
-      geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) # Reverse Fill
-#  }
-  
-  map <- map +   
-    # Scalebar & North Arrow
-    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
-                   dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
-                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
+  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) + # Reverse Fill
+
+  ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
+                  dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
+                  st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
     ) +
-    ggspatial::annotation_north_arrow(which_north="true", location="tr",
-                                      height= unit(4,"cm"), width= unit(3, "cm"), 
-                                      style= north_arrow_orienteering(text_size=35)
+  ggspatial::annotation_north_arrow(which_north="true", location="tr",
+                                    height= unit(4,"cm"), width= unit(3, "cm"), 
+                                    style= north_arrow_orienteering(text_size=35)
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
   print('Map stored in environment as: map')
