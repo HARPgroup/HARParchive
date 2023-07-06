@@ -7,15 +7,16 @@ params:
         #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["JL6_7320_7150"] 
-  locality: ["Fairfax County"]
+  rivseg: ["JA2_7410_7470"] 
+  locality: ["Montgomery"]
   region: ["NorthernVirginia"]    
-  type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
-  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame, and not tied to a runid 
+  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics not tied to a runid
-  map_name: ["NorthernVirginia"]
+  map_name: ["JA2_7410_7470"]
+  bbox_type: ["auto"] #either 'auto' or 'vahydro'
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -62,6 +63,7 @@ runid_list <- params$runid_list
 metric <- params$metric
 metric_type <- params$metric_type
 map_name <- params$map_name
+bbox_type <- params$bbox_type
 ```
 
 ```{r Establish Functions, echo=FALSE}
@@ -269,6 +271,7 @@ if (type == "region") {
   } # adds point geometry for each facility 
   }
  } else if (metric_type =="measured") {
+    if (exists("facils_foundatn") == FALSE) {
    ## create df from facils$foundatn by facility, not MPs
    facils_foundatn <- facils$foundatn
    facils_sql <- paste('SELECT *, ',df$runlabel[1],' as metric
@@ -288,6 +291,7 @@ if (type == "region") {
    for(i in 1:nrow(facils$found_each)){ #takes WAY too lomg
     facil.i <- RomFeature$new(ds,list(hydroid=facils$found_each$Facility_hydroid[i]), TRUE)
     facils$found_each$dh_geofield[i] <- facil.i$geom
+   }
   } # adds point geometry for each facility
  }
 }
@@ -366,20 +370,6 @@ cities <- sqldf("SELECT cities.*
                 ")
 remove(counties_df) #no longer needed
 
-#not needed for new dataset, need to start new process  
-# popul <- quantile(cities$population, probs = c(0.25, 0.5, 0.75)) 
-# for(i in cities$population){
-#   if(i < popul["75%"] & i > popul["50%"] | i < popul["25%"]){
-#   cities <- cities[cities$population!=i,]
-#   }
-#   if(i >= popul["75%"]){
-#   cities$class[cities$population==i] = "majC"
-#   }
-#   if(i <= popul["50%"] & i >= popul["25%"]){
-#   cities$class[cities$population==i] = "town" #exclude smallest populations of 0-400
-#   }
-# }
-
 cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
 cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
 #- - - - - - - - - - -
@@ -423,6 +413,7 @@ if (type == "basin") {
   } else if (metric_type == "measured") {
     facils$basin <- st_filter(facils$sf, segs$basin_sf)
     coords <- st_coordinates(facils$basin$geometry)
+    colnames(coords) <- c("Longitude", "Latitude")
     facils$basin <- st_drop_geometry(facils$basin)
   }
   
@@ -593,20 +584,22 @@ if (type == "locality" || type == "region") {
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
 ```
 
-## SKIP unless VAhydro bbox is wanted
+## VAhydro bbox retrieval if specified in params
 
 ```{r VAhydro bbox if Desired, eval=FALSE}
 ## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
-for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
- hid <- segs$basin$hydroid[i] 
- map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
- extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
- extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
- extent_coords <- extent_coords[c('propname','propvalue')]
- extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
- bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
- bbox_ex <- st_bbox(bbox_ex)
- assign("bbox", bbox_ex)
+if (bbox_type == "vahydro") {
+  for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
+  hid <- segs$basin$hydroid[i] 
+  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
+  extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+  extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+  extent_coords <- extent_coords[c('propname','propvalue')]
+  extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+  bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05)
+  bbox_ex <- st_bbox(bbox_ex)
+  assign("bbox", bbox_ex)
+  }
 }
 ```
 

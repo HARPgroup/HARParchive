@@ -207,13 +207,19 @@ class(labelsP$bg.r) = "numeric"
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
                shape = 19) +
-    
-    scale_size(range = c(2,20),
-               breaks= breaks, 
-               labels= labels, 
-               name= legend_title[1],
-               guide= guide_legend(override.aes=list(label=""))  
-    ) +
+      
+#    scale_size(range = c(2,20),
+#               breaks= breaks, 
+#               labels= labels, 
+#               name= legend_title[1],
+#               guide= guide_legend(override.aes=list(label=""))  
+#    ) +
+      
+    scale_size_binned(range = c(2,20), 
+                      breaks = breaks, 
+                      labels = labels, 
+                      name = legend_title[1],
+                      guide= guide_legend(override.aes=list(label="")) ) +
     
     scale_colour_manual(values=c("#F7FF00","#FF00FF"),
                         breaks= c("Surface Water", "Groundwater"),
@@ -225,16 +231,21 @@ class(labelsP$bg.r) = "numeric"
   
 ## Plotting facilities for regional maps
   if (type == "region") {
-    map <- map + new_scale("size") +
+    map <- map + 
+      new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               size = (mp_layer_plot$bin)), color = "#F7FF00",
               shape = 19) +
-      scale_size(range = c(10,20),
-                 breaks= breaks, 
-                 labels= labels, 
-                 name= legend_title[1],
-                 guide= guide_legend(override.aes=list(label=""))  
-      )  
+#      scale_size(range = c(2,20),
+#                 breaks= breaks, 
+#                 labels= labels, 
+#                 name= legend_title[1],
+#                 guide= guide_legend(override.aes=list(label="")) 
+      scale_size_binned(range = c(2,20), 
+                        breaks = breaks, 
+                        labels = labels, 
+                        name = legend_title[1],
+                        guide= guide_legend(override.aes=list(label="")) )
   }
  
   # MP or facility Labels
