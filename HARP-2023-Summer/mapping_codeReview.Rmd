@@ -359,6 +359,10 @@ if (map_type == "basin") { #'type' variable will either be: basin, locality, or 
                           WHERE riverseg 
                           IN (select segs_basin.riverseg from segs_basin) 
                           AND riverseg IS NOT NULL") 
+    facils$basin <- st_filter(facils$sf, segs$basin_sf)
+    coords <- st_coordinates(facils$basin$geometry)
+    colnames(coords) <- c("Longitude", "Latitude")
+    facils$basin <- st_drop_geometry(facils$basin)
     # ^^ previously: facils$basin <- subset(facils$all, riverseg %in% segs$basin$riverseg & riverseg!="NULL")
   } else if (metric_type == "measured") {
     facils$basin <- st_filter(facils$sf, segs$basin_sf)
@@ -643,13 +647,18 @@ ggsave(
   } 
 #Source_Type = facils$within[, sourcetype]
 
+#----------------- THIS SECTION NEEDS TO BE TESTED WITH THE NEW DATAFRAME SPECIFIC TO SOURCE OR FACILITY LEVEL MAPPING -----------
+
+#change table data frame based on facility or mp
+
+if (type=="Source"){
 table <- data.frame(Number= facils$within$NUM, 
                         Facility=facils$within$Facility, 
                         Source_Type = facils$within[, sourcetype],
                         Source = facils$within[, mpname],
                         Rivseg= facils$within$riverseg,
                         Locality = facils$within$Locality, 
-                        fiveYr= facils$within$fiveyr_avg_mgy
+                        fiveYr= facils$within$fiveyr_avg_mgy #might need to get rid of this and change it just into whatever metric is required
                         ) 
 
 # - - - - add rivseg names- - - - - -
@@ -657,6 +666,85 @@ table <- data.frame(Number= facils$within$NUM,
 for(i in 1:nrow(table)){ 
     loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
     table$rivsegName[i]  <- loc_rivseg$name 
+}
+#- - - - add permitted capacity - - -
+facilswitinregion<- facils$within
+
+for (i in 1:nrow(facils$within)){
+  systemObj <- RomProperty$new(ds,list(
+    featureid = facils$within$featureid[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  permCapac <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'vwp_max_mgy'),
+  TRUE)
+  table$vwp_max_mgy[i] <- permCapac$propcode  
+}
+
+#Replace zeros with "no permit"
+table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
+
+colnames(table)[2] <- "Facility Name"
+colnames(table)[1] <- "Number"
+colnames(table)[3] <- "Source Type"
+colnames(table)[4] <- "Source Name"
+colnames(table)[5] <- "River Segment"
+colnames(table)[8] <- "River Segment Names"
+colnames(table)[6] <- "County"
+#colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
+colnames(table)[9] <- "Permitted Capacity(MGY)"
+colnames(table)[7] <- "5 Year Avg Use(Source MGY)"
+}
+
+if (type=="Facility"){
+table <- data.frame(Number= facils$within$NUM, 
+                        Facility=facils$within$Facility, 
+                        Rivseg= facils$within$riverseg,
+                        Locality = facils$within$Locality, 
+                        ) 
+
+# - - - - add rivseg names- - - - - -
+
+for(i in 1:nrow(table)){ 
+    loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
+    table$rivsegName[i]  <- loc_rivseg$name 
+}
+#- - - - add permitted capacity - - -
+facilswitinregion<- facils$within
+
+for (i in 1:nrow(facils$within)){
+  systemObj <- RomProperty$new(ds,list(
+    featureid = facils$within$featureid[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  permCapac <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'vwp_max_mgy'),
+  TRUE)
+  table$vwp_max_mgy[i] <- permCapac$propcode  
+}
+
+#Replace zeros with "no permit"
+table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
+
+#--- add metric to table ---- 
+#temp method until sqldf can be figured out
+#this will only work for these specific names/runids
+table$metric1 <- facils$within$runid_11_wd_mgd
+table$metric2 <- facils$within$runid_13_wd_mgd
+#table <- sqldf("SELECT table.* CASE WHEN table$Number==facils$within$NUM THEN '1'")
+
+
+#---- change col names for better flextable ---
+
+colnames(table)[2] <- "Facility Name"
+colnames(table)[1] <- "Number"
+colnames(table)[5] <- "River Segment"
+colnames(table)[8] <- "River Segment Names"
+colnames(table)[6] <- "County"
+#colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
+colnames(table)[9] <- "Permitted Capacity(MGY)"
 }
 
 
@@ -675,24 +763,6 @@ for(i in 1:nrow(table)){
 #     table$Upstream_Downstream[i] <- up_down
 #   }
 # }
-
-#- - - - add permitted capacity - - -
-facilswitinregion<- facils$within
-
-for (i in 1:nrow(facils$within)){
-  systemObj <- RomProperty$new(ds,list(
-    featureid = facils$within$featureid[i],
-    propcode= "vahydro-1.0"), 
-  TRUE)
-  permCapac <- RomProperty$new(ds,list(
-  featureid = systemObj$pid,
-  propname = 'vwp_max_mgy'),
-  TRUE)
-  table$vwp_max_mgy[i] <- permCapac$propcode  
-}
-
-#Replace zeros with "no permit"
-table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
 
 #- - - - add 5 yr avg use (MGY) with wd current- PER FACILITY - - -
 
@@ -716,17 +786,6 @@ table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permi
 #}
 
 #table$five_mgy_new <- facils$basin$fiveyr_avg_mgy_2
-
-colnames(table)[2] <- "Facility Name"
-colnames(table)[1] <- "Number"
-colnames(table)[3] <- "Source Type"
-colnames(table)[4] <- "Source Name"
-colnames(table)[5] <- "River Segment"
-colnames(table)[8] <- "River Segment Names"
-colnames(table)[6] <- "County"
-#colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
-colnames(table)[9] <- "Permitted Capacity(MGY)"
-colnames(table)[7] <- "5 Year Avg Use(Source MGY)"
 
    
 ```
