@@ -65,8 +65,6 @@ labels <- maplabs$final
     list(sp::Polygons(list(Polygon(coords)), "id")), 
     proj4string = CRS(proj4string(segs$basin_sp)))
   remove(coords) #job done
-
-#  nonbasin <- raster::erase(basemap_0, sp)
   nonbasin <- raster::erase(basemap_0, segs$basin_sp)
   nonbasin <- st_as_sf(nonbasin)
   st_crs(nonbasin) <- 4326
@@ -132,8 +130,7 @@ class(labelsP$bg.r) = "numeric"
   } else {
     labs = c(0.5, 1.0, 2, 10, 25, 100, 1000) #default to mgd if unit is neither mgd or mgy
   }
- 
-  
+
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
@@ -155,14 +152,21 @@ class(labelsP$bg.r) = "numeric"
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill="deepskyblue3", size=1) +
     # County Borders
-    geom_sf(data = counties$sf, inherit.aes=FALSE, color="black", fill=NA, lwd=2.5) +
+    geom_sf(data = counties$sf, inherit.aes=FALSE, color="gray27", fill=NA, lwd=2.5) +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
     # Basin Outlines
-    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed") +
+    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed")
+  
+  if (map_type == "region") { # thicker boundary around region
+    map <- map + 
+      geom_sf(data = segs$region_sf, inherit.aes=FALSE, color="black", fill=NA, lwd=4.5)
+  }
+   
+  map <- map +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels

@@ -8,15 +8,15 @@ params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JB3_6820_7053"] 
-  locality: ["Culpeper"]
+  locality: ["Madison"]
   region: ["Chowan_1"]    
   type: ["source"] #either 'source' or 'facility'
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
-  metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics not tied to a runid
-  map_name: ["Chowan_1.1"]
-  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics already in foundational data 
+  map_name: ["Madison"]
+  map_type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   bbox_type: ["auto"] #either 'auto' or 'vahydro'
 ---
 
@@ -426,6 +426,8 @@ if (map_type == "region") {
   region_list <- region_geom_list[names(region_geom_list) == region]
   region_sf <- st_sfc(region_list) #create sf object from the region specified
   region_sfd <- st_as_sf(region_sf) #for region_sp
+  segs$region_sf <- region_sfd # for darker outline around region
+  st_crs(segs$region_sf) <- 4326
   region_sp <- as_Spatial(region_sfd, cast = FALSE)
   st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
