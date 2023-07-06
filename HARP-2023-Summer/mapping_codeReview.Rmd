@@ -487,10 +487,8 @@ bbox <- st_bbox(bbox)
 rm(facils_all)
 ```
 
-```{r Add riverseg column by spatial join if needed}
-## Adding riversegs to facils$within data frame when not present using a spatial join
-# segs$all contains segment IDs and geometries 
-# facils$within contains MP names and coords
+```{r Add Riverseg by Spatial Join}
+## Adding riversegs to data frame when not present using a spatial join
 # first, check if riverseg exists. It will already be in table if model data was pulled & joined 
  if (!"riverseg" %in% colnames(facils$within)) { # TRUE when riverseg column not present, will execute loop
   facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
@@ -525,6 +523,7 @@ segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for c
 
 ```{r VAhydro bbox if Desired, eval=FALSE}
 ## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
+# only operational for river segments/basins
 if (bbox_type == "vahydro") {
   for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
   hid <- segs$basin$hydroid[i] 
@@ -553,47 +552,20 @@ rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 ```
 
-```{r Metric Legend Bins}
-## Putting the metric data into bins for ranged legend for map
-#facils$within needs to stay as MPs for table generation
-if (map_type == "basin" || map_type == "locality"){ #facils_within already created for region
-  facils_within <- facils$within
-}
-mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
-                      FROM facils_within'
-                      , sep="")
-mp_layer <- sqldf(mp_layer_sql)
+```{r Metric Unit Processing}
 metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
+
 wd_mgd = c(0.5,1.0,2,5,10,25,50,100,1000) #set ranges for the bins 
 wd_mgy = c(1, 5,10, 20,50, 100, 1000, 5000, 10000)
+
 if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
 } else if (metric_unit == "mgy") {
   div <- wd_mgy
 }
-#Adding bin column to dataframe 
-bins_sql <-  paste("SELECT *,
-	                  CASE WHEN demand_metric > 0 AND demand_metric <= ",div[1]," THEN '1'
-		                WHEN demand_metric >  ",div[1]," AND demand_metric <= ",div[2]," THEN '2'
-		                WHEN demand_metric >  ",div[2]," AND demand_metric <= ",div[3]," THEN '3'
-		                WHEN demand_metric >  ",div[3]," AND demand_metric <= ",div[4]," THEN '4'
-		                WHEN demand_metric >  ",div[4]," AND demand_metric <= ",div[5]," THEN '5'
-		                WHEN demand_metric > ",div[5]," AND demand_metric <= ",div[6]," THEN '6'
-		                WHEN demand_metric > ",div[6]," AND demand_metric <= ",div[7]," THEN '7'
-		                WHEN demand_metric > ",div[7]," AND demand_metric <= ",div[8]," THEN '8'
-		                WHEN demand_metric > ",div[8]," AND demand_metric <= ",div[9]," THEN '9'
-		                WHEN demand_metric > ",div[9]," THEN '10'
-		                WHEN demand_metric = 0 THEN '0'
-		                ELSE 'X'
-		                END AS bin
-		                FROM mp_layer",sep="")
-
-mp_layer <- sqldf(bins_sql)  
-names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change column name back to the specific metric
-mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
 ```
 
-```{r NEW bin processing}
+```{r Metric Legend Bins}
 # Not yet operational
 if (map_type == "basin" || map_type == "locality"){ #facils_within already created for region
   facils_within <- facils$within
@@ -607,26 +579,28 @@ mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
 
 mp_layer <- sqldf(mp_layer_sql)
 
-bins = as.data.frame(c(0.5, 1.0,2.0,5.0,10.0,50,100,500,1000,2000,5000))
+bins = as.data.frame(div)
 bins$classid <- index(bins)
-names(bins) <- c("val", "classid")
+names(bins) <- c("val", "bin")
 
 entity_classes <- sqldf(
-  "select a.NUM, min(b.classid) as classid
+  "select a.NUM, min(b.bin) as bin
   from mp_layer as a 
   left outer join bins as b 
   on (a.demand_metric < b.val) 
   group by a.NUM"
 )
 
-classified_data <- sqldf(
-  "select a.*, b.classid 
+mp_layer <- sqldf(
+  "select a.*, b.bin 
   from mp_layer as a 
   left outer join entity_classes as b 
   on a.NUM = b.NUM "
 )
-# column with bins named 'classid'
 
+mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
+names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change column name back to the specific metric
+mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
 ```
 
 
