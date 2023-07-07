@@ -226,7 +226,7 @@ for (i in 1:length(reg_split)) {
 ```
 
 ```{r Facility Data and Coords for Region maps, warning=FALSE, message=FALSE}
-## For mapping regions by facility -- requires VAhydro data retrieval 
+## For mapping by facility -- requires VAhydro data retrieval 
 if (type == "facility") {
  if (metric_type == "modeled") { 
    if (!df$runlabel[1] %in% colnames(facil_featr)) { ## check if column with metric already exists to save time
@@ -331,6 +331,21 @@ counties$sp <- process_geom(counties$df, "dh_geofield")
 counties$sf <- st_as_sf(counties$sp)
 counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
+```
+
+```{r Add Locality Column if Needed}
+#Get locality for facilities from foundation data frame -- if needed
+if (!"Locality" %in% colnames(facils$all)) {
+  propname <- facils$all$propname
+  facils$all <- process_geom(facils$all, "dh_geofield")
+  facils$all <- st_as_sf(facils$all)
+  st_crs(facils$all) <- 4326
+  facil_join <- st_join(facils$all, counties$sf)
+  facils$all <- cbind(propname, facils$all, facil_join$name)
+  names(facils$all)[names(facils$all) == 'facil_join.name'] <- 'Locality'
+  facils$all <- st_drop_geometry(facils$all)
+}
+
 ```
 
 ```{r Filter Facils/Sources by map_type Extent, warning=FALSE}
@@ -631,7 +646,6 @@ ggsave(
 
 # - - - - creating initial data frame  - - - -
 
-
   if (map_type == "basin") {
     #title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
     sourcetype = "Source Type"
@@ -651,7 +665,7 @@ ggsave(
 
 #change table data frame based on facility or mp
 
-if (type=="Source"){
+if (type=="source"){
 table <- data.frame(Number= facils$within$NUM, 
                         Facility=facils$within$Facility, 
                         Source_Type = facils$within[, sourcetype],
@@ -697,12 +711,15 @@ colnames(table)[9] <- "Permitted Capacity(MGY)"
 colnames(table)[7] <- "5 Year Avg Use(Source MGY)"
 }
 
-if (type=="Facility"){
+if (type=="facility"){
+  if (metric_type=="modeled") {
 table <- data.frame(Number= facils$within$NUM, 
-                        Facility=facils$within$Facility, 
+                        Facility=facils$within$propname, 
                         Rivseg= facils$within$riverseg,
-                        Locality = facils$within$Locality, 
+                        Locality = facils$within$Locality,
+                        Metric = facils$within[,df$runlabel[1]]
                         ) 
+names(table)[names(table) == 'Metric'] <- df$runlabel[1]
 
 # - - - - add rivseg names- - - - - -
 
@@ -745,8 +762,8 @@ colnames(table)[8] <- "River Segment Names"
 colnames(table)[6] <- "County"
 #colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
 colnames(table)[9] <- "Permitted Capacity(MGY)"
+  }
 }
-
 
 # #- - - -add upstream or downstream - - - removed for now, not priority
 # 
@@ -764,30 +781,6 @@ colnames(table)[9] <- "Permitted Capacity(MGY)"
 #   }
 # }
 
-#- - - - add 5 yr avg use (MGY) with wd current- PER FACILITY - - -
-
-# for (i in 1:nrow(facils$basin)){
-# val <- RomProperty$new(ds,list(
-#     featureid= facils$basin$featureid[i],
-#     propname= "wd_current_mgy"), 
-#   TRUE)
-# five_mgy <- val$propvalue
-# table$five_mgy[i] <- round(five_mgy,2)
-# }
-
-#- - -  5 year avg PER SOURCE - - - 
-
-#what 5 years should we be using 
-#why are the numbers sometimes very different
-
-#for (i in 1:nrow(facils$basin)){
-#  fiveavg <- mean(na.omit(facils$basin$'2022'[i],facils$basin$'2021'[i],facils$basin$'2020'[i],facils$basin$'2019'[i],facils$basin$'2018'[i], na.rm= TRUE))
-#  table$five_mgy_new[i] <- round(fiveavg, 2)
-#}
-
-#table$five_mgy_new <- facils$basin$fiveyr_avg_mgy_2
-
-   
 ```
 # Call Table 
 ``` {r Call Table, echo= False, warning= False}
