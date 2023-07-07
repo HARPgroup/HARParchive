@@ -19,7 +19,7 @@ source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 ## "type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 
-fn_mapgen <- function(map_type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit) { 
+fn_mapgen <- function(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, nhd, maplabs, locality, region, mp_layer, metric_unit) { 
 
 # Combine all map labels into one df:
 for(i in 1:length(maplabs)){
@@ -205,9 +205,8 @@ class(labelsP$bg.r) = "numeric"
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) 
     
-## MP plotting only for map types basin and locality 
-    
-  if (map_type == "basin" || map_type == "locality") {
+## Plotting sources/MPs
+  if (type == "source") {
     map <- map +
     # Plotting using bins in a single layer:
     new_scale("size") + new_scale("color") +
@@ -227,10 +226,7 @@ class(labelsP$bg.r) = "numeric"
                         labels= c("Surface Water", "Groundwater"),
                         name= "Source Type",
                         guide= guide_legend(override.aes=list(label="", size =5)) )            
-  }  
-  
-## Plotting facilities for regional maps
-  if (map_type == "region") {
+  }  else if (type == "facility") { ## Plotting facilities 
     map <- map + 
       new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
@@ -244,7 +240,7 @@ class(labelsP$bg.r) = "numeric"
                         name = legend_title[1])
   }
  
-  # MP or facility Labels
+  # Source or Facility Labels
   map <- map +
   geom_text(data = mp_layer, 
             aes(Longitude, Latitude, label=NUM, fontface="bold"), 
