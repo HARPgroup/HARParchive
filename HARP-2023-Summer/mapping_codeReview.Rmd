@@ -204,7 +204,7 @@ roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECRO
 cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') # prev uscities.csv, (csv) for US cities
 regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #Retrieving regional planning groups 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
-facilities_df <- 
+# facilities_df <- ## add url from GH here after merge 
 ```
 
 ```{r Integrate Locality Geoms into their Regions}
@@ -352,7 +352,6 @@ if (!"Locality" %in% colnames(facils$all)) {
   names(facils$all)[names(facils$all) == 'facil_join.name'] <- 'Locality'
   facils$all <- st_drop_geometry(facils$all)
 }
-
 ```
 
 ```{r Filter Facils/Sources by map_type Extent, warning=FALSE}
@@ -586,10 +585,8 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("c
 
 ```{r Metric Unit Processing}
 metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
-
 wd_mgd = c(0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for the bins 
 wd_mgy = c(1, 5, 10, 50, 100, 1000, 10000)
-
 if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
 } else if (metric_unit == "mgy") {
@@ -606,7 +603,6 @@ facils_within <- facils_within[ , !names(facils_within) == "hydrocode"] #remove 
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
                       FROM facils_within' , sep="")
 mp_layer <- sqldf(mp_layer_sql)
-
 bins = as.data.frame(div)
 bins$classid <- index(bins)
 names(bins) <- c("val", "bin")
@@ -617,7 +613,6 @@ entity_classes <- sqldf(
   left outer join bins as b 
   on (a.demand_metric < b.val) 
   group by a.NUM" )
-
 mp_layer <- sqldf(
   "select a.*, b.bin 
   from mp_layer as a 
