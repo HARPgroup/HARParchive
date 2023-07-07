@@ -724,7 +724,6 @@ table <- data.frame(Number= facils$within$NUM,
 names(table)[names(table) == 'Metric'] <- df$runlabel[1]
 
 # - - - - add rivseg names- - - - - -
-
 for(i in 1:nrow(table)){ 
     loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
     table$rivsegName[i]  <- loc_rivseg$name 
@@ -754,9 +753,7 @@ table$metric1 <- facils$within$runid_11_wd_mgd
 table$metric2 <- facils$within$runid_13_wd_mgd
 #table <- sqldf("SELECT table.* CASE WHEN table$Number==facils$within$NUM THEN '1'")
 
-
 #---- change col names for better flextable ---
-
 colnames(table)[2] <- "Facility Name"
 colnames(table)[1] <- "Number"
 colnames(table)[5] <- "River Segment"
@@ -766,6 +763,32 @@ colnames(table)[6] <- "County"
 colnames(table)[9] <- "Permitted Capacity(MGY)"
   }
 }
+```
+# Call Table 
+``` {r Call Table, echo= False, warning= False}
+fn_tablegen(table)
+```
+
+```{r}
+## No longer used, but keeping for now:
+
+#- - - - add 5 yr avg use (MGY) with wd current- PER FACILITY - - -
+# for (i in 1:nrow(facils$basin)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facils$basin$featureid[i],
+#     propname= "wd_current_mgy"), 
+#   TRUE)
+# five_mgy <- val$propvalue
+# table$five_mgy[i] <- round(five_mgy,2)
+# }
+#- - -  5 year avg PER SOURCE - - - 
+#what 5 years should we be using 
+#why are the numbers sometimes very different
+#for (i in 1:nrow(facils$basin)){
+#  fiveavg <- mean(na.omit(facils$basin$'2022'[i],facils$basin$'2021'[i],facils$basin$'2020'[i],facils$basin$'2019'[i],facils$basin$'2018'[i], na.rm= TRUE))
+#  table$five_mgy_new[i] <- round(fiveavg, 2)
+#}
+#table$five_mgy_new <- facils$basin$fiveyr_avg_mgy_2
 
 # #- - - -add upstream or downstream - - - removed for now, not priority
 # 
@@ -784,7 +807,4 @@ colnames(table)[9] <- "Permitted Capacity(MGY)"
 # }
 
 ```
-# Call Table 
-``` {r Call Table, echo= False, warning= False}
-fn_tablegen(table)
-```
+
