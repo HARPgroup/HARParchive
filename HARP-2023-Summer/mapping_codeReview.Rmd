@@ -7,7 +7,7 @@ params:
         #["JL6_7430_7320"]
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  rivseg: ["YP3_6470_6690"] 
+  rivseg: ["JL6_6890_6990"] 
   locality: ["Madison"]
   region: ["Chowan_1"]    
   type: ["facility"] #either 'source' or 'facility'
@@ -15,8 +15,8 @@ params:
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metrics already in foundational data 
-  map_name: ["Chowan_1"]
-  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_name: ["JL6_6890_6990"]
+  map_type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   bbox_type: ["auto"] #either 'auto' or 'vahydro'
 ---
 
@@ -178,21 +178,22 @@ facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_m
 segs <- list()
 segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) # All vahydro watershed features
 # note: potential NULLs for newly carved data
-# All facility model data
+
+#create df with run info and metric data, to be used in vahydro data retrieval
 if (metric_type == "modeled") {
   df <- data.frame(runid=runid_list, model_version, metric=metric)
     for(i in 1:length(runid_list)){
       df$runlabel[i] <- paste0(runid_list[i], '_', metric)
     } 
-  facils$mdat <- om_vahydro_metric_grid( #pull metrics from vahydro facilities
-  metric=FALSE, runids=df, featureid='all', 
-  entity_type='dh_feature', bundle='facility',
-  ftype='all', model_version = model_version,
-  base_url = paste(site, "/entity-model-prop-level-export", sep=""),
-  ds = ds)
+#  facils$mdat <- om_vahydro_metric_grid( #pull metrics from vahydro facilities
+#  metric=FALSE, runids=df, featureid='all', 
+#  entity_type='dh_feature', bundle='facility',
+#  ftype='all', model_version = model_version,
+#  base_url = paste(site, "/entity-model-prop-level-export", sep=""),
+#  ds = ds)
   } else if (metric_type == "measured") {
   df <- data.frame(metric=metric, runlabel=metric)
-  }
+}
 
 # County Features data
 counties <- list()
@@ -203,11 +204,12 @@ roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECRO
                           filetype="shp", zip=TRUE) # (shp) for US states & primary roads
 cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') # prev uscities.csv, (csv) for US cities
 regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #Retrieving regional planning groups 
+#facilities_df <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/facilities_all_geom.csv')
+facilities_df <- fread(paste0(getwd(),'/facilities_all_geom.csv'))
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
-# facilities_df <- ## add url from GH here after merge 
 ```
 
-```{r Integrate Locality Geoms into their Regions}
+```{r Combine Locality Geoms into Regions}
 ## Processing and combining locality geometries into their regions 
 counties_df <- counties$df # for sqldf
 regions_geo <- sqldf( #adds geometries from counties df to the regions df
@@ -235,32 +237,42 @@ for (i in 1:length(reg_split)) {
 }
 ```
 
-```{r Facility Data and Coords for Region maps, warning=FALSE, message=FALSE}
+```{r Facility Geom Processing}
+## Need to remove facilities without a geometry -- can't be mapped without coords
+facilities_df <- facilities_df[-which(facilities_df$dh_geofield == ""), ] #removes approx 125 rows
+facilities_sf <- st_as_sf(facilities_df, wkt = "dh_geofield")
+coords <- st_coordinates(facilities_sf$dh_geofield)
+colnames(coords) <- c("Longitude","Latitude")
+facilities_df <- cbind(facilities_df, coords) #add coordinates to facilities df
+```
+
+```{r Joining Facility Data and Coords, warning=FALSE, message=FALSE}
 ## For mapping by facility -- requires VAhydro data retrieval 
 if (type == "facility") {
  if (metric_type == "modeled") { 
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
-  metric=FALSE, runids=df, featureid='all', 
-  entity_type='dh_feature', bundle='facility',
-  ftype='all', model_version = model_version,
-  base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
-  ds = ds)
- #Get facility coordinates
-  for(i in 1:nrow(facil_featr)){ #takes a few minutes
-    facil.i <- RomFeature$new(ds,list(hydroid=facil_featr$featureid[i]), TRUE)
-  facil_featr$dh_geofield[i] <- facil.i$geom
-  } # adds point geometry for each facility 
+    metric=FALSE, runids=df, featureid='all', 
+    entity_type='dh_feature', bundle='facility',
+    ftype='all', model_version = model_version,
+    base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+    ds = ds)
+  facil_featr <- sqldf("SELECT * 
+                      FROM facil_featr 
+                      WHERE hydrocode not like 'wsp_%'")  # Filter out WSP entries
+ #Get facility coordinates -- already in facilities df -- NOT functional
+ facil_featr <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b. Locality
+                      FROM facil_featr as a
+                      LEFT OUTER JOIN facilities_df as b
+                      ON (a.hydrocode = b.hydrocode)" ) 
   }
  } else if (metric_type =="measured") {
-#    if (exists("facils_foundatn") == FALSE) {
-   ## create df from facils$foundatn by facility, not MPs
    facils_foundatn <- facils$foundatn
    facils_sql <- paste('SELECT *, ',df$runlabel[1],' as metric
                          FROM facils_foundatn'
                          , sep="")
   
    facils_foundatn <- sqldf(facils_sql)
-   # aggregate data using sqldf:
+   # aggregate and sum source data using sqldf:
    facils_foundatn <- sqldf("select facils_foundatn.*,
                      sum(metric) as sum
                      from facils_foundatn
@@ -268,44 +280,53 @@ if (type == "facility") {
    facils_foundatn <- facils_foundatn[ , !names(facils_foundatn) == df$runlabel[1]]
    names(facils_foundatn)[names(facils_foundatn) == 'sum'] <- df$runlabel[1]
    facils_foundatn <- facils_foundatn[, !duplicated(colnames(facils_foundatn))]
-   facils$found_each <- facils_foundatn
-   for(i in 1:nrow(facils$found_each)){ #takes a couple minutes
-    facil.i <- RomFeature$new(ds,list(hydroid=facils$found_each$Facility_hydroid[i]), TRUE)
-    facils$found_each$dh_geofield[i] <- facil.i$geom
-  } # adds point geometry for each facility
+   #Get facility coordinates
+   facil_bind <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b.Locality
+                      FROM facils_foundatn as a
+                      LEFT OUTER JOIN facilities_df as b
+                      ON (a.Hydrocode = b.hydrocode)" )
+   
+  facils$found_each <- facil_bind
+  # previously:
+#   for(i in 1:nrow(facils$found_each)){ #takes a couple minutes
+#    facil.i <- RomFeature$new(ds,list(hydroid=facils$found_each$Facility_hydroid[i]), TRUE)
+#    facils$found_each$dh_geofield[i] <- facil.i$geom
+#  } # adds point geometry for each facility
  }
+
+### facils$found_each has five-yr-avg use data at facility level
+### facil_featr has modeled metric data at facility level
 ```
 
 # PROCESS Data
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
 # Full join facility model data & facility foundation data
+
+if (type == "facility") {
+  if (metric_type == "modeled") {
+    facils$all <- facil_featr
+  } else if (metric_type == "measured") {
+    facils$all <- facils$found_each
+  }
+}
+
 if (type == "source") {
   if (metric_type == "modeled") {
-    facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
-      left outer join mdat
-      on (foundatn.Facility_hydroid = mdat.featureid)
-      UNION
-      select foundatn.* , mdat.* from mdat
-      left outer join foundatn
-      on (foundatn.Facility_hydroid = mdat.featureid)
-      ") ) #facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
+#    facils$all <- with(facils, sqldf("select foundatn.* , mdat.* from foundatn 
+#      left outer join mdat
+#      on (foundatn.Facility_hydroid = mdat.featureid)
+#      UNION
+#      select foundatn.* , mdat.* from mdat
+#      left outer join foundatn
+#      on (foundatn.Facility_hydroid = mdat.featureid)
+#      ") ) #facils$all <- merge(x=facils$mdat, y=facils$foundatn, by.x="featureid", by.y="Facility_hydroid", all=TRUE)
   } else if (metric_type == "measured") {
   facils$all <- facils$foundatn
   }
-} else if (type == "facility") {
-  facils$all <- facil_featr
-  #Add coordinates to facility data frame using the point geometry
-  facils$all <- facils$all[!facils$all$dh_geofield == "",] 
-  facils$all <- process_geom(facils$all, "dh_geofield")
-  facils$all <- st_as_sf(facils$all)
-  coords <- st_coordinates(facils$all$geometry)
-  colnames(coords) <- c("Longitude", "Latitude")
-  facils$all <- st_drop_geometry(facils$all)
-  facils$all <- cbind(facils$all, coords)
-}
+} 
 
-colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
+#colnames(facils$all) <- gsub("hydrocode", "facil_hydrocode", colnames(facils$all))
 # Extract basin of user-input rivseg, from segs$all
 segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
 legend_title <- legend_titling(metric, runid_list) # Legend title
@@ -342,6 +363,7 @@ st_crs(counties$sf) <- 4326
 
 ```{r Add Locality Column if Needed}
 #Get locality for facilities from foundation data frame -- if needed
+#Won't be necessary once new facilities geom csv is integrated
 if (!"Locality" %in% colnames(facils$all)) {
   propname <- facils$all$propname
   facils$all <- process_geom(facils$all, "dh_geofield")
@@ -391,9 +413,9 @@ if (map_type == "basin") { #'type' variable will either be: basin, locality, or 
     colnames(coords) <- c("Longitude", "Latitude")
     facils$basin <- st_drop_geometry(facils$basin)
   }
-#  facils$basin <- with(facils, sqldf("SELECT * 
-#                                     FROM basin 
-#                                     WHERE hydrocode not like 'wsp_%'") )  # Filter out WSP (optional)
+  facils$basin <- with(facils, sqldf("SELECT * 
+                                     FROM basin 
+                                     WHERE hydrocode not like 'wsp_%'") )  # Filter out WSP (optional)
   facils_basin <- facils$basin #create temporary df for use in sqldf for ordering
   facils_basin <- sqldf(paste0( #ordering the data using sqldf 
   "SELECT facils_basin.*  
@@ -463,7 +485,7 @@ if (map_type == "region") {
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
   segs$basin <- st_drop_geometry(segs$basin)
-  ## filtering MPs by region:
+  ## filtering by region:
   facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
   facils$all <- facils$all[!is.na(facils$all$Latitude),]
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
@@ -483,30 +505,20 @@ if (map_type == "region") {
   facils$within <- cbind(facils$within, coords)
   facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
   facils$within <- cbind(facils$within, coords)
-  st_crs(facils$within) <- 4326
   facils$within <- st_drop_geometry(facils$within)
-  ## mapping by facility:
-  if (metric_type == "modeled") {
-    facil_featr <- facil_featr[!facil_featr$dh_geofield == "",] #remove rows/facilities that don't have a point geometry
-    facils_sp <- process_geom(facil_featr, "dh_geofield")
-  } else if (metric_type == "measured") {
-    facils$found_each <- facils$found_each[!facils$found_each$dh_geofield == "",] 
-    facils_sp <- process_geom(facils$found_each, "dh_geofield")
-  }
-  facils_sf <- st_as_sf(facils_sp) # need an sf object to do spatial filter 
-  st_crs(facils_sf) <- 4326
-  facils_region <- st_filter(facils_sf, region_sf) ## needs to be modified for regions w 2 or more polygons
-  coords <- st_coordinates(facils_region$geometry)
-  colnames(coords) <- c("Longitude","Latitude")
-  facils_region <- cbind(facils_region, coords)
-  facils_region <- st_drop_geometry(facils_region)
-  facils_region <- sqldf(paste0( #ordering the data using sqldf 
-  "SELECT facils_region.*  
-   FROM facils_region 
-   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
-   )
-  facils_region$NUM <- seq(1, nrow(facils_region))
-  facils_within <- facils_region #facils$within needs to stay as MPs for table generation
+#  st_crs(facils$within) <- 4326
+#  facils_region <- st_filter(facils_sf, region_sf) ## needs to be modified for regions w 2 or more polygons
+#  coords <- st_coordinates(facils_region$geometry)
+#  colnames(coords) <- c("Longitude","Latitude")
+#  facils_region <- cbind(facils_region, coords)
+#  facils_region <- st_drop_geometry(facils_region)
+#  facils_region <- sqldf(paste0( #ordering the data using sqldf 
+#  "SELECT facils_region.*  
+#   FROM facils_region 
+#   ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
+#   )
+#  facils_region$NUM <- seq(1, nrow(facils_region))
+#  facils_within <- facils_region #facils$within needs to stay as MPs for table generation
 #  sf_use_s2(FALSE) # switch off Spherical geometry
 #  bbox <- st_buffer(st_as_sfc(st_bbox(region_sf)), .05) #slightly past basin
 }
@@ -595,10 +607,10 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
 ```
 
 ```{r Metric Legend Bins}
-if (map_type == "basin" || map_type == "locality"){ #facils_within already created for region
+#if (map_type == "basin" || map_type == "locality"){ #facils_within already created for region
   facils_within <- facils$within
-}
-facils_within <- facils_within[ , !names(facils_within) == "hydrocode"] #remove hydrocode column that came w spatial join riversegs
+#}
+#facils_within <- facils_within[ , !names(facils_within) == "hydrocode"] #remove hydrocode column that came w spatial join riversegs
 
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
                       FROM facils_within' , sep="")
@@ -684,7 +696,6 @@ for(i in 1:nrow(table)){
     table$rivsegName[i]  <- loc_rivseg$name 
 }
 #- - - - add permitted capacity - - -
-facilswitinregion<- facils$within
 
 for (i in 1:nrow(facils$within)){
   systemObj <- RomProperty$new(ds,list(
@@ -722,10 +733,11 @@ table <- data.frame(Number= facils$within$NUM,
                         Metric = facils$within[,df$runlabel[1]]
                         ) 
 names(table)[names(table) == 'Metric'] <- df$runlabel[1]
-
+#blank column for river seg names 
+table$riv
 # - - - - add rivseg names- - - - - -
-for(i in 1:nrow(table)){ 
-    loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
+for(i in 1:nrow(table)){ ## this doesn't work
+    loc_rivseg <- (segs$all[grep(table$Rivseg[i], segs$all$riverseg)],) ## don't use segs$basin
     table$rivsegName[i]  <- loc_rivseg$name 
 }
 #- - - - add permitted capacity - - -
@@ -749,8 +761,8 @@ table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permi
 #--- add metric to table ---- 
 #temp method until sqldf can be figured out
 #this will only work for these specific names/runids
-table$metric1 <- facils$within$runid_11_wd_mgd
-table$metric2 <- facils$within$runid_13_wd_mgd
+table$metric1 <- facils$within$runid_11_wd_mgd ## don't hardcode
+table$metric2 <- facils$within$runid_13_wd_mgd ## don't hardcode
 #table <- sqldf("SELECT table.* CASE WHEN table$Number==facils$within$NUM THEN '1'")
 
 #---- change col names for better flextable ---
@@ -806,5 +818,10 @@ fn_tablegen(table)
 #   }
 # }
 
+```
+
+```{r}
+## Temporary, for savings tables as csvs 
+write.table(facilities_df,file = paste0(getwd(),'/facilities_all_geom.csv'), sep = ",", row.names = FALSE) #Write daily csv
 ```
 
