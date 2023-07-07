@@ -15,8 +15,8 @@ params:
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metrics already in foundational data 
-  map_name: ["YP3_6470_6690_runid11"]
-  map_type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_name: ["Chowan_1"]
+  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   bbox_type: ["auto"] #either 'auto' or 'vahydro'
 ---
 
@@ -46,10 +46,19 @@ ds$get_token(rest_pw)
 ```
 
 ```{r Load External Functions, echo=FALSE}
+## For analysts, updated on each save
 source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
 source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
 source(paste0(getwd(), '/', 'fn_labelprep.R' )) #load labeling function
+```
+
+```{r Load Functions from Online, echo=FALSE}
+## For planners, updated when changes are merged to master
+source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/fn_mapgen_est.R") #load mapping function
+source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/mapstyle_config.R") #load mapping aesthetics
+source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/fn_tablegen.R") #load table function
+source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/fn_labelprep.R") #load labeling function
 ```
 
 ```{r UserInputs, echo=FALSE}
@@ -192,9 +201,10 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 #----From Public Webpages----
 roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip",
                           filetype="shp", zip=TRUE) # (shp) for US states & primary roads
-cities <- fread(paste0(getwd(), '/', 'USA_Major_Cities_GIS.csv')) # prev uscities.csv, (csv) for US cities
-regions <- fread(paste0(getwd(), '/', 'Regions_ProposedReg_053122.csv')) #Retrieving regional planning groups 
+cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') # prev uscities.csv, (csv) for US cities
+regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #Retrieving regional planning groups 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
+facilities_df <- 
 ```
 
 ```{r Integrate Locality Geoms into their Regions}
@@ -229,7 +239,6 @@ for (i in 1:length(reg_split)) {
 ## For mapping by facility -- requires VAhydro data retrieval 
 if (type == "facility") {
  if (metric_type == "modeled") { 
-   if (!df$runlabel[1] %in% colnames(facil_featr)) { ## check if column with metric already exists to save time
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
   metric=FALSE, runids=df, featureid='all', 
   entity_type='dh_feature', bundle='facility',
@@ -263,10 +272,8 @@ if (type == "facility") {
    for(i in 1:nrow(facils$found_each)){ #takes a couple minutes
     facil.i <- RomFeature$new(ds,list(hydroid=facils$found_each$Facility_hydroid[i]), TRUE)
     facils$found_each$dh_geofield[i] <- facil.i$geom
-#   }
   } # adds point geometry for each facility
  }
-}
 ```
 
 # PROCESS Data
