@@ -651,7 +651,7 @@ ggsave(
   )
 ```
 
-#Create Table Data
+#Create Table
 ``` {r Source-Level Table, warning=FALSE, message=FALSE}
 if (type=="source"){
   table <- data.frame(Number= facils$within$NUM, 
@@ -668,7 +668,6 @@ if (type=="source"){
     loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
     table$rivsegName[i]  <- loc_rivseg$name 
   }
-  
   #- - - - add permitted capacity - - -
 #  for (i in 1:nrow(facils$within)){
 #    systemObj <- RomProperty$new(ds,list(
@@ -681,36 +680,16 @@ if (type=="source"){
 #    TRUE)
 #    table$vwp_max_mgy[i] <- permCapac$propcode  
 #  }
-
-  for (i in 1:nrow(facils$within)){ #NOT functional
-    systemObj <- RomProperty$new(ds,list(
-      hydroid = facils$within$Facility_hydroid[i],
-      propname = facils$within$Facility[i],
-      bundle = "facility",
-#    featureid = facils$within$featureid[i], ## featureid won't exist in source-level data since model data wasn't joined 
-      propcode= "vahydro-1.0"), 
-      TRUE)
-    permCapac <- RomProperty$new(ds,list(
-      featureid = systemObj$pid,
-      propname = 'vwp_max_mgy'),
-      TRUE)
-    table$vwp_max_mgy[i] <- permCapac$propcode  
-  }
-  
   #Replace zeros with "no permit"
-  table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
+#  table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
 
+ #Re-order columns
+  table <- table[,c(1:2,4,3,6,8,5,7)]
   #Set column names 
-  colnames(table)[2] <- "Facility Name"
-  colnames(table)[1] <- "Number"
-  colnames(table)[3] <- "Source Type"
-  colnames(table)[4] <- "Source Name"
-  colnames(table)[5] <- "River Segment"
-  colnames(table)[8] <- "River Segment Names"
-  colnames(table)[6] <- "County"
-  #colnames(table)[Upstream_Downstream] <- "Upstream Vs. Downstream"
-  colnames(table)[9] <- "Permitted Capacity(MGY)"
-  colnames(table)[7] <- "5 Year Avg Use(Source MGY)"
+  colnames(table)[4] <- "Source Type"
+  colnames(table)[6] <- "River Segment Name"
+  colnames(table)[7] <- "River Segment ID"
+  colnames(table)[8] <- "5-yr Avg Use (mgy)"
 }
 ```
 
@@ -731,7 +710,6 @@ if (type=="facility"){
     loc_rivseg <- (segs$all[grep(table$Rivseg[i], segs$all$riverseg) , ]) ## don't use segs$basin
     table$rivsegName[i]  <- loc_rivseg$name 
   }
- 
    #---- add permitted capacity----
   for (i in 1:nrow(facils$within)){
     systemObj <- RomProperty$new(ds,list(
@@ -744,13 +722,10 @@ if (type=="facility"){
     TRUE)
     table$vwp_max_mgy[i] <- permCapac$propcode  
   }
-
   #Replace zeros with "no permit"
   table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
-
   #Re-order columns
   table <- table[,c(1:2,4,7,3,8,5,6)]
-  
   #---- change col names for better flextable ---
   colnames(table)[4] <- "River Segment Name"
   colnames(table)[5] <- "River Segment ID"
@@ -765,18 +740,6 @@ if (type=="facility"){
 ``` {r Call Table Function, echo= False, warning= False}
 fn_tablegen(table)
 ```
-
-```{r Manual Flextable}
-set_flextable_defaults(
-  font.size = 10, theme_fun = theme_zebra, 
-  padding = 6, 
-  na_str = "NA", nan_str = "NA")
-tabledf <- flextable(table)
-tabledf<- autofit(tabledf)
-tabledf <- flextable::align(tabledf, align = "center", part = "all") 
-tabledf
-```
-
 
 ```{r}
 ## No longer used, but keeping for now:
@@ -821,4 +784,6 @@ tabledf
 ## Temporary, for savings tables as csvs 
 write.table(facilities_df,file = paste0(getwd(),'/facilities_all_geom.csv'), sep = ",", row.names = FALSE) #Write daily csv
 ```
+
+
 

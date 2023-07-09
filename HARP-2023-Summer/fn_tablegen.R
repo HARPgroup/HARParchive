@@ -14,7 +14,7 @@ set_flextable_defaults(
   na_str = "NA", nan_str = "NA")
 
 tabledf<- autofit(tabledf)
-tabledf <- flextable::align(tabledf, align = "center", j = c(1:9), part = "all") 
+tabledf <- flextable::align(tabledf, align = "center", part = "all") 
 tabledf
   
   
