@@ -111,13 +111,10 @@ class(labelsP$bg.r) = "numeric"
   #For map title:
   if (map_type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
-    sourcetype = "Source Type"
   } else if (map_type == "locality") {
     title <- paste0(locality)
-    sourcetype = "Source.Type"
   }  else if (map_type == "region") {
     title <- paste0(region)
-#    sourcetype = "Source.Type"
   } 
   
   #For binned legend 
@@ -213,7 +210,7 @@ class(labelsP$bg.r) = "numeric"
     new_scale("size") + new_scale("color") +
     
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-              color = mp_layer_plot[, sourcetype], size = (mp_layer_plot$bin)), 
+              color = mp_layer_plot$Source_Type, size = (mp_layer_plot$bin)), 
                shape = 19) +
       
     scale_size_binned(range = c(2,25), 
