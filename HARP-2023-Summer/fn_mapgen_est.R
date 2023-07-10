@@ -60,19 +60,18 @@ labels <- maplabs$final
   basemap <- ggmap(basemap_0)
 
  #Reverse polygon fill (highlight basin) -- for type basin
-  bb <- unlist(attr(basemap_0, "bb"))
-  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-  basemap_0 <- sp::SpatialPolygons(
-    list(sp::Polygons(list(Polygon(coords)), "id")), 
-    proj4string = CRS(proj4string(segs$basin_sp)))
-  remove(coords) #job done
-  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
-  nonbasin <- st_as_sf(nonbasin)
-  st_crs(nonbasin) <- 4326
+#  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+#  basemap_0 <- sp::SpatialPolygons(
+#    list(sp::Polygons(list(Polygon(coords)), "id")), 
+#    proj4string = CRS(proj4string(segs$basin_sp)))
+#  remove(coords) #job done
+#  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+#  nonbasin <- st_as_sf(nonbasin)
+#  st_crs(nonbasin) <- 4326
   
  #Lighten terrain basemap 
-  basemap_0 <- st_as_sf(basemap_0)
-  st_crs(basemap_0) <- 4326
+#  basemap_0 <- st_as_sf(basemap_0)
+#  st_crs(basemap_0) <- 4326
     
 #----Filtering what's plotted by size of boundary box---- 
   if (distance > 300) {
@@ -140,7 +139,7 @@ class(labelsP$bg.r) = "numeric"
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
     ggtitle(title) +
     # Lighten base-map to help readability
-    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+#    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd$plot, 
             inherit.aes=FALSE, color="deepskyblue3", 
@@ -244,7 +243,7 @@ class(labelsP$bg.r) = "numeric"
             aes(Longitude, Latitude, label=NUM, fontface="bold"), 
             colour="black", size=textsize[5], check_overlap=TRUE) +
     
-  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) + # Reverse Fill
+#  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) + # Reverse Fill
 
   ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
                   dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
