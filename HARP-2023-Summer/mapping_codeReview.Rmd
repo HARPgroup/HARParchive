@@ -8,15 +8,15 @@ params:
         #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-last=Richmond
         #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   rivseg: ["JL6_7430_7320"] 
-  locality: ["Fairfax County"]
-  region: ["Chowan_1"]    
-  type: ["facility"] #either 'source' or 'facility'
+  locality: ["Fauquier"]
+  region: ["Shenandoah_2"]    
+  type: ["source"] #either 'source' or 'facility'
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Ignored if metric_type = "measured"
-  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
-  metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metrics already in foundational data 
-  map_name: ["Fairfax County"]
-  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
+  metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metrics already in foundational data 
+  map_name: ["Fauquier_sources"]
+  map_type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   bbox_type: ["auto"] #either 'auto' or 'vahydro'
 ---
 
@@ -180,10 +180,8 @@ facils <- list() #create empty list to store dfs
 facils$foundatn <- fread(paste0(getwd(),'/foundation_dataset_mgy_2018-2022_5ya.csv'))
 ```
 
-
 # PULL Data 
 ```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE}
-
 #----From VAhydro----
 #segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
 segs <- list()
@@ -203,6 +201,7 @@ regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-
 facilities_df <- fread(paste0(getwd(),'/facilities_all_geom.csv')) #created with VAhydro facility feature data 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ```
+
 
 # Geom Processing
 ```{r Region Geom Processing}
@@ -253,7 +252,6 @@ segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #pr
 names(facils$foundatn)[names(facils$foundatn) == 'Source Type'] <- 'Source_Type'
 names(facils$foundatn)[names(facils$foundatn) == 'MP Name'] <- 'MP_Name'
 names(facils$foundatn)[names(facils$foundatn) == 'Use Type'] <- 'Use_Type'
-
 
 #----Roads----
 # Filter roads to only Interstate, US Hwy, State Rte:
@@ -360,7 +358,7 @@ if (type == "source") {
 } 
 ```
 
-```{r (Old) Filter Facils/Sources by map_type Extent, warning=FALSE}
+```{r (Old) Filter Facils/Sources by map_type Extent, warning=FALSE, eval=FALSE}
 ## filtering MPs or facilities by extent we want, 
 facils_all <- facils$all #create temporary df for use in sqldf for ordering
 
@@ -512,19 +510,22 @@ rm(facils_all)
 ```
 
 
-```{r Add Riverseg by Spatial Join}
+```{r Riverseg if Needed}
 ## Adding riversegs to data frame when not present using a spatial join
 # first, check if riverseg exists. It will already be in table if model data was pulled & joined 
+facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
+facils$all <- facils$all[!is.na(facils$all$Latitude),]
+
  if (!"riverseg" %in% colnames(facils$all)) { # TRUE when riverseg column not present, will execute loop
-  facils$within<- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+  facils$all <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
   segs$sp <- process_geom(segs_all, "geom") #takes several seconds
   rm(segs_all)
   segs$sf <- st_as_sf(segs$sp)
   st_crs(segs$sf) <- 4326
-  st_crs(facils$within) <- 4326
+  st_crs(facils$all) <- 4326
   # do spatial join to determine which seg each source/facility is in
-  spat_join <- st_join(facils$within, segs$sf) #riverseg column added, polygons in col geom
+  spat_join <- st_join(facils$all, segs$sf) #riverseg column added, polygons in col geom
   coords <- st_coordinates(spat_join$geometry)
   colnames(coords) <- c("Longitude","Latitude")
   spat_join <- spat_join[ , !names(spat_join) == "geom"]
@@ -537,11 +538,9 @@ rm(facils_all)
 
 ```{r (New) Filter data by extent of segs}
 #Filter sources/facilities by segs within extent
-facils$all <- facils$all[!is.na(facils$all$Longitude),] #remove rows with missing coords for sf creation
-facils$all <- facils$all[!is.na(facils$all$Latitude),]
-facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+#facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
 facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
-st_crs(facils$sf) <- 4326 
+#st_crs(facils$sf) <- 4326 
 
 if (map_type == "basin") { #'type' variable will either be: basin, locality, or region 
   for(i in rivseg){. #newly moved into this loop
@@ -586,6 +585,7 @@ segs_basin <- st_drop_geometry(segs$basin)
 segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
 st_crs(segs$basin_sf) <- 4326 
 facils_basin <- facils$basin #create temporary df for use in sqldf for orderin
+facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
 
 facils$basin <- sqldf("SELECT facils_all.* 
                           FROM facils_all 
@@ -608,7 +608,6 @@ facils$within$NUM <- seq(1, nrow(facils$within))
 ```
 
 
-
 ```{r Process Basin Geom & Bbox, warning=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 if (map_type == "locality" || map_type == "region") {
@@ -622,15 +621,13 @@ segs$basin_sf <- centroid_coords(segs$basin_sf, "geom") # new colnames for centr
 sf_use_s2(FALSE) # switch off Spherical geometry
 bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
 bbox <- st_bbox(bbox)
-
-
 ```
 
 ```{r VAhydro bbox if Desired, eval=FALSE}
 ## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
 # only operational for river segments/basins
 if (bbox_type == "vahydro") {
-  for (i in 1:nrow(segs$basin)) {  #nrow used instead of length to overcome yesterday's error
+  for (i in 1:nrow(segs$basin)) { 
   hid <- segs$basin$hydroid[i] 
   map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE)
   extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
@@ -661,7 +658,7 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("c
 ```{r Metric Unit Processing}
 metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
 wd_mgd = c(0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for the bins 
-wd_mgy = c(1, 5, 10, 50, 100, 1000, 10000)
+wd_mgy = c(1, 5, 10, 50, 250, 1000, 10000)
 if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
 } else if (metric_unit == "mgy") {
@@ -670,6 +667,9 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
 ```
 
 ```{r Metric Legend Bins}
+facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
+names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
+names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
 facils_within <- facils$within
 
 mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
@@ -695,6 +695,7 @@ mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
 names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change column name back to the specific metric
 mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
 ```
+
 
 ```{r Apply fn_mapgen, warning=FALSE, message=FALSE}
 # execute mapping function
@@ -759,11 +760,7 @@ if (type=="source"){
   colnames(table)[6] <- "River Segment Name"
   colnames(table)[7] <- "River Segment ID"
   colnames(table)[8] <- "5-yr Avg Use (mgy)"
-}
-```
-
-```{r Facility-Level Table, warning=FALSE, message=FALSE}
-if (type=="facility"){
+} else if (type=="facility"){
   if (metric_type=="modeled") {
   table <- data.frame(Number= facils$within$NUM, 
                         Facility=facils$within$propname, 

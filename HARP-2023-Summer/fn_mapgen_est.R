@@ -59,17 +59,29 @@ labels <- maplabs$final
   basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
   basemap <- ggmap(basemap_0)
 
+ #For reverse-fill: darken area of map outside basins 
+  segs$union <- st_union(segs$basin_sf)
+  bbox_st <- st_as_sfc(st_bbox(bbox))
+  nonbasin <- st_difference(bbox_st, segs$union)
+  st_crs(nonbasin) <- 4326
+  
  #Reverse polygon fill (highlight basin) -- for type basin
+#  bb <- unlist(attr(basemap_0, "bb"))
 #  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
 #  basemap_0 <- sp::SpatialPolygons(
 #    list(sp::Polygons(list(Polygon(coords)), "id")), 
-#    proj4string = CRS(proj4string(segs$basin_sp)))
+#    proj4string = CRS(proj4string(segs$union_sp))) # prev segs$basin_sp
 #  remove(coords) #job done
-#  nonbasin <- raster::erase(basemap_0, segs$basin_sp)
+#  nonbasin <- raster::erase(basemap_0, segs$union_sp) # prev segs$basin_sp
 #  nonbasin <- st_as_sf(nonbasin)
-#  st_crs(nonbasin) <- 4326
+  
   
  #Lighten terrain basemap 
+#  bb <- unlist(attr(basemap_0, "bb"))
+#  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
+#  basemap_0 <- sp::SpatialPolygons(
+#      list(sp::Polygons(list(Polygon(coords)), "id")), 
+#      proj4string = CRS(proj4string(as_Spatial(segs$union))))
 #  basemap_0 <- st_as_sf(basemap_0)
 #  st_crs(basemap_0) <- 4326
     
@@ -123,7 +135,7 @@ class(labelsP$bg.r) = "numeric"
   if (metric_unit == "mgd") { 
     labs = c(0.5, 1.0, 2, 10, 25, 100, 1000)
   } else if (metric_unit == "mgy") {
-    labs = c(1, 5, 10, 50, 100, 1000, 10000)
+    labs = c(1, 5, 10, 50, 250, 1000, 10000)
   } else {
     labs = c(0.5, 1.0, 2, 10, 25, 100, 1000) #default to mgd if unit is neither mgd or mgy
   }
@@ -212,7 +224,7 @@ class(labelsP$bg.r) = "numeric"
               color = mp_layer_plot$Source_Type, size = (mp_layer_plot$bin)), 
                shape = 19) +
       
-    scale_size_binned(range = c(2,25), 
+    scale_size_binned(range = c(2,20), 
                       breaks = breaks, 
                       labels = labs,
                       limits = lims,
@@ -230,7 +242,7 @@ class(labelsP$bg.r) = "numeric"
               size = (mp_layer_plot$bin)), color = "#F7FF00",
               shape = 19) +
 
-      scale_size_binned(range = c(2,25), 
+      scale_size_binned(range = c(2,20), 
                         breaks = breaks, 
                         labels = labs,
                         limits = lims,
@@ -243,7 +255,7 @@ class(labelsP$bg.r) = "numeric"
             aes(Longitude, Latitude, label=NUM, fontface="bold"), 
             colour="black", size=textsize[5], check_overlap=TRUE) +
     
-#  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) + # Reverse Fill
+  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) + # Reverse Fill
 
   ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
                   dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
