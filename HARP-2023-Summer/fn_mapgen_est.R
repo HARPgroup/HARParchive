@@ -90,30 +90,31 @@ labels <- maplabs$final
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads_plot <- roads[roads$RTTYP=="I",]
-    labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
+    #labelsP <- labels[labels$class=="county" | labels$class=="majR" | labels$class=="majC" | labels$class=="I",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads_plot <- roads
-    labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
+    #labelsP <- labels[labels$class!="town" & labels$class!="LakePond",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads_plot <- roads
-    labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
+    #labelsP <- labels[labels$class!="town"& labels$class!="LakePond",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
     nhd$plot <- nhd$flowline
     roads_plot <- roads
-    labelsP <- labels
+    #labelsP <- labels
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
-  st_crs(nhd$plot) <- 4326  
+st_crs(nhd$plot) <- 4326  
+labelsP <- labels #use all labels
 
 labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
 class(labelsP$bg.r) = "numeric"
