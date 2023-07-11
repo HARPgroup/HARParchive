@@ -11,8 +11,8 @@ params:
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
-  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
-  metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
+  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
+  metric_type: ["measured"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
@@ -288,6 +288,26 @@ cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Plac
 cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
 ```
 
+```{r}
+#Create facility-level foundational data by aggregating source-level data
+# aggregate and sum using sqldf:
+facils_foundatn <- facils$foundatn
+facils_foundatn <- sqldf("select facils_foundatn.*,
+                    sum(fiveyr_avg_mgy) as sum
+                    from facils_foundatn
+                    group by Facility_hydroid") #all source-related data now only applies to 1 source (random) within the facil (coords!)
+facils_foundatn <- facils_foundatn[ , !names(facils_foundatn) == 'fiveyr_avg_mgy'] #rm original metric col, from 1 of the sources 
+names(facils_foundatn)[names(facils_foundatn) == 'sum'] <- 'fiveyr_avg_mgy' #rename summed metric col
+facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroid,
+                            Facility = facils_foundatn$Facility,
+                            Use_Type = facils_foundatn$Use_Type, 
+                            `FIPS Code` = facils_foundatn$`FIPS Code`,
+                            Locality = facils_foundatn$Locality,
+                            fiveyr_avg_mgy = facils_foundatn$fiveyr_avg_mgy)#select cols of interest, not including coordinates which are from sources 
+#facils_foundatn <- facils_foundatn[, !duplicated(colnames(facils_foundatn))]
+```
+
+
 # Pull Metrics
 ```{r Create df for Runs & Metric, echo=FALSE, message=FALSE}
 #create df with run info and metric data, to be used in vahydro data retrieval
@@ -314,31 +334,28 @@ if (type == "facility") {
   facil_featr <- sqldf("SELECT * 
                       FROM facil_featr 
                       WHERE hydrocode not like 'wsp_%'")  # Filter out WSP entries
+  
+  #### Need to join facility-level foundational data with model data here -- featureid = hydroid
+  facil_modf <- sqldf("SELECT a.*, b.fiveyr_avg_mgy
+                      FROM facil_featr as a
+                      LEFT OUTER JOIN facils_foundatn as b
+                      ON (a.featureid = b.Facility_hydroid)" )
+  
+  
  #Get facility coordinates -- already in facilities df 
  facils$all <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b. Locality
-                      FROM facil_featr as a
+                      FROM facil_modf as a
                       LEFT OUTER JOIN facilities_df as b
                       ON (a.hydrocode = b.hydrocode)" ) 
+ 
+ 
  } else if (metric_type =="measured") {
-   facils_foundatn <- facils$foundatn
-   facils_sql <- paste('SELECT *, ',df$runlabel[1],' as metric
-                         FROM facils_foundatn'
-                         , sep="")
-  
-   facils_foundatn <- sqldf(facils_sql)
-   # aggregate and sum source data using sqldf:
-   facils_foundatn <- sqldf("select facils_foundatn.*,
-                     sum(metric) as sum
-                     from facils_foundatn
-                     group by Facility_hydroid")
-   facils_foundatn <- facils_foundatn[ , !names(facils_foundatn) == df$runlabel[1]]
-   names(facils_foundatn)[names(facils_foundatn) == 'sum'] <- df$runlabel[1]
-   facils_foundatn <- facils_foundatn[, !duplicated(colnames(facils_foundatn))]
+
    #Get facility coordinates
    facil_bind <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b.Locality
                       FROM facils_foundatn as a
                       LEFT OUTER JOIN facilities_df as b
-                      ON (a.Hydrocode = b.hydrocode)" )
+                      ON (a.Facility_hydroid = b.Facility_hydroid)" )
    
   facils$all <- facil_bind
  }
@@ -438,14 +455,14 @@ st_crs(segs$basin_sf) <- 4326
 facils_basin <- facils$basin #create temporary df for use in sqldf for orderin
 facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
 
-facils$basin <- sqldf("SELECT facils_all.* 
+facils$within <- sqldf("SELECT facils_all.* 
                           FROM facils_all 
                           WHERE riverseg 
-                          IN (select segs_basin.riverseg from segs_basin) 
-                          AND riverseg IS NOT NULL")
-facils$within <- with(facils, sqldf("SELECT * 
-                                     FROM basin 
-                                     WHERE hydrocode not like 'wsp_%'") )  # Filter out WSP (optional)
+                          IN (select segs_basin.riverseg from segs_basin)") 
+#                          AND riverseg IS NOT NULL)
+#facils$within <- with(facils, sqldf("SELECT * 
+#                                     FROM basin 
+#                                     WHERE hydrocode not like 'wsp_%'") )  # Filter out WSP (optional)
  #Ordering & Numbering data
 facils_within <- st_drop_geometry(facils$within) #create temporary df for use in sqldf for ordering
 facils_within <- sqldf(paste0( #ordering the data using sqldf 
@@ -557,7 +574,7 @@ fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
 # Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
 ```
 
-```{r Set Map Name, echo=FALSE}
+```{r Save Map as PNG, echo=FALSE}
 if (map_type == "basin") {
   map_name <- rivseg
 } else if (map_type == "locality") {
@@ -571,9 +588,7 @@ if (type == "source") {
 } else if (type == "facility") {
   map_name <- paste0(map_name, '_facils')
 }
-```
 
-```{r Save Map, echo=FALSE}
 # Saving map as a png
 mapfilename <- paste(export_path, map_name, ".png", sep="")
 ggsave(
@@ -585,7 +600,7 @@ ggsave(
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
 ```
 
-``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
+``` {r Create Table, include=FALSE, warning=FALSE}
 if (type=="source"){
   table <- data.frame(Number= facils$within$NUM, 
                         Facility=facils$within$Facility, 
@@ -605,18 +620,9 @@ if (type=="source"){
       table$rivsegName[i] <- ""
       }
   }
-  #- - - - add permitted capacity - - - permitted capacity @ source level disabled for now  
-#  for (i in 1:nrow(facils$within)){
-#    systemObj <- RomProperty$new(ds,list(
-#    featureid = facils$within$featureid[i], ## featureid won't exist in source-level data since model data wasn't joined 
-#    propcode= "vahydro-1.0"), 
-#    TRUE)
-#    permCapac <- RomProperty$new(ds,list(
-#    featureid = systemObj$pid,
-#    propname = 'vwp_max_mgy'),
-#    TRUE)
-#    table$vwp_max_mgy[i] <- permCapac$propcode  
-#  }
+  # - - permitted capacity @ source level disabled for now  
+#  for (i in 1:nrow(facils$within)){ ... same as process below
+
   #Replace zeros with "no permit"
 #  table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
 
@@ -627,11 +633,7 @@ if (type=="source"){
   names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
   names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
   names(table)[names(table) == 'fiveYrAvg_mgy'] <- '5-yr Avg Use (mgy)'
-  #colnames(table)[4] <- "Source Type"
-  #colnames(table)[6] <- "River Segment Name"
-  #colnames(table)[7] <- "River Segment ID"
-  #colnames(table)[8] <- "5-yr Avg Use (mgy)"
-  
+
 } else if (type=="facility"){
   if (metric_type=="modeled") {
   table <- data.frame(Number= facils$within$NUM, 
@@ -674,13 +676,8 @@ if (type=="source"){
   names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
   names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
   names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
-  #colnames(table)[4] <- "River Segment Name"
-  #colnames(table)[5] <- "River Segment ID"
-  #colnames(table)[6] <- "Permitted Capacity (mgy)"
   colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
   colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
-  #colnames(table)[7] <- paste0('2020 ',metric)
-  #colnames(table)[8] <- paste0('2040 ',metric)
   
   } else if (metric_type == "measured"){
     table <- data.frame(Number= facils$within$NUM, 
@@ -688,7 +685,23 @@ if (type=="source"){
                         Rivseg= facils$within$riverseg,
                         Locality = facils$within$Locality,
                         fiveYrAvg_mgy= facils$within$fiveyr_avg_mgy)
-    ## need to add permit capacity pull without facility featureid available
+    ## add permit capacity -- use facil hydroid as featureid
+    for (i in 1:nrow(facils$within)){
+    systemObj <- RomProperty$new(ds,list(
+      featureid = facils$within$Facility_hydroid[i],
+      propcode= "vahydro-1.0"), 
+    TRUE)
+    ## add action if no obj found to skip search for propname
+    if (is.na(systemObj$pid) == TRUE) {
+      table$vwp_max_mgy[i] <- "No Permit"
+    } else {
+      permCapac <- RomProperty$new(ds,list(
+    featureid = systemObj$pid,
+    propname = 'vwp_max_mgy'),
+    TRUE)
+    table$vwp_max_mgy[i] <- permCapac$propcode 
+    }
+   }
   }
 }
 ```
