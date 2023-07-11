@@ -168,9 +168,10 @@ legend_titling <- function(metric, runid_list){
 ```
 
 # Get Foundational Data
-```{r Analysts: From wd var, set in config, echo=FALSE}
+```{r Analysts: from wd var, set in config, echo=FALSE}
 facils <- list() #create empty list to store dfs
 facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv')) # Foundational sources/MP data
+facilities_df <- fread(paste0(wd, 'Foundational_Data/2023/facilities_all_geom.csv'))
 #example: wd <- "~/Desktop/GitHub/", if path to folder w the csv is "~/Desktop/GitHub/Foundational_Data/2023"
 # OR run next chunk
 ```
@@ -178,7 +179,8 @@ facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_m
 ```{r Planners: use setwd, eval=FALSE, include=FALSE}
 ## OR, set your working directory (setwd) to the location of the foundational csv, with the name above ^ and run:
 facils <- list() #create empty list to store dfs
-facils$foundatn <- fread(paste0(getwd(),'/foundation_dataset_mgy_2018-2022_5ya.csv'))
+facils$foundatn <- fread(paste0(getwd(), '/foundation_dataset_mgy_2018-2022_5ya.csv'))
+facilities_df <- fread(paste0(getwd(), '/facilities_all_geom.csv'))
 ```
 
 # Pull Data 
@@ -199,7 +201,7 @@ cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-S
 # --From Github--
 regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #Retrieving regional planning groups 
 #facilities_df <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/facilities_all_geom.csv')
-facilities_df <- fread(paste0(getwd(),'/facilities_all_geom.csv')) #created with VAhydro facility feature data 
+#facilities_df <- fread(paste0(getwd(),'/facilities_all_geom.csv')) #created with VAhydro facility feature data 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ```
 
