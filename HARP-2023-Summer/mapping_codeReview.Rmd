@@ -275,6 +275,7 @@ counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 
 #----Cities----
+cities <- cities[cities$ST == 'VA',] #VA cities
 # Remove city/town names that match their county/locality name
 counties_df <- counties$df #needed for sqldf
 cities <- sqldf("SELECT cities.* 
@@ -283,9 +284,10 @@ cities <- sqldf("SELECT cities.*
                 NOT IN (select counties_df.name from counties_df) 
                 ")
 remove(counties_df) #no longer needed
-cities <- cities[cities$ST == 'VA',] #VA cities
-cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
-cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
+
+#cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
+#cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
+cities[cities == "Census Designated Place"] <- "town"# change census designated place to town for mapping
 ```
 
 ```{r}
@@ -572,6 +574,9 @@ fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
 
 # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
 # Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
+
+# Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
+# Solution: maplabs object needs to be re-generated
 ```
 
 ```{r Save Map as PNG, echo=FALSE}
