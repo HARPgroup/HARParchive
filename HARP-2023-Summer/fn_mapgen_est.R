@@ -267,5 +267,5 @@ class(labelsP$bg.r) = "numeric"
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
   print('Map stored in environment as: map')
-  return(map)
+  #return(map)
 }

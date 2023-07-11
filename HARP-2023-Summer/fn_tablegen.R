@@ -3,19 +3,21 @@
 library(flextable)
 
 #create function
-fn_tablegen <- function(tabledf) { 
+fn_tablegen <- function(table) { 
   
-tabledf <- flextable(tabledf)
-
 #set table defaults of theme and font and make sure theres no blanks from nas 
 set_flextable_defaults(
-  font.size = 10, theme_fun = theme_zebra, 
+  font.size = 10, background.color = "white", 
   padding = 6, 
   na_str = "NA", nan_str = "NA")
 
-tabledf<- autofit(tabledf)
-tabledf <- flextable::align(tabledf, align = "center", part = "all") 
-tabledf
+ft <- flextable(table)
+ft <- theme_vanilla(ft)
+  
+#tabledf<- autofit(tabledf)
+#ft <- flextable::align(tabledf, align = "center", part = "all") 
+assign('ft', ft, envir = globalenv())
+print('Flextable as variable: ft')
   
   
 #alignment of table
