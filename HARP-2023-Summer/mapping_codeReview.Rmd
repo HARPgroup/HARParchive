@@ -10,7 +10,7 @@ params:
   region: ["Shenandoah_2"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
-  runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table.  Ignored if metric_type = "measured"
+  runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
@@ -200,7 +200,6 @@ regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-
 facilities_df <- fread(paste0(getwd(),'/facilities_all_geom.csv')) #created with VAhydro facility feature data 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ```
-
 
 # Geom Processing
 ```{r Region Geom Processing}
@@ -455,7 +454,6 @@ rm(facils_within) #removing the ordered data frame
 facils$within$NUM <- seq(1, nrow(facils$within))
 ```
 
-
 ```{r Process Basin Geom & Bbox, warning=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 if (map_type == "locality" || map_type == "region") {
@@ -621,20 +619,27 @@ if (type=="source"){
  #Re-order columns
   table <- table[,c(1:2,4,3,6,8,5,7)]
   #Set column names 
-  colnames(table)[4] <- "Source Type"
-  colnames(table)[6] <- "River Segment Name"
-  colnames(table)[7] <- "River Segment ID"
-  colnames(table)[8] <- "5-yr Avg Use (mgy)"
+  names(table)[names(table) == 'Source_Type'] <- 'Source Type'
+  names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
+  names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
+  names(table)[names(table) == 'fiveYrAvg_mgy'] <- '5-yr Avg Use (mgy)'
+  #colnames(table)[4] <- "Source Type"
+  #colnames(table)[6] <- "River Segment Name"
+  #colnames(table)[7] <- "River Segment ID"
+  #colnames(table)[8] <- "5-yr Avg Use (mgy)"
+  
 } else if (type=="facility"){
   if (metric_type=="modeled") {
   table <- data.frame(Number= facils$within$NUM, 
                         Facility=facils$within$propname, 
                         Rivseg= facils$within$riverseg,
                         Locality = facils$within$Locality,
-                        Metric_2020 = facils$within[,df$runlabel[1]],
-                        Metric_2040 = facils$within[,df$runlabel[2]]
+                        metric1  = facils$within[,df$runlabel[1]],
+                        metric2 = facils$within[,df$runlabel[2]]
                         ) 
-  #names(table)[names(table) == 'Metric'] <- df$runlabel[1]
+  
+  names(table)[names(table) == 'metric1'] <- df$runlabel[1]
+  names(table)[names(table) == 'metric2'] <- df$runlabel[2]
   
   #----Add rivseg names- - - - - -
    for(i in 1:nrow(table)){ 
@@ -662,11 +667,24 @@ if (type=="source"){
   #Re-order columns
   table <- table[,c(1:2,4,7,3,8,5,6)]
   #---- change col names for better flextable ---
-  colnames(table)[4] <- "River Segment Name"
-  colnames(table)[5] <- "River Segment ID"
-  colnames(table)[6] <- "Permitted Capacity (mgy)"
-  colnames(table)[7] <- paste0('2020 ',metric)
-  colnames(table)[8] <- paste0('2040 ',metric)
+  names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
+  names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
+  names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
+  #colnames(table)[4] <- "River Segment Name"
+  #colnames(table)[5] <- "River Segment ID"
+  #colnames(table)[6] <- "Permitted Capacity (mgy)"
+  colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
+  colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
+  #colnames(table)[7] <- paste0('2020 ',metric)
+  #colnames(table)[8] <- paste0('2040 ',metric)
+  
+  } else if (metric_type == "measured"){
+    table <- data.frame(Number= facils$within$NUM, 
+                        Facility=facils$within$Facility, 
+                        Rivseg= facils$within$riverseg,
+                        Locality = facils$within$Locality,
+                        fiveYrAvg_mgy= facils$within$fiveyr_avg_mgy)
+    ## need to add permit capacity pull without facility featureid available
   }
 }
 ```
@@ -678,8 +696,6 @@ fn_tablegen(table)
 
 
 -- End Operational RMD --
-
-
 
 
 
@@ -834,8 +850,6 @@ if (map_type == "region") {
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #remove columns with all NAs
 rm(facils_all)
 ```
-
-
 
 ```{r}
 ## No longer used, but keeping for now:
