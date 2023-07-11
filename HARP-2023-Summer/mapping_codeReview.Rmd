@@ -8,7 +8,7 @@ params:
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Spotsylvania"]
   region: ["Shenandoah_2"]    
-  type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
+  type: ["source"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
@@ -547,10 +547,10 @@ bins$classid <- index(bins)
 names(bins) <- c("val", "bin")
 
 entity_classes <- sqldf(
-  "select a.NUM, min(b.bin) as bin
+  "select a.NUM, max(b.bin) as bin
   from mp_layer as a 
   left outer join bins as b 
-  on (a.demand_metric < b.val) 
+  on (a.demand_metric > b.val) 
   group by a.NUM" )
 mp_layer <- sqldf(
   "select a.*, b.bin 
@@ -601,113 +601,85 @@ ggsave(
 ```
 
 ``` {r Create Table, include=FALSE, warning=FALSE}
-if (type=="source"){
-  table <- data.frame(Number= facils$within$NUM, 
-                        Facility=facils$within$Facility, 
-                        Source_Type = facils$within$Source_Type,
-                        Source = facils$within$MP_Name,
-                        Rivseg= facils$within$riverseg,
-                        Locality = facils$within$Locality, 
-                        fiveYrAvg_mgy= facils$within$fiveyr_avg_mgy
-                        ) 
+#All tables will have common columns:
+names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
-  # - - - - add rivseg names- - - - - -
-  for(i in 1:nrow(table)){ 
-    loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
-    if (nrow(loc_rivseg) != 0) {
-      table$rivsegName[i] <- loc_rivseg$name
-    } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-      table$rivsegName[i] <- ""
-      }
-  }
-  # - - permitted capacity @ source level disabled for now  
-#  for (i in 1:nrow(facils$within)){ ... same as process below
-
-  #Replace zeros with "no permit"
-#  table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
-
- #Re-order columns
-  table <- table[,c(1:2,4,3,6,8,5,7)]
-  #Set column names 
-  names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-  names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
-  names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
-  names(table)[names(table) == 'fiveYrAvg_mgy'] <- '5-yr Avg Use (mgy)'
-
-} else if (type=="facility"){
-  if (metric_type=="modeled") {
-  table <- data.frame(Number= facils$within$NUM, 
-                        Facility=facils$within$propname, 
-                        Rivseg= facils$within$riverseg,
-                        Locality = facils$within$Locality,
-                        metric1  = facils$within[,df$runlabel[1]],
-                        metric2 = facils$within[,df$runlabel[2]]
-                        ) 
-  
-  names(table)[names(table) == 'metric1'] <- df$runlabel[1]
-  names(table)[names(table) == 'metric2'] <- df$runlabel[2]
-  
-  #----Add rivseg names- - - - - -
-   for(i in 1:nrow(table)){ 
-    loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
-    if (nrow(loc_rivseg) != 0) {
-      table$rivsegName[i] <- loc_rivseg$name
-    } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-      table$rivsegName[i] <- ""
-      }
-  }
-   #---- add permitted capacity----
-  for (i in 1:nrow(facils$within)){
-    systemObj <- RomProperty$new(ds,list(
-      featureid = facils$within$featureid[i],
-      propcode= "vahydro-1.0"), 
-    TRUE)
-    permCapac <- RomProperty$new(ds,list(
-    featureid = systemObj$pid,
-    propname = 'vwp_max_mgy'),
-    TRUE)
-    table$vwp_max_mgy[i] <- permCapac$propcode  
-  }
-  #Replace zeros with "no permit"
-  table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit")
-  #Re-order columns
-  table <- table[,c(1:2,4,7,3,8,5,6)]
-  #---- change col names for better flextable ---
-  names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
-  names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
-  names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
-  colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
-  colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
-  
-  } else if (metric_type == "measured"){
-    table <- data.frame(Number= facils$within$NUM, 
-                        Facility=facils$within$Facility, 
-                        Rivseg= facils$within$riverseg,
-                        Locality = facils$within$Locality,
-                        fiveYrAvg_mgy= facils$within$fiveyr_avg_mgy)
-    ## add permit capacity -- use facil hydroid as featureid
-    for (i in 1:nrow(facils$within)){
-    systemObj <- RomProperty$new(ds,list(
-      featureid = facils$within$Facility_hydroid[i],
-      propcode= "vahydro-1.0"), 
-    TRUE)
-    ## add action if no obj found to skip search for propname
-    if (is.na(systemObj$pid) == TRUE) {
-      table$vwp_max_mgy[i] <- "No Permit"
-    } else {
-      permCapac <- RomProperty$new(ds,list(
-    featureid = systemObj$pid,
-    propname = 'vwp_max_mgy'),
-    TRUE)
-    table$vwp_max_mgy[i] <- permCapac$propcode 
+table <- data.frame(Number= facils$within$NUM, 
+                      Facility=facils$within$Facility, 
+                      Rivseg= facils$within$riverseg,
+                      Locality = facils$within$Locality, 
+                      fiveYrAvg_mgy= facils$within$fiveyr_avg_mgy
+                        )
+# - - - - add rivseg names- - - - - -
+for(i in 1:nrow(table)){ 
+  loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
+  if (nrow(loc_rivseg) != 0) {
+    table$rivsegName[i] <- loc_rivseg$name
+  } else { # if no matching row was found for the riverseg ID, leave blank but don't break
+    table$rivsegName[i] <- ""
     }
-   }
-  }
 }
+
+if (type=="source"){
+  #source-unique columns for table
+  
+  table$Source_Type = facils$within$Source_Type
+  table$Source = facils$within$MP_Name
+  #No permitted capacity added to source-level table
+  
+  table <- table[, c("Number", "Facility", "Source", 
+                        "Source_Type", "Locality", "rivsegName", 
+                        "Rivseg", "fiveYrAvg_mgy")] #order source-level table
+  
+} else if (type=="facility"){
+    names(facils$within)[names(facils$within) == 'featureid'] <- 'Facility_hydroid'
+    
+    for (i in 1:nrow(facils$within)){
+      systemObj <- RomProperty$new(ds,list(
+        featureid = facils$within$Facility_hydroid[i],
+        propcode= "vahydro-1.0"), 
+      TRUE)
+        if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
+        table$vwp_max_mgy[i] <- "No Permit"
+      } else {
+      permCapac <- RomProperty$new(ds,list(
+        featureid = systemObj$pid,
+        propname = 'vwp_max_mgy'),
+      TRUE)
+      table$vwp_max_mgy[i] <- permCapac$propcode
+      }
+    } 
+    table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
+    
+    if (metric_type=="modeled") {
+      # rename runid metrics with metric1 and metric2
+      colnames(table)[grepl('runid_11',colnames(table))] <- 'metric2020'
+      colnames(table)[grepl('runid_13',colnames(table))] <- 'metric2040'
+      
+      table <- table[, c("Number", "Facility", 
+                        "Locality", "rivsegName", 
+                        "Rivseg", "vwp_max_mgy", 
+                        "metric2020", "metric2040")] #order table w/ model metrics
+      
+    } else if (metric_type=="measured") {
+      table <- table[, c("Number", "Facility", 
+                        "Locality", "rivsegName", 
+                        "Rivseg", "vwp_max_mgy", 
+                        "fiveYrAvg_mgy")] #order table w/out model metrics
+    }
+  }
 ```
 
-# Call Table 
-``` {r Call Table Function, echo=FALSE, warning=FALSE, message=FALSE}
+```{r Rename Table Columns & Process Flextable}
+#ordered before renaming, order by name not col #
+names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
+names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
+names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
+names(table)[names(table) == 'Source_Type'] <- 'Source Type'
+names(table)[names(table) == 'fiveYrAvg_mgy'] <- '5-yr Avg Use (mgy)'
+colnames(table)[grepl('2020',colnames(table))] <- paste0('2020 ',metric)
+colnames(table)[grepl('2040',colnames(table))] <- paste0('2040 ',metric)
+
 fn_tablegen(table) #flextable saved as var ft
 tablefilename <- paste(export_path, map_name, "_table.png", sep="")
 save_as_image(ft, tablefilename)
