@@ -222,7 +222,7 @@ class(labelsP$bg.r) = "numeric"
     new_scale("size") + new_scale("color") +
     
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-              color = mp_layer_plot$Source_Type, size = (mp_layer_plot$bin)), 
+              color = mp_layer_plot$Source_Type, size = bin), 
                shape = 19) +
       
     scale_size_binned(range = c(2,20), 
@@ -240,7 +240,7 @@ class(labelsP$bg.r) = "numeric"
     map <- map + 
       new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-              size = (mp_layer_plot$bin)), color = "#F7FF00",
+              size = bin), color = "#F7FF00",
               shape = 19) +
 
       scale_size_binned(range = c(2,20), 
