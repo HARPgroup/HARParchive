@@ -60,6 +60,14 @@ bbox_type <- params$bbox_type
 
 # Get Functions 
 
+```{r Analysts can: Load Functions from Files, include=FALSE}
+## Please leave this chunk during dev for analysts! makes testing & editing functions easier
+source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
+source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
+source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
+source(paste0(getwd(), '/', 'fn_labelprep.R' )) #load labeling function
+```
+
 ```{r Dev Code-libs: Load Functions from Online, echo=FALSE, eval=FALSE}
 ## For planners, updated when changes are merged to master
 source(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R") #load mapping function
@@ -161,13 +169,20 @@ legend_titling <- function(metric, runid_list){
 ```
 
 # Get Foundational Data
-```{r Analysts: from wd var, set in config, echo=FALSE}
+```{r (New) Pull Foundational Data, echo=FALSE, eval=FALSE}
 facils <- list() #create empty list to store dfs
-# the variable "github_location" should in in config.local and provides easy access to these resources.  Thus, no need to change code here, rather, the user changes their own config.
+# the variable "github_location" should be in config.local and provides easy access to these resources
+# Thus, no need to change code here, rather, the user changes their own config.
 furl = paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv")
 facils$foundatn <- fread(furl) # Foundational sources/MP data
 facilities_df <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
+```
 
+```{r (Old) Pull Foundational Data, echo=FALSE, include=FALSE}
+facils <- list() #create empty list to store dfs
+facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv')) # Foundational sources/MP data
+facilities_df <- fread(paste0(wd, 'Foundational_Data/2023/facilities_all_geom.csv'))
+#example: wd <- "~/Desktop/GitHub/", if path to folder w the csv is "~/Desktop/GitHub/Foundational_Data/2023"
 ```
 
 # Pull Data 
@@ -523,6 +538,12 @@ if (bbox_type == "vahydro") {
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
 
+```{r}
+bbox_st <- st_as_sfc(st_bbox(bbox))
+nhd1 <- get_nhdplus(AOI = bbox_st)
+```
+
+
 ```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
 ## ALL labeling now done in this chunk
 legend_title <- legend_titling(metric, runid_list)
@@ -712,7 +733,7 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/mapping_codeRev
                   output_file = "~/Desktop/HARPteam23/mappingRMD_knit", 
                   params = list(
                     rivseg = "JL6_7430_7320", 
-                    locality = "Fairfax County", 
+                    locality = "Spotsylvania", 
                     region = "Shenandoah_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
