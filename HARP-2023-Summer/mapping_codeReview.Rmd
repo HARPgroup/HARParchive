@@ -60,8 +60,8 @@ bbox_type <- params$bbox_type
 
 # Get Functions 
 
-```{r Analysts can: Load Functions from Files, include=FALSE}
-## Please leave this chunk during dev for analysts, makes testing & editing functions easier
+```{r (Old) Analysts can: Load Functions from Files, include=FALSE}
+## Please leave this chunk during dev for analysts, makes testing & editing functions easier (doesn't req merge)
 source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
 source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
 source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
@@ -169,7 +169,7 @@ legend_titling <- function(metric, runid_list){
 ```
 
 # Get Foundational Data
-```{r (New) Pull Foundational Data, echo=FALSE, eval=FALSE}
+```{r (New) Pull Foundational Data w/ github_location, echo=FALSE, eval=FALSE}
 facils <- list() #create empty list to store dfs
 # the variable "github_location" should be in config.local and provides easy access to these resources
 # Thus, no need to change code here, rather, the user changes their own config.
@@ -189,26 +189,26 @@ facilities_df <- fread(paste0(wd, 'Foundational_Data/2023/facilities_all_geom.cs
 ```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE}
 #----From VAhydro----
 #segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
-if (exists("segs")==FALSE) {
-  segs <- list()
-}
+if (exists("segs")==FALSE) { segs <- list() }
 
 if (!"all" %in% names(segs)) { #will execute loop when segs$all not yet pulled 
-  segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) # All vahydro watershed features
+  segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
+  # All vahydro watershed features
 } 
 # note: potential NULLs for newly carved data
 counties <- list() # County Features data
 counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
 
 #----From Public Webpages----
-roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip",
-                          filetype="shp", zip=TRUE) # (shp) for US states & primary roads
-cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') # prev uscities.csv, (csv) for US cities
+#roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip", 
+#                          filetype="shp", zip=TRUE) # (shp) for US states & primary roads
 
 # --From Github--
+roads <- download_read(
+  url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
+  filetype="shp", zip=TRUE) # (shp) for US states & primary roads
 regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #Retrieving regional planning groups 
-#facilities_df <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/facilities_all_geom.csv')
-#facilities_df <- fread(paste0(getwd(),'/facilities_all_geom.csv')) #created with VAhydro facility feature data 
+cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ```
 
@@ -550,10 +550,10 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
 
 ```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
-## ALL labeling now done in this chunk
-legend_title <- legend_titling(metric, runid_list)
-textcol <- colors$default$text #still needed for mapping
-label_fill <- colors$default$fill #still needed for mapping
+## All labeling now done in this chunk
+legend_title <- legend_titling(metric, runid_list) #use legend function
+textcol <- colors$default$text #from mapping aesthetics function
+label_fill <- colors$default$fill 
 rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 ```
