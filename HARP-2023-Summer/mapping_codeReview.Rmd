@@ -8,7 +8,7 @@ params:
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Spotsylvania"]
   region: ["Shenandoah_2"]    
-  type: ["source"] #either 'source' or 'facility', depending on level of map and table wanted 
+  type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
@@ -187,8 +187,13 @@ facilities_df <- fread(paste0(getwd(), '/facilities_all_geom.csv'))
 ```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE}
 #----From VAhydro----
 #segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
-segs <- list()
-segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) # All vahydro watershed features
+if (exists("segs")==FALSE) {
+  segs <- list()
+}
+
+if (!"all" %in% names(segs)) { #will execute loop when segs$all not yet pulled 
+  segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) # All vahydro watershed features
+} 
 # note: potential NULLs for newly carved data
 counties <- list() # County Features data
 counties$df <- ds$get('dh_feature', config=list(bundle='usafips'))
@@ -290,7 +295,7 @@ remove(counties_df) #no longer needed
 cities[cities == "Census Designated Place"] <- "town"# change census designated place to town for mapping
 ```
 
-```{r}
+```{r, include=FALSE, echo=FALSE}
 #Create facility-level foundational data by aggregating source-level data
 # aggregate and sum using sqldf:
 facils_foundatn <- facils$foundatn
@@ -309,7 +314,6 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 #facils_foundatn <- facils_foundatn[, !duplicated(colnames(facils_foundatn))]
 ```
 
-
 # Pull Metrics
 ```{r Create df for Runs & Metric, echo=FALSE, message=FALSE}
 #create df with run info and metric data, to be used in vahydro data retrieval
@@ -324,7 +328,7 @@ if (metric_type == "modeled") {
 ```
 
 ```{r Facility-Level Metric Data, warning=FALSE, message=FALSE, echo=FALSE}
-## For mapping by facility  
+## Processing Facility-level metric & foundational data 
 if (type == "facility") {
  if (metric_type == "modeled") { 
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest
@@ -337,18 +341,35 @@ if (type == "facility") {
                       FROM facil_featr 
                       WHERE hydrocode not like 'wsp_%'")  # Filter out WSP entries
   
-  #### Need to join facility-level foundational data with model data here -- featureid = hydroid
-  facil_modf <- sqldf("SELECT a.*, b.fiveyr_avg_mgy
-                      FROM facil_featr as a
-                      LEFT OUTER JOIN facils_foundatn as b
-                      ON (a.featureid = b.Facility_hydroid)" )
+  #join facility-level foundational data with model data here: featureid = hydroid
+#  facil_modf <- sqldf("SELECT a.*, b.fiveyr_avg_mgy
+#                      FROM facil_featr as a
+#                      LEFT OUTER JOIN facils_foundatn as b
+#                      ON (a.featureid = b.Facility_hydroid)" )
+  #result: same length as modeled data frame -> does a UNION need to be added?
   
+#  facil_fulljoin <- sqldf("SELECT * FROM facil_featr as a
+#                      LEFT OUTER JOIN facils_foundatn as b
+#                      ON (a.featureid = b.Facility_hydroid)
+#                      UNION
+#                      SELECT * FROM facils_foundatn as a
+#                      LEFT OUTER JOIN facil_featr as b
+#                      ON (a.Facility_hydroid = b.featureid)" 
+#                      ) #not successful 
   
+  #try merging instead of sqldf
+  names(facils_foundatn)[names(facils_foundatn) == 'Facility_hydroid'] <- 'featureid'
+  facil_merge <- merge(facils_foundatn, facil_featr, by = "featureid", all=T)
+  facil_modf <- facil_merge[, c("featureid", "Facility", 
+                      "Locality", "Use_Type", 
+                      "fiveyr_avg_mgy", df$runlabel[1], 
+                      df$runlabel[2])] ##don't need all columns
+  names(facil_modf)[names(facil_modf) == 'featureid'] <- 'Facility_hydroid'
  #Get facility coordinates -- already in facilities df 
  facils$all <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b. Locality
                       FROM facil_modf as a
                       LEFT OUTER JOIN facilities_df as b
-                      ON (a.hydrocode = b.hydrocode)" ) 
+                      ON (a.Facility_hydroid = b.Facility_hydroid)" ) #can hydrocode be changed?
  
  
  } else if (metric_type =="measured") {
@@ -492,7 +513,7 @@ bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
 bbox <- st_bbox(bbox)
 ```
 
-```{r VAhydro bbox if Desired, eval=FALSE, include=FALSE}
+```{r VAhydro bbox if Desired, include=FALSE}
 ## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
 # only operational for river segments/basins
 if (bbox_type == "vahydro") {
@@ -657,6 +678,10 @@ if (type=="source"){
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
     
     if (metric_type=="modeled") {
+      #get metric columns into table
+      table[,df$runlabel[1]] <- facils$within[,df$runlabel[1]]
+      table[,df$runlabel[2]] <- facils$within[,df$runlabel[2]]
+      
       # rename runid metrics with metric1 and metric2
       colnames(table)[grepl('runid_11',colnames(table))] <- 'metric2020'
       colnames(table)[grepl('runid_13',colnames(table))] <- 'metric2040'
@@ -675,7 +700,7 @@ if (type=="source"){
   }
 ```
 
-```{r Rename Table Columns & Process Flextable}
+```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
 #ordered before renaming, order by name not col #
 names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
 names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
@@ -696,6 +721,18 @@ knitr::include_graphics(c(mapfilename,tablefilename))
 ```
 
 ```{r Glenns Render, eval=FALSE, echo=FALSE}
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/mapping_codeReview.Rmd", output_file = "~/Desktop/HARPteam23/mappingRMD_knit", params = list(rivseg = "JL6_7430_7320", locality = "Spotsylvania", region = "Shenandoah_2", type = "facility", model_version = "vahydro-1.0", runid_list = c("runid_11","runid_13"), metric = "wd_mgd", metric_type = "modeled", map_type = "locality", bbox_type = "auto"))
+rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/mapping_codeReview.Rmd", 
+                  output_file = "~/Desktop/HARPteam23/mappingRMD_knit", 
+                  params = list(
+                    rivseg = "JL6_7430_7320", 
+                    locality = "Fairfax County", 
+                    region = "Shenandoah_2", 
+                    type = "facility", 
+                    model_version = "vahydro-1.0", 
+                    runid_list = c("runid_11","runid_13"), 
+                    metric = "fiveyr_avg_mgy", 
+                    metric_type = "measured", 
+                    map_type = "locality", 
+                    bbox_type = "auto"))
 ```
 
