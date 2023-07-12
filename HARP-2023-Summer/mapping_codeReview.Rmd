@@ -169,8 +169,10 @@ legend_titling <- function(metric, runid_list){
 # Get Foundational Data
 ```{r Analysts: From wd var, set in config}
 facils <- list() #create empty list to store dfs
-facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv')) # Foundational sources/MP data
-#example: wd <- "~/Desktop/GitHub/", if path to folder w the csv is "~/Desktop/GitHub/Foundational_Data/2023"
+# the variable "github_location" should in in config.local and provides easy access to these resources.  Thus, no need to change code here, rather, the user changes their own config.
+furl = paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv")
+facils$foundatn <- fread(furl) # Foundational sources/MP data
+
 ```
   OR
 ```{r Planners: use setwd, eval =FALSE}
