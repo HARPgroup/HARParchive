@@ -8,10 +8,11 @@ fn_tablegen <- function(table) {
 #set table defaults of theme and font and make sure theres no blanks from nas 
 set_flextable_defaults(
   font.size = 8, background.color = "white", 
-  padding = 6, 
+  padding = 3, 
   na_str = "NA", nan_str = "NA")
 
 ft <- flextable(table)
+ft <- line_spacing(ft, space = 1.25)
 ft <- theme_vanilla(ft)
   
 #tabledf<- autofit(tabledf)
