@@ -170,17 +170,11 @@ legend_titling <- function(metric, runid_list){
 # Get Foundational Data
 ```{r Analysts: from wd var, set in config, echo=FALSE}
 facils <- list() #create empty list to store dfs
-facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv')) # Foundational sources/MP data
-facilities_df <- fread(paste0(wd, 'Foundational_Data/2023/facilities_all_geom.csv'))
-#example: wd <- "~/Desktop/GitHub/", if path to folder w the csv is "~/Desktop/GitHub/Foundational_Data/2023"
-# OR run next chunk
-```
+# the variable "github_location" should in in config.local and provides easy access to these resources.  Thus, no need to change code here, rather, the user changes their own config.
+furl = paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv")
+facils$foundatn <- fread(furl) # Foundational sources/MP data
+facilities_df <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
 
-```{r Planners: use setwd, eval=FALSE, include=FALSE}
-## OR, set your working directory (setwd) to the location of the foundational csv, with the name above ^ and run:
-facils <- list() #create empty list to store dfs
-facils$foundatn <- fread(paste0(getwd(), '/foundation_dataset_mgy_2018-2022_5ya.csv'))
-facilities_df <- fread(paste0(getwd(), '/facilities_all_geom.csv'))
 ```
 
 # Pull Data 
