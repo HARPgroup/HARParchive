@@ -222,7 +222,7 @@ class(labelsP$bg.r) = "numeric"
     new_scale("size") + new_scale("color") +
     
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-              color = mp_layer_plot$Source_Type, size = bin), 
+              color = Source_Type, size = bin), 
                shape = 19) +
       
     scale_size_binned(range = c(2,20), 

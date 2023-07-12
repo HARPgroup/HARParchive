@@ -14,7 +14,8 @@ params:
   runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
-  map_type: ["locality"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  table_limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
 ---
@@ -55,25 +56,18 @@ metric <- params$metric
 #metric_type <- params$metric_type
 #map_name <- params$map_name
 map_type <- params$map_type
+table_limit <- params$table_limit
 bbox_type <- params$bbox_type
 ```
 
 # Get Functions 
 
-```{r (Old) Analysts can: Load Functions from Files, include=FALSE}
-## Please leave this chunk during dev for analysts, makes testing & editing functions easier (doesn't req merge)
-source(paste0(getwd(), '/', 'fn_mapgen_est.R' )) #load mapping function
-source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
-source(paste0(getwd(), '/', 'fn_tablegen.R' )) #load table function
-source(paste0(getwd(), '/', 'fn_labelprep.R' )) #load labeling function
-```
-
 ```{r Dev Code-libs: Load Functions from Online, echo=FALSE, eval=FALSE}
 ## For planners, updated when changes are merged to master
-source(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R") #load mapping function
-source(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R") #load mapping aesthetics
-source(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R") #load table function
-source(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R") #load labeling function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = FALSE) #load mapping function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = FALSE) #load mapping aesthetics
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = FALSE) #load table function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = FALSE) #load labeling function
 ```
 
 ```{r Establish Functions, echo=FALSE}
@@ -169,20 +163,13 @@ legend_titling <- function(metric, runid_list){
 ```
 
 # Get Foundational Data
-```{r (New) Pull Foundational Data w/ github_location, echo=FALSE, eval=FALSE}
+```{r Pull Foundational Data w/ github_location, echo=FALSE, eval=FALSE}
 facils <- list() #create empty list to store dfs
 # the variable "github_location" should be in config.local and provides easy access to these resources
 # Thus, no need to change code here, rather, the user changes their own config.
 furl = paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv")
 facils$foundatn <- fread(furl) # Foundational sources/MP data
 facilities_df <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
-```
-
-```{r (Old) Pull Foundational Data, echo=FALSE, include=FALSE}
-facils <- list() #create empty list to store dfs
-facils$foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv')) # Foundational sources/MP data
-facilities_df <- fread(paste0(wd, 'Foundational_Data/2023/facilities_all_geom.csv'))
-#example: wd <- "~/Desktop/GitHub/", if path to folder w the csv is "~/Desktop/GitHub/Foundational_Data/2023"
 ```
 
 # Pull Data 
@@ -639,6 +626,20 @@ ggsave(
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
 ```
 
+```{r Apply Table Limit, include=FALSE}
+if (table_limit=="boundary") {
+  facils$within_sf <- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
+  st_crs(facils$within_sf) <- 4326
+  if (map_type=="locality") {
+    facils$within <- st_filter(facils$within_sf, locality_sf)
+  } else if (map_type=="region") {
+    st_crs(region_sfd) <- 4326
+    facils$within <- st_filter(facils$within_sf, region_sfd)
+  }
+}
+```
+
+
 ``` {r Create Table, include=FALSE, warning=FALSE}
 #All tables will have common columns:
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -647,7 +648,7 @@ table <- data.frame(Number= facils$within$NUM,
                       Facility=facils$within$Facility, 
                       Rivseg= facils$within$riverseg,
                       Locality = facils$within$Locality, 
-                      fiveYrAvg_mgy= facils$within$fiveyr_avg_mgy
+                      fiveYrAvg_mgy= round(facils$within$fiveyr_avg_mgy, digits = 2)
                         )
 # - - - - add rivseg names- - - - - -
 for(i in 1:nrow(table)){ 
@@ -691,8 +692,8 @@ if (type=="source"){
     
     if (metric !="fiveyr_avg_mgy") {
       #get metric columns into table
-      table[,df$runlabel[1]] <- facils$within[,df$runlabel[1]]
-      table[,df$runlabel[2]] <- facils$within[,df$runlabel[2]]
+      table[,df$runlabel[1]] <- round(facils$within[,df$runlabel[1]], digits = 2)
+      table[,df$runlabel[2]] <- round(facils$within[,df$runlabel[2]], digits = 2)
       
       # rename runid metrics with metric1 and metric2
       colnames(table)[grepl('runid_11',colnames(table))] <- 'metric2020'
@@ -737,14 +738,15 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/mapping_codeRev
                   output_file = "~/Desktop/HARPteam23/mappingRMD_knit", 
                   params = list(
                     rivseg = "JL6_7430_7320", 
-                    locality = "Montgomery", 
+                    locality = "Culpeper", 
                     region = "Chowan_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
-                    metric = "wd_mgd", 
+                    metric = "fiveyr_avg_mgy", 
                     #metric_type = "measured", 
-                    map_type = "locality", 
+                    map_type = "locality",
+                    table_limit = "boundary",
                     bbox_type = "auto"))
 ```
 
