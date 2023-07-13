@@ -12,9 +12,10 @@ params:
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
-  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
+  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_by: ["fiveyr_avg_mgy", "runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   table_limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
@@ -53,9 +54,8 @@ type <- params$type #for map & table to indicate source-level or facility-level
 model_version <- params$model_version
 runid_list <- params$runid_list
 metric <- params$metric
-#metric_type <- params$metric_type
-#map_name <- params$map_name
 map_type <- params$map_type
+map_by <- params$map_by
 table_limit <- params$table_limit
 bbox_type <- params$bbox_type
 ```
@@ -240,6 +240,7 @@ facilities_df <- cbind(facilities_df, coords) #add coordinates to facilities df
 ```
 
 # Process Data
+
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
 segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
@@ -304,20 +305,10 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 ```
 
 # Pull Metrics
-```{r Create df for Runs & Metric, echo=FALSE, message=FALSE, eval=FALSE}
-#create df with run info and metric data, to be used in vahydro data retrieval
-#if (metric_type == "modeled") {
-#  df <- data.frame(runid=runid_list, model_version, metric=metric)
-#    for(i in 1:length(runid_list)){
-#      df$runlabel[i] <- paste0(runid_list[i], '_', metric)
-#    } 
-#  } else if (metric_type == "measured") {
-#  df <- data.frame(metric=metric, runlabel=metric)
-#} 
-```
 
 ```{r (New) Create df for Metric Pull, include=FALSE}
-#df without metric_type -- success TBD
+#df without metric_type
+## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
 df <- data.frame(runid=runid_list, model_version, metric=metric)
 if (type == "facility") {
   if (metric != "fiveyr_avg_mgy"){
@@ -352,16 +343,7 @@ if (type == "facility") {
 #                      FROM facil_featr as a
 #                      LEFT OUTER JOIN facils_foundatn as b
 #                      ON (a.featureid = b.Facility_hydroid)" )
-  #result: same length as modeled data frame -> does a UNION need to be added?
-  
-#  facil_fulljoin <- sqldf("SELECT * FROM facil_featr as a
-#                      LEFT OUTER JOIN facils_foundatn as b
-#                      ON (a.featureid = b.Facility_hydroid)
-#                      UNION
-#                      SELECT * FROM facils_foundatn as a
-#                      LEFT OUTER JOIN facil_featr as b
-#                      ON (a.Facility_hydroid = b.featureid)" 
-#                      ) #not successful 
+  #result: same length as modeled data frame -> UNION needed for full - unsuccessful 
   
   #try merging instead of sqldf
   names(facils_foundatn)[names(facils_foundatn) == 'Facility_hydroid'] <- 'featureid'
@@ -558,48 +540,56 @@ if (metric_unit == "mgd") { #different ranges for mgd and mgy
 }
 ```
 
-```{r Metric Legend Bins, echo=FALSE}
+```{r Data into Bins & Map, echo=FALSE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
 facils_within <- facils$within
 
-mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
-                      FROM facils_within' , sep="")
-mp_layer <- sqldf(mp_layer_sql)
-bins = as.data.frame(div)
-bins$classid <- index(bins)
-names(bins) <- c("val", "bin")
+#modify to use map_by -- could be more than one value, with length of list = # of maps to generate 
+  #meaning a mp_layer needs to be created and a map generated for each of map_by 
 
-entity_classes <- sqldf(
-  "select a.NUM, max(b.bin) as bin
-  from mp_layer as a 
-  left outer join bins as b 
-  on (a.demand_metric >= b.val) 
-  group by a.NUM" )
-mp_layer <- sqldf(
-  "select a.*, b.bin 
-  from mp_layer as a 
-  left outer join entity_classes as b 
-  on a.NUM = b.NUM " )
+for (i in 1:length(map_by)) { #execute for each metric in map_by param 
+#   mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
+#                      FROM facils_within' , sep="")
+  mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
+        FROM facils_within' , sep="")
+  mp_layer <- sqldf(mp_layer_sql)
+  bins = as.data.frame(div)
+  bins$classid <- index(bins)
+  names(bins) <- c("val", "bin")
 
-mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
-names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change column name back to the specific metric
-mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
-```
+  entity_classes <- sqldf(
+      "select a.NUM, max(b.bin) as bin
+      from mp_layer as a 
+      left outer join bins as b 
+      on (a.demand_metric >= b.val) 
+      group by a.NUM" )
+  mp_layer <- sqldf(
+      "select a.*, b.bin 
+      from mp_layer as a 
+      left outer join entity_classes as b 
+      on a.NUM = b.NUM " )
 
-# Create Map
-```{r Apply fn_mapgen, warning=FALSE, message=FALSE, echo=FALSE}
-# execute mapping function
-# args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
+  mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
+  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- map_by[i] #change column name back to the specific metric
+  mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
+
+  # execute mapping function
+  # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
+  fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
+  
+  #assign map to unique var
+  assign(paste0('map', i), map, envir = globalenv())
+  }
 
-# Error in if (distance > 300) { : missing value where TRUE/FALSE needed
-# Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
+## Mapping Errors:
+  # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
+  # Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
 
-# Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
-# Solution: maplabs object needs to be re-generated
+  # Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
+  # Solution: maplabs object needs to be re-generated
 ```
 
 ```{r Save Map as PNG, echo=FALSE}
@@ -617,15 +607,19 @@ if (type == "source") {
   map_name <- paste0(map_name, '_facils')
 }
 
-# Saving map as a png
-mapfilename <- paste(export_path, map_name, ".png", sep="")
-ggsave(
-  filename = mapfilename,
-  plot = map,
-  width = 25,
-  height = 20
-  )
+# Saving map(s) as a png
+for (i in 1:length(map_by)) {
+  mapfilename <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
+  mapf <- get(paste0('map',i))
+  ggsave(
+    filename = mapfilename,
+    plot = mapf,
+    width = 25,
+    height = 20)
+}
+
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
+knitr::include_graphics(mapfilename) #display map PNG -- for testing 
 ```
 
 ```{r Apply Table Limit, include=FALSE}
@@ -743,12 +737,12 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL6_7430_7320", 
                     locality = "Culpeper", 
-                    region = "Shenandoah_2", 
+                    region = "Chowan_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
-                    metric = "wd_mgd", 
-                    map_type = "region",
+                    metric = "fiveyr_avg_mgy", 
+                    map_type = "locality",
                     table_limit = "boundary",
                     bbox_type = "auto"))
 ```
