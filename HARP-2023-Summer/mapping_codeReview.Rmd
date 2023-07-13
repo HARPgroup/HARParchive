@@ -62,7 +62,7 @@ bbox_type <- params$bbox_type
 
 # Get Functions 
 
-```{r Dev Code-libs: Load Functions from Online, echo=FALSE, eval=FALSE}
+```{r Dev Code-libs: Load Functions from Online, echo=FALSE}
 ## For planners, updated when changes are merged to master
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = FALSE) #load mapping function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = FALSE) #load mapping aesthetics
@@ -163,7 +163,7 @@ legend_titling <- function(metric, runid_list){
 ```
 
 # Get Foundational Data
-```{r Pull Foundational Data w/ github_location, echo=FALSE, eval=FALSE}
+```{r Pull Foundational Data w/ github_location, echo=FALSE}
 facils <- list() #create empty list to store dfs
 # the variable "github_location" should be in config.local and provides easy access to these resources
 # Thus, no need to change code here, rather, the user changes their own config.
@@ -410,12 +410,14 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
  if (!"riverseg" %in% colnames(facils$all)) { # TRUE when riverseg column not present, will execute loop
   facils$all <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
-  segs$sp <- process_geom(segs_all, "geom") #takes several seconds
+  #segs$sp <- process_geom(segs_all, "geom") #takes several seconds
+  segs$sf <- st_as_sf(segs_all, wkt = "geom")
   rm(segs_all)
-  segs$sf <- st_as_sf(segs$sp)
+  #segs$sf <- st_as_sf(segs$sp)
   st_crs(segs$sf) <- 4326
   st_crs(facils$all) <- 4326
   # do spatial join to determine which seg each source/facility is in
+  sf_use_s2(FALSE) # switch off Spherical geometry
   spat_join <- st_join(facils$all, segs$sf) #riverseg column added, polygons in col geom
   coords <- st_coordinates(spat_join$geometry)
   colnames(coords) <- c("Longitude","Latitude")
@@ -637,6 +639,7 @@ if (table_limit=="boundary") {
     facils$within <- st_filter(facils$within_sf, region_sfd)
   }
 }
+facils$within <- st_drop_geometry(facils$within)
 ```
 
 
@@ -733,19 +736,19 @@ save_as_image(ft, tablefilename)
 knitr::include_graphics(c(mapfilename,tablefilename))
 ```
 
-```{r Glenns Render, eval=FALSE, echo=FALSE}
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/mapping_codeReview.Rmd", 
-                  output_file = "~/Desktop/HARPteam23/mappingRMD_knit", 
+```{r General Render, eval=FALSE}
+#Requires loading of export_path from config (setup chunk)
+rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
+                  output_file = paste0(export_path,"mappingRMD_knit"), 
                   params = list(
                     rivseg = "JL6_7430_7320", 
                     locality = "Culpeper", 
-                    region = "Chowan_2", 
+                    region = "Shenandoah_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
-                    metric = "fiveyr_avg_mgy", 
-                    #metric_type = "measured", 
-                    map_type = "locality",
+                    metric = "wd_mgd", 
+                    map_type = "region",
                     table_limit = "boundary",
                     bbox_type = "auto"))
 ```
