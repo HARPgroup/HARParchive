@@ -220,5 +220,68 @@ rm(facils_all)
 #  facils$all <- cbind(propname, facils$all, facil_join$name)
 #  names(facils$all)[names(facils$all) == 'facil_join.name'] <- 'Locality'
 #  facils$all <- st_drop_geometry(facils$all)
+
+#  facil_fulljoin <- sqldf("SELECT * FROM facil_featr as a
+#                      LEFT OUTER JOIN facils_foundatn as b
+#                      ON (a.featureid = b.Facility_hydroid)
+#                      UNION
+#                      SELECT * FROM facils_foundatn as a
+#                      LEFT OUTER JOIN facil_featr as b
+#                      ON (a.Facility_hydroid = b.featureid)" 
+#                      ) #not successful 
 #}
+
+
+## Table generation as of 7/13/23
+if (type=="source"){
+  #source-unique columns for table
+  
+  table$Source_Type = facils$within$Source_Type
+  table$Source = facils$within$MP_Name
+  #No permitted capacity added to source-level table
+  
+  table <- table[, c("Number", "Facility", "Source", 
+                        "Source_Type", "Locality", "rivsegName", 
+                        "Rivseg", "fiveYrAvg_mgy")] #order source-level table
+  
+} else if (type=="facility"){
+    names(facils$within)[names(facils$within) == 'featureid'] <- 'Facility_hydroid'
+    for (i in 1:nrow(facils$within)){
+      systemObj <- RomProperty$new(ds,list(
+        featureid = facils$within$Facility_hydroid[i],
+        propcode= "vahydro-1.0"), 
+      TRUE)
+        if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
+        table$vwp_max_mgy[i] <- "No Permit"
+      } else {
+      permCapac <- RomProperty$new(ds,list(
+        featureid = systemObj$pid,
+        propname = 'vwp_max_mgy'),
+      TRUE)
+      table$vwp_max_mgy[i] <- permCapac$propcode
+      }
+    } 
+    table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
+    
+    if (metric !="fiveyr_avg_mgy") {
+      #get metric columns into table
+      table[,df$runlabel[1]] <- round(facils$within[,df$runlabel[1]], digits = 2)
+      table[,df$runlabel[2]] <- round(facils$within[,df$runlabel[2]], digits = 2)
+      
+      # rename runid metrics with metric1 and metric2
+      colnames(table)[grepl('runid_11',colnames(table))] <- 'metric2020'
+      colnames(table)[grepl('runid_13',colnames(table))] <- 'metric2040'
+      
+      table <- table[, c("Number", "Facility", 
+                        "Locality", "rivsegName", 
+                        "Rivseg", "vwp_max_mgy", 
+                        "metric2020", "metric2040")] #order table w/ model metrics
+      
+    } else {
+      table <- table[, c("Number", "Facility", 
+                        "Locality", "rivsegName", 
+                        "Rivseg", "vwp_max_mgy", 
+                        "fiveYrAvg_mgy")] #order table w/out model metrics
+    }
+  }
 ```

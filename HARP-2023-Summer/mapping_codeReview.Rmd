@@ -17,6 +17,7 @@ params:
   map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   map_by: ["fiveyr_avg_mgy", "runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   table_limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
+  table_col: ["runid_11_wd_mgd"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
 ---
@@ -57,6 +58,7 @@ metric <- params$metric
 map_type <- params$map_type
 map_by <- params$map_by
 table_limit <- params$table_limit
+table_col <- params$table_col
 bbox_type <- params$bbox_type
 ```
 
@@ -522,22 +524,11 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 
 ```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
 ## All labeling now done in this chunk
-legend_title <- legend_titling(metric, runid_list) #use legend function
+#legend_title <- legend_titling(metric, runid_list) #use legend function
 textcol <- colors$default$text #from mapping aesthetics function
 label_fill <- colors$default$fill 
 rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
-```
-
-```{r Metric Unit Processing, echo=FALSE}
-metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
-wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for the bins 
-wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
-if (metric_unit == "mgd") { #different ranges for mgd and mgy
-  div <- wd_mgd
-} else if (metric_unit == "mgy") {
-  div <- wd_mgy
-}
 ```
 
 ```{r Data into Bins & Map, echo=FALSE}
@@ -546,12 +537,22 @@ names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rena
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
 facils_within <- facils$within
 
+wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for the bins 
+wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
+
 #modify to use map_by -- could be more than one value, with length of list = # of maps to generate 
   #meaning a mp_layer needs to be created and a map generated for each of map_by 
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
-#   mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
-#                      FROM facils_within' , sep="")
+  legend_title <- paste0(map_by[i])
+  
+  metric_unit <- substr(metric, nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric name
+  if (metric_unit == "mgd") { #different ranges for mgd and mgy
+  div <- wd_mgd
+  } else if (metric_unit == "mgy") {
+  div <- wd_mgy
+  }
+  
   mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
         FROM facils_within' , sep="")
   mp_layer <- sqldf(mp_layer_sql)
@@ -619,10 +620,11 @@ for (i in 1:length(map_by)) {
 }
 
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
-knitr::include_graphics(mapfilename) #display map PNG -- for testing 
+#knitr::include_graphics(mapfilename) #display map PNG -- for testing 
 ```
 
 ```{r Apply Table Limit, include=FALSE}
+## This needs to be modified -- limit BOTH map and table by basin or boundary based on this param -- rename limit
 if (table_limit=="boundary") {
   facils$within_sf <- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
   st_crs(facils$within_sf) <- 4326
@@ -637,16 +639,14 @@ facils$within <- st_drop_geometry(facils$within)
 ```
 
 
-``` {r Create Table, include=FALSE, warning=FALSE}
+``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 #All tables will have common columns:
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
 table <- data.frame(Number= facils$within$NUM, 
-                      Facility=facils$within$Facility, 
-                      Rivseg= facils$within$riverseg,
-                      Locality = facils$within$Locality, 
-                      fiveYrAvg_mgy= round(facils$within$fiveyr_avg_mgy, digits = 2)
-                        )
+                      Facility=facils$within$Facility,
+                      Locality = facils$within$Locality) 
+
 # - - - - add rivseg names- - - - - -
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
@@ -657,20 +657,15 @@ for(i in 1:nrow(table)){
     }
 }
 
+table$Rivseg= facils$within$riverseg
+
+####New 7/13: 
+
 if (type=="source"){
-  #source-unique columns for table
-  
-  table$Source_Type = facils$within$Source_Type
-  table$Source = facils$within$MP_Name
-  #No permitted capacity added to source-level table
-  
-  table <- table[, c("Number", "Facility", "Source", 
-                        "Source_Type", "Locality", "rivsegName", 
-                        "Rivseg", "fiveYrAvg_mgy")] #order source-level table
-  
+    table$Source_Type = facils$within$Source_Type
+    table$Source = facils$within$MP_Name
 } else if (type=="facility"){
-    names(facils$within)[names(facils$within) == 'featureid'] <- 'Facility_hydroid'
-    for (i in 1:nrow(facils$within)){
+    for (i in 1:nrow(facils$within)){ #adding permitted capacity
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
         propcode= "vahydro-1.0"), 
@@ -686,28 +681,11 @@ if (type=="source"){
       }
     } 
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
-    
-    if (metric !="fiveyr_avg_mgy") {
-      #get metric columns into table
-      table[,df$runlabel[1]] <- round(facils$within[,df$runlabel[1]], digits = 2)
-      table[,df$runlabel[2]] <- round(facils$within[,df$runlabel[2]], digits = 2)
-      
-      # rename runid metrics with metric1 and metric2
-      colnames(table)[grepl('runid_11',colnames(table))] <- 'metric2020'
-      colnames(table)[grepl('runid_13',colnames(table))] <- 'metric2040'
-      
-      table <- table[, c("Number", "Facility", 
-                        "Locality", "rivsegName", 
-                        "Rivseg", "vwp_max_mgy", 
-                        "metric2020", "metric2040")] #order table w/ model metrics
-      
-    } else {
-      table <- table[, c("Number", "Facility", 
-                        "Locality", "rivsegName", 
-                        "Rivseg", "vwp_max_mgy", 
-                        "fiveYrAvg_mgy")] #order table w/out model metrics
-    }
-  }
+}
+
+for (i in 1:length(table_col)){
+  table[,table_col[i]] <- facils$within[,table_col[i]]
+}
 ```
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
@@ -717,8 +695,10 @@ names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveYrAvg_mgy'] <- '5-yr Avg Use (mgy)'
-colnames(table)[grepl('2020',colnames(table))] <- paste0('2020 ',metric)
-colnames(table)[grepl('2040',colnames(table))] <- paste0('2040 ',metric)
+
+#Rename modeled metrics if tied to common runid:
+#colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
+#colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
 
 fn_tablegen(table) #flextable saved as var ft
 tablefilename <- paste(export_path, map_name, "_table.png", sep="")
@@ -741,8 +721,9 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
-                    metric = "fiveyr_avg_mgy", 
+                    metric = "wd_mgd", 
                     map_type = "locality",
+                    map_by = "runid_11_wd_mgd"
                     table_limit = "boundary",
                     bbox_type = "auto"))
 ```
