@@ -8,16 +8,16 @@ params:
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Rappahannock"]
   region: ["Shenandoah_2"]    
-  type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
+  type: ["source"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
-  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
+#  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
-  map_by: ["fiveyr_avg_mgy", "runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   table_limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
-  table_col: ["runid_11_wd_mgd"]
+  table_col: ["fiveyr_avg_mgy"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
 ---
@@ -376,11 +376,11 @@ if (type == "facility") {
 
 ```{r Source-Level Data Prep, echo=FALSE}
 if (type == "source") {
-  if (metric != "fiveyr_avg_mgy") {
-    print('No usability with any source-level modeled metrics yet, change params')
-  } else {
-  facils$all <- facils$foundatn
-  }
+#  if (metric != "fiveyr_avg_mgy") {
+#    print('No usability with any source-level modeled metrics yet, change params')
+#  } else {
+ facils$all <- facils$foundatn
+#  }
 } 
 ```
 
@@ -473,14 +473,7 @@ facils_within <- st_drop_geometry(facils$within) #for use in sqldf for ordering
 ```
 
 ```{r Order & Number Metric Data, include=FALSE}
-facils_within <- sqldf(paste0( #ordering the data using sqldf 
-  "SELECT facils_within.*  
-  FROM facils_within 
-  ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
-  )
-facils$within <- facils_within 
-rm(facils_within) #removing the ordered data frame  
-facils$within$NUM <- seq(1, nrow(facils$within))
+
 ```
 
 
@@ -545,14 +538,22 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   legend_title <- paste0(map_by[i])
-  
-  metric_unit <- substr(metric, nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric name
+  #Ordering & numbering data by the metric to be mapped 
+  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_within.*  
+  FROM facils_within 
+  ORDER BY", ' ', map_by[i], ' ', "DESC") #ordering by the metric of interest, descending 
+  )
+  #facils$within <- facils_within 
+  #rm(facils_within) #removing the ordered data frame  
+  facils_within$NUM <- seq(1, nrow(facils$within))
+  facils$within$NUM <- seq(1, nrow(facils$within))
+  metric_unit <- substr(map_by[i], nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric name
   if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
   } else if (metric_unit == "mgy") {
   div <- wd_mgy
   }
-  
   mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
         FROM facils_within' , sep="")
   mp_layer <- sqldf(mp_layer_sql)
@@ -610,10 +611,10 @@ if (type == "source") {
 
 # Saving map(s) as a png
 for (i in 1:length(map_by)) {
-  mapfilename <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
+  mapfilename[i] <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
   mapf <- get(paste0('map',i))
   ggsave(
-    filename = mapfilename,
+    filename = mapfilename[i],
     plot = mapf,
     width = 25,
     height = 20)
@@ -638,14 +639,18 @@ if (table_limit=="boundary") {
 facils$within <- st_drop_geometry(facils$within)
 ```
 
-
 ``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
-#All tables will have common columns:
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
-
-table <- data.frame(Number= facils$within$NUM, 
-                      Facility=facils$within$Facility,
-                      Locality = facils$within$Locality) 
+###New 7/13: 
+table <- data.frame(
+  Number= facils$within$NUM,
+  Facility=facils$within$Facility
+)
+if (type=="source"){
+  table$Source = facils$within$MP_Name  
+  table$Source_Type = facils$within$Source_Type
+}
+table$Locality = facils$within$Locality 
 
 # - - - - add rivseg names- - - - - -
 for(i in 1:nrow(table)){ 
@@ -659,12 +664,7 @@ for(i in 1:nrow(table)){
 
 table$Rivseg= facils$within$riverseg
 
-####New 7/13: 
-
-if (type=="source"){
-    table$Source_Type = facils$within$Source_Type
-    table$Source = facils$within$MP_Name
-} else if (type=="facility"){
+if (type=="facility"){
     for (i in 1:nrow(facils$within)){ #adding permitted capacity
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
@@ -707,7 +707,7 @@ save_as_image(ft, tablefilename)
 
 # Display Map & Table
 ```{r View Map & Table, echo=FALSE}
-knitr::include_graphics(c(mapfilename,tablefilename))
+knitr::include_graphics(c(mapfilename[1],tablefilename)) ## modify to display 2 maps if there are
 ```
 
 ```{r General Render, eval=FALSE}
@@ -723,8 +723,9 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
                     map_type = "locality",
-                    map_by = "runid_11_wd_mgd"
-                    table_limit = "boundary",
+                    map_by = "fiveyr_avg_mgy",
+                    table_limit = "basins",
+                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
 
