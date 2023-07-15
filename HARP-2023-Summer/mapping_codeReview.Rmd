@@ -38,6 +38,8 @@ library(ggnewscale)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
+library(grid)
+library(png)
 library(flextable)
 library(geosphere)
 #library(tidycensus)
@@ -430,15 +432,11 @@ if (map_type == "basin") { #'type' variable will either be: basin, locality, or 
   }
 } else if (map_type =="locality") {
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
-  #locality_sp <- process_geom(as.data.frame(locality_sf), "dh_geofield") #for reverse-fill process for map 
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
-  #segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
-  #rm(segs_all)
   segs$sf <- st_as_sf(segs_all, wkt = "geom")
   st_crs(segs$sf) <- 4326
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, locality_sf) #filter basins by locality
-  #segs$basin <- st_drop_geometry(segs$basin)
 } else if (map_type == "region") {
   region_list <- region_geom_list[names(region_geom_list) == region]
   region_sf <- st_sfc(region_list) #create sf object from the region specified
@@ -454,7 +452,6 @@ if (map_type == "basin") { #'type' variable will either be: basin, locality, or 
   st_crs(segs$sf) <- 4326
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
-  #segs$basin <- st_drop_geometry(segs$basin)
 }
 ```
 
@@ -471,11 +468,6 @@ facils$within <- sqldf("SELECT facils_all.*
                           IN (select segs_basin.riverseg from segs_basin)") 
 facils_within <- st_drop_geometry(facils$within) #for use in sqldf for ordering
 ```
-
-```{r Order & Number Metric Data, include=FALSE}
-
-```
-
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
@@ -544,8 +536,6 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   FROM facils_within 
   ORDER BY", ' ', map_by[i], ' ', "DESC") #ordering by the metric of interest, descending 
   )
-  #facils$within <- facils_within 
-  #rm(facils_within) #removing the ordered data frame  
   facils_within$NUM <- seq(1, nrow(facils_within))
  if (i==1) { #data for table will be sorted by the first of map_by
    facils$within <- facils_within
@@ -579,7 +569,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   names(mp_layer)[names(mp_layer) == 'demand_metric'] <- map_by[i] #change column name back to the specific metric
   mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
 
-  # execute mapping function
+##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
@@ -704,16 +694,18 @@ names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 #colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
 
 fn_tablegen(table) #flextable saved as var ft
-#tablefilename <- paste(export_path, map_name, "_table.png", sep="")
-#save_as_image(ft, tablefilename)
 ```
 
 # Display Map & Table
 
-```{r View Map, echo=FALSE, fig.show='hold', fig.align='center'}
-## ^^ doesn't work to get side-by-side maps for the filenames called from a list
-#mapfiles <- as.character(mapfilename) #changes from list to character if more than 1, which include_graphics expects
-knitr::include_graphics(mapfilename)
+```{r View Map(s), echo=FALSE, out.width = '100%'}
+maps <- list()
+for (i in 1:length(mapfilename)) {
+  maps[[i]] <- rasterGrob(readPNG(mapfilename[i]))
+  #assign(paste0('map',i,'png'), map_png)
+}
+
+do.call("grid.arrange", c(maps,  ncol = length(mapfilename))) #displays multiple maps side-by-side
 ```
 
 ```{r View Table, echo=FALSE}
@@ -733,7 +725,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
                     map_type = "locality",
-                    map_by = c("runid_11_wd_mgd","fiveyr_avg_mgy"),
+                    map_by = "runid_11_wd_mgd",
                     table_limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
                     bbox_type = "auto"))
