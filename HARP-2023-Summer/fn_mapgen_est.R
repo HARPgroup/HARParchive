@@ -62,19 +62,8 @@ labels <- maplabs$final
  #For reverse-fill: darken area of map outside basins 
   segs$union <- st_union(segs$basin_sf)
   bbox_st <- st_as_sfc(st_bbox(bbox))
-  nonbasin <- st_difference(bbox_st, segs$union)
+  nonbasin <- st_difference(bbox_st, segs$union) #method of erasing
   st_crs(nonbasin) <- 4326
-  
- #Reverse polygon fill (highlight basin) -- for type basin
-#  bb <- unlist(attr(basemap_0, "bb"))
-#  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-#  basemap_0 <- sp::SpatialPolygons(
-#    list(sp::Polygons(list(Polygon(coords)), "id")), 
-#    proj4string = CRS(proj4string(segs$union_sp))) # prev segs$basin_sp
-#  remove(coords) #job done
-#  nonbasin <- raster::erase(basemap_0, segs$union_sp) # prev segs$basin_sp
-#  nonbasin <- st_as_sf(nonbasin)
-  
   
  #Lighten terrain basemap 
 #  bb <- unlist(attr(basemap_0, "bb"))
@@ -158,25 +147,25 @@ class(labelsP$bg.r) = "numeric"
             inherit.aes=FALSE, color="deepskyblue3", 
             mapping=aes(lwd=nhd$plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
-    scale_linewidth(range= c(0.4,2)) + 
+    scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill="deepskyblue3", size=1) +
     # County Borders
     geom_sf(data = counties$sf, inherit.aes=FALSE, color="gray27", fill=NA, lwd=2.5) +
+    ## Basin Outlines
+    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed")
+  
+    # Region Outline
+   if (map_type == "region") { # thicker boundary around region
+    map <- map + 
+      geom_sf(data = segs$region_sf, inherit.aes=FALSE, color="black", fill=NA, lwd=4.5)
+    }
+  map <- map +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color ="black", size=2) +
-    # Basin Outlines
-    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed")
-  
-  if (map_type == "region") { # thicker boundary around region
-    map <- map + 
-      geom_sf(data = segs$region_sf, inherit.aes=FALSE, color="black", fill=NA, lwd=4.5)
-  }
-   
-  map <- map +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
@@ -213,7 +202,7 @@ class(labelsP$bg.r) = "numeric"
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)) ) 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE ) 
     
 ## Plotting sources/MPs
   if (type == "source") {
@@ -223,7 +212,7 @@ class(labelsP$bg.r) = "numeric"
     
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
               color = Source_Type, size = bin), 
-               shape = 19) +
+              shape = 19) +
       
     scale_size_binned(range = c(2,20), 
                       breaks = breaks, 

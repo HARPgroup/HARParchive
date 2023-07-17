@@ -6,16 +6,18 @@ output: html_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Rappahannock"]
-  region: ["Shenandoah_2"]    
+  locality: ["Montgomery"]
+  region: ["NorthernVirginia"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
-  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
-  metric: ["fiveyr_avg_mgy"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
+#  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
+  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
-  table_limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
+  table_col: ["fiveyr_avg_mgy","runid_11_wd_mgd"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
 ---
@@ -36,6 +38,8 @@ library(ggnewscale)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
+library(grid)
+library(png)
 library(flextable)
 library(geosphere)
 #library(tidycensus)
@@ -53,10 +57,10 @@ type <- params$type #for map & table to indicate source-level or facility-level
 model_version <- params$model_version
 runid_list <- params$runid_list
 metric <- params$metric
-#metric_type <- params$metric_type
-#map_name <- params$map_name
 map_type <- params$map_type
-table_limit <- params$table_limit
+map_by <- params$map_by
+limit <- params$limit
+table_col <- params$table_col
 bbox_type <- params$bbox_type
 ```
 
@@ -240,6 +244,7 @@ facilities_df <- cbind(facilities_df, coords) #add coordinates to facilities df
 ```
 
 # Process Data
+
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
 segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
@@ -304,20 +309,10 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 ```
 
 # Pull Metrics
-```{r Create df for Runs & Metric, echo=FALSE, message=FALSE, eval=FALSE}
-#create df with run info and metric data, to be used in vahydro data retrieval
-#if (metric_type == "modeled") {
-#  df <- data.frame(runid=runid_list, model_version, metric=metric)
-#    for(i in 1:length(runid_list)){
-#      df$runlabel[i] <- paste0(runid_list[i], '_', metric)
-#    } 
-#  } else if (metric_type == "measured") {
-#  df <- data.frame(metric=metric, runlabel=metric)
-#} 
-```
 
 ```{r (New) Create df for Metric Pull, include=FALSE}
-#df without metric_type -- success TBD
+#df without metric_type
+## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
 df <- data.frame(runid=runid_list, model_version, metric=metric)
 if (type == "facility") {
   if (metric != "fiveyr_avg_mgy"){
@@ -352,16 +347,7 @@ if (type == "facility") {
 #                      FROM facil_featr as a
 #                      LEFT OUTER JOIN facils_foundatn as b
 #                      ON (a.featureid = b.Facility_hydroid)" )
-  #result: same length as modeled data frame -> does a UNION need to be added?
-  
-#  facil_fulljoin <- sqldf("SELECT * FROM facil_featr as a
-#                      LEFT OUTER JOIN facils_foundatn as b
-#                      ON (a.featureid = b.Facility_hydroid)
-#                      UNION
-#                      SELECT * FROM facils_foundatn as a
-#                      LEFT OUTER JOIN facil_featr as b
-#                      ON (a.Facility_hydroid = b.featureid)" 
-#                      ) #not successful 
+  #result: same length as modeled data frame -> UNION needed for full - unsuccessful 
   
   #try merging instead of sqldf
   names(facils_foundatn)[names(facils_foundatn) == 'Facility_hydroid'] <- 'featureid'
@@ -387,17 +373,9 @@ if (type == "facility") {
    
   facils$all <- facil_bind
  }
-}
-```
-
-```{r Source-Level Data Prep, echo=FALSE}
-if (type == "source") {
-  if (metric != "fiveyr_avg_mgy") {
-    print('No usability with any source-level modeled metrics yet, change params')
-  } else {
+} else { #if type = source
   facils$all <- facils$foundatn
-  }
-} 
+}
 ```
 
 ```{r Riverseg if Needed, echo=FALSE, warning=FALSE, message=FALSE}
@@ -430,12 +408,8 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 ```
 
 ```{r Filter Segs by Boundary, echo=FALSE}
-#Filter sources/facilities by segs within extent
-#facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
-facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
-#st_crs(facils$sf) <- 4326 
-
-if (map_type == "basin") { #'type' variable will either be: basin, locality, or region 
+#Filter segs/basins by boundary 
+if (map_type == "basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){. #newly moved into this loop
     if(i==rivseg[1]){
     segs$basin <- fn_extract_basin(segs$all, i)
@@ -446,59 +420,57 @@ if (map_type == "basin") { #'type' variable will either be: basin, locality, or 
   }
 } else if (map_type =="locality") {
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
-  #locality_sp <- process_geom(as.data.frame(locality_sf), "dh_geofield") #for reverse-fill process for map 
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
-  #segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
-  #rm(segs_all)
   segs$sf <- st_as_sf(segs_all, wkt = "geom")
   st_crs(segs$sf) <- 4326
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, locality_sf) #filter basins by locality
-  #segs$basin <- st_drop_geometry(segs$basin)
 } else if (map_type == "region") {
   region_list <- region_geom_list[names(region_geom_list) == region]
-  region_sf <- st_sfc(region_list) #create sf object from the region specified
-  region_sfd <- st_as_sf(region_sf) #for region_sp
-  segs$region_sf <- region_sfd # for darker outline around region
-  st_crs(segs$region_sf) <- 4326
-  region_sp <- as_Spatial(region_sfd, cast = FALSE)
-  st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
+  region_sf <- st_sfc(region_list, crs = 4326) #create sf object from the region specified
+  segs$region_sf <- st_as_sf(region_sf, crs = 4326) #for darker outline around region 
+  region_sp <- as_Spatial(segs$region_sf, cast = FALSE)
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
   segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
   rm(segs_all)
-  segs$sf <- st_as_sf(segs$sp)
+  segs$sf <- st_as_sf(segs$sp, crs = 4326)
+  st_crs(region_sf) <- 4326
   st_crs(segs$sf) <- 4326
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
-  #segs$basin <- st_drop_geometry(segs$basin)
 }
 ```
 
-```{r Filter Sources/Facils by Segs, include=FALSE}
-segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
-segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
-st_crs(segs$basin_sf) <- 4326 
-facils_basin <- facils$basin #create temporary df for use in sqldf for orderin
-facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
+```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
+if (limit == "basins") {
+  segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
+  segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
+  st_crs(segs$basin_sf) <- 4326 
+  facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
+  facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
 
-facils$within <- sqldf("SELECT facils_all.* 
+  facils$within <- sqldf("SELECT facils_all.* 
                           FROM facils_all 
                           WHERE riverseg 
-                          IN (select segs_basin.riverseg from segs_basin)") 
-facils_within <- st_drop_geometry(facils$within) #for use in sqldf for ordering
-```
+                          IN (select segs_basin.riverseg from segs_basin)")
+  facils$within <- st_drop_geometry(facils$within)
+} else if (limit=="boundary") {
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326
+  if (map_type=="locality") {
+    facils$within <- st_filter(facils$sf, locality_sf)
+  } else if (map_type=="region") {
+    st_crs(segs$region_sf) <- 4326
+    facils$within <- st_filter(facils$sf, segs$region_sf)
+  }
+  coords <- st_coordinates(facils$within$geometry)
+  colnames(coords) <- c('Longitude','Latitude')
+  facils$within <- st_drop_geometry(facils$within)
+  facils$within <- cbind(facils$within, coords)
+}
+#need to turn point geom into coords and region after geo drop
 
-```{r Order & Number Metric Data, include=FALSE}
-facils_within <- sqldf(paste0( #ordering the data using sqldf 
-  "SELECT facils_within.*  
-  FROM facils_within 
-  ORDER BY", ' ', df$runlabel[1], ' ', "DESC") #ordering by the metric of interest, descending 
-  )
-facils$within <- facils_within 
-rm(facils_within) #removing the ordered data frame  
-facils$within$NUM <- seq(1, nrow(facils$within))
 ```
-
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
@@ -511,7 +483,13 @@ segs$basin_sf <- centroid_coords(segs$basin_sf, "geom") # new colnames for centr
 #segs$basin_sp <- process_geom(segs$basin_sf, "geom") #sp object used in mapping
 # Create bbox
 sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
+if (limit == "basins" | map_type == "basin") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
+} else if (limit == "boundary" & map_type == "locality") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .02)
+} else if (limit == "boundary" & map_type == "region") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(st_as_sf(segs$region_sf))), .02)
+}
 bbox <- st_bbox(bbox)
 ```
 
@@ -533,73 +511,86 @@ if (bbox_type == "vahydro") {
 }
 ```
 
-```{r Get NHD Data within in bbox, message=FALSE, echo=FALSE}
+```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ```
 
 ```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
 ## All labeling now done in this chunk
-legend_title <- legend_titling(metric, runid_list) #use legend function
+#legend_title <- legend_titling(metric, runid_list) #use legend function
 textcol <- colors$default$text #from mapping aesthetics function
 label_fill <- colors$default$fill 
 rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 ```
 
-```{r Metric Unit Processing, echo=FALSE}
-metric_unit <- substr(metric, nchar(metric) - 2, nchar(metric))  #get metric unit from last 3 characters of metric name
-wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for the bins 
-wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
-if (metric_unit == "mgd") { #different ranges for mgd and mgy
-  div <- wd_mgd
-} else if (metric_unit == "mgy") {
-  div <- wd_mgy
-}
-```
-
-```{r Metric Legend Bins, echo=FALSE}
+```{r Data into Bins & Map, echo=FALSE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
 facils_within <- facils$within
 
-mp_layer_sql <- paste('SELECT *, ',df$runlabel[1],' AS demand_metric
-                      FROM facils_within' , sep="")
-mp_layer <- sqldf(mp_layer_sql)
-bins = as.data.frame(div)
-bins$classid <- index(bins)
-names(bins) <- c("val", "bin")
+wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins 
+wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
-entity_classes <- sqldf(
-  "select a.NUM, max(b.bin) as bin
-  from mp_layer as a 
-  left outer join bins as b 
-  on (a.demand_metric >= b.val) 
-  group by a.NUM" )
-mp_layer <- sqldf(
-  "select a.*, b.bin 
-  from mp_layer as a 
-  left outer join entity_classes as b 
-  on a.NUM = b.NUM " )
 
-mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
-names(mp_layer)[names(mp_layer) == 'demand_metric'] <- df$runlabel[1] #change column name back to the specific metric
-mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
-```
+for (i in 1:length(map_by)) { #execute for each metric in map_by param 
+  legend_title <- paste0(map_by[i])
+  #Ordering & numbering data by the metric to be mapped 
+  facils_within <- sqldf(paste0( #ordering the data using sqldf 
+  "SELECT facils_within.*  
+  FROM facils_within 
+  ORDER BY", ' ', map_by[i], ' ', "DESC") #ordering by the metric of interest, descending 
+  )
+  facils_within$NUM <- seq(1, nrow(facils_within))
+ if (i==1) { #data for table will be sorted by the first of map_by
+   facils$within <- facils_within
+ } 
+  metric_unit <- substr(map_by[i], nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric name
+  if (metric_unit == "mgd") { #different ranges for mgd and mgy
+  div <- wd_mgd
+  } else if (metric_unit == "mgy") {
+  div <- wd_mgy
+  }
+  mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
+        FROM facils_within' , sep="")
+  mp_layer <- sqldf(mp_layer_sql)
+  bins = as.data.frame(div)
+  bins$classid <- index(bins)
+  names(bins) <- c("val", "bin")
 
-# Create Map
-```{r Apply fn_mapgen, warning=FALSE, message=FALSE, echo=FALSE}
-# execute mapping function
-# args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
+  entity_classes <- sqldf(
+      "select a.NUM, max(b.bin) as bin
+      from mp_layer as a 
+      left outer join bins as b 
+      on (a.demand_metric >= b.val) 
+      group by a.NUM" )
+  mp_layer <- sqldf(
+      "select a.*, b.bin 
+      from mp_layer as a 
+      left outer join entity_classes as b 
+      on a.NUM = b.NUM " )
+
+  mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
+  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- map_by[i] #change column name back to the specific metric
+  mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
+
+##Mapping function
+  # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
+  fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
+  
+  #assign map to environment
+  assign(paste0('map', i), map, envir = globalenv())
+  }
 
-# Error in if (distance > 300) { : missing value where TRUE/FALSE needed
-# Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
+## Mapping Errors:
+  # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
+  # Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
 
-# Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
-# Solution: maplabs object needs to be re-generated
+  # Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
+  # Solution: maplabs object needs to be re-generated
 ```
 
 ```{r Save Map as PNG, echo=FALSE}
@@ -617,42 +608,37 @@ if (type == "source") {
   map_name <- paste0(map_name, '_facils')
 }
 
-# Saving map as a png
-mapfilename <- paste(export_path, map_name, ".png", sep="")
-ggsave(
-  filename = mapfilename,
-  plot = map,
-  width = 25,
-  height = 20
-  )
-# export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
-```
-
-```{r Apply Table Limit, include=FALSE}
-if (table_limit=="boundary") {
-  facils$within_sf <- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
-  st_crs(facils$within_sf) <- 4326
-  if (map_type=="locality") {
-    facils$within <- st_filter(facils$within_sf, locality_sf)
-  } else if (map_type=="region") {
-    st_crs(region_sfd) <- 4326
-    facils$within <- st_filter(facils$within_sf, region_sfd)
-  }
+# Saving map(s) as a png
+mapfilename <- character() #empty character var, not a list
+for (i in 1:length(map_by)) {
+  mapfilename[i] <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
+  mapf <- get(paste0('map',i))
+  ggsave(
+    filename = mapfilename[i],
+    plot = mapf,
+    width = 25,
+    height = 20)
 }
-facils$within <- st_drop_geometry(facils$within)
+
+# export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
+#knitr::include_graphics(mapfilename) #display map PNG -- for testing 
 ```
 
 
-``` {r Create Table, include=FALSE, warning=FALSE}
-#All tables will have common columns:
+
+``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
-table <- data.frame(Number= facils$within$NUM, 
-                      Facility=facils$within$Facility, 
-                      Rivseg= facils$within$riverseg,
-                      Locality = facils$within$Locality, 
-                      fiveYrAvg_mgy= round(facils$within$fiveyr_avg_mgy, digits = 2)
-                        )
+table <- data.frame(
+  Number= facils$within$NUM,
+  Facility=facils$within$Facility
+)
+if (type=="source"){
+  table$Source = facils$within$MP_Name  
+  table$Source_Type = facils$within$Source_Type
+}
+table$Locality = facils$within$Locality 
+
 # - - - - add rivseg names- - - - - -
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),])
@@ -663,20 +649,10 @@ for(i in 1:nrow(table)){
     }
 }
 
-if (type=="source"){
-  #source-unique columns for table
-  
-  table$Source_Type = facils$within$Source_Type
-  table$Source = facils$within$MP_Name
-  #No permitted capacity added to source-level table
-  
-  table <- table[, c("Number", "Facility", "Source", 
-                        "Source_Type", "Locality", "rivsegName", 
-                        "Rivseg", "fiveYrAvg_mgy")] #order source-level table
-  
-} else if (type=="facility"){
-    names(facils$within)[names(facils$within) == 'featureid'] <- 'Facility_hydroid'
-    for (i in 1:nrow(facils$within)){
+table$Rivseg= facils$within$riverseg
+
+if (type=="facility"){
+    for (i in 1:nrow(facils$within)){ #adding permitted capacity
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
         propcode= "vahydro-1.0"), 
@@ -692,28 +668,11 @@ if (type=="source"){
       }
     } 
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
-    
-    if (metric !="fiveyr_avg_mgy") {
-      #get metric columns into table
-      table[,df$runlabel[1]] <- round(facils$within[,df$runlabel[1]], digits = 2)
-      table[,df$runlabel[2]] <- round(facils$within[,df$runlabel[2]], digits = 2)
-      
-      # rename runid metrics with metric1 and metric2
-      colnames(table)[grepl('runid_11',colnames(table))] <- 'metric2020'
-      colnames(table)[grepl('runid_13',colnames(table))] <- 'metric2040'
-      
-      table <- table[, c("Number", "Facility", 
-                        "Locality", "rivsegName", 
-                        "Rivseg", "vwp_max_mgy", 
-                        "metric2020", "metric2040")] #order table w/ model metrics
-      
-    } else {
-      table <- table[, c("Number", "Facility", 
-                        "Locality", "rivsegName", 
-                        "Rivseg", "vwp_max_mgy", 
-                        "fiveYrAvg_mgy")] #order table w/out model metrics
-    }
-  }
+}
+
+for (i in 1:length(table_col)){
+  table[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2)
+}
 ```
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
@@ -722,21 +681,32 @@ names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
 names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-names(table)[names(table) == 'fiveYrAvg_mgy'] <- '5-yr Avg Use (mgy)'
-colnames(table)[grepl('2020',colnames(table))] <- paste0('2020 ',metric)
-colnames(table)[grepl('2040',colnames(table))] <- paste0('2040 ',metric)
+names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+
+#Rename modeled metrics if tied to common runid:
+#colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
+#colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
 
 fn_tablegen(table) #flextable saved as var ft
-tablefilename <- paste(export_path, map_name, "_table.png", sep="")
-save_as_image(ft, tablefilename)
 ```
 
 # Display Map & Table
-```{r View Map & Table, echo=FALSE}
-knitr::include_graphics(c(mapfilename,tablefilename))
+
+```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%'}
+maps <- list()
+for (i in 1:length(mapfilename)) {
+  maps[[i]] <- rasterGrob(readPNG(mapfilename[i]))
+  #assign(paste0('map',i,'png'), map_png)
+}
+
+do.call("grid.arrange", c(maps,  ncol = length(mapfilename))) #displays multiple maps side-by-side
 ```
 
-```{r General Render, eval=FALSE}
+```{r View Table, echo=FALSE}
+ft #display flextable
+```
+
+```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
 rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
                   output_file = paste0(export_path,"mappingRMD_knit"), 
@@ -749,7 +719,9 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
                     map_type = "region",
-                    table_limit = "boundary",
+                    map_by = "runid_11_wd_mgd",
+                    limit = "basins",
+                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
 
