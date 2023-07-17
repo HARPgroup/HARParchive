@@ -6,8 +6,8 @@ output: html_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Rappahannock"]
-  region: ["Shenandoah_2"]    
+  locality: ["Montgomery"]
+  region: ["NorthernVirginia"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
@@ -15,7 +15,7 @@ params:
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
-  map_by: ["fiveyr_avg_mgy","runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["fiveyr_avg_mgy","runid_11_wd_mgd"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
@@ -452,7 +452,8 @@ if (limit == "basins") {
   facils$within <- sqldf("SELECT facils_all.* 
                           FROM facils_all 
                           WHERE riverseg 
-                          IN (select segs_basin.riverseg from segs_basin)") 
+                          IN (select segs_basin.riverseg from segs_basin)")
+  facils$within <- st_drop_geometry(facils$within)
 } else if (limit=="boundary") {
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326
@@ -462,12 +463,13 @@ if (limit == "basins") {
     st_crs(segs$region_sf) <- 4326
     facils$within <- st_filter(facils$sf, segs$region_sf)
   }
+  coords <- st_coordinates(facils$within$geometry)
+  colnames(coords) <- c('Longitude','Latitude')
+  facils$within <- st_drop_geometry(facils$within)
+  facils$within <- cbind(facils$within, coords)
 }
 #need to turn point geom into coords and region after geo drop
-coords <- st_coordinates(facils$within$geometry)
-colnames(coords) <- c('Longitude','Latitude')
-facils$within <- st_drop_geometry(facils$within)
-facils$within <- cbind(facils$within, coords)
+
 ```
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE}
@@ -529,11 +531,9 @@ names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rena
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
 facils_within <- facils$within
 
-wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for the bins 
+wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins 
 wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
-#modify to use map_by -- could be more than one value, with length of list = # of maps to generate 
-  #meaning a mp_layer needs to be created and a map generated for each of map_by 
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   legend_title <- paste0(map_by[i])
@@ -581,7 +581,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
-  #assign map to unique var
+  #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
   }
 
@@ -628,7 +628,7 @@ for (i in 1:length(map_by)) {
 
 ``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
-###New 7/13: 
+
 table <- data.frame(
   Number= facils$within$NUM,
   Facility=facils$within$Facility
@@ -718,9 +718,9 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
-                    map_type = "locality",
-                    map_by = c("runid_11_wd_mgd","fiveyr_avg_mgy"),
-                    limit = "boundary",
+                    map_type = "region",
+                    map_by = "runid_11_wd_mgd",
+                    limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
