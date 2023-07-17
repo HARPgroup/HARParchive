@@ -16,7 +16,7 @@ params:
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
   map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   map_by: ["fiveyr_avg_mgy","runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
-  table_limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
+  limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["fiveyr_avg_mgy","runid_11_wd_mgd"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
@@ -59,7 +59,7 @@ runid_list <- params$runid_list
 metric <- params$metric
 map_type <- params$map_type
 map_by <- params$map_by
-table_limit <- params$table_limit
+limit <- params$limit
 table_col <- params$table_col
 bbox_type <- params$bbox_type
 ```
@@ -373,17 +373,9 @@ if (type == "facility") {
    
   facils$all <- facil_bind
  }
+} else { #if type = source
+  facils$all <- facils$foundatn
 }
-```
-
-```{r Source-Level Data Prep, echo=FALSE}
-if (type == "source") {
-#  if (metric != "fiveyr_avg_mgy") {
-#    print('No usability with any source-level modeled metrics yet, change params')
-#  } else {
- facils$all <- facils$foundatn
-#  }
-} 
 ```
 
 ```{r Riverseg if Needed, echo=FALSE, warning=FALSE, message=FALSE}
@@ -416,12 +408,8 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 ```
 
 ```{r Filter Segs by Boundary, echo=FALSE}
-#Filter sources/facilities by segs within extent
-#facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
-facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
-#st_crs(facils$sf) <- 4326 
-
-if (map_type == "basin") { #'type' variable will either be: basin, locality, or region 
+#Filter segs/basins by boundary 
+if (map_type == "basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){. #newly moved into this loop
     if(i==rivseg[1]){
     segs$basin <- fn_extract_basin(segs$all, i)
@@ -439,34 +427,47 @@ if (map_type == "basin") { #'type' variable will either be: basin, locality, or 
   segs$basin <- st_filter(segs$sf, locality_sf) #filter basins by locality
 } else if (map_type == "region") {
   region_list <- region_geom_list[names(region_geom_list) == region]
-  region_sf <- st_sfc(region_list) #create sf object from the region specified
-  region_sfd <- st_as_sf(region_sf) #for region_sp
-  segs$region_sf <- region_sfd # for darker outline around region
-  st_crs(segs$region_sf) <- 4326
-  region_sp <- as_Spatial(region_sfd, cast = FALSE)
-  st_crs(region_sf) <- 4326 #set coordinate system for spatial filtering 
+  region_sf <- st_sfc(region_list, crs = 4326) #create sf object from the region specified
+  segs$region_sf <- st_as_sf(region_sf, crs = 4326) #for darker outline around region 
+  region_sp <- as_Spatial(segs$region_sf, cast = FALSE)
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
   segs$sp <- process_geom(segs_all, "geom") #takes a few seconds
   rm(segs_all)
-  segs$sf <- st_as_sf(segs$sp)
+  segs$sf <- st_as_sf(segs$sp, crs = 4326)
+  st_crs(region_sf) <- 4326
   st_crs(segs$sf) <- 4326
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
 }
 ```
 
-```{r Filter Sources/Facils by Segs, include=FALSE}
-segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
-segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
-st_crs(segs$basin_sf) <- 4326 
-facils_basin <- facils$basin #create temporary df for use in sqldf for orderin
-facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
+```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
+if (limit == "basins") {
+  segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
+  segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
+  st_crs(segs$basin_sf) <- 4326 
+  facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
+  facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
 
-facils$within <- sqldf("SELECT facils_all.* 
+  facils$within <- sqldf("SELECT facils_all.* 
                           FROM facils_all 
                           WHERE riverseg 
                           IN (select segs_basin.riverseg from segs_basin)") 
-facils_within <- st_drop_geometry(facils$within) #for use in sqldf for ordering
+} else if (limit=="boundary") {
+  facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  st_crs(facils$sf) <- 4326
+  if (map_type=="locality") {
+    facils$within <- st_filter(facils$sf, locality_sf)
+  } else if (map_type=="region") {
+    st_crs(segs$region_sf) <- 4326
+    facils$within <- st_filter(facils$sf, segs$region_sf)
+  }
+}
+#need to turn point geom into coords and region after geo drop
+coords <- st_coordinates(facils$within$geometry)
+colnames(coords) <- c('Longitude','Latitude')
+facils$within <- st_drop_geometry(facils$within)
+facils$within <- cbind(facils$within, coords)
 ```
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE}
@@ -480,7 +481,13 @@ segs$basin_sf <- centroid_coords(segs$basin_sf, "geom") # new colnames for centr
 #segs$basin_sp <- process_geom(segs$basin_sf, "geom") #sp object used in mapping
 # Create bbox
 sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
+if (limit == "basins" | map_type == "basin") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
+} else if (limit == "boundary" & map_type == "locality") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .02)
+} else if (limit == "boundary" & map_type == "region") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(st_as_sf(segs$region_sf))), .02)
+}
 bbox <- st_bbox(bbox)
 ```
 
@@ -617,20 +624,7 @@ for (i in 1:length(map_by)) {
 #knitr::include_graphics(mapfilename) #display map PNG -- for testing 
 ```
 
-```{r Apply Table Limit, include=FALSE}
-## This needs to be modified -- limit BOTH map and table by basin or boundary based on this param -- rename limit
-if (table_limit=="boundary") {
-  facils$within_sf <- st_as_sf(facils$within, coords = c("Longitude","Latitude"))
-  st_crs(facils$within_sf) <- 4326
-  if (map_type=="locality") {
-    facils$within <- st_filter(facils$within_sf, locality_sf)
-  } else if (map_type=="region") {
-    st_crs(region_sfd) <- 4326
-    facils$within <- st_filter(facils$within_sf, region_sfd)
-  }
-}
-facils$within <- st_drop_geometry(facils$within)
-```
+
 
 ``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -698,7 +692,7 @@ fn_tablegen(table) #flextable saved as var ft
 
 # Display Map & Table
 
-```{r View Map(s), echo=FALSE, out.width = '100%'}
+```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%'}
 maps <- list()
 for (i in 1:length(mapfilename)) {
   maps[[i]] <- rasterGrob(readPNG(mapfilename[i]))
@@ -725,8 +719,8 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
                     map_type = "locality",
-                    map_by = "runid_11_wd_mgd",
-                    table_limit = "basins",
+                    map_by = c("runid_11_wd_mgd","fiveyr_avg_mgy"),
+                    limit = "boundary",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
