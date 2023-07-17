@@ -671,7 +671,7 @@ if (type=="facility"){
 }
 
 for (i in 1:length(table_col)){
-  table[,table_col[i]] <- facils$within[,table_col[i]]
+  table[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2)
 }
 ```
 
