@@ -90,7 +90,7 @@ styles$custom$e <- data.frame(class="city",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$f <- data.frame(class="waterbody",
+styles$custom$f <- data.frame(class="waterbody_lg",
                                fontface="bold",
                                fontfam="serif",
                                angle=0,
@@ -101,7 +101,29 @@ styles$custom$f <- data.frame(class="waterbody",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$g <- data.frame(class="stream",
+styles$custom$g <- data.frame(class="waterbody_med",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+styles$custom$h <- data.frame(class="waterbody_sm",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+styles$custom$i <- data.frame(class="stream",
                                fontface="bold",
                                fontfam="serif",
                                angle=15,
@@ -112,7 +134,7 @@ styles$custom$g <- data.frame(class="stream",
                                sizecode=2, 
                                fillcode="NA"
 )
-styles$custom$h <- data.frame(class="majorRiver",
+styles$custom$j <- data.frame(class="majorRiver",
                                fontface="bold",
                                fontfam="serif",
                                angle=15,
@@ -123,7 +145,7 @@ styles$custom$h <- data.frame(class="majorRiver",
                                sizecode=3, 
                                fillcode="NA"
 )
-styles$custom$i <- data.frame(class="county",
+styles$custom$k <- data.frame(class="county",
                                fontface="bold.italic",
                                fontfam="Luminari",
                                angle=0,

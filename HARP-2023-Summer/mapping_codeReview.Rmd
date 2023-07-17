@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
-  rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  rivseg: ["JL7_7070_0001"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Montgomery"]
   region: ["NorthernVirginia"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
@@ -14,8 +14,8 @@ params:
 #  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
-  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
-  map_by: ["fiveyr_avg_mgy", "runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["fiveyr_avg_mgy","runid_11_wd_mgd"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
@@ -443,7 +443,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
 ```
 
 ```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
-if (limit == "basins") {
+if (limit == "basins" | map_type == "basin") {
   segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
   segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
   st_crs(segs$basin_sf) <- 4326 
@@ -463,7 +463,7 @@ if (limit == "basins") {
   } else if (map_type=="region") {
     st_crs(segs$region_sf) <- 4326
     facils$within <- st_filter(facils$sf, segs$region_sf)
-  }
+  } 
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c('Longitude','Latitude')
   facils$within <- st_drop_geometry(facils$within)
@@ -579,7 +579,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  fn_mapgen(type, map_type, style, metric, rivseg, bbox, segs, counties, roads, 
+  fn_mapgen(type, map_type, styles, metric, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
   #assign map to environment
@@ -624,8 +624,6 @@ for (i in 1:length(map_by)) {
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
 #knitr::include_graphics(mapfilename) #display map PNG -- for testing 
 ```
-
-
 
 ``` {r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility

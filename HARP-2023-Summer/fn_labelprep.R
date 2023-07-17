@@ -46,9 +46,27 @@ fn_labelprep <- function(data, classes){
       wtbd <- wtbd[!grepl("Pond", wtbd$gnis_name),] #remove ponds
       wtbd <- wtbd[!grepl("Millpond", wtbd$gnis_name),] 
       wtbd <- wtbd[!grepl("Swamp", wtbd$gnis_name),]
-      wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.85),]
-      wtbd$class <- rep("waterbody", nrow(wtbd)) #add class column
-      wtbd <- wtbd[,c("gnis_name","class")] #geometry is still attached
+      #wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.85),]
+      #wtbd$class <- rep("waterbody", nrow(wtbd)) #add class column
+      #wtbd <- wtbd[,c("gnis_name","class")] #geometry is still attached
+      
+      ##new 7/17: add more classification of waterbodies with classes based on their size
+      wtbd_small <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & 
+                           wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.50) & 
+                           wtbd$AreaSqKM < quantile(wtbd$AreaSqKM, 0.75),]
+      wtbd_small$class <- rep("waterbody_sm", nrow(wtbd_small)) #add class column
+      
+      wtbd_med <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & 
+                           wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.75) & 
+                           wtbd$AreaSqKM < quantile(wtbd$AreaSqKM, 0.90),]
+      wtbd_med$class <- rep("waterbody_med", nrow(wtbd_med)) #add class column
+      
+      wtbd_large <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & 
+                           wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.90),]
+      wtbd_large$class <- rep("waterbody_lg", nrow(wtbd_large)) #add class column
+      
+      wtbd <- rbind(wtbd_small,wtbd_med,wtbd_large)
+      wtbd <- wtbd[,c("gnis_name","class")]
       
       data[[d]] <- rbind(flow, wtbd)
       # now it is ready to have coords calculated like the rest of the labeling data
