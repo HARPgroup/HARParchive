@@ -79,26 +79,28 @@ labels <- maplabs$final
     #zoom = 8 #basemap resolution
     nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
     roads_plot <- roads[roads$RTTYP=="I",]
-    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" | labels$class=="I",]
+    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" |
+                        labels$class=="I"| labels$class=="city",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
   } else if(distance > 130){
     #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads_plot <- roads
-    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" | labels$class=="stream" | labels$class=="I",]
+    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" |
+                        labels$class=="I" | labels$class=="city",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads_plot <- roads
-    labelsP <- labels[labels$class!="waterbody_sm" | labels$class!="waterbody_med",]
+    labelsP <- labels[labels$class!="waterbody_sm" & labels$class!="waterbody_med" & labels$class!= "smallTown",]
     textsize <- c(6,7,9,12,  5,1.2)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
   } else {
     #zoom = 10
     nhd$plot <- nhd$flowline
     roads_plot <- roads
-    #labelsP <- labels
+    labelsP <- labels[labels$class!="waterbody_sm" & labels$class!="waterbody_med",]
     textsize <- c(7,8,10,13,  5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
@@ -133,6 +135,27 @@ class(labelsP$bg.r) = "numeric"
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
  
+ 
+ #Merging different outline layers into 1 df for mapping & legend 
+# county_outlines <- counties$sf[c("name","geometry")]
+# county_outlines$class <- "countyline"
+# county_outlines$color = "gray27"
+# basin_outlines <- segs$basin_sf[c("name","bundle","geometry")]
+# names(basin_outlines)[names(basin_outlines) == 'bundle'] <- 'class'
+# basin_outlines$color = "sienna1"
+# 
+#if (map_type=="region") {
+#  region_outline <- segs$region_sf
+#  region_outline$name <- region
+#  region_outline$class <- 'region'
+#  names(region_outline)[names(region_outline) == 'x'] <- 'geometry'
+#  st_geometry(region_outline) <- "geometry" #letting sf know which col now holds geometry
+#  region_outline$color = "black"
+#  outlines <- rbind(county_outlines,basin_outlines,region_outline)
+#} else { #for map types other than region
+#  outlines <- rbind(county_outlines,basin_outlines)
+#}
+ 
  #Generate map gg object
   map <- basemap + #ggplot2::
     # Titles
@@ -150,15 +173,33 @@ class(labelsP$bg.r) = "numeric"
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill="deepskyblue3", size=1) +
     # County Borders
-    geom_sf(data = counties$sf, inherit.aes=FALSE, color="gray27", fill=NA, lwd=2.5) +
-    ## Basin Outlines
-    geom_sf(data = segs$basin_sf, inherit.aes=FALSE, color="sienna1", fill=NA, lwd=textsize[6], linetype="dashed")
+   #   new_scale("color") +
+    geom_sf(data = counties$sf, color="gray27", 
+            fill=NA, lwd=2.5, inherit.aes = F) +
+    # Basin Outlines
+    geom_sf(data = segs$basin_sf, color="sienna1", 
+            fill=NA, lwd=textsize[6], linetype="dashed", inherit.aes = F) 
+   
+   #   scale_color_identity(guide = "legend")
   
     # Region Outline
    if (map_type == "region") { # thicker boundary around region
     map <- map + 
-      geom_sf(data = segs$region_sf, inherit.aes=FALSE, color="black", fill=NA, lwd=4.5)
-    }
+      geom_sf(data = segs$region_sf, color="black", fill=NA, lwd=4.5, inherit.aes=F)
+   }
+  
+  #Mapping all borders using 1 df called outlines, which will have 1 region line for map type region
+ #     new_scale_color() +
+ #   geom_sf(data = outlines, inherit.aes=FALSE, mapping = aes(color=color)) + #for identity scale, or (color = class) for manual scale
+    
+  #     scale_color_identity(guide="legend") + 
+        
+ #   scale_colour_manual(values= c("gray27","sienna1","black"), ### doesnt work 
+ #                       breaks= c("county","watershed","region"),
+ #                       labels= c("County Border", "Basin Border", "Region Border"),
+  #                      name= "Outlines",
+  #                      guide= guide_legend(override.aes=list()) ) +
+  
   map <- map +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +

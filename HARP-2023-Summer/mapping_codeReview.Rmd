@@ -68,10 +68,10 @@ bbox_type <- params$bbox_type
 
 ```{r Dev Code-libs: Load Functions from Online, echo=FALSE}
 ## For planners, updated when changes are merged to master
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = FALSE) #load mapping function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = FALSE) #load mapping aesthetics
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = FALSE) #load table function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = FALSE) #load labeling function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = TRUE) #load mapping function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 ```
 
 ```{r Establish Functions, echo=FALSE}
@@ -288,6 +288,19 @@ remove(counties_df) #no longer needed
 #cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
 #cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
 cities[cities == "Census Designated Place"] <- "town"# change census designated place to town for mapping
+#Classify towns/cities based on population
+smallTowns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.1) & 
+                     cities$POPULATION <  quantile(cities$POPULATION, 0.5),]
+smallTowns$CLASS <- "smallTown"
+towns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.5) & 
+                     cities$POPULATION <  quantile(cities$POPULATION, 0.8),]
+towns$CLASS <- "town"
+citiesp <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.8) & 
+                     cities$POPULATION <=  quantile(cities$POPULATION, 1.0),]
+citiesp$CLASS <- "city"
+cities <- rbind(smallTowns, towns, citiesp)
+cities <- cities[!names(cities) == 'class']
+names(cities)[names(cities) == 'CLASS'] <- "class"
 ```
 
 ```{r, include=FALSE, echo=FALSE}
@@ -525,6 +538,8 @@ label_fill <- colors$default$fill
 rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 ```
+
+# Create Map
 
 ```{r Data into Bins & Map, echo=FALSE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
