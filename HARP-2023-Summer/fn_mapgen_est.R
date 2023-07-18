@@ -82,14 +82,14 @@ labels <- maplabs$final
     labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" |
                         labels$class=="I"| labels$class=="city",]
     textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
-  } else if(distance > 130){
+  } else if (distance > 130) {
     #zoom = 9
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads_plot <- roads
-    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" |
+    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" | labels$class=="stream" |
                         labels$class=="I" | labels$class=="S" | labels$class=="U" |labels$class=="city",]
     textsize <- c(5,5,6,11,  5,1)
-  } else if(distance > 70){
+  } else if (distance > 70) {
     #zoom = 10
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
     roads_plot <- roads

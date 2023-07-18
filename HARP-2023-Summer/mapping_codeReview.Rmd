@@ -6,7 +6,7 @@ geometry: margin=1cm #margins for pdf
 output: pdf_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
-  rivseg: ["JL7_7070_0001"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Montgomery"]
   region: ["NorthernVirginia"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
@@ -73,6 +73,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),l
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labelprep.R"),local = TRUE)
 ```
 
 ```{r Establish Functions, echo=FALSE, warning=FALSE}
@@ -540,7 +541,8 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 textcol <- colors$default$text #from mapping aesthetics function
 label_fill <- colors$default$fill 
 rm(maplabs)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
+nhdlabs <- fn_nhd_labelprep(data = nhd)
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road", "nhd"))
 ```
 
 # Create Map
@@ -714,16 +716,7 @@ fn_tablegen(table) #flextable saved as var ft
 # Display Map & Table
 
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%'}
-#For side-by-side maps:
-#maps <- list()
-#for (i in 1:length(mapfilename)) {
-#  maps[[i]] <- rasterGrob(readPNG(mapfilename[i]))
-#  #assign(paste0('map',i,'png'), map_png)
-#}
-#do.call("grid.arrange", c(maps,  ncol = length(mapfilename))) #displays multiple maps side-by-side
-
-#For in-line maps on top of each other:
-knitr::include_graphics(mapfilename) #display map PNG -- for testing
+knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
 ```
 
 ```{r View Table, echo=FALSE, out.width='100%'}
@@ -743,7 +736,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
-                    map_type = "locality",
+                    map_type = "basin",
                     map_by = "fiveyr_avg_mgy",
                     limit = "basins",
                     table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
