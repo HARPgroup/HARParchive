@@ -1,0 +1,381 @@
+---
+title: "Facilities REST Testing"
+author: "Analysts Megan Pritchard, Glenn Campagna, Ella Fox"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+params: null
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(hydrotools)
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+site <- 'http://deq1.bse.vt.edu/d.dh'
+```
+
+# Pulling All Regions/Counties
+```{r Pulling all Regions/Counties, warning=FALSE, echo=TRUE, message=FALSE}
+all_counties <- RomFeature$new(ds,list(bundle='usafips'),TRUE)
+counties.df <- cbind(all_counties[["name"]], all_counties[["hydrocode"]])
+  colnames(counties.df) <- c("County", "hydrocode_fips")
+
+all_regions <- RomFeature$new(ds,list(ftype= 'wsp_plan_region'),TRUE)
+regions.df <- cbind(all_regions[["name"]], all_regions[["hydrocode"]])
+  colnames(regions.df) <- c("Region", "hydrocode")
+```
+## Previews:
+```{r, echo=FALSE}
+library(knitr)
+kable(counties.df[1:8,])
+kable(regions.df[1:9,])
+```
+
+\newpage
+# Pulling Coverages Using Adminreg/Adminid
+*note: data frames cap at 100 obs.*
+```{r Testing fetch w/ admin info, warning=FALSE, echo=TRUE, message=FALSE}
+token <- rest_token(base_url = site,
+                    rest_uname = rest_uname,
+                    rest_pw = rest_pw)
+
+#Pulls all water supply basins, can specify one with adminid in list
+wsp_basin <- getAdminregFeature(inputs = list(
+  ftype = 'wsp_plan_watershed',
+  bundle = 'registration'), base_url = site)
+
+#Pulls all localities, can specify one with adminid in list
+localities <- getAdminregFeature(inputs = list(
+  ftype = 'wsp_plan_locality',
+  bundle = 'registration'), base_url = site)
+
+#Pulls all facilities, can specify one with adminid in list
+facilities <- getAdminregFeature(inputs = list(
+  ftype = 'vdeq_vwuds',
+  bundle = 'registration'), base_url = site)
+
+#Specific Localities/Facilities:
+bburgLocalGov <- getAdminregFeature(inputs = list(
+  adminid = '172746',
+  bundle = 'local_government'), base_url = site)
+
+bburgGolfCourse <- getAdminregFeature(inputs = list(
+  adminid = '68732',
+  bundle = 'registration'), base_url = site)
+```
+\newpage
+## Previews:
+```{r, echo=FALSE}
+kable(wsp_basin[1:7,1:6], format="pipe",padding=0, caption="Water Supply Basins")
+kable(localities[1:6,1:6], format="pipe",padding=0, caption="Localities")
+kable(facilities[1:7,1:6], format="pipe", caption="Facilities")
+kable(bburgLocalGov[,1:6], format="simple", caption="Blacksburg Local Government")
+kable(bburgGolfCourse[,1:6], format="simple", caption="Blacksburg Golf Course")
+```
+
+\newpage
+# Pull Facilities and Their Hydrocodes & Coordinates
+```{r Pull Facilities, warning=FALSE, echo=TRUE, message=FALSE}
+#note: if you don't say warning=FALSE these take a LONG time to run
+municipal_facilities <- RomFeature$new(ds,list(
+    ftype= "municipal",
+    #fstatus= "active", #or proposed, inactive, etc.
+    bundle= "facility"), 
+  TRUE)
+municipal_facil.df <- data.frame(cbind(municipal_facilities[["name"]], 
+                            municipal_facilities[["hydrocode"]],
+                            municipal_facilities[["geom"]]))
+  colnames(municipal_facil.df) <- c("Municipal Facility", "hydrocode", "geom")
+
+commercial_facilities <- RomFeature$new(ds,list(
+    ftype= "commercial",
+    bundle= "facility"), 
+  TRUE)
+commercial_facil.df <- data.frame(cbind(commercial_facilities[["name"]], 
+                             commercial_facilities[["hydrocode"]],
+                             commercial_facilities[["geom"]]))
+  colnames(commercial_facil.df) <- c("Commercial Facility", "hydrocode", "geom")
+  
+irrigation_facilities <- RomFeature$new(ds,list(
+    ftype= "irrigation",
+    bundle= "facility"), 
+  TRUE)
+irrigation_facil.df <- data.frame(cbind(irrigation_facilities[["name"]], 
+                             irrigation_facilities[["hydrocode"]],
+                             irrigation_facilities[["geom"]]))
+  colnames(irrigation_facil.df) <- c("Irrigation Facility", "hydrocode", "geom")
+  
+wwtp_facilities <- RomFeature$new(ds,list(
+    ftype= "wwtp",
+    bundle= "facility"), 
+  TRUE)
+wwtp_facil.df <- data.frame(cbind(wwtp_facilities[["name"]], 
+                       wwtp_facilities[["hydrocode"]],
+                       wwtp_facilities[["geom"]]))
+  colnames(wwtp_facil.df) <- c("WWTP Facility", "hydrocode", "geom")
+  
+```
+\newpage
+## Previews:
+```{r, echo=FALSE}
+kable(municipal_facil.df[1:7,])
+kable(commercial_facil.df[1:6,])
+kable(irrigation_facil.df[1:6,])
+kable(wwtp_facil.df[1:7,])
+```
+
+\newpage
+# Pulling Values from a Specific Facility
+```{r Pulling Values from a Specific Facility, warning=FALSE, echo=TRUE, message=FALSE}
+facility <- RomFeature$new(ds,list(
+    hydrocode= "vwuds_1388", #Powhatan Courthouse Service Area
+    #ftype= "municipal",
+    bundle= "facility"), 
+  TRUE)
+
+val <- RomProperty$new(ds,list(
+    featureid= facility$hydroid,
+    propname= "wsp2020_2020_mgy"), 
+  TRUE)
+current_mgy <- val$propvalue
+
+val <- RomProperty$new(ds,list(
+    featureid= facility$hydroid,
+    propname= "wsp2020_2040_mgy"), 
+  TRUE)
+future_mgy <- val$propvalue
+
+val <- RomProperty$new(ds,list(
+    featureid= facility$hydroid,
+    propname= "consumption"), 
+  TRUE)
+consumptive_loss_frac <- val$propvalue
+
+```
+## Powhatan Courthouse Service Area:
+```{r, echo=FALSE}
+stats <- cbind(c("Current (MGY)","Future (MGY)", "Consumptive Loss Fraction"),c(current_mgy,future_mgy,consumptive_loss_frac))
+  colnames(stats) <- c("Facility Statistic", "Value")
+kable(stats)
+```
+
+# Pulling Upstream Segments and their Model Data:
+```{r Collect All Upstream Model Info, warning=FALSE, message=FALSE, echo=FALSE}
+## Example Code to get AllSegList
+# Download and Import csv with all river segments (copy commented lines below)
+localpath <- tempdir()
+filename <- paste("vahydro_riversegs_export.csv",sep="")
+destfile <- paste(localpath,filename,sep="\\")
+download.file(paste(site,"/vahydro_riversegs_export",sep=""), destfile = destfile, method = "libcurl")
+RSeg.csv <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep=",")
+AllSegList <- substring(RSeg.csv$hydrocode, 17)
+
+#get upstream river segs
+riv.seg <- "JA4_7280_7340" # !! user input
+upstr <- fn_upstream(riv.seg, AllSegList)
+upstr <- c(riv.seg, upstr)
+
+upstr.df <- data.frame(matrix(nrow=0, ncol=ncol(RSeg.csv)))
+  colnames(upstr.df) <- colnames(RSeg.csv)
+for(i in upstr){
+  row.i <- as.numeric(rownames(RSeg.csv[grep(i, RSeg.csv$hydrocode),]))
+  upstr.df <- rbind(upstr.df, RSeg.csv[row.i,])
+}
+
+geom.df <- data.frame(matrix(nrow=0, ncol=2))
+  colnames(geom.df) <- c("riverseg", "geom")
+for(i in 1:length(upstr)){
+  #get model run data
+  rseg.i <- RomFeature$new(ds,list(
+      hydrocode = upstr.df$hydrocode[i],
+      ftype = upstr.df$ftype[i],
+      bundle = upstr.df$bundle[i]),
+    TRUE)
+
+  pair <- data.frame(upstr[i], rseg.i[["geom"]])
+    colnames(pair) <- colnames(geom.df)
+  geom.df <- rbind(geom.df, pair)
+  
+  geom <- as.list(rseg.i[["geom"]])
+  names(geom) <- "geom"
+  
+  model.i <- RomProperty$new(ds,list(
+      featureid = rseg.i$hydroid,
+      entity_type = 'dh_feature',
+      propcode = "vahydro-1.0"), #all climate change scenarios are under vahydro-1.0... can we keep this hard-coded?
+    TRUE)
+  
+  model.i_url_base <- paste(site, 'node/62', sep = "/")
+  model.i_obj_url <- paste(model.i_url_base, model.i$pid, sep = "/")
+  model.i_info <- ds$auth_read(model.i_obj_url, "text/json", "")
+  model.i_info <- jsonlite::fromJSON(model.i_info)
+  
+  #include rseg's geometry in model info for mapping
+  model.i_info <- append(model.i_info[[1]], geom)
+  assign(paste0(upstr[i], "_info"), model.i_info)
+}
+  
+```
+
+```{r Mapping Upstream Segs?, echo=FALSE}
+library(sp)
+library(rgeos)
+library(nhdplusTools)
+library(ggplot2)
+library(ggmap)
+library(ggsn)
+library(ggspatial)
+library(sf)
+
+model_geoprocessor <- function(seg_features) {
+  for (i in 1:nrow(seg_features)) {
+    spone <- sp::SpatialPolygonsDataFrame(
+      readWKT(seg_features[i,]$geom), 
+      data=as.data.frame(as.list(subset(seg_features[i,],select=-c(geom))))
+    )
+    if (i == 1) {
+      # start with one 
+      polygons_sp <- spone
+    } else {
+      # append
+      polygons_sp <- rbind(polygons_sp, spone)
+    }
+  }
+  return(polygons_sp)
+}
+
+##--rsegs--
+#multipolygon => polygon format
+app_map2 <- model_geoprocessor(geom.df) #makes spatial polygons data frame
+rsegs_sf <- st_as_sf(app_map2) #turns into simple features (sf) object
+st_crs(rsegs_sf) <- 4326 #set coordinate reference system
+
+#labels
+rsegs_centroids <- rgeos::gCentroid(app_map2,byid=TRUE)
+rsegs_labels <- as.data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)))
+rsegs_labels$NAME <- rsegs_sf$riverseg
+#rseg_domain <- st_bbox(app_map2)
+
+sf_use_s2(FALSE) # switch off Spherical geometry (s2)
+
+start_point <- st_bbox(app_map2)
+out_point = sf::st_sfc(sf::st_point(c(start_point$xmin, start_point$ymin)), crs = 4326)
+nhd_out <- get_nhdplus(out_point)
+nhd <- plot_nhdplus(list(nhd_out$comid), actually_plot = FALSE)
+domain <- st_buffer(st_as_sfc(st_bbox(rsegs_sf)), .1)
+domain  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
+  
+##--municipal facilities--
+#remove facilities without geometry
+for(i in 1:nrow(municipal_facil.df)){
+  if(municipal_facil.df$geom[i]==""){
+    if(i==1){
+      no.geo <- i
+    } else{
+      no.geo <- c(no.geo,i)
+    }
+  }
+}
+municipals <- data.frame(municipal_facil.df[-no.geo,])
+
+#process coordinates
+points_geoprocessor <- function(facilities) {
+  for (i in 1:nrow(facilities)) {
+    spone <- sp::SpatialPointsDataFrame(
+      readWKT(facilities[i, ]$geom),
+      data = as.data.frame(as.list(subset(facilities[i, ], select = -c(geom))))
+      )
+    if (i == 1) {
+      # start with one
+      points_sp <- spone
+    } else {
+      # append
+      points_sp <- rbind(points_sp, spone)
+    }
+  }
+  return(points_sp)
+}
+
+municipals <- points_geoprocessor(municipals)
+municipals.sf <- st_as_sf(municipals)
+st_crs(municipals.sf) <- 4326 #coordinate system
+
+#coordinate labels
+facil_labels <- as.data.frame(sf::st_coordinates(municipals.sf))
+facil_labels$NAME <- municipals.sf$Municipal.Facility
+
+for(i in 1:length(app_map2@polygons)){
+  poly_x.i <- app_map2@polygons[[i]]@Polygons[[1]]@coords[,"x"]
+  poly_y.i <- app_map2@polygons[[i]]@Polygons[[1]]@coords[,"y"]
+
+  if(i==1){
+    poly_x <- list(poly_x.i)
+    poly_y <- list(poly_y.i)
+  } else{
+    poly_x.i <- list(poly_x.i)
+    poly_y.i <- list(poly_y.i)
+    poly_x <- append(poly_x, poly_x.i)
+    poly_y <- append(poly_y, poly_y.i)
+  }
+}
+
+for(i in 1:length(app_map2@polygons)){
+  check.i <- point.in.polygon(municipals@coords[,"x"], municipals@coords[,"y"], 
+                                     poly_x[[i]], poly_y[[i]], mode.checked=FALSE)
+  check <- data.frame(check.i)
+    colnames(check) <- c("return_val")
+  if(i==1){
+    facils_contained <- subset(check, check!=0)
+  } else {
+    facils_contained <- rbind(facils_contained, subset(check, check!=0))
+  }
+}
+facils_contained <- as.numeric(rownames(facils_contained))
+
+#for(i in 1:length(facils_contained)){
+#  municipals_contained.i <- municipals[facils_contained[i],]
+#  if(i==1){
+#    municipals_contained <- municipals_contained.i
+#  } else {
+#    municipals_contained <- rbind(municipals_contained, municipals_contained.i)
+#  }
+#}
+
+#--create base map--
+sf_bbox <- st_buffer(st_as_sfc(st_bbox(app_map2)), .1)
+ggmap_bbox <- setNames(st_bbox(sf_bbox), c("left", "bottom", "right", "top"))
+basemap_toner <- get_map(source = "stamen", maptype = "toner-lite", color=c("color"), 
+                         location = ggmap_bbox, zoom = 12)
+toner_map <- ggmap(basemap_toner)
+
+#generate map
+map <- toner_map +
+  geom_sf(data = rsegs_sf, inherit.aes = FALSE, color = "#003399", fill = "#0033994F", size = 15) +
+  geom_sf(data = nhd$flowline,inherit.aes = FALSE,color = "#3399FF", fill = NA, size = 10) +
+  geom_sf(data = domain$network_wtbd,inherit.aes = FALSE,color = "#3399FF", fill = NA, size = 10) +
+  geom_sf(data = domain$off_network_wtbd,inherit.aes = FALSE,color = "#3399FF", fill = NA, size = 10) +
+  theme(text = element_text(size = 20),axis.title.x=element_blank(),axis.title.y=element_blank()) +
+  geom_text(data = rsegs_labels, aes(X, Y, label = NAME), colour = "#003399", size = 8) +
+  # scalebar
+    ggsn::scalebar(nhd$flowline, location = 'bottomleft', dist = 2, dist_unit = 'mi',transform = TRUE, 
+                   model = 'WGS84',st.bottom=FALSE, st.size=12) +
+  # north arrow
+    ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",height = unit(2, "cm"), 
+                                      width = unit(1.5, "cm"), style = north_arrow_orienteering(text_size = 15))
+  
+
+# save the map image as png
+fpath = "C:/aa_HARP/"
+fname = paste(fpath,"Appomattox_map2.png",sep="")
+ggsave(
+  filename = fname,
+  plot = map,
+  width = 25,
+  height = 20
+)
+
+map
+```
