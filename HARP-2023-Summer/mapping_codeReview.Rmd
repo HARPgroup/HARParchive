@@ -2,7 +2,8 @@
 title: "Mapping Workflow"
 author: "HARP Analysts"
 date: "`r Sys.Date()`"
-output: html_document
+geometry: margin=1cm #margins for pdf
+output: pdf_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
   rivseg: ["JL7_7070_0001"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
@@ -38,11 +39,11 @@ library(ggnewscale)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
-#library(grid)
 library(png)
 library(flextable)
 library(geosphere)
-#library(tidycensus)
+#tinytex::install_tinytex() #need to run if you don't have tinytex
+library(tinytex)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 ds <- RomDataSource$new(site, rest_uname)
@@ -74,7 +75,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),loc
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 ```
 
-```{r Establish Functions, echo=FALSE}
+```{r Establish Functions, echo=FALSE, warning=FALSE}
 # Read data that requires file download
 download_read <- function(url, filetype, zip) {
   localpath <- tempdir()
@@ -205,6 +206,7 @@ cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-S
 ```
 
 # Geom Processing
+
 ```{r Region Geom Processing, echo=FALSE}
 ## Processing and combining locality geometries into their regions 
 ## Columns from vahydro have different names as of 7/10:
@@ -303,7 +305,7 @@ cities <- cities[!names(cities) == 'class']
 names(cities)[names(cities) == 'CLASS'] <- "class"
 ```
 
-```{r, include=FALSE, echo=FALSE}
+```{r, include=FALSE, echo=FALSE, message=FALSE}
 #Create facility-level foundational data by aggregating source-level data
 # aggregate and sum using sqldf:
 facils_foundatn <- facils$foundatn
@@ -324,7 +326,7 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 
 # Pull Metrics
 
-```{r (New) Create df for Metric Pull, include=FALSE}
+```{r (New) Create df for Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
 #df without metric_type
 ## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
 df <- data.frame(runid=runid_list, model_version, metric=metric)
@@ -421,7 +423,9 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 }
 ```
 
-```{r Filter Segs by Boundary, echo=FALSE}
+# Mapping Prep
+
+```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){. #newly moved into this loop
@@ -541,7 +545,7 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("c
 
 # Create Map
 
-```{r Data into Bins & Map, echo=FALSE}
+```{r Data into Bins & Map, echo=FALSE, warning=FALSE, message=FALSE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
@@ -691,11 +695,14 @@ for (i in 1:length(table_col)){
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
 #ordered before renaming, order by name not col #
+names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
 names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
 names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+#replace _ w a space for flextable headers:
+names(table) <- mgsub(names(table), pattern="_", replacement=" ") 
 
 #Rename modeled metrics if tied to common runid:
 #colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
@@ -719,14 +726,15 @@ fn_tablegen(table) #flextable saved as var ft
 knitr::include_graphics(mapfilename) #display map PNG -- for testing
 ```
 
-```{r View Table, echo=FALSE}
+```{r View Table, echo=FALSE, out.width='100%'}
 ft #display flextable
 ```
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
 rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
-                  output_file = paste0(export_path,"mappingRMD_knit"), 
+                  output_file = paste0(export_path,"mappingRMD_knit"),
+                  output_format = "pdf_document",
                   params = list(
                     rivseg = "JL6_7430_7320", 
                     locality = "Culpeper", 
@@ -735,10 +743,10 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
-                    map_type = "region",
-                    map_by = c("runid_11_wd_mgd","fiveyr_avg_mgy"),
+                    map_type = "locality",
+                    map_by = "fiveyr_avg_mgy",
                     limit = "basins",
-                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
+                    table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
 

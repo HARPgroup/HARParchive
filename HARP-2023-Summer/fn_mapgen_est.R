@@ -87,7 +87,7 @@ labels <- maplabs$final
     nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
     roads_plot <- roads
     labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" |
-                        labels$class=="I" | labels$class=="city",]
+                        labels$class=="I" | labels$class=="S" | labels$class=="U" |labels$class=="city",]
     textsize <- c(5,5,6,11,  5,1)
   } else if(distance > 70){
     #zoom = 10
