@@ -1,0 +1,1026 @@
+---
+title: "Workflow for Mapping Facilities"
+author: "HARP Analysts"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  rivseg: ["JL6_7320_7150"] #["JA4_7280_7340" , "JB3_6820_7053","JL6_7320_7150", "JL7_7070_0001"]  <-use last to test with bigger data
+  model_version: ["vahydro-1.0"]
+  runid_list: [ "runid_11","runid_13" ]
+  metric: ["wd_mgd"]
+  map_name: ["James_JL6_7320_7150_roads3"]
+---
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(hydrotools)
+library(sp)
+library(rgeos)
+library(sf)
+library(nhdplusTools)
+library(ggmap)
+library(raster)
+library(ggplot2)
+library(ggnewscale)   
+library(ggsn)
+library(ggspatial)
+library(ggrepel)
+library(flextable)
+library(geosphere)
+
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+site <- 'http://deq1.bse.vt.edu/d.dh'
+
+```
+
+```{r Foundational Data, message=FALSE, warning=FALSE}
+### Retrieve foundational data frame 
+foundatn <- fread(paste0(wd, 'Foundational_Data/2023/foundation_dataset_mgy_1982-2022.csv')) # wd set uniquely in analysts' config.local.private
+
+# remove cols not expected to use: ?
+#foundatn <- foundatn %>% dplyr::select(-(contains("19") | contains("20") | contains("OWS Planner")) )
+```
+
+```{r UserInputs, echo=FALSE}
+rivseg <- params$rivseg
+model_version <- params$model_version
+runid_list <- params$runid_list
+metric <- params$metric
+map_name <- params$map_name
+```
+
+```{r Establish Functions, echo=FALSE}
+# Convert any data frame w/ geometry stored as "character" to "SpatialXxxDataFrame" (Xx_sp)
+process_geom <- function(features) {
+  for (i in 1:nrow(features)) {
+    sp.i <- sp::addAttrToGeom(
+      x=readWKT(features[i,]$dh_geofield), 
+      y=as.data.frame(as.list(subset(features[i,],select=-c(dh_geofield)))),
+      match.ID=TRUE
+    )
+    if (i == 1) {
+      # start with one 
+      features_sp <- sp.i
+    } else {
+      # append
+      features_sp <- rbind(features_sp, sp.i)
+    }
+  }
+  return(features_sp)
+}
+```
+
+```{r Aquire sp Data, echo=FALSE, warning=FALSE, message=FALSE}
+# Get all vahydro watershed features
+#allsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed'))
+#allsegs$riverseg <- str_replace(allsegs$hydrocode, 'vahydrosw_wshed_', '')
+
+#####TEMPORARY allsegs ds$get error work-around#########
+localpath <- tempdir()
+filename <- paste("vahydro_riversegs_export.csv",sep="")
+destfile <- paste(localpath,filename,sep="\\")
+download.file(paste(site,"/vahydro_riversegs_export",sep=""), destfile = destfile, method = "libcurl")
+allsegs <- read.csv(file=paste(localpath , filename,sep="\\"), header=TRUE, sep=",")
+#AllSegList <- substring(RSeg.csv$hydrocode, 17)
+allsegs$riverseg <- str_replace(allsegs$hydrocode, 'vahydrosw_wshed_', '')
+colnames(allsegs) <- gsub("geom", "dh_geofield", colnames(allsegs)) #needed for process_geom()
+##############
+
+# Then, extract the basin using fn_extract_basin()
+basin_featr <- fn_extract_basin(allsegs, rivseg)
+# Convert to sp
+basin_sp <- process_geom(basin_featr)
+
+# Get all facilities
+df <- data.frame(runid=runid_list, model_version, metric=metric)
+#df$runlabel <- paste('WD MGD', df$runid)
+for(i in 1:length(runid_list)){
+  df$runlabel[i] <- paste("metric_","runid", i, sep="")
+}
+
+facil_featr <- om_vahydro_metric_grid( 
+  metric=FALSE, runids=df, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version = model_version,
+  base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+  ds = ds
+)
+
+# Filter down to facilities within the basin
+facil_in_basin <- sqldf(
+  "select a.* from facil_featr as a
+   left outer join basin_featr as b
+   on (a.riverseg = b.riverseg)
+  where b.riverseg is not null 
+  "
+)
+# filter out WSP entries (optional)
+facil_in_basin <- sqldf("select * from facil_in_basin where hydrocode not like 'wsp_%'")
+
+# Get facility coordinates
+for(i in 1:nrow(facil_in_basin)){
+  facil.i <- RomFeature$new(ds,list(hydroid=facil_in_basin$featureid[i]), TRUE)
+ facil_in_basin$dh_geofield[i] <- facil.i$geom
+}
+
+#####TEMPORARY#####
+for(i in 1:nrow(facil_in_basin)){
+  facil.i <- ds$get('dh_feature',config=list(hydroid=facil_in_basin$featureid[i]))
+  facil_in_basin$dh_geofield[i] <- facil.i$dh_geofield.geom
+}
+###
+#manor_golf <- RomFeature$new(ds,list(hydroid='90467'), TRUE)
+#seg = ds$get('dh_feature', config = list(hydroid=68310))
+#facil = ds$get('dh_feature', config = list(hydroid=72150))
+##########
+
+# Convert to sp
+facil_sp <- process_geom(facil_in_basin)
+
+# Get County fips
+fips_filename <- paste("vahydro_usafips_export.csv",sep="")
+fips_destfile <- paste(tempdir(),fips_filename,sep="\\")
+download.file(paste(site,"usafips_geom_export",sep="//"), destfile = fips_destfile, method = "libcurl")
+fips.csv <- read.csv(file=paste(tempdir() , fips_filename,sep="\\"), header=TRUE, sep=",")
+fips.csv$dh_geofield <- fips.csv$fips_geom 
+fips_sp <- process_geom(fips.csv)
+
+fips.csv$dh_geofield <- fips.csv$fips_centroid
+fips_centroid_sp <- process_geom(fips.csv)
+
+#### NON csv County geom alternate?? ####
+#counties <- ds$get('dh_feature', config=list(bundle='usafips'))
+```
+
+```{r Join foundational data frame, warning=FALSE}
+## Joining model data to the foundational dataset -- should be a Full Join
+foundatn_join <- sqldf("select * from foundatn 
+      left outer join facil_featr 
+      on (foundatn.Facility_hydroid = facil_featr.featureid) 
+      UNION 
+      select * from facil_featr 
+      left outer join foundatn 
+      on (foundatn.Facility_hydroid = facil_featr.featureid)"
+      )
+
+#remove hydrocode column to allow for another join
+#without removal, next join gives a duplicated column error 
+foundatn_join <- subset(foundatn_join, select = -c(hydrocode))
+
+# filter to only facilities within the basin 
+foundatn_basin <- sqldf( "select * from foundatn_join as a
+  left outer join basin_featr as b
+  on (a.riverseg = b.riverseg)
+  where b.riverseg is not null"
+  )
+
+# Turning into a spatial object with geometry column 
+foundatn_sf <- st_as_sf(foundatn_basin, coords = c('Latitude','Longitude'), crs = 4326, na.fail = FALSE) #changes coords to point geometries
+```
+
+```{r}
+## To label measuring points using foundational data frame 
+mp_labs <- subset(foundatn_basin, select = c(MP_hydroid, `MP Name`, Latitude, Longitude, metric_runid1)) #creating a df with only the needed data
+mp_labs <- mp_labs[order(-mp_labs$metric_runid1),] #sort by decreasing metric values 
+mp_labs$NUM <- seq(1:length(mp_labs$`MP Name`)) # adding column for labeling by number 
+```
+
+```{r Process Data for Plotting, echo=FALSE, warning=FALSE, message=FALSE}
+#--Polygons Layer--
+basin_sf <- st_as_sf(basin_sp) #Convert sp to simple features (sf)
+st_crs(basin_sf) <- 4326 #Set coord. reference syst.
+
+fips_sf <- st_as_sf(fips_sp)
+st_crs(fips_sf) <- 4326
+
+#--Points Layer--
+facil_sf <- st_as_sf(facil_sp)
+st_crs(facil_sf) <- 4326
+facil_sf <- facil_sf[order(-facil_sf$metric_runid1),]
+
+#--Labels & Placement--
+rsegs_centroids <- rgeos::gCentroid(basin_sp,byid=TRUE)
+#rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$riverseg)
+rseg_labels <- data.frame(sf::st_coordinates(st_as_sf(rsegs_centroids)), NAME=basin_sf$name, SEG=basin_sf$riverseg)
+rseg_labels$NAME <- gsub("\\River.*", "River", rseg_labels$NAME) #remove extraneous descriptors after "River"
+
+fips_labels <- data.frame(sf::st_coordinates(st_as_sf(fips_centroid_sp)), NAME=fips_sf$fips_name)
+
+# gsub to shorten facility names: "[facility_name]:[river_containing_facility]" => "[facility_name]"
+facil_sf$propname <- gsub("\\:.*", "", facil_sf$propname)
+
+facil_labels <- data.frame(sf::st_coordinates(facil_sf), NAME=facil_sf$propname)
+facil_labels$NUM <- seq(1, nrow(facil_labels))
+
+#new labels with foundation
+#foundatn_sf <- foundatn_sf[order(-foundatn_sf$metric_runid1),]
+#facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
+#facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
+  
+#--NHD Flowline Data--
+sf_use_s2(FALSE) # switch off Spherical geometry (s20
+domain <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .2)
+nhd  <- plot_nhdplus(bbox = st_bbox(domain), actually_plot = FALSE)
+
+#--Facility-Metric Data--
+metric_runid1 <- facil_sf$metric_runid1
+metric_runid2 <- facil_sf$metric_runid2
+```
+
+```{r FOR TESTING -- Custom/manual bbox creation, eval = FALSE, message=FALSE}
+#### FOR TESTING -- Custom/manual bbox creation 
+#bbox <- c('-80.0','36.8','-78.5','37.5')
+#bbox_df <- tibble(V1 = as.numeric(c(bbox[1], bbox[3])), V2 = as.numeric(c(bbox[2], bbox[4]))
+#bbox_sf <- st_as_sf(bbox_df, coords = c('V1','V2'), crs = 4326)
+#bbox_ <- st_bbox(bbox_sf)
+#ggmap_bbox <- setNames(st_bbox(bbox_), c("left", "bottom", "right", "top")) # need to run this line to sub this custom bbox into rest of script
+#nhd  <- plot_nhdplus(bbox = ggmap_bbox, actually_plot = FALSE)
+```
+
+```{r US Hwy Data, warning=FALSE}
+# State Routes (shp)
+localpath <- tempdir()
+url <- "https://www2.census.gov/geo/tiger/TIGER2022/PRIMARYROADS/tl_2022_us_primaryroads.zip"
+filename <- basename(url)
+download.file(url, filename)
+unzip(filename, exdir=localpath)
+roads <- read_sf(dsn=localpath, layer="tl_2022_us_primaryroads") #US primary roads
+
+url <- "https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip"
+filename <- basename(url)
+download.file(url, filename)
+unzip(filename, exdir=localpath)
+VA <- read_sf(dsn=localpath, layer="tl_2022_us_state") #US states
+
+VA <- states[states$NAME=="Virginia", ] 
+roads <- st_intersection(roads, VA) #only VA primary roads
+
+roads <- subset(roads, RTTYP=="I") #only interstates
+roads$FULLNAME <- gsub("\\- ", "", roads$FULLNAME) #shorten names; no space too
+
+rd_names <- roads[!duplicated(roads$FULLNAME),] #don't label the same name multiple times, but still plot full road geometry
+
+for (r in 1:nrow(rd_names)) { #adding centroid coord. for labeling
+    rd_centroid <- st_centroid(rd_names$geometry[r])
+    centroid <- as.data.frame(st_coordinates(rd_centroid))
+    rd_names$lng[r] <- centroid$X
+    rd_names$lat[r] <- centroid$Y
+    }
+```
+
+```{r Labeling major rivers w/ MajorRivers.csv, message=FALSE}
+rivs_layer <- fread('https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv')
+
+riv.centroid.df <-  data.frame(feature=rivs_layer$feature, #creating data frame containing names and centroid locations 
+                                GNIS_NAME=rivs_layer$GNIS_NAME,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
+
+for (r in 1:length(rivs_layer$feature)) { #adding coordinates to the centroids df for labeling
+    riv_geom <- readWKT(rivs_layer$geom[r])
+    riv_geom_centroid <- gCentroid(riv_geom,byid=TRUE)
+    riv.centroid.df$centroid_longitude[r] <- riv_geom_centroid$x
+    riv.centroid.df$centroid_latitude[r] <- riv_geom_centroid$y  
+    # riv_geom_clip <- gIntersection(MB_geom, riv_geom)
+    riv_geom_clip <- riv_geom
+    
+    if (is.null(riv_geom_clip) == TRUE) {
+      # print("OUT OF MINOR BASIN EXTENT - SKIPPING") 
+      next
+    }
+}
+```
+
+```{r Labeling Waterbodies, warning=FALSE}
+## Labeling Lakes & Reservoirs
+waterbodies_net <- nhd$network_wtbd[!(nhd$network_wtbd$gnis_name==' ' | nhd$network_wtbd$gnis_name=='Noname') ,] # only selecting waterbodies with names 
+waterbodies_off <- nhd$off_network_wtbd[!(nhd$off_network_wtbd$gnis_name==' ' | nhd$off_network_wtbd$gnis_name=='Noname') ,]
+waterbodies <- rbind(waterbodies_net, waterbodies_off)
+waterbodies <- waterbodies[waterbodies$AreaSqKM > quantile(waterbodies$AreaSqKM, 0.5), ] #filter to largest 50%
+waterbodies.centroid.df <-  data.frame(feature=(1:length(waterbodies$id)), #creating data frame containing names and centroid locations 
+                                GNIS_NAME=waterbodies$gnis_name,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
+
+for (r in 1:length(waterbodies$id)) { #adding coordinates to the centroids df for labeling
+    wbody_geom_centroid <- st_centroid(waterbodies$geometry[r])
+    cent.coords <- as.data.frame(st_coordinates(wbody_geom_centroid))
+    waterbodies.centroid.df$centroid_longitude[r] <- cent.coords$X
+    waterbodies.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    }
+```
+
+
+```{r Labeling order 4 streams, warning=FALSE}
+# Labeling order 4 streams 
+# Names are contained within flowline data -- testing with naming by order 4 streams (Major rivers = order 6)
+flowline <- nhd$flowline
+streams_order4 <- flowline[flowline$StreamOrde == 4,]
+streams4 <- streams_order4[!streams_order4$gnis_name==' ',] # Need to remove rows without names 
+streams4 <- streams4[!duplicated(streams4$gnis_id),] #Only want 1 row per stream name 
+streams4$gnis_name <- gsub('North Fork', 'NF', streams4$gnis_name) 
+streams4$gnis_name <- gsub('South Fork', 'SF', streams4$gnis_name)
+streams4$gnis_name <- gsub('East Fork', 'EF', streams4$gnis_name)
+streams4$gnis_name <- gsub('West Fork', 'WF', streams4$gnis_name)
+streams4$gnis_name <- gsub('Middle Fork', 'MF', streams4$gnis_name)
+shared_rivs <- generics::intersect(streams4$gnis_name, rivs_layer$GNIS_NAME) #finding the rivers which show up in both data frames 
+streams4 <- streams4[!streams4$gnis_name %in% shared_rivs, ] # Removing rows with names matching any in shared rivers list
+
+stream4.centroid.df <-  data.frame(feature=(1:length(streams4$id)), #creating data frame containing names and centroid locations 
+                                GNIS_NAME=streams4$gnis_name,
+                                centroid_longitude="",
+                                centroid_latitude="",
+                                stringsAsFactors=FALSE) 
+
+for (r in 1:length(streams4$id)) { #adding coordinates to the centroids df for labeling
+    stream_geom_centroid <- st_centroid(streams4$geometry[r])
+    cent.coords <- as.data.frame(st_coordinates(stream_geom_centroid))
+    stream4.centroid.df$centroid_longitude[r] <- cent.coords$X
+    stream4.centroid.df$centroid_latitude[r] <- cent.coords$Y
+    }
+```
+
+```{r Cities, eval = FALSE}
+## Labeling city locations 
+cities_csv <- fread("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/uscities.csv") ## reads in cities data
+cities_va <- cities_csv[cities_csv$state_id == 'VA',] # filters to only cities within VA
+
+maj_cities <- cities_va[cities_va$population >= quantile(cities_va$population, probs = c(0.75)),]
+```
+
+```{r Don't Overlap Labels}
+# Process to combine coords and labels into 1 data frame for mapping and labeling without overlapping 
+riv.centroid.df$class <- 3 # Adding columns to each df for unique labeling
+riv.centroid.df$size <- 2
+
+stream4.centroid.df$class <- 1
+stream4.centroid.df$size <- 1
+labs_bind <- rbind(riv.centroid.df, stream4.centroid.df) # binding data frames together
+labs_bind <- labs_bind[,-1]
+
+cities <- maj_cities[,c("city", "lng", "lat")]
+cities$class <- 2
+cities$size <- 1
+colnames(cities) <- colnames(labs_bind)
+
+counties <- fips_labels[, c("NAME", "X", "Y")]
+counties$class <- 4
+counties$size <- 3
+colnames(counties) <- colnames(labs_bind)
+
+labs_bind <- rbind(counties, labs_bind, cities)
+
+#Class Correspondence: 
+# counties=4 , major rivers=3, streams=2, cities=1 
+repetitions <- function(class) {
+  num <- length(labs_bind$class[labs_bind$class==class])
+  return(num)
+}
+fontfaces <- c( #c(cnty, maj, str, city)
+                rep("bold.italic",  repetitions(4)),
+                rep("bold",  repetitions(3)),
+                rep("bold",  repetitions(1)),
+                rep("plain",  repetitions(2))
+              ) 
+fontfams <- c( #c(cnty, maj, str, city)
+                rep("serif",  repetitions(4)),
+                rep("serif",  repetitions(3)),
+                rep("serif",  repetitions(1)),
+                rep("sans",  repetitions(2))
+              )
+angles <- c( #c(cnty, maj, str, city)
+                rep(0,  repetitions(4)),
+                rep(20,  repetitions(3)),
+                rep(20,  repetitions(1)),
+                rep(0,  repetitions(2))
+              )
+bgrs <- c( #c(cnty, maj, str, city)
+                rep(.03,  repetitions(4)),
+                rep(.05,  repetitions(3)),
+                rep(.1,  repetitions(1)),
+                rep(.05,  repetitions(2))
+              )
+seg_cols <- c( #c(cnty, maj, str, city)
+                rep("#003333",  repetitions(4)),
+                rep("deepskyblue4",  repetitions(3)),
+                rep("deepskyblue4",  repetitions(1)),
+                rep("black",  repetitions(2))
+              )
+text_color <- c("deepskyblue4","black","deepskyblue4","#003333") #c(str, city, maj, cnty)
+
+seg_size <- c( #c(cnty, maj, str, city)
+            rep(1,  repetitions(4)),
+            rep(0.75,  repetitions(3)),
+            rep(0.5,  repetitions(1)),
+            rep(0.5,  repetitions(2))
+            )
+
+```
+
+```{r Boundary Box, message=FALSE, warning=FALSE}
+#Create boundary box based on basin layer with a buffer 
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(basin_sf)), .05)
+ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
+```
+
+```{r Scalebar Size}
+# Adjusting scalebar size based on extent of boundary box
+bbox_points <- tibble(long = c(ggmap_bbox[1], ggmap_bbox[3]), lat = c(ggmap_bbox[2], ggmap_bbox[4]))
+bbox_sf <- st_as_sf(bbox_points, coords = c('long','lat'), crs = 4326) # for use in data arg within scalebar (optionally)
+dist_m <-  distHaversine(bbox_points) # default unit for output distance is meters , scalebar needs to be in miles 
+dist_mi <- dist_m / 1609.34
+dist <- round((dist_mi/20), digits = 0)
+extent <- as.data.frame(bbox_points)
+colnames(extent) <- c('x','y')
+```
+
+```{r Flowline Orders Based on Extent}
+## Adjusting zoom AND which flowlines to map based on boundary box size for clean mapping 
+if (dist_mi > 500) {
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1| nhd$flowline$StreamOrde == 2| nhd$flowline$StreamOrde == 3),]
+  zoom = 7
+  textsize <- c(6,4,4,  5, 0) #c(cnty,maj,city/str,  facility num, basin_sf lwd)
+} else if (dist_mi > 300) {
+  nhd$flowline_plot <- nhd$flowline[!(nhd$flowline$StreamOrde == 1 | nhd$flowline$StreamOrde == 2),]
+  zoom = 8
+  textsize <- c(6,5,4,  5, 0) 
+} else if (dist_mi > 150) {
+  nhd$flowline_plot <- nhd$flowline[!nhd$flowline$StreamOrde == 1,]
+  zoom = 9
+  textsize <- c(7,6,4, 5, 1)
+} else {
+  nhd$flowline_plot <- nhd$flowline
+  zoom = 10
+  textsize <- c(10,8,5, 6, 1.2)
+}
+
+```
+
+```{r Create Map Base, echo=FALSE, warning=FALSE, message=FALSE}
+basemap_0 <- ggmap::get_stamenmap(maptype = "terrain-background", color="color", bbox = ggmap_bbox, zoom = zoom)
+basemap <- ggmap(basemap_0) # basemap_0 is used for reverse polygon fill
+```
+
+```{r Reverse Fill Rseg polygons, message=FALSE}
+library(raster)
+
+bb <- unlist(attr(basemap_0, "bb"))
+coords <- cbind(
+  bb[c(2,2,4,4)],
+  bb[c(1,3,3,1)])
+basemap_sp <- sp::SpatialPolygons(
+  list(sp::Polygons(list(Polygon(coords)), "id")), 
+  proj4string = CRS(proj4string(basin_sp)))
+
+nonbasin_sp <- raster::erase(basemap_sp, basin_sp)
+nonbasin_sf <- st_as_sf(nonbasin_sp)
+st_crs(nonbasin_sf) <- 4326
+
+# Lighten terrain basemap:
+basemap_sf <- st_as_sf(basemap_sp)
+st_crs(basemap_sf) <- 4326
+```
+
+```{r Generate Map Object, echo=FALSE}
+map <- basemap + #ggplot2::
+    # Lighten base-map to help readability
+    geom_sf(data = basemap_sf, inherit.aes = FALSE, color = NA, fill="honeydew", alpha=0.3) +
+    # County & River Lines
+    geom_sf(data = fips_sf, inherit.aes = FALSE, color = "#0033337F", fill = NA, lwd=2.5) +
+    geom_sf(data = nhd$flowline_plot,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, mapping = aes(lwd = nhd$flowline_plot$StreamOrde), 
+            show.legend = FALSE) + scale_linewidth(range = c(0.4,2)) + # mapping flowlines with thickness based on stream order
+    geom_sf(data = nhd$network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
+    geom_sf(data = nhd$off_network_wtbd,inherit.aes = FALSE,color = "deepskyblue3", fill = NA, size = 1) +
+    # Road Lines
+    geom_sf(data = roads, inherit.aes = FALSE, color = "black", fill = NA, lwd=0.75, linetype="twodash") +
+    # Basin Outlines
+    geom_sf(data = basin_sf, inherit.aes = FALSE, color = "sienna1", fill = NA, lwd=textsize[5], linetype="dashed") +
+              # color = "#002289", fill = #0022974C
+
+    theme(text = element_text(size = 30),axis.title.x=element_blank(),axis.title.y=element_blank()) +
+  
+  # Road Labels
+    geom_label_repel(data=rd_names,
+                aes(x = lng, y = lat, label=FULLNAME, 
+                    fontface="plain", family="Comic Sans MS"), show.legend=FALSE,
+                size=textsize[3]-1,
+                colour="black", #bg.color="white", bg.r=0.15,
+                label.r=0.6, label.size=0.12, 
+                force=0, max.overlaps=1
+                ) +
+  # Labels
+    # Facility Labels Placeholder (to have other labels repel)
+    geom_text(data = facil_labels, 
+                  aes(X, Y, label = NUM, fontface="bold"), 
+                  colour = NA, size = textsize[4]+1
+                  ) +
+    # Rsegs
+##  geom_text(data = rseg_labels, 
+##               aes(X, Y, label = SEG, fontface="bold", family="mono"), 
+##               colour = "#002269", fill=NA, size=textsize[3]) +
+    # Cities
+    geom_point(data = maj_cities, 
+               aes(x = as.numeric(lng), y = as.numeric(lat)),
+               color = "black", size = 2
+               ) +
+#    ggrepel::geom_text_repel(data=maj_cities,
+#                aes(x = as.numeric(lng), y = as.numeric(lat), label=city, 
+#                    fontface="plain", family="sans"), show.legend=FALSE,
+#                size=textsize[3],
+#                colour="black", bg.color="white", bg.r=0.05,
+#                min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
+#                force=30,
+#                direction="both",
+#                ) +
+    # Rivers
+#    geom_text_repel(data=riv.centroid.df,
+#                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, 
+#                    fontface="bold", family="serif", angle=17), show.legend=FALSE,
+#                size=textsize[2],
+#                colour="deepskyblue4", bg.color="white", bg.r=0.05,
+#                min.segment.length= 0.1, segment.color = "deepskyblue4", segment.size = 0.75,
+#                force=40,
+#                direction="both",
+#                ) +
+    # Streams
+#    geom_text_repel(data=stream4.centroid.df,
+#                aes(x = as.numeric(centroid_longitude), y = as.numeric(centroid_latitude), label=GNIS_NAME, 
+#                    fontface="bold", family="serif", angle=17), show.legend=FALSE,
+#                size=textsize[3],
+#                colour="deepskyblue4", bg.color="white", bg.r=0.1,
+#                min.segment.length= 0.1, segment.color = "deepskyblue4", segment.size = 0.5,
+#                force=30,
+#                direction="both",
+#                ) +
+    # Counties
+#    geom_text_repel(data = fips_labels, 
+#               aes(X, Y, label = NAME, 
+#                   fontface="bold.italic", family="serif"), show.legend=FALSE,
+#               size=textsize[1],
+#               colour="#003333", bg.color="white", bg.r=0.03,
+#               min.segment.length= 0.5, segment.color = "#003333", segment.size = 1,
+#               force=40,
+#               direction="both",
+#               ) +
+
+ 
+ # Labels
+    new_scale("size") +
+    geom_text_repel(data = labs_bind, 
+                    aes( x = as.numeric(centroid_longitude),
+                         y = as.numeric(centroid_latitude), 
+                         group = 1, 
+                         label = GNIS_NAME,
+                         size= size,
+                         fontface= fontfaces, 
+                         family= fontfams, 
+                         angle= angles, 
+                         color= as.character(class)
+                        ), 
+                    show.legend = FALSE,
+                    force=35,
+                    direction="both",
+                    bg.color="white", bg.r= bgrs,
+                    min.segment.length= 0.5, segment.color = seg_cols, segment.size = seg_size,
+                    ) + 
+          scale_size(range= range(textsize[3:1]), breaks=textsize[3:1]) + 
+          scale_colour_manual(values=text_color) +
+  
+  # 2020 MGD
+      new_scale("size") +
+      geom_point(data = facil_labels, aes(X, Y, size=metric_runid1 ), alpha=0.75, #, alpha=metric_runid1),
+               col="#F7FF00", shape = 19, stroke = 0.75) +
+      scale_size(range = c(10,33), 
+##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
+##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
+                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
+                 name = paste(metric, runid_list[1], sep="_")
+                 ) + #NOTE: the two scales need identical "name" and "labels" to become one simultaneous legend
+#      scale_alpha(range = c(0.4, 0.85),
+##                 breaks = c(metric_runid1[metric_runid1!=0], 0),
+##                 labels = round(c(metric_runid1[metric_runid1!=0], 0), digits = 3),
+#                 breaks = seq(max(metric_runid1), 0, length.out=5), 
+#                 labels = round(seq(max(metric_runid1), 0, length.out=5), digits=1),
+#                 name = paste(metric, runid_list[1], sep="_")
+#                 ) +
+    # 2040 MGD
+    #new_scale("size") + new_scale("color") + new_scale("alpha") +
+    #geom_point(data = facil_labels,aes(X, Y, size=metric_runid2, alpha=metric_runid2), 
+    #           #alpha = .5, 
+    #           col="red", shape = 19, stroke = 0) +
+    #  scale_size(range = c(15,40), 
+    #             breaks = c(0, metric_runid2[metric_runid2!=0]),
+    #             labels = c(0, metric_runid2[metric_runid2!=0]),
+    #             guide = guide_legend(title = paste(metric, runid_list[2], sep="_"))
+    #             ) +
+    #   scale_alpha(range = c(0.35, 0.8),
+    #             breaks = c(0, metric_runid1[metric_runid1!=0]),
+    #             labels = c(0, metric_runid1[metric_runid1!=0]),
+    #             guide = FALSE
+    #             ) +
+
+# Facility Labels
+    geom_text(data = facil_labels, 
+                    aes(X, Y, label = NUM, fontface="bold"), 
+                    colour = "black", size = textsize[4],
+                    check_overlap=TRUE
+                    #min.segment.length= 0.1, segment.color = "black", segment.size = 0.5,
+                    ) +
+
+# Measuring Points and Labels 
+#  geom_point(data = mp_labs, aes(Longitude, Latitude, size = metric_runid1, alpha = metric_runid1), color = '#FF00FF') +
+#      scale_size(range = c(10,33)) + scale_alpha(range = c(0.3, 0.85)) +
+#  geom_text(data = mp_labs, aes(Longitude, Latitude, label = NUM), size = 5, check_overlap = TRUE) +
+
+  
+  # Reverse Fill
+    geom_sf(data = nonbasin_sf, inherit.aes = FALSE, color = NA, fill = "#4040408F", lwd=1) + #color was "#002289";fill was CCCCCC8F
+  
+  # Original scalebar
+    ggsn::scalebar(data = basin_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi',  # dist variable scaled based on size of boundary box 
+                   transform = TRUE, model = 'WGS84',st.bottom=FALSE, st.size=textsize[1]+1, st.dist = 0.03) +
+    # north arrow
+    ggspatial::annotation_north_arrow(which_north = "grid", location = "tr",
+                                      height = unit(4, "cm"),width = unit(3, "cm"), 
+                                      style = north_arrow_orienteering(text_size = 35)
+                                      ) 
+  #### Adjustable Scale Bar Using Joey's anchoring method 
+#    ggsn::scalebar(data = bbox_sf, location = 'bottomleft', dist = dist, dist_unit = 'mi', 
+#                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
+#                                st.size = 9,
+#                                anchor = c(
+#                                  x = (((extent$x[2] - extent$x[1])/3)+extent$x[1])-0.45,
+#                                  y = extent$y[1]+(extent$y[1])*0.001
+#                                ))
+```
+
+```{r Save Map.png, echo=FALSE}
+ggsave(
+  filename = paste(export_path, map_name, ".png", sep=""),
+  plot = map,
+  width = 25,
+  height = 20
+  )
+```
+
+```{r Road Experiment}
+roads_no_overlap <- geom_text_repel(data=rd_names,
+                aes(x = lng, y = lat, label=FULLNAME, 
+                    fontface="plain", family="Comic Sans MS", angle=0), #show.legend=FALSE,
+                size=textsize[3]-1,
+                colour="black", bg.color="white", bg.r=0.15,
+                force=0, max.overlaps=1
+                )
+  
+  
+road_diamonds <- geom_point(data = roads_no_overlap[["data"]], aes(lng, lat),
+               col="black", fill="white", shape = 23, size=8, stroke = 0.9)
+
+map <- basemap +
+    road_diamonds +
+    roads_no_overlap
+```
+
+```{r OLD Create table w/ more facility info, echo= FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+
+#KEEP ONLY FOR REFERNCE, DONT RUN THIS SECTION, GENERATES INCOMPLETE TABLE 
+
+#base table with facility name and number(related to map)
+tableData <- data.frame(Facility=facil_sf$propname,
+                        Number= facil_labels$NUM, 
+                        Rivseg= facil_sf$riverseg  #can be removed if unhelpful later, right now used for ensuring correct data
+                        #wd_mgd=facil_sf$metric_runid1   #for metric runids...unsure if helpful to include
+                        ) 
+
+#add locations(subwatershed basin)
+
+for(i in 1:nrow(tableData)){ 
+    loc_basin <- (basin_featr[grep(facil_sf$riverseg[i], basin_featr$riverseg),])
+    tableData$Location_Basin[i]  <- loc_basin$name 
+}
+
+# add location based on county
+for(i in 1:nrow(tableData)){ 
+    loc_county<- foundatn[grep(facil_sf$featureid[i], foundatn$Facility_hydroid),]
+    tableData$Location_County[i]  <- loc_county$Locality 
+}
+
+  
+#add source(intake-measuring point)
+
+#add type(GW or SW)
+
+
+#add upstream or downstream
+for(i in 1:nrow(facil_sf)){ 
+  if(facil_sf$riverseg[i] == rivseg)
+  {
+    up_down<- "Upstream"
+    tableData$Upstream_Downstream[i] <- up_down
+  }
+  else if (facil_sf$riverseg[i] != rivseg)
+  {
+    up_down <- "Downstream"
+    tableData$Upstream_Downstream[i] <- up_down
+  }
+}
+  
+
+#add permitted capacity
+
+#dh_link_admin_location seems to not exist in the getadminregfeature fipsnew as shown above, unsure how to use it
+#trying other option given, but this returns all values as NA
+
+#pulling with vwp max
+
+for (i in 1:nrow(facil_sf)){
+
+  systemObj <- RomProperty$new(ds,list(
+    featureid = facil_sf$featureid[i],
+    pid = facil_sf$pid[i],
+    propname= facil_sf$propname[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  
+  permCapac <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'vwp_max_mgy'),
+  TRUE)
+
+  tableData$vwp_max_mgy[i] <- permCapac$propcode  
+}
+
+
+#add 5 yr avg use(MGY) with wd current
+for (i in 1:nrow(facil_sf)){
+val <- RomProperty$new(ds,list(
+    featureid= facil_sf$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+tableData$five_mgy[i] <- five_mgy
+}
+
+
+# 
+# ##pulling 5 year avg with fac current 
+# for (i in 1:nrow(facil_sf)){
+# 
+#   systemObj <- RomProperty$new(ds,list(
+#     featureid = facil_sf$featureid[i],
+#     pid = facil_sf$pid[i],
+#     propname= facil_sf$propname[i],
+#     propcode= "vahydro-1.0"), 
+#   TRUE)
+#   
+#   fiveYrAvg <- RomProperty$new(ds,list(
+#   featureid = systemObj$pid,
+#   propname = 'fac_current_mgy'),
+#   TRUE)
+# 
+#   tableData$fac_current_mgy[i] <- fiveYrAvg$propcode #adds 5-yr avg use as a new col to facil_sf data frame 
+# }
+
+#finding current mgy and 2040 predicted mgy
+# for (i in 1:nrow(facil_sf)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facil_sf$featureid[i],
+#     propname= "wsp2020_2020_mgy"), 
+#   TRUE)
+# current_mgy <- val$propvalue
+# tableData$Current_mgy[i] <- current_mgy
+# }
+# 
+# for (i in 1:nrow(facil_sf)){
+# val <- RomProperty$new(ds,list(
+#     featureid= facil_sf$featureid[i],
+#     propname= "wsp2020_2040_mgy"), 
+#   TRUE)
+# current_mgy <- val$propvalue
+# tableData$Predicted_mgy[i] <- current_mgy
+# }
+
+
+```
+
+```{r NEW Table, warning=FALSE, message=FALSE}
+## NEW - Creating table to accompany map using new joined foundational data frame
+ 
+#might want to add this to the join later to be cleaner
+facil_labels <- data.frame(sf::st_coordinates(foundatn_sf), NAME=foundatn_sf$Facility) #create df for facility labels 
+facil_labels$NUM <- seq(1, nrow(facil_labels)) #add column for number sequence 
+  
+
+# creating initial data frame that will accompany map
+tableData2 <- data.frame(Number= facil_labels$NUM, #commented out to be fixed later with updates 
+                        Facility=foundatn_sf$Facility, 
+                        Source_Type = foundatn_sf$`Source Type`,
+                        Source = foundatn_basin$`MP Name`,
+                        Rivseg= foundatn_sf$riverseg,
+                        Locality = foundatn_sf$Locality
+                        ) 
+
+# add locations(subwatershed basin) not required anymore
+# for(i in 1:nrow(tableData2)){ 
+#     loc_basin <- (basin_featr[grep(foundatn_sf$riverseg[i], basin_featr$riverseg),])
+#     tableData2$Location_Basin[i]  <- loc_basin$name 
+# }
+
+#add upstream or downstream 
+#needs to be adjusted 
+for(i in 1:nrow(foundatn_sf)){ 
+  if(foundatn_sf$riverseg[i] == rivseg)
+  {
+    up_down<- "Upstream"
+    tableData2$Upstream_Downstream[i] <- up_down
+  }
+  else if (foundatn_sf$riverseg[i] != rivseg)
+  {
+    up_down <- "Downstream"
+    tableData2$Upstream_Downstream[i] <- up_down
+  }
+}
+
+#add permitted capacity
+for (i in 1:nrow(facil_sf)){
+  systemObj <- RomProperty$new(ds,list(
+    featureid = foundatn_sf$featureid[i],
+    propcode= "vahydro-1.0"), 
+  TRUE)
+  permCapac <- RomProperty$new(ds,list(
+  featureid = systemObj$pid,
+  propname = 'vwp_max_mgy'),
+  TRUE)
+  tableData2$vwp_max_mgy[i] <- permCapac$propcode  
+}
+
+tableData2$vwp_max_mgy <-  replace(tableData2$vwp_max_mgy, tableData2$vwp_max_mgy==0, "No Permit")
+
+#Replace zeros with "no permit" 
+
+#add 5 yr avg use (MGY) with wd current
+for (i in 1:nrow(foundatn_sf)){
+val <- RomProperty$new(ds,list(
+    featureid= foundatn_sf$featureid[i],
+    propname= "wd_current_mgy"), 
+  TRUE)
+five_mgy <- val$propvalue
+tableData2$five_mgy[i] <- round(five_mgy,2)
+}
+
+#5 year avg for sources 
+
+#what 5 years should we be using 
+#why is 
+for (i in 1:nrow(foundatn_sf)){
+  fiveavg <- mean(na.omit(foundatn_sf$'2022'[i],foundatn_sf$'2021'[i],foundatn_sf$'2020'[i],foundatn_sf$'2019'[i],foundatn_sf$'2018'[i], na.rm= TRUE))
+  tableData2$five_mgy_new[i] <- round(fiveavg, 2)
+}
+```
+
+```{r Call Table}
+
+library(flextable)
+set_flextable_defaults(
+  font.size = 10, theme_fun = theme_zebra, 
+  padding = 6, 
+  na_str = "NA")
+
+table <- flextable(tableData2)
+
+table <- set_header_labels(table,
+  Facility = "Facility Name", 
+  NUM = "Facility Number", 
+  Source_Type = "Source Type",
+  Rivseg= "River Segment", 
+  Locality = "Location(County)",
+  Upstream_Downstream = "Upstream Vs. Downstream", 
+  #wd_mgd="2020 Cumulative Withdraw in mgd", 
+  #Current_mgy="2020 Cumulative Withdraw Demand(mgy)", 
+  #Predicted_mgy= "2040 Cumulative Withdraw Demand(mgy)"
+  five_mgy = "5 Year Average Use(mgy)",
+  vwp_max_mgy = "Permitted Capacity(mgy)"
+  
+)
+table %>% 
+  autofit() %>%
+  flextable::align(align = "center", j = c(1:9), part = "all") 
+```
+
+```{r Simple Table}
+table <- qflextable(facil_labels[,c("NUM", "NAME")])
+```
+
+```{r Joey's Scale Bar, eval=FALSE, echo=FALSE}
+base_scale <-  ggsn::scalebar(data = bbDF, location = 'bottomleft', dist = 25, dist_unit = 'mi', 
+                                transform = TRUE, model = 'WGS84',st.bottom=FALSE, 
+                                st.size = 3, st.dist = 0.03,
+                                anchor = c(
+                                  x = (((extent$x[2] - extent$x[1])/2)+extent$x[1])-0.45,
+                                  y = extent$y[1]+(extent$y[1])*0.001
+                                ))
+```
+
+```{r Shape Files in R, echo=FALSE, eval=FALSE}
+#minor_basins <- fread('https://raw.githubusercontent.com/HARPgroup/HARParchive/master/GIS_layers/MinorBasins.csv')
+#James <- minor_basins[grep("\\James.*", minor_basins$name),]
+
+
+setwd(wd)
+majorR <- read_sf(dsn = "HARParchive/GIS_layers/MajorReservoirs", layer = "MajorReservoirs")
+droughtReg <- read_sf(dsn = "HARParchive/GIS_layers/DroughtEvaluationRegions", layer = "DroughtEvaluationRegions")
+majorRivs <- read_sf(dsn = "HARParchive/GIS_layers/MajorRivers", layer = "MajorRivers")
+  majorRivs <- st_zm(majorRivs) #ZM data not supported --> drop the M
+
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(droughtReg)), .05)
+ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 9)
+basemap <- ggmap(basemap)
+
+sf_use_s2(FALSE) # switch off Spherical geometry (s20)
+nhd  <- plot_nhdplus(bbox = st_bbox(ggmap_bbox), actually_plot = FALSE)
+
+
+VA <- basemap +
+  geom_sf(data = droughtReg, inherit.aes = FALSE, color = "#003333", fill = NA, lwd=1) +
+  geom_sf(data = majorR, inherit.aes = FALSE, color = "red", fill = NA, lwd=0.3) +
+  geom_sf(data = majorRivs, inherit.aes = FALSE, color = "blue", fill = NA, lwd=0.3)
+
+VA
+
+
+regions <- RomFeature$new(ds,list(
+  ftype='wsp_plan_region', 
+  bundle='landunit'),
+  TRUE)
+
+
+# Checking out Road data:
+setwd(wd)
+#roads <- read_sf(dsn="/aa_HARP/tl_2021_us_primaryroads", layer="tl_2021_us_primaryroads")
+roads <- read_sf(dsn="/aa_HARP/tl_2021_51_prisecroads", layer="tl_2021_51_prisecroads") #VA's primary and secondary roads
+roads <- roads[grep("\\State Rte.*", roads$FULLNAME),] #filter to State Rte only
+roads$FULLNAME <- gsub("\\State Rte ", "Rte", roads$FULLNAME) #shorten route names; no space too
+rd_names <- roads[!duplicated(roads$FULLNAME),] #don't label the same name multiple times, but still plot full road geometry
+
+for (r in 1:nrow(rd_names)) { #adding centroid coord. for labeling
+    rd_centroid <- st_centroid(rd_names$geometry[r])
+    centroid <- as.data.frame(st_coordinates(rd_centroid))
+    rd_names$lng[r] <- centroid$X
+    rd_names$lat[r] <- centroid$Y
+    }
+
+ggmap_bbox <- st_buffer(st_as_sfc(st_bbox(roads)), .05)
+ggmap_bbox <- setNames(st_bbox(ggmap_bbox), c("left", "bottom", "right", "top"))
+basemap <- ggmap::get_stamenmap(maptype = "terrain", color="color", bbox = ggmap_bbox, zoom = 9)
+basemap <- ggmap(basemap)
+VA <- basemap +
+    geom_sf(data = roads, inherit.aes = FALSE, color = "black", fill = NA, lwd=0.2) +
+    geom_text_repel(data=rd_names,
+                aes(x = lng, y = lat, label=FULLNAME, 
+                    fontface="plain", family="Optima", angle=0), #show.legend=FALSE,
+                size=3,
+                colour="black", bg.color="white", bg.r=0.1,
+                force=0, max.overlaps=1
+                )
+
+ggsave(
+  filename = paste(export_path, "VA_roads", ".png", sep=""),
+  plot = VA,
+  width = 25,
+  height = 20
+  )
+
+```
+
+```{r}
+## VAhydro map customization storage, example of extent RETRIEVAL -- Testing for now
+broadway_wtp <- RomProperty$new(ds,list(
+    featureid = '74345',  # hard-coded only for testing, but fid should be able to come from foundational df
+    propcode= "vahydro-1.0"), 
+  TRUE)
+reports <- RomProperty$new(ds,list(
+    featureid = broadway_wtp$pid,
+    propname= "reports"), 
+  TRUE)
+map <-  RomProperty$new(ds,list(
+    featureid = reports$pid,
+    propname= "map"), 
+  TRUE)
+extent <- RomProperty$new(ds,list(
+    featureid = map$pid,
+    propname= "extent"), 
+  TRUE)
+extent_map <- extent$propcode
+extent_map <- strsplit(extent_map, split = ',')
+bbox_points_vah <- tibble(long = c(extent_map[[1]][1], extent_map[[1]][3]), lat = c(extent_map[[1]][2], extent_map[[1]][4]))
+bbox_sf_vah <- st_bbox(st_as_sf(bbox_points_vah, coords = c('long','lat'), crs = 4326))
+ggmap_bbox_vah <- setNames(st_bbox(bbox_sf_vah), c("left", "bottom", "right", "top"))
+```
+
