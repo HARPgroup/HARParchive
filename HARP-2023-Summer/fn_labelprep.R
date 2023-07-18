@@ -24,9 +24,9 @@ fn_labelprep <- function(data, classes){
   for(d in 1:length(data)){
     
      ## Roads
-    if(classes[d]=="road"){
-      colnames(data[[d]]) <- gsub("RTTYP", "class", colnames(data[[d]]) ) #identify class column
-    }
+#    if(classes[d]=="road"){
+#      colnames(data[[d]]) <- gsub("RTTYP", "class", colnames(data[[d]]) ) #identify class column
+#    }
   ##
     
 #----We want all coordinate columns to be titled "lat" and "lng"----
@@ -67,19 +67,19 @@ fn_labelprep <- function(data, classes){
       
 ####Special Case(s) Additional Filtering####
     ## Roads:
-        if(classes[d]=="road"){
+#        if(classes[d]=="road"){
           # Filter roads to only Interstate, US Hwy, State Rte
-          data[[d]] <- subset(data[[d]], MTFCC=="S1100") #primary roads only
+#          data[[d]] <- subset(data[[d]], MTFCC=="S1100") #primary roads only
           ## Interstate, Us Hwy, or State Rte only
-          data[[d]] <- subset(data[[d]], RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", data[[d]][["FULLNAME"]], value=TRUE) | RTTYP=="S")
+#          data[[d]] <- subset(data[[d]], RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", data[[d]][["FULLNAME"]], value=TRUE) | RTTYP=="S")
           ## Shorten to rte number only
-          data[[d]][["FULLNAME"]] <- mgsub(data[[d]][["FULLNAME"]], pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+#          data[[d]][["FULLNAME"]] <- mgsub(data[[d]][["FULLNAME"]], pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
           ## Remove remaining names with spaces (e.g. US Hwy Bus or Alt Rte)
-          data[[d]] <- subset(data[[d]], !(FULLNAME %in% grep(".* .*", data[[d]][["FULLNAME"]], value=TRUE)))
+#          data[[d]] <- subset(data[[d]], !(FULLNAME %in% grep(".* .*", data[[d]][["FULLNAME"]], value=TRUE)))
           # Save the filtered roads w/ geometry for line plotting later
-          maplabs[[paste(classes[d],"_sf",sep="")]] <- data[[d]]
+ #         maplabs[[paste(classes[d],"_sf",sep="")]] <- data[[d]]
           #data[[d]] <- roads[!duplicated(roads$FULLNAME),] #don't want same rte labeled more than once ?
-        }
+#        }
     ##
 
 #----Calculate Centroid Coordinates----
@@ -107,16 +107,23 @@ fn_labelprep <- function(data, classes){
     if( length(grep("class", colnames(data[[d]]), ignore.case=TRUE))!=0 ){
       colnames(data[[d]]) <- gsub("CLASS", "class", colnames(data[[d]]), ignore.case=TRUE ) #any CLASS, Class, etc --> class
     }
-    
+ 
+       
   # Search for possible label name columns and rename to "label":
-    namecol_d <- grep(paste("^",classes[d],"$",sep=''), colnames(data[[d]]), ignore.case=TRUE, value=TRUE) 
-           #^looks for anything containing the label's class name; case insensitive
-           # the "^" means beginning of the line "$" means end of the line; therefore it will return the class name only
-           # e.g. would return "Facility" or "facility" but NOT "Facility_hydroid"
-    namecol_d <- c(namecol_d,  grep("name", colnames(data[[d]]), ignore.case=TRUE, value=TRUE) ) #looks for anything containing name,Name,or NAME
-    colnames(data[[d]]) <- gsub(namecol_d[1], "label", colnames(data[[d]])) 
-        #namecol_d[1] used because: a name matching the label's class is 1st priority, so whatever grep returns a value first will be the column used for labeling
-
+    
+    # Some data may already have a label column
+    if (length(grep("label", colnames(data[[d]]), ignore.case=TRUE))!=0 ){
+    } else {
+      namecol_d <- grep(paste("^",classes[d],"$",sep=''), colnames(data[[d]]), ignore.case=TRUE, value=TRUE) 
+      #^looks for anything containing the label's class name; case insensitive
+      # the "^" means beginning of the line "$" means end of the line; therefore it will return the class name only
+      # e.g. would return "Facility" or "facility" but NOT "Facility_hydroid"
+      namecol_d <- c(namecol_d,  grep("name", colnames(data[[d]]), ignore.case=TRUE, value=TRUE) ) #looks for anything containing name,Name,or NAME
+      colnames(data[[d]]) <- gsub(namecol_d[1], "label", colnames(data[[d]])) 
+      #namecol_d[1] used because: a name matching the label's class is 1st priority, so whatever grep returns a value first will be the column used for labeling
+      }
+    
+    
   # Add prepared label to labels list:
     data[[d]] <- data.frame(data[[d]]) #get rid of sfc geometry
     maplabs[[classes[d]]] <- data[[d]][,c("label","class","lat","lng")]

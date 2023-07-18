@@ -73,7 +73,8 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),l
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labelprep.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_road_labs.R"),local = TRUE)
 ```
 
 ```{r Establish Functions, echo=FALSE, warning=FALSE}
@@ -344,7 +345,6 @@ if (type == "facility") {
 }
 ```
 
-
 ```{r Facility-Level Metric Data, warning=FALSE, message=FALSE, echo=FALSE}
 ## Processing Facility-level metric & foundational data 
 if (type == "facility") {
@@ -541,8 +541,9 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 textcol <- colors$default$text #from mapping aesthetics function
 label_fill <- colors$default$fill 
 rm(maplabs)
-nhdlabs <- fn_nhd_labelprep(data = nhd)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road", "nhd"))
+nhdlabs <- fn_nhd_labs(data = nhd)
+roadlabs <- fn_road_labs(data = roads)
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road", "nhd"))
 ```
 
 # Create Map
@@ -731,12 +732,12 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL6_7430_7320", 
                     locality = "Culpeper", 
-                    region = "Shenandoah_2", 
+                    region = "MiddleJames_1", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
-                    map_type = "basin",
+                    map_type = "region",
                     map_by = "fiveyr_avg_mgy",
                     limit = "basins",
                     table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),

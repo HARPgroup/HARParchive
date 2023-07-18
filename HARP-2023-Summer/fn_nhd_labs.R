@@ -51,6 +51,7 @@ fn_nhd_labs <- function(data) {
     wtbd <- wtbd[!is.na(wtbd$gnis_name),]
     
     nhdlabs <- rbind(flow, wtbd)
+    names(nhdlabs)[names(nhdlabs) == 'gnis_name'] <- 'label'
     # now it is ready to have coords calculated like the rest of the labeling data
 #    assign('data', data, envir = globalenv())#save df to environment
     }
