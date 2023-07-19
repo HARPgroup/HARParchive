@@ -20,10 +20,13 @@
 # NHD: Whichever flowlines were kept for the extent, scaled by streamOrde ; Waterbodies
 # Polygons: Counties, Reverse fill of basin, Riverseg borders
 #- - - - - - - - - - - 
+
+#Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used 
 #NHD flowline & waterbody classification & substitution:
 #flowlines:
 nhd_rivname_pattern <- c('North Fork','South Fork','East Fork','West Fork','Middle Fork','North Branch','South Branch') #pattern to be replaced in NHD river/stream names 
 nhd_rivname_replacements <- c('NF','SF','EF','WF','MF','NB','SB') #replacements                    
+
 
 nhd_streamorders <- c(4,5,6) #nhd streamorders to be classified & labeled                       
 nhd_streamclasses <- c("stream","majorRiver","majorRiver") #assigned to the classes above in fn_nhd_labs, and determine label aesthetics outlined in styles below
@@ -37,6 +40,7 @@ wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as 
 #----Custom Aesthetics:----
 colors <- list()
 styles <- list()
+
 colors$custom$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
 )
@@ -194,6 +198,8 @@ styles$custom$l <- data.frame(class="smallTown",
 #                              lwd = 4.5,
 #                              linetype = "solid"
 #)
+
+
 #----Default Aesthetics:----
 colors$default$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
