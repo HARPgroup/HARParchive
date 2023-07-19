@@ -7,8 +7,8 @@ output: pdf_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Montgomery"]
-  region: ["MiddleJames_3"]    
+  locality: ["Amelia"]
+  region: ["NorthernVirginia"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
@@ -433,7 +433,7 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 
 # Mapping Prep
 
-```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE}
+```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE, message=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){. #newly moved into this loop
@@ -498,7 +498,7 @@ if (limit == "basins" | map_type == "basin") {
 
 ```
 
-```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE}
+```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 if (map_type == "locality" || map_type == "region") {
    #segs$basin_sp <- process_geom(segs$basin, "geom")
@@ -738,15 +738,15 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   output_format = "pdf_document",
                   params = list(
                     rivseg = "JL6_7430_7320", 
-                    locality = "Culpeper", 
-                    region = "MiddleJames_1", 
+                    locality = "Bristol", 
+                    region = "NorthernVirginia", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
                     map_type = "region",
                     map_by = "fiveyr_avg_mgy",
-                    limit = "basins",
+                    limit = "boundary",
                     table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```

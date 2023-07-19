@@ -209,7 +209,7 @@ class(labelsP$bg.r) = "numeric"
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
-    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ], #road column no longer exists
+    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ], #road labels
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
                          color=as.factor(colcode), 
@@ -229,7 +229,7 @@ class(labelsP$bg.r) = "numeric"
     # Text Labels
     new_scale("size") + new_scale("color") +
     #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
-    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #road column no longer exists
+    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
                         segment.color=segcol, segment.size=segsize,
