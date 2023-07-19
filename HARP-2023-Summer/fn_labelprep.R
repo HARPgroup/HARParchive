@@ -15,6 +15,7 @@ fn_labelprep <- function(data, classes){
   if(!exists("centroid_coords", ".GlobalEnv")){
     message("Error: Please load function centroid_coords() into Global Environment")
   }
+  
 # Create a list "maplabs" to append final output to, if it doesn't already exist
   if(!exists("maplabs", ".GlobalEnv")){
     maplabs <- list()

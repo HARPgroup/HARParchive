@@ -21,9 +21,12 @@
 # Polygons: Counties, Reverse fill of basin, Riverseg borders
 
 #- - - - - - - - - - - 
+#Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used 
 
 colors <- list()
 styles <- list()
+
+
 #----Custom Aesthetics:----
 colors$custom$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
@@ -182,6 +185,8 @@ styles$custom$l <- data.frame(class="smallTown",
 #                              lwd = 4.5,
 #                              linetype = "solid"
 #)
+
+
 #----Default Aesthetics:----
 colors$default$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
