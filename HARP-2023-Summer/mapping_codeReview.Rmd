@@ -6,7 +6,7 @@ geometry: margin=1cm #margins for pdf
 output: pdf_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
-  rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  rivseg: ["JL7_7070_0001"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Amelia"]
   region: ["Shenandoah_1"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
@@ -15,7 +15,7 @@ params:
 #  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
-  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
   map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["fiveyr_avg_mgy"]
@@ -737,14 +737,14 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   output_file = paste0(export_path,"mappingRMD_knit"),
                   output_format = "pdf_document",
                   params = list(
-                    rivseg = "JL6_7430_7320", 
+                    rivseg = "JL7_7070_0001", 
                     locality = "Chesapeake", 
-                    region = "Shenandoah_1", 
+                    region = "Shenandoah_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
-                    map_type = "region",
+                    map_type = "basin",
                     map_by = "fiveyr_avg_mgy",
                     limit = "boundary",
                     table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
