@@ -2,22 +2,23 @@
 title: "Mapping Workflow"
 author: "HARP Analysts"
 date: "`r Sys.Date()`"
-output: html_document
+geometry: margin=1cm #margins for pdf
+output: pdf_document
 params:
   ## More params used during development and testing for user-control -- will be consolidated  
-  rivseg: ["JL7_7070_0001"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Montgomery"]
-  region: ["NorthernVirginia"]    
+  region: ["MiddleJames_3"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
 #  runid_data_colnames: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
   metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
   #metric_type: ["modeled"] #either 'modeled' or 'measured'. Measured metric(s) already in foundational data. Modeled pulls VAhydro 
-  map_type: ["basin"] #should be one of: basin, locality, or region ; depending on what map type is desired 
-  map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_type: ["region"] #should be one of: basin, locality, or region ; depending on what map type is desired 
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
-  table_col: ["fiveyr_avg_mgy","runid_11_wd_mgd"]
+  table_col: ["fiveyr_avg_mgy"]
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
   ## To to map 5-yr avg use, type can be either facility or source, metric must be fiveyr_avg_mgy, metric type must be measured
 ---
@@ -38,11 +39,11 @@ library(ggnewscale)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
-#library(grid)
 library(png)
 library(flextable)
 library(geosphere)
-#library(tidycensus)
+#tinytex::install_tinytex() #need to run if you don't have tinytex
+library(tinytex)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 ds <- RomDataSource$new(site, rest_uname)
@@ -68,13 +69,15 @@ bbox_type <- params$bbox_type
 
 ```{r Dev Code-libs: Load Functions from Online, echo=FALSE}
 ## For planners, updated when changes are merged to master
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = FALSE) #load mapping function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = FALSE) #load mapping aesthetics
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = FALSE) #load table function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = FALSE) #load labeling function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = TRUE) #load mapping function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_road_labs.R"),local = TRUE)
 ```
 
-```{r Establish Functions, echo=FALSE}
+```{r Establish Functions, echo=FALSE, warning=FALSE}
 # Read data that requires file download
 download_read <- function(url, filetype, zip) {
   localpath <- tempdir()
@@ -205,19 +208,26 @@ cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-S
 ```
 
 # Geom Processing
+
 ```{r Region Geom Processing, echo=FALSE}
 ## Processing and combining locality geometries into their regions 
-## Columns from vahydro have different names as of 7/10:
-names(counties$df)[names(counties$df) == 'dh_geofield.geom'] <- "dh_geofield"
-counties_df <- counties$df # for sqldf
-
-
+regions[regions == "Fairfax"] <- "Fairfax County" #Fairfax should be fairfax county
+counties$df <- counties$df[counties$df$hydroid != 454857,] #remove incorrect duplicate of Rockingham
+counties$df <- counties$df[grepl(51,counties$df$dh_fips),] #removing counties outside of VA
+names(counties$df)[names(counties$df) == 'dh_geofield.geom'] <- "dh_geofield" #columns from vahydro have different names as of 7/10:
+counties_df <- counties$df #needed for sqldf
+counties_df <- sqldf("SELECT *
+                FROM counties_df 
+                WHERE name 
+                IN (select regions.County from regions) 
+                ") #remove counties not included in the regional planning areas
 regions_geo <- sqldf( #adds geometries from counties df to the regions df
   "SELECT regions.*, counties_df.dh_geofield 
    FROM regions
    left outer join counties_df
    on (regions.county = counties_df.name)
    ")
+counties$df <- counties_df
 rm(counties_df)
 reg_split <- split(regions_geo, regions_geo$VMDWA_Reg2) #creates a new dataframe for each region containing the county names and geometries 
 
@@ -274,6 +284,7 @@ counties$sf <- st_as_sf(counties$sp)
 counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 
+
 #----Cities----
 cities <- cities[cities$ST == 'VA',] #VA cities
 # Remove city/town names that match their county/locality name
@@ -287,10 +298,23 @@ remove(counties_df) #no longer needed
 
 #cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
 #cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
-cities[cities == "Census Designated Place"] <- "town"# change census designated place to town for mapping
+#cities[cities == "Census Designated Place"] <- "town"# change census designated place to town for mapping
+#Classify towns/cities based on population
+smallTowns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.1) & 
+                     cities$POPULATION <  quantile(cities$POPULATION, 0.5),]
+smallTowns$CLASS <- "smallTown"
+towns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.5) & 
+                     cities$POPULATION <  quantile(cities$POPULATION, 0.8),]
+towns$CLASS <- "town"
+citiesp <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.8) & 
+                     cities$POPULATION <=  quantile(cities$POPULATION, 1.0),]
+citiesp$CLASS <- "city"
+cities <- rbind(smallTowns, towns, citiesp)
+cities <- cities[!names(cities) == 'class']
+names(cities)[names(cities) == 'CLASS'] <- "class"
 ```
 
-```{r, include=FALSE, echo=FALSE}
+```{r, include=FALSE, echo=FALSE, message=FALSE}
 #Create facility-level foundational data by aggregating source-level data
 # aggregate and sum using sqldf:
 facils_foundatn <- facils$foundatn
@@ -311,7 +335,7 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 
 # Pull Metrics
 
-```{r (New) Create df for Metric Pull, include=FALSE}
+```{r (New) Create df for Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
 #df without metric_type
 ## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
 df <- data.frame(runid=runid_list, model_version, metric=metric)
@@ -327,7 +351,6 @@ if (type == "facility") {
   df$runlabel <- df$metric
 }
 ```
-
 
 ```{r Facility-Level Metric Data, warning=FALSE, message=FALSE, echo=FALSE}
 ## Processing Facility-level metric & foundational data 
@@ -408,7 +431,9 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 }
 ```
 
-```{r Filter Segs by Boundary, echo=FALSE}
+# Mapping Prep
+
+```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){. #newly moved into this loop
@@ -523,10 +548,14 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 textcol <- colors$default$text #from mapping aesthetics function
 label_fill <- colors$default$fill 
 rm(maplabs)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
+nhdlabs <- fn_nhd_labs(data = nhd)
+roadlabs <- fn_road_labs(data = roads)
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road", "nhd"))
 ```
 
-```{r Data into Bins & Map, echo=FALSE}
+# Create Map
+
+```{r Data into Bins & Map, echo=FALSE, warning=FALSE, message=FALSE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
@@ -676,11 +705,14 @@ for (i in 1:length(table_col)){
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
 #ordered before renaming, order by name not col #
+names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
 names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
 names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+#replace _ w a space for flextable headers:
+names(table) <- mgsub(names(table), pattern="_", replacement=" ") 
 
 #Rename modeled metrics if tied to common runid:
 #colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
@@ -692,38 +724,30 @@ fn_tablegen(table) #flextable saved as var ft
 # Display Map & Table
 
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%'}
-#For side-by-side maps:
-#maps <- list()
-#for (i in 1:length(mapfilename)) {
-#  maps[[i]] <- rasterGrob(readPNG(mapfilename[i]))
-#  #assign(paste0('map',i,'png'), map_png)
-#}
-#do.call("grid.arrange", c(maps,  ncol = length(mapfilename))) #displays multiple maps side-by-side
-
-#For in-line maps on top of each other:
-knitr::include_graphics(mapfilename) #display map PNG -- for testing
+knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
 ```
 
-```{r View Table, echo=FALSE}
+```{r View Table, echo=FALSE, out.width='100%'}
 ft #display flextable
 ```
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
 rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
-                  output_file = paste0(export_path,"mappingRMD_knit"), 
+                  output_file = paste0(export_path,"mappingRMD_knit"),
+                  output_format = "pdf_document",
                   params = list(
                     rivseg = "JL6_7430_7320", 
                     locality = "Culpeper", 
-                    region = "Shenandoah_2", 
+                    region = "MiddleJames_1", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
                     map_type = "region",
-                    map_by = c("runid_11_wd_mgd","fiveyr_avg_mgy"),
+                    map_by = "fiveyr_avg_mgy",
                     limit = "basins",
-                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
+                    table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
 

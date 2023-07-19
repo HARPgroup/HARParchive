@@ -156,8 +156,32 @@ styles$custom$k <- data.frame(class="county",
                                sizecode=4, 
                                fillcode="NA"
 )
-
-
+styles$custom$l <- data.frame(class="smallTown",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+#styles$custom$l <- data.frame(class="countyline",
+#                              color = "gray27",
+#                              lwd = 2.5,
+#                              linetype = "solid"
+#)
+#styles$custom$m <- data.frame(class="watershed",
+#                              color = "sienna1",
+#                              lwd = 1,
+#                              linetype = "twodash"
+#)
+#styles$custom$n <- data.frame(class="region",
+#                              color = "black",
+#                              lwd = 4.5,
+#                              linetype = "solid"
+#)
 #----Default Aesthetics:----
 colors$default$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")

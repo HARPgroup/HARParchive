@@ -23,58 +23,10 @@ fn_labelprep <- function(data, classes){
 # Begin iteration through all data sets supplied to function
   for(d in 1:length(data)){
     
-  ####Special Cases####
-  ## NHD Data
-    if(classes[d]=="nhd"){
-    # First organize flowline data with major rivers/streams
-      ## major rivs = orders 5 & 6; streams = order 4
-      flow <- nhd$flowline[nhd$flowline$gnis_name!=' ' & #name!=blank & order 4, 5, or 6
-                                (nhd$flowline$StreamOrde==6 | nhd$flowline$StreamOrde==5 | nhd$flowline$StreamOrde==4),]
-      ## no duplicate names; prioritize higher order names and then the longest segment of each duplicate
-      flow <- flow[order(-flow$StreamOrde, flow$gnis_name, -flow$LENGTHKM) & !duplicated(flow$gnis_name),]
-      ## shorten long names
-      flow$gnis_name <- mgsub(flow$gnis_name, 
-                                 c('North Fork','South Fork','East Fork','West Fork','Middle Fork'), #pattern
-                                 c('NF','SF','EF','WF','MF')) #replacement
-      flow$StreamOrde <- mgsub(flow$StreamOrde, c(4,5,6), c("stream","majorRiver","majorRiver"))
-      flow <- flow[,c("gnis_name","StreamOrde")] #geometry is still attached
-      colnames(flow) <- gsub("StreamOrde", "class", colnames(flow))
-     
-    # Now do the same for the water bodies
-      wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-      ## remove ones without names, ponds, and & filter to largest 15%
-      wtbd <- wtbd[!grepl("Pond", wtbd$gnis_name),] #remove ponds
-      wtbd <- wtbd[!grepl("Millpond", wtbd$gnis_name),] 
-      wtbd <- wtbd[!grepl("Swamp", wtbd$gnis_name),]
-      #wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.85),]
-      #wtbd$class <- rep("waterbody", nrow(wtbd)) #add class column
-      #wtbd <- wtbd[,c("gnis_name","class")] #geometry is still attached
-      
-      ##new 7/17: add more classification of waterbodies with classes based on their size
-      wtbd_small <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & 
-                           wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.50) & 
-                           wtbd$AreaSqKM < quantile(wtbd$AreaSqKM, 0.75),]
-      wtbd_small$class <- rep("waterbody_sm", nrow(wtbd_small)) #add class column
-      
-      wtbd_med <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & 
-                           wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.75) & 
-                           wtbd$AreaSqKM < quantile(wtbd$AreaSqKM, 0.90),]
-      wtbd_med$class <- rep("waterbody_med", nrow(wtbd_med)) #add class column
-      
-      wtbd_large <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname') & 
-                           wtbd$AreaSqKM > quantile(wtbd$AreaSqKM, 0.90),]
-      wtbd_large$class <- rep("waterbody_lg", nrow(wtbd_large)) #add class column
-      
-      wtbd <- rbind(wtbd_small,wtbd_med,wtbd_large)
-      wtbd <- wtbd[,c("gnis_name","class")]
-      
-      data[[d]] <- rbind(flow, wtbd)
-      # now it is ready to have coords calculated like the rest of the labeling data
-    }
-  ## Roads
-    if(classes[d]=="road"){
-      colnames(data[[d]]) <- gsub("RTTYP", "class", colnames(data[[d]]) ) #identify class column
-    }
+     ## Roads
+#    if(classes[d]=="road"){
+#      colnames(data[[d]]) <- gsub("RTTYP", "class", colnames(data[[d]]) ) #identify class column
+#    }
   ##
     
 #----We want all coordinate columns to be titled "lat" and "lng"----
@@ -115,19 +67,19 @@ fn_labelprep <- function(data, classes){
       
 ####Special Case(s) Additional Filtering####
     ## Roads:
-        if(classes[d]=="road"){
+#        if(classes[d]=="road"){
           # Filter roads to only Interstate, US Hwy, State Rte
-          data[[d]] <- subset(data[[d]], MTFCC=="S1100") #primary roads only
+#          data[[d]] <- subset(data[[d]], MTFCC=="S1100") #primary roads only
           ## Interstate, Us Hwy, or State Rte only
-          data[[d]] <- subset(data[[d]], RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", data[[d]][["FULLNAME"]], value=TRUE) | RTTYP=="S")
+#          data[[d]] <- subset(data[[d]], RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", data[[d]][["FULLNAME"]], value=TRUE) | RTTYP=="S")
           ## Shorten to rte number only
-          data[[d]][["FULLNAME"]] <- mgsub(data[[d]][["FULLNAME"]], pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+#          data[[d]][["FULLNAME"]] <- mgsub(data[[d]][["FULLNAME"]], pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
           ## Remove remaining names with spaces (e.g. US Hwy Bus or Alt Rte)
-          data[[d]] <- subset(data[[d]], !(FULLNAME %in% grep(".* .*", data[[d]][["FULLNAME"]], value=TRUE)))
+#          data[[d]] <- subset(data[[d]], !(FULLNAME %in% grep(".* .*", data[[d]][["FULLNAME"]], value=TRUE)))
           # Save the filtered roads w/ geometry for line plotting later
-          maplabs[[paste(classes[d],"_sf",sep="")]] <- data[[d]]
+ #         maplabs[[paste(classes[d],"_sf",sep="")]] <- data[[d]]
           #data[[d]] <- roads[!duplicated(roads$FULLNAME),] #don't want same rte labeled more than once ?
-        }
+#        }
     ##
 
 #----Calculate Centroid Coordinates----
@@ -155,16 +107,23 @@ fn_labelprep <- function(data, classes){
     if( length(grep("class", colnames(data[[d]]), ignore.case=TRUE))!=0 ){
       colnames(data[[d]]) <- gsub("CLASS", "class", colnames(data[[d]]), ignore.case=TRUE ) #any CLASS, Class, etc --> class
     }
-    
+ 
+       
   # Search for possible label name columns and rename to "label":
-    namecol_d <- grep(paste("^",classes[d],"$",sep=''), colnames(data[[d]]), ignore.case=TRUE, value=TRUE) 
-           #^looks for anything containing the label's class name; case insensitive
-           # the "^" means beginning of the line "$" means end of the line; therefore it will return the class name only
-           # e.g. would return "Facility" or "facility" but NOT "Facility_hydroid"
-    namecol_d <- c(namecol_d,  grep("name", colnames(data[[d]]), ignore.case=TRUE, value=TRUE) ) #looks for anything containing name,Name,or NAME
-    colnames(data[[d]]) <- gsub(namecol_d[1], "label", colnames(data[[d]])) 
-        #namecol_d[1] used because: a name matching the label's class is 1st priority, so whatever grep returns a value first will be the column used for labeling
-
+    
+    # Some data may already have a label column
+    if (length(grep("label", colnames(data[[d]]), ignore.case=TRUE))!=0 ){
+    } else {
+      namecol_d <- grep(paste("^",classes[d],"$",sep=''), colnames(data[[d]]), ignore.case=TRUE, value=TRUE) 
+      #^looks for anything containing the label's class name; case insensitive
+      # the "^" means beginning of the line "$" means end of the line; therefore it will return the class name only
+      # e.g. would return "Facility" or "facility" but NOT "Facility_hydroid"
+      namecol_d <- c(namecol_d,  grep("name", colnames(data[[d]]), ignore.case=TRUE, value=TRUE) ) #looks for anything containing name,Name,or NAME
+      colnames(data[[d]]) <- gsub(namecol_d[1], "label", colnames(data[[d]])) 
+      #namecol_d[1] used because: a name matching the label's class is 1st priority, so whatever grep returns a value first will be the column used for labeling
+      }
+    
+    
   # Add prepared label to labels list:
     data[[d]] <- data.frame(data[[d]]) #get rid of sfc geometry
     maplabs[[classes[d]]] <- data[[d]][,c("label","class","lat","lng")]
