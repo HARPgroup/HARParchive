@@ -10,8 +10,8 @@ library(ggsn)
 library(ggspatial)
 library(ggrepel)
 library(geosphere)
-source(paste0(getwd(), '/', 'mapstyle_config.R' )) #load mapping aesthetics
-
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),local = TRUE) 
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
@@ -75,36 +75,9 @@ labels <- maplabs$final
 #  st_crs(basemap_0) <- 4326
     
 #----Filtering what's plotted by size of boundary box---- 
-  if (distance > 300) {
-    #zoom = 8 #basemap resolution
-    nhd$plot<- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2 & nhd$flowline$StreamOrde!=3,]
-    roads_plot <- roads[roads$RTTYP=="I",]
-    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" |
-                        labels$class=="I"| labels$class=="city",]
-    textsize <- c(4,4,5,6,  5,0) #c(I/S/U , town/majC/LakePond/str , majR , county ,   facility num , segs$basin_sf lwd)
-  } else if (distance > 130) {
-    #zoom = 9
-    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1 & nhd$flowline$StreamOrde!=2,]
-    roads_plot <- roads
-    labelsP <- labels[labels$class=="county" | labels$class=="majorRiver" | labels$class=="stream" |
-                        labels$class=="I" | labels$class=="S" | labels$class=="U" |labels$class=="city",]
-    textsize <- c(5,5,6,11,  5,1)
-  } else if (distance > 70) {
-    #zoom = 10
-    nhd$plot <- nhd$flowline[nhd$flowline$StreamOrde!=1,]
-    roads_plot <- roads
-    labelsP <- labels[labels$class!="waterbody_sm" & labels$class!="waterbody_med" & labels$class!= "smallTown",]
-    textsize <- c(6,7,9,12,  5,1.2)
-    labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) #no label "lollipop" for counties @ small distances
-  } else {
-    #zoom = 10
-    nhd$plot <- nhd$flowline
-    roads_plot <- roads
-    labelsP <- labels[labels$class!="waterbody_sm" & labels$class!="waterbody_med",]
-    textsize <- c(7,8,10,13,  5,1.5)
-    labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
-  }
-st_crs(nhd$plot) <- 4326  
+fn_filter_map(labels, nhd, roads, distance)
+
+st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
 
 labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
 class(labelsP$bg.r) = "numeric"
@@ -165,9 +138,9 @@ class(labelsP$bg.r) = "numeric"
     # Lighten base-map to help readability
 #    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
-    geom_sf(data = nhd$plot, 
+    geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color="deepskyblue3", 
-            mapping=aes(lwd=nhd$plot$StreamOrde), #line thickness based on stream order
+            mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
@@ -209,7 +182,7 @@ class(labelsP$bg.r) = "numeric"
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
-    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ], #road column no longer exists
+    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ], #road labels
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
                          color=as.factor(colcode), 
@@ -229,7 +202,7 @@ class(labelsP$bg.r) = "numeric"
     # Text Labels
     new_scale("size") + new_scale("color") +
     #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
-    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #road column no longer exists
+    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
                         segment.color=segcol, segment.size=segsize,

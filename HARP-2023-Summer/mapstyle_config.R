@@ -19,12 +19,24 @@
 # Roads: Interstate(I), US Hwy(U), State Rte(S)
 # NHD: Whichever flowlines were kept for the extent, scaled by streamOrde ; Waterbodies
 # Polygons: Counties, Reverse fill of basin, Riverseg borders
-
 #- - - - - - - - - - - 
+#NHD flowline & waterbody classification & substitution:
+#flowlines:
+nhd_rivname_pattern <- c('North Fork','South Fork','East Fork','West Fork','Middle Fork','North Branch','South Branch') #pattern to be replaced in NHD river/stream names 
+nhd_rivname_replacements <- c('NF','SF','EF','WF','MF','NB','SB') #replacements                    
 
+nhd_streamorders <- c(4,5,6) #nhd streamorders to be classified & labeled                       
+nhd_streamclasses <- c("stream","majorRiver","majorRiver") #assigned to the classes above in fn_nhd_labs, and determine label aesthetics outlined in styles below
+#waterbodies:
+wtbd_names_rm <- paste("Pond","Millpond","Swamp", sep = "|") #waterbody names containing these will be removed from labeling by fn_nhd_labs
+wtbd_sm_pct_range <- c(0.25,0.6) #quantile range for classifying waterbodies as small for mapping
+wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as medium for mapping
+#large waterbodies will use max value from med_pct_range as min
+  
+  
+#----Custom Aesthetics:----
 colors <- list()
 styles <- list()
-#----Custom Aesthetics:----
 colors$custom$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
 )
@@ -98,7 +110,7 @@ styles$custom$f <- data.frame(class="waterbody_lg",
                                segsize=.5,
                                segcol=4,
                                colcode=4,
-                               sizecode=2, 
+                               sizecode=1, 
                                fillcode="NA"
 )
 styles$custom$g <- data.frame(class="waterbody_med",
@@ -109,7 +121,7 @@ styles$custom$g <- data.frame(class="waterbody_med",
                               segsize=.5,
                               segcol=4,
                               colcode=4,
-                              sizecode=2, 
+                              sizecode=.75, 
                               fillcode="NA"
 )
 styles$custom$h <- data.frame(class="waterbody_sm",
@@ -120,7 +132,7 @@ styles$custom$h <- data.frame(class="waterbody_sm",
                               segsize=.5,
                               segcol=4,
                               colcode=4,
-                              sizecode=2, 
+                              sizecode=.5, 
                               fillcode="NA"
 )
 styles$custom$i <- data.frame(class="stream",
