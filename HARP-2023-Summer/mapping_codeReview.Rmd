@@ -8,7 +8,7 @@ params:
   ## More params used during development and testing for user-control -- will be consolidated  
   rivseg: ["JL6_7430_7320"] #["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Amelia"]
-  region: ["SoutheastVirginia"]    
+  region: ["Shenandoah_1"]    
   type: ["facility"] #either 'source' or 'facility', depending on level of map and table wanted 
   model_version: ["vahydro-1.0"]
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table, Ignored if metric_type = "measured"
@@ -739,7 +739,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL6_7430_7320", 
                     locality = "Chesapeake", 
-                    region = "Shenandoah_2", 
+                    region = "Shenandoah_1", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
