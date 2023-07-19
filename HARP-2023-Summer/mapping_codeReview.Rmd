@@ -463,7 +463,7 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 
 # Mapping Prep
 
-```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE}
+```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE, message=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){. #newly moved into this loop
@@ -535,7 +535,7 @@ if (limit == "basins" | map_type == "basin") {
 
 ```
 
-```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE}
+```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 if (map_type == "locality" || map_type == "region") {
   segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
@@ -787,16 +787,16 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   output_file = paste0(export_path,"mappingRMD_knit"),
                   output_format = "pdf_document",
                   params = list(
-                    rivseg = "JL6_7430_7320", 
-                    locality = "Culpeper", 
-                    region = "MiddleJames_1", 
+                    rivseg = "JL7_7070_0001", 
+                    locality = "Chesapeake", 
+                    region = "Shenandoah_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric = "wd_mgd", 
-                    map_type = "region",
+                    map_type = "basin",
                     map_by = "fiveyr_avg_mgy",
-                    limit = "basins",
+                    limit = "boundary",
                     table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
