@@ -22,14 +22,18 @@
 #- - - - - - - - - - - 
 #NHD flowline & waterbody classification & substitution:
 #flowlines:
-nhd_rivname_pattern <- c('North Fork','South Fork','East Fork','West Fork','Middle Fork') #pattern to be replaced in NHD river/stream names 
-nhd_rivname_replacements <- c('NF','SF','EF','WF','MF') #replacements                    
+nhd_rivname_pattern <- c('North Fork','South Fork','East Fork','West Fork','Middle Fork','North Branch','South Branch') #pattern to be replaced in NHD river/stream names 
+nhd_rivname_replacements <- c('NF','SF','EF','WF','MF','NB','SB') #replacements                    
 
 nhd_streamorders <- c(4,5,6) #nhd streamorders to be classified & labeled                       
 nhd_streamclasses <- c("stream","majorRiver","majorRiver") #assigned to the classes above in fn_nhd_labs, and determine label aesthetics outlined in styles below
 #waterbodies:
 wtbd_names_rm <- paste("Pond","Millpond","Swamp", sep = "|") #waterbody names containing these will be removed from labeling by fn_nhd_labs
-
+wtbd_sm_pct_range <- c(0.25,0.6) #quantile range for classifying waterbodies as small for mapping
+wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as medium for mapping
+#large waterbodies will use max value from med_pct_range as min
+  
+  
 #----Custom Aesthetics:----
 colors <- list()
 styles <- list()

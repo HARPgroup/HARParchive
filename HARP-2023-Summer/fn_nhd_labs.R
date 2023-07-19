@@ -30,15 +30,15 @@ fn_nhd_labs <- function(data) {
     
     
     #classification of waterbodies with classes based on their size
-    wtbd_small <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, 0.25, na.rm = T) & 
-                         wtbd$lakevolume < quantile(wtbd$lakevolume, 0.6, na.rm = T),]
+    wtbd_small <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_sm_pct_range[1], na.rm = T) & 
+                         wtbd$lakevolume < quantile(wtbd$lakevolume, wtbd_sm_pct_range[2], na.rm = T),]
     wtbd_small$class <- rep("waterbody_sm", nrow(wtbd_small)) #add class column
     
-    wtbd_med <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, 0.6, na.rm = T) & 
-                       wtbd$lakevolume < quantile(wtbd$lakevolume, 0.9, na.rm = T),]
+    wtbd_med <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_med_pct_range[1], na.rm = T) & 
+                       wtbd$lakevolume < quantile(wtbd$lakevolume, wtbd_med_pct_range[2], na.rm = T),]
     wtbd_med$class <- rep("waterbody_med", nrow(wtbd_med)) #add class column
     
-    wtbd_large <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, 0.95, na.rm = T),]
+    wtbd_large <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_med_pct_range[2], na.rm = T),]
     wtbd_large$class <- rep("waterbody_lg", nrow(wtbd_large)) #add class column
     
     ##something wrong -- too many bodies classified as large 
