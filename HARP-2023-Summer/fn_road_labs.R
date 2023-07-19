@@ -17,7 +17,7 @@ roadlabs <- list()
     ## Remove remaining names with spaces (e.g. US Hwy Bus or Alt Rte)
     data[[d]] <- subset(data[[d]], !(FULLNAME %in% grep(".* .*", data[[d]][["FULLNAME"]], value=TRUE)))
     # Save the filtered roads w/ geometry for line plotting later
-    roadlabs[[paste(classes[d],"_sf",sep="")]] <- data[[d]]
+    roadlabs[[paste("road_sf",sep="")]] <- data[[d]]
     #data[[d]] <- roads[!duplicated(roads$FULLNAME),] #don't want same rte labeled more than once ?
     names(data[[d]])[names(data[[d]]) == 'FULLNAME'] <- 'label' #rename as label col
     colnames(data[[d]]) <- gsub("RTTYP", "class", colnames(data[[d]]) ) #identify class column
