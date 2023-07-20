@@ -3,7 +3,7 @@ title: "Mapping Workflow"
 author: "HARP Analysts"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
-output: pdf_document
+output: pdf_document #overridden by output_format in render command 
 
 #Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
 #Can edit here or in a render command 
@@ -18,15 +18,16 @@ params:
   type: ["facility"] #either 'source' or 'facility'
   map_type: ["region"] #should be one of: basin, locality, or region 
   
-#determining what metric will be modeled and mapped
+#determining what metric(s) will be pulled and mapped
   model_version: ["vahydro-1.0"] #which model metric to be pulled from vahydro
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table
-  metric: ["wd_mgd"] # 5-year avg metric called 'fiveyr_avg_mgy' , which is part of foundational data frame
-  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
+  metric_feat: ["wd_current_mgy"] #for non-modeled facility metrics 
+  map_by: ["wd_current_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
-  table_col: ["fiveyr_avg_mgy"] ##specific metrics included in flextable
+  table_col: ["fiveyr_avg_mgy", "wd_current_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
 ---
 
@@ -69,7 +70,8 @@ region <- params$region
 type <- params$type 
 model_version <- params$model_version
 runid_list <- params$runid_list
-metric <- params$metric
+metric_mod <- params$metric_mod #modeled metrics
+metric_feat <- params$metric_feat #non-modeled metrics 
 map_type <- params$map_type
 map_by <- params$map_by
 limit <- params$limit
@@ -169,9 +171,9 @@ centroid_coords <- function(data, geom_col) {
 
 # Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
-legend_titling <- function(metric, runid_list){
+legend_titling <- function(metric_mod, runid_list){
   
-  if(metric=="wd_mgd"){ #titles for wd_mgd
+  if(metric_mod=="wd_mgd"){ #titles for wd_mgd
     name <- "Withdrawal"
     unit <- "(MGD)"
     legend_title <- runid_list
@@ -182,7 +184,7 @@ legend_titling <- function(metric, runid_list){
   }
   }
   #titles for 5 yr avg
-  if(metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
+  if(metric_mod=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
     name <- "5-yr Avg Use"
     unit <- "(MGY)"
     legend_title<- paste(name,unit,sep="\n")
@@ -362,29 +364,29 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
                             fiveyr_avg_mgy = facils_foundatn$fiveyr_avg_mgy)#select cols of interest, not including coordinates which are from sources 
 ```
 
-# Pull Metrics
+# Pull Modeled Metrics
 
-```{r (New) Create df for Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
+```{r Create df for Modeled Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
 #df without metric_type
 ## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
-df <- data.frame(runid=runid_list, model_version, metric=metric)
+df <- data.frame(runid=runid_list, model_version, metric=metric_mod)
 if (type == "facility") {
-  if (metric != "fiveyr_avg_mgy"){
+  if (metric_mod != "fiveyr_avg_mgy"){
     for(i in 1:length(runid_list)){
-      df$runlabel[i] <- paste0(runid_list[i], '_', metric)
+      df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
     } 
   } else { #if 5-yr avg is metric of interest
-    df$runlabel <- df$metric
+    df$runlabel <- df$metric_mod
   }
 } else { #if type is source
-  df$runlabel <- df$metric
+  df$runlabel <- df$metric_mod
 }
 ```
 
 ```{r Facility-Level Metric Data, warning=FALSE, message=FALSE, echo=FALSE}
 ## Processing Facility-level metric & foundational data 
 if (type == "facility") {
- if (metric != "fiveyr_avg_mgy") { #metric not 5 yr avg
+ if (metric_mod != "fiveyr_avg_mgy") { #metric not 5 yr avg
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest from vahydro
     metric=FALSE, runids=df, featureid='all', 
     entity_type='dh_feature', bundle='facility',
@@ -418,7 +420,7 @@ if (type == "facility") {
                       ON (a.Facility_hydroid = b.Facility_hydroid)" )
  
  
- } else if (metric =="fiveyr_avg_mgy") {
+ } else if (metric_mod =="fiveyr_avg_mgy") {
    #Get facility coordinates
    facil_bind <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b.Locality
                       FROM facils_foundatn as a
@@ -535,6 +537,16 @@ if (limit == "basins" | map_type == "basin") {
 
 ```
 
+```{r Feature Metric Pull (non-modeled metrics), echo=FALSE, message=FALSE, warning=FALSE}
+for (i in 1:nrow(facils$within)) {
+  facil <- RomProperty$new(ds,list(
+          featureid = facils$within$Facility_hydroid[i],
+          propname = metric_feat),
+          TRUE)
+  facils$within[i,metric_feat] <- facil$propvalue
+}
+```
+
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 if (map_type == "locality" || map_type == "region") {
@@ -646,7 +658,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  fn_mapgen(type, map_type, styles, metric, rivseg, bbox, segs, counties, roads, 
+  fn_mapgen(type, map_type, styles, metric_mod, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
   #assign map to environment
@@ -785,18 +797,18 @@ ft #display flextable
 
 rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
                   output_file = paste0(export_path,"mappingRMD_knit"),
-                  output_format = "pdf_document",
+                  output_format = "word_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Chesapeake", 
-                    region = "Shenandoah_2", 
+                    region = "MiddleJames_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
-                    metric = "wd_mgd", 
-                    map_type = "basin",
+                    metric_mod = "wd_mgd", 
+                    map_type = "region",
                     map_by = "fiveyr_avg_mgy",
-                    limit = "boundary",
+                    limit = "basins",
                     table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
                     bbox_type = "auto"))
 ```
