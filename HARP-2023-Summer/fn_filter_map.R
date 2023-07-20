@@ -35,4 +35,5 @@ if (distance > 300) {
   assign('labelsP', labelsP, envir = globalenv())
   assign('nhd_plot', nhd_plot, envir = globalenv())
   assign('roads_plot', roads_plot, envir = globalenv())
+  assign('textsize', textsize, envir = globalenv())
 }
