@@ -182,7 +182,7 @@ class(labelsP$bg.r) = "numeric"
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
-    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ], #road labels
+    geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ],
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
                          color=as.factor(colcode), 
@@ -191,7 +191,7 @@ class(labelsP$bg.r) = "numeric"
                      show.legend=NA,
                      size=textsize[1],
                      label.r=0.6, label.size=0.12, 
-                     #force=0, max.overlaps=1
+                     max.overlaps=2
     ) +
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
