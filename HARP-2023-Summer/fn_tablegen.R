@@ -19,7 +19,7 @@ ft <- line_spacing(ft, space = 1.25)
 ft <- theme_vanilla(ft)
 ft <- width(ft, j=1, width = 0.25)
 ft <- width(ft, j=2, width = 0.8)
-ft <- width(ft, j=(3:7), width = 1) #making sure rseg ID isn't cut off 
+ft <- width(ft, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off 
 ft <- align(ft, align = "left", part = "all")
   
 
