@@ -11,8 +11,8 @@ output: pdf_document #overridden by output_format in render command
 params: 
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Montgomery"]
-  region: ["MiddleJames_3"]    
+  locality: ["Fairfax County"]
+  region: ["Eastern_Shore"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -23,11 +23,12 @@ params:
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wd_current_mgy"] #for non-modeled facility metrics 
-  map_by: ["wd_current_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
+  map_by: ["runid_13_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
-  table_col: ["fiveyr_avg_mgy", "wd_current_mgy"] ##specific metrics included in flextable
+  table_col: ["runid_11_wd_mgd", "runid_13_wd_mgd", "wd_current_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
 ---
 
@@ -70,8 +71,8 @@ region <- params$region
 type <- params$type 
 model_version <- params$model_version
 runid_list <- params$runid_list
-metric_mod <- params$metric_mod #modeled metrics
-metric_feat <- params$metric_feat #non-modeled metrics 
+metric_mod <- params$metric_mod
+metric_feat <- params$metric_feat
 map_type <- params$map_type
 map_by <- params$map_by
 limit <- params$limit
@@ -198,7 +199,6 @@ legend_titling <- function(metric_mod, runid_list){
 ```{r Pull Foundational Data w/ github_location, echo=FALSE} 
 facils <- list() #create empty list to store dfs
 # the variable "github_location" should be in config.local and provides easy access to these resources
-# Thus, no need to change code here, rather, the user changes their own config.
 furl = paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv")
 facils$foundatn <- fread(furl) # Foundational sources/MP data
 facilities_df <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
@@ -220,10 +220,6 @@ if (!"all" %in% names(segs)) { #will execute loop when segs$all not yet pulled
 counties <- list() # County Features data
 counties$df <- ds$get('dh_feature', config=list(bundle='usafips')) #collect fips codes for counties
 
-#----From Public Webpages----
-#roads <- download_read(url="https://www2.census.gov/geo/tiger/TIGER2022/PRISECROADS/tl_2022_51_prisecroads.zip", 
-#                          filetype="shp", zip=TRUE) # (shp) for US states & primary roads
-
 # --From Github--
 # download roads, regions and cities 
 roads <- download_read(
@@ -238,12 +234,9 @@ cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-S
 
 ```{r Region Geom Processing, echo=FALSE}
 ## Processing and combining locality geometries into their regions 
-
-#specific edits to duplicates and naming 
-regions[regions == "Fairfax"] <- "Fairfax County" #Fairfax should be fairfax county
-counties$df <- counties$df[counties$df$hydroid != 454857,] #remove incorrect duplicate of Rockingham
-counties$df <- counties$df[grepl(51,counties$df$dh_fips),] #removing counties outside of VA
-names(counties$df)[names(counties$df) == 'dh_geofield.geom'] <- "dh_geofield" #columns from vahydro have different names as of 7/10:
+counties$df <- counties$df[grepl(51,counties$df$dh_fips),] #removing counties outside of VA using the fips code
+counties$df$name <- sub(" County", "", counties$df$name) #remove 'County' to match regional planning groups, needs to also replace space before 
+names(counties$df)[names(counties$df) == 'dh_geofield.geom'] <- "dh_geofield" #columns from vahydro have different names as of 7/10
 
 counties_df <- counties$df #needed for sqldf
 counties_df <- sqldf("SELECT *
@@ -315,7 +308,6 @@ counties$sf <- st_as_sf(counties$sp)
 counties$sf <- centroid_coords(counties$sf, "geometry")
 st_crs(counties$sf) <- 4326
 
-
 #----Cities----
 cities <- cities[cities$ST == 'VA',] #VA cities
 # Remove city/town names that match their county/locality name
@@ -353,8 +345,9 @@ facils_foundatn <- facils$foundatn
 facils_foundatn <- sqldf("select facils_foundatn.*,
                     sum(fiveyr_avg_mgy) as sum
                     from facils_foundatn
-                    group by Facility_hydroid") #all source-related data now only applies to 1 source (random) within the facil (coords!)
-facils_foundatn <- facils_foundatn[ , !names(facils_foundatn) == 'fiveyr_avg_mgy'] #rm original metric col, from 1 of the sources 
+                    group by Facility_hydroid") #all source-related data now only applies to 1 source (random) within the facil 
+
+facils_foundatn <- facils_foundatn[ , !names(facils_foundatn) == 'fiveyr_avg_mgy'] #rm original metric col, from 1 of the sources
 names(facils_foundatn)[names(facils_foundatn) == 'sum'] <- 'fiveyr_avg_mgy' #rename summed metric col
 facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroid,
                             Facility = facils_foundatn$Facility,
@@ -370,23 +363,23 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 #df without metric_type
 ## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
 df <- data.frame(runid=runid_list, model_version, metric=metric_mod)
-if (type == "facility") {
-  if (metric_mod != "fiveyr_avg_mgy"){
+#if (type == "facility") { #modeled metrics pulled every facility-level run 
+#  if (metric_mod != "fiveyr_avg_mgy"){
     for(i in 1:length(runid_list)){
       df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
     } 
-  } else { #if 5-yr avg is metric of interest
-    df$runlabel <- df$metric_mod
-  }
-} else { #if type is source
-  df$runlabel <- df$metric_mod
-}
+#  } else { #if 5-yr avg is metric of interest
+#    df$runlabel <- df$metric_mod
+#  }
+#} else { #if type is source
+#  df$runlabel <- df$metric_mod
+#}
 ```
 
 ```{r Facility-Level Metric Data, warning=FALSE, message=FALSE, echo=FALSE}
 ## Processing Facility-level metric & foundational data 
-if (type == "facility") {
- if (metric_mod != "fiveyr_avg_mgy") { #metric not 5 yr avg
+if (type == "facility") { #modeled metrics pulled every run 
+# if (metric_mod != "fiveyr_avg_mgy") { #metric not 5 yr avg
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest from vahydro
     metric=FALSE, runids=df, featureid='all', 
     entity_type='dh_feature', bundle='facility',
@@ -420,15 +413,15 @@ if (type == "facility") {
                       ON (a.Facility_hydroid = b.Facility_hydroid)" )
  
  
- } else if (metric_mod =="fiveyr_avg_mgy") {
-   #Get facility coordinates
-   facil_bind <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b.Locality
-                      FROM facils_foundatn as a
-                      LEFT OUTER JOIN facilities_df as b
-                      ON (a.Facility_hydroid = b.Facility_hydroid)" )
-   
-  facils$all <- facil_bind
- }
+# } else if (metric_mod =="fiveyr_avg_mgy") {
+#   #Get facility coordinates
+#   facil_bind <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b.Locality
+#                      FROM facils_foundatn as a
+#                      LEFT OUTER JOIN facilities_df as b
+#                      ON (a.Facility_hydroid = b.Facility_hydroid)" )
+#   
+#  facils$all <- facil_bind
+# }
 } else { #if type = source
   facils$all <- facils$foundatn
 }
@@ -476,7 +469,6 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
     segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
     }
   }
-  
 } else if (map_type =="locality") { #for locality level
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
@@ -502,7 +494,6 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
 ```
 
 ```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
-
 #Explain section
 if (limit == "basins" | map_type == "basin") {
   segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
@@ -527,7 +518,6 @@ if (limit == "basins" | map_type == "basin") {
     st_crs(segs$region_sf) <- 4326
     facils$within <- st_filter(facils$sf, segs$region_sf)
   } 
-  
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c('Longitude','Latitude')
   facils$within <- st_drop_geometry(facils$within)
@@ -614,6 +604,10 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   legend_title <- paste0(map_by[i])
+  #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
+  if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
+    facils_within[map_by[i]] <- NA
+  }
   #Ordering & numbering data by the metric to be mapped 
   facils_within <- sqldf(paste0( #ordering the data using sqldf 
   "SELECT facils_within.*  
@@ -625,14 +619,13 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
    facils$within <- facils_within
  } 
   
-  metric_unit <- substr(map_by[i], nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric name
+  metric_unit <- substr(map_by[i], nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric 
   if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
   } else if (metric_unit == "mgy") {
   div <- wd_mgy
   }
-  
-  #Explain
+    #Explain
   mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
         FROM facils_within' , sep="")
   mp_layer <- sqldf(mp_layer_sql)
@@ -702,8 +695,6 @@ for (i in 1:length(map_by)) {
     height = 20)
 }
 
-
-#knitr::include_graphics(mapfilename) #display map PNG -- for testing 
 ```
 
 # Create Table 
@@ -801,7 +792,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Chesapeake", 
-                    region = "MiddleJames_2", 
+                    region = "NorthernVirginia", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
