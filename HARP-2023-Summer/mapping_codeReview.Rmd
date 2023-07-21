@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Fairfax County"]
-  region: ["Eastern_Shore"]    
+  region: ["UpperJames_2"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -22,13 +22,13 @@ params:
   model_version: ["vahydro-1.0"] #which model metric to be pulled from vahydro
   runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
-  metric_feat: ["wd_current_mgy"] #for non-modeled facility metrics 
+  metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  map_by: ["runid_13_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
-  table_col: ["runid_11_wd_mgd", "runid_13_wd_mgd", "wd_current_mgy"] ##specific metrics included in flextable
+  table_col: ["fiveyr_avg_mgy", "wsp2020_2040_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
 ---
 
@@ -319,10 +319,6 @@ cities <- sqldf("SELECT cities.*
                 ")
 remove(counties_df) #no longer needed
 
-#cities <- sqldf("SELECT * FROM cities WHERE CLASS is not 'Census Designated Place' ")
-#cities <- sqldf("SELECT * FROM cities WHERE POPULATION> '400' ")
-#cities[cities == "Census Designated Place"] <- "town"# change census designated place to town for mapping
-
 #Classify towns/cities based on population
 smallTowns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.1) & 
                      cities$POPULATION <  quantile(cities$POPULATION, 0.5),]
@@ -360,26 +356,16 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 # Pull Modeled Metrics
 
 ```{r Create df for Modeled Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
-#df without metric_type
-## To-do: make this usable with multiple metrics, a list of both modeled and foundational data 
 df <- data.frame(runid=runid_list, model_version, metric=metric_mod)
-#if (type == "facility") { #modeled metrics pulled every facility-level run 
-#  if (metric_mod != "fiveyr_avg_mgy"){
-    for(i in 1:length(runid_list)){
-      df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
-    } 
-#  } else { #if 5-yr avg is metric of interest
-#    df$runlabel <- df$metric_mod
-#  }
-#} else { #if type is source
-#  df$runlabel <- df$metric_mod
-#}
+#modeled metrics pulled every facility-level run 
+for(i in 1:length(runid_list)){
+  df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
+} 
 ```
 
 ```{r Facility-Level Metric Data, warning=FALSE, message=FALSE, echo=FALSE}
 ## Processing Facility-level metric & foundational data 
 if (type == "facility") { #modeled metrics pulled every run 
-# if (metric_mod != "fiveyr_avg_mgy") { #metric not 5 yr avg
   facil_featr <- om_vahydro_metric_grid( # pulling facilities and the metric of interest from vahydro
     metric=FALSE, runids=df, featureid='all', 
     entity_type='dh_feature', bundle='facility',
@@ -389,17 +375,10 @@ if (type == "facility") { #modeled metrics pulled every run
   facil_featr <- sqldf("SELECT * 
                       FROM facil_featr 
                       WHERE hydrocode not like 'wsp_%'")  # Filter out WSP entries
+
   
-  #join facility-level foundational data with model data here: featureid = hydroid
-#  facil_modf <- sqldf("SELECT a.*, b.fiveyr_avg_mgy
-#                      FROM facil_featr as a
-#                      LEFT OUTER JOIN facils_foundatn as b
-#                      ON (a.featureid = b.Facility_hydroid)" )
-  #result: same length as modeled data frame -> UNION needed for full - unsuccessful 
-  
-  #try merging instead of sqldf
   names(facils_foundatn)[names(facils_foundatn) == 'Facility_hydroid'] <- 'featureid'
-  facil_merge <- merge(facils_foundatn, facil_featr, by = "featureid", all=T)
+  facil_merge <- merge(facils_foundatn, facil_featr, by = "featureid", all=T) #merge/full join foundational & modeled facil data
   facil_modf <- facil_merge[, c("featureid", "Facility", 
                       "Locality", "Use_Type", 
                       "fiveyr_avg_mgy", df$runlabel[1], 
@@ -411,18 +390,7 @@ if (type == "facility") { #modeled metrics pulled every run
                       FROM facil_modf as a
                       LEFT OUTER JOIN facilities_df as b
                       ON (a.Facility_hydroid = b.Facility_hydroid)" )
- 
- 
-# } else if (metric_mod =="fiveyr_avg_mgy") {
-#   #Get facility coordinates
-#   facil_bind <- sqldf("SELECT a.*, b.Longitude, b.Latitude, b.Locality
-#                      FROM facils_foundatn as a
-#                      LEFT OUTER JOIN facilities_df as b
-#                      ON (a.Facility_hydroid = b.Facility_hydroid)" )
-#   
-#  facils$all <- facil_bind
-# }
-} else { #if type = source
+} else { #if type = source, no modeled metrics pulled 
   facils$all <- facils$foundatn
 }
 ```
@@ -524,7 +492,6 @@ if (limit == "basins" | map_type == "basin") {
   facils$within <- cbind(facils$within, coords)
 }
 #need to turn point geom into coords and region after geo drop
-
 ```
 
 ```{r Feature Metric Pull (non-modeled metrics), echo=FALSE, message=FALSE, warning=FALSE}
@@ -702,13 +669,20 @@ for (i in 1:length(map_by)) {
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
-#add number, locality, river segment and facility columns regardless of type
+#create initial table
 table <- data.frame(
   Number= facils$within$NUM,
-  Facility=facils$within$Facility,
-  Locality = facils$within$Locality,
-  Rivseg= facils$within$riverseg
+  Facility=facils$within$Facility
 )
+
+#for source type only add mp name and source type to table
+if (type=="source"){
+  table$Source = facils$within$MP_Name  
+  table$Source_Type = facils$within$Source_Type
+}
+
+table$Locality = facils$within$Locality
+
 #add rivseg names
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
@@ -719,12 +693,7 @@ for(i in 1:nrow(table)){
     }
 }
 
-#for source type only add mp name and source type to table
-if (type=="source"){
-  table$Source = facils$within$MP_Name  
-  table$Source_Type = facils$within$Source_Type
-}
-
+table$Rivseg= facils$within$riverseg #add rivseg ID
 
 # for facility type only add permitted capacity from vahydro instead of measuring point info 
 if (type=="facility"){
@@ -770,7 +739,7 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ")
 fn_tablegen(table) #flextable saved as var ft
 ```
 
-# Display Map & Table- Editable Render Command
+# Display Map & Table
 
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%'}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
@@ -782,7 +751,6 @@ ft #display flextable
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
-
 # This section can be edited by planners to change params for rendering the document, see beginning params section for explanations
 # Also ensure your export_path in config file is properly declared
 
@@ -791,15 +759,16 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   output_format = "word_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
-                    locality = "Chesapeake", 
-                    region = "NorthernVirginia", 
+                    locality = "Montgomery", 
+                    region = "York_James_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
-                    metric_mod = "wd_mgd", 
+                    metric_mod = "wd_mgd",
+                    metric_feat = "wsp2020_2040_mgy",
                     map_type = "region",
                     map_by = "fiveyr_avg_mgy",
-                    limit = "basins",
-                    table_col = c("runid_11_wd_mgd", "runid_13_wd_mgd", "fiveyr_avg_mgy"),
+                    limit = "boundary",
+                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
 ```
