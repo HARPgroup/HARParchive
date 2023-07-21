@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Fairfax County"]
-  region: ["Eastern_Shore"]    
+  region: ["MiddleJames_2"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -24,11 +24,11 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
-  limit: ["boundary"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
-  table_col: ["runid_11_wd_mgd"] ##specific metrics included in flextable
+  limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
+  table_col: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
 ---
 
@@ -172,9 +172,9 @@ centroid_coords <- function(data, geom_col) {
 
 # Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
-legend_titling <- function(metric_mod, runid_list){
+legend_titling <- function(metric, runid_list){
   
-  if(metric_mod=="wd_mgd"){ #titles for wd_mgd
+  if(metric=="wd_mgd"){ #titles for wd_mgd
     name <- "Withdrawal"
     unit <- "(MGD)"
     legend_title <- runid_list
@@ -185,7 +185,7 @@ legend_titling <- function(metric_mod, runid_list){
   }
   }
   #titles for 5 yr avg
-  if(metric_mod=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
+  if(metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
     name <- "5-yr Avg Use"
     unit <- "(MGY)"
     legend_title<- paste(name,unit,sep="\n")
@@ -571,6 +571,7 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   legend_title <- paste0(map_by[i])
+  #legend_title <- legend_titling(map_by[i], runid_list) #-- untested
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
   if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
     facils_within[map_by[i]] <- NA
@@ -715,10 +716,10 @@ if (type=="facility"){
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
 }
 
-#metric col of interest may not exist if none were found in extent: don't break if this is the case 
-if (table_col[i] %in% colnames(facils$within)) {
+for (i in 1:length(table_col)){
+  #metric col of interest may not exist if none were found in extent: don't break if this is the case 
+  if (table_col[i] %in% colnames(facils$within)) {
   #adding requested columns to table 
-  for (i in 1:length(table_col)){
     table[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2) #round all values to 2 decimal place digits
   }
 }
@@ -763,7 +764,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "York_James_2", 
+                    region = "MiddleJames_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
@@ -771,7 +772,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     metric_feat = "wsp2020_2040_mgy",
                     map_type = "region",
                     map_by = "fiveyr_avg_mgy",
-                    limit = "boundary",
-                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
+                    limit = "basins",
+                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
 ```

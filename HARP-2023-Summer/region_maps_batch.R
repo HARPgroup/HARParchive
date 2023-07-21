@@ -30,7 +30,7 @@ for (i in (1:nrow(region_names))) {
                       map_type = "region",
                       map_by = "fiveyr_avg_mgy",
                       limit = "boundary",
-                      table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy"),
+                      table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                       bbox_type = "auto"))
   
 }
