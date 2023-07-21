@@ -53,10 +53,16 @@ labels <- maplabs$final
  #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
+
+  #Filtering what's plotted by size of boundary box 
+  fn_filter_map(labels, nhd, roads, distance)
+  st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
+  labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
+  class(labelsP$bg.r) = "numeric"
   
  #Generate basemap using the given boundary box 
   bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
-  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
+  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=zoom) #used for reverse fill
   basemap <- ggmap(basemap_0)
 
  #For reverse-fill: darken area of map outside basins 
@@ -74,15 +80,7 @@ labels <- maplabs$final
 #  basemap_0 <- st_as_sf(basemap_0)
 #  st_crs(basemap_0) <- 4326
     
-#----Filtering what's plotted by size of boundary box---- 
-fn_filter_map(labels, nhd, roads, distance)
-
-st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
-
-labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
-class(labelsP$bg.r) = "numeric"
-  
-#----Legend & Titling----
+#----Map Title---
   #For map title:
   if (map_type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
@@ -107,7 +105,6 @@ class(labelsP$bg.r) = "numeric"
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
- 
  
  #Merging different outline layers into 1 df for mapping & legend 
 # county_outlines <- counties$sf[c("name","geometry")]
@@ -177,8 +174,8 @@ class(labelsP$bg.r) = "numeric"
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
     # City Points
-    geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
-               aes(x=lng, y=lat), color ="black", size=2) +
+#    geom_point(data = labelsP[labelsP$class=="city",], 
+#               aes(x=lng, y=lat), color ="black", size=2) +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
@@ -191,18 +188,51 @@ class(labelsP$bg.r) = "numeric"
                      show.legend=NA,
                      size=textsize[1],
                      label.r=0.6, label.size=0.12, 
-                     max.overlaps=2
+                     max.overlaps=1
     ) +
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
     # Basin Labels (by riverseg ID)
-    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) + # no error up to here 
-    # Text Labels
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) + 
+    # NHD Labels
     new_scale("size") + new_scale("color") +
-    #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
-    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
+    geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"
+                                     | labelsP$class == "city"| labelsP$class == "town"| labelsP$class == "smallTown"
+                                     | labelsP$class == "county"), ],
+                    aes(x=lng, y=lat, label=label,
+                        fontface=fontface, family=fontfam, angle=angle,
+                        segment.color=segcol, segment.size=segsize,
+                        bg.color="white", bg.r=bg.r,
+                        size=sizecode, 
+                        color=as.factor(colcode),
+                    ), 
+                    show.legend=FALSE,
+                    force= 40, direction="both",
+                    min.segment.length=0.5, max.overlaps = 1
+    ) + 
+    scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE ) +
+    # City/Town Labels 
+    new_scale("size") + new_scale("color") +
+    geom_text_repel(data = labelsP[(labelsP$class == c("city","town","smallTown")), ], 
+                    aes(x=lng, y=lat, label=label,
+                        fontface=fontface, family=fontfam, angle=angle,
+                        segment.color=segcol, segment.size=segsize,
+                        bg.color="white", bg.r=bg.r,
+                        size=sizecode, 
+                        color=as.factor(colcode),
+                    ), 
+                    show.legend=FALSE,
+                    force= 40, direction="both",
+                    min.segment.length=0.5, max.overlaps = 1
+    ) + 
+    scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE ) +
+    # County Labels
+    new_scale("size") + new_scale("color") +
+    geom_text_repel(data = labelsP[(labelsP$class == "county"), ], 
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
                         segment.color=segcol, segment.size=segsize,
@@ -215,9 +245,9 @@ class(labelsP$bg.r) = "numeric"
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE ) 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE )
     
-## Plotting sources/MPs
+  # Plotting sources/MPs
   if (type == "source") {
     map <- map +
     # Plotting using bins in a single layer:
