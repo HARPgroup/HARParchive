@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["locality"] #should be one of: basin, locality, or region 
+  map_type: ["region"] #should be one of: basin, locality, or region 
   
 #determining what metric(s) will be pulled and mapped
   model_version: ["vahydro-1.0"] #which model metric to be pulled from vahydro
@@ -24,7 +24,7 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  map_by: ["wsp2020_2040_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
@@ -40,19 +40,10 @@ library(data.table)
 library(hydrotools)
 library(mgsub)
 library(sp)
-library(rgeos)
 library(sf)
 library(nhdplusTools)
-library(ggmap)
-library(raster)
-library(ggplot2)
-library(ggnewscale)   
-library(ggsn)
-library(ggspatial)
-library(ggrepel)
 library(png)
 library(flextable)
-library(geosphere)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -570,7 +561,7 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   #legend_title <- paste0(map_by[i])
-  legend_title <- legend_titling(map_by[i], runid_list) #-- untested
+  legend_title <- legend_titling(map_by[i], runid_list)
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
   if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
     facils_within[map_by[i]] <- NA
@@ -695,14 +686,16 @@ for(i in 1:nrow(table)){
 
 table$Rivseg= facils$within$riverseg #add rivseg ID
 
-# for facility type only add permitted capacity from vahydro instead of measuring point info 
+# for facility type only add permitted capacity from vahydro 
 if (type=="facility"){
+  table$vwp_max_mgy <- NA #create empty col for permit capac storage
     for (i in 1:nrow(facils$within)){ #adding permitted capacity
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
-        propcode= "vahydro-1.0"), 
+        propcode= "vahydro-1.0",
+        varkey= "om_water_system_element"), 
       TRUE)
-        if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
+      if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
         table$vwp_max_mgy[i] <- "No Permit"
       } else {
       permCapac <- RomProperty$new(ds,list(
@@ -769,7 +762,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     runid_list = c("runid_11","runid_13"), 
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    map_type = "region",
+                    map_type = "locality",
                     map_by = "fiveyr_avg_mgy",
                     limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"),
