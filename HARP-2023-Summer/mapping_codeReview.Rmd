@@ -557,9 +557,14 @@ roadlabs <- fn_road_labs(data = roads)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road", "nhd"))
 ```
 
+#Rivseg Maps Data Processing
+```{r, data processing for rivseg maps}
+
+```
+
 # Create Map
 
-```{r Data into Bins & Map, echo=FALSE, warning=FALSE, message=FALSE}
+```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
 names(facils$within)[names(facils$within) == 'Latitude.1'] <- 'Latitude'
@@ -573,8 +578,10 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   legend_title <- paste0(map_by[i])
   #legend_title <- legend_titling(map_by[i], runid_list) #-- untested
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
+  
   if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
     facils_within[map_by[i]] <- NA
+    metMessage <- TRUE
   }
   #Ordering & numbering data by the metric to be mapped 
   facils_within <- sqldf(paste0( #ordering the data using sqldf 
@@ -634,7 +641,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   # Solution: maplabs object needs to be re-generated
 ```
 
-```{r Save Map as PNG, echo=FALSE}
+```{r Save Map as PNG, echo=FALSE, message=TRUE}
 #name maps based on map type
 if (map_type == "basin") {
   map_name <- rivseg
@@ -649,6 +656,7 @@ if (type == "source") {
 } else if (type == "facility") {
   map_name <- paste0(map_name, '_facils')
 }
+
 
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
@@ -745,12 +753,35 @@ fn_tablegen(table) #flextable saved as var ft
 
 # Display Map & Table
 
-```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%'}
+```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+if (metMessage == TRUE) {
+  message("The metric requested does not exist for this map.")
+  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+}
+
 ```
 
-```{r View Table, echo=FALSE, out.width='100%'}
+```{r View Table, echo=FALSE, out.width='100%', message=TRUE}
+if (metMessage == TRUE) {
+  message("The metric requested does not exist for this table (see above message)")
+  message("Note column requested will return all NA values")
+}
+
 ft #display flextable
+
+
+```
+
+#River Segment Map Creation
+```{r, Rivseg Map Creation}
+
+
+```
+
+#Rivseg Map Table Creation
+```{r, rivseg table creation}
+
 ```
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
@@ -759,20 +790,20 @@ ft #display flextable
 # Also ensure your export_path in config file is properly declared
 
 rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
-                  output_file = paste0(export_path,"mappingRMD_knit"),
-                  output_format = "word_document",
+                  output_file = paste0(export_path,"mappingRMD_knitTests"),
+                  output_format = "pdf_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
                     region = "MiddleJames_2", 
-                    type = "facility", 
+                    type = "source", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     map_type = "region",
-                    map_by = "fiveyr_avg_mgy",
+                    map_by = "runid_13_wd_mgd",
                     limit = "basins",
-                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"),
+                    table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
 ```
