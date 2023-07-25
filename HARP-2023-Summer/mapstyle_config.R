@@ -334,6 +334,156 @@ styles$default$l <- data.frame(class="smallTown",
                               fillcode="NA"
 )
 
+#----Colorblind Aesthetics:----
+  #based on Okabe and Ito colorblind scheme mentioned in:
+    #https://www.nceas.ucsb.edu/sites/default/files/2022-06/Colorblind%20Safe%20Color%20Schemes.pdf
+styles$colorblind$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow"),
+                                     color=c("honeydew","#009E73","#56B4E9","black","black","#D55E00","black", "#4040408F")
+)
+styles$colorblind$color$metrics <- data.frame(row.names=c("Surface Water","Groundwater","Nondistinctive"),
+                                          color=c("#F0E442","#CC79A7","#E69F00")
+)
+styles$colorblind$color$text <- data.frame(row.names=c("interstate","staterte","ushwy_cities","nhd","county","rsegs"),
+                                       color=c("white","white","black","#56B4E9","#009E73", "#D55E00")
+)
+styles$colorblind$color$fill <- data.frame(row.names=c("interstate","staterte","ushwy"),
+                                       color=c("#0072B2","#009E73","white")
+)
+
+
+styles$colorblind$a <- data.frame(class="I", #label type identifier; should match up with the labels df so aesthetics can be joined to it
+                              fontface="plain", #plain, bold, italic, bold.italic
+                              fontfam="Comic Sans MS",
+                              angle=0, #angle of the text; e.g. river names are tilted 15 degrees for clarity
+                              bg.r="NA", #thickness of the text's white outline; not applicable to labels with backgrounds (i.e. roads)
+                              segsize=0, #lollipop label line width
+                              segcol="NA", #lollipop label line color; typically matches colcode
+                              colcode=1, #denotes color of the text; corresponds to item in textcol
+                              sizecode=1, #size of text; ranges smallest=1 to largest=4; corresponds to variable textsize, which depends on extent
+                              fillcode=1 #denotes label background colors; corresponds to item in fillcol; applies to road bubbles
+)
+styles$colorblind$b <- data.frame(class="S",
+                              fontface="plain",
+                              fontfam="Comic Sans MS",
+                              angle=0,
+                              bg.r="NA",
+                              segsize=0,
+                              segcol="NA",
+                              colcode=2,
+                              sizecode=1, 
+                              fillcode=2
+)
+styles$colorblind$c <- data.frame(class="U",
+                              fontface="plain",
+                              fontfam="Comic Sans MS",
+                              angle=0,
+                              bg.r="NA",
+                              segsize=0,
+                              segcol="NA",
+                              colcode=3,
+                              sizecode=1, 
+                              fillcode=3
+)
+styles$colorblind$d <- data.frame(class="town",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+styles$colorblind$e <- data.frame(class="city",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+styles$colorblind$f <- data.frame(class="waterbody_lg",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=1, 
+                              fillcode="NA"
+)
+styles$colorblind$g <- data.frame(class="waterbody_med",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=.75, 
+                              fillcode="NA"
+)
+styles$colorblind$h <- data.frame(class="waterbody_sm",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=.5, 
+                              fillcode="NA"
+)
+styles$colorblind$i <- data.frame(class="stream",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=15,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+styles$colorblind$j <- data.frame(class="majorRiver",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=15,
+                              bg.r=.05,
+                              segsize=.75,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=3, 
+                              fillcode="NA"
+)
+styles$colorblind$k <- data.frame(class="county",
+                              fontface="bold.italic",
+                              fontfam="Luminari",
+                              angle=0,
+                              bg.r=.03,
+                              segsize=.1,
+                              segcol=5,
+                              colcode=5,
+                              sizecode=4, 
+                              fillcode="NA"
+)
+styles$colorblind$l <- data.frame(class="smallTown",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
+)
+
 #----Creating Final List of Map Styles Data Frames:----
 for(i in 1:length(styles)){
   end <- length(styles[[i]])

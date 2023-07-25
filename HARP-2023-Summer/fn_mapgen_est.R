@@ -128,14 +128,14 @@ class(labelsP$bg.r) = "numeric"
   }
   borders <- st_as_sf(borders)
  
- #Generate map gg object
+ #----Generate map gg object----
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
     ggtitle(title) +
     # Lighten base-map to help readability
-    #geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+    #geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill=colors_sf["lightenBase",], alpha=0.3) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
