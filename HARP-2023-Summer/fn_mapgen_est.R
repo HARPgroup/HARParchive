@@ -203,7 +203,10 @@ borders <- st_as_sf(borders)
                     name= "Borders"
                     )
   
-  map <- map + new_scale("color") +
+  #declare rivsegs tidal
+  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
+ 
+   map <- map + new_scale("color") +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
@@ -227,6 +230,10 @@ borders <- st_as_sf(borders)
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
+     
+    #Rivseg Tidal Labels- not fully functional
+    #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
+    
     # Basin Labels (by riverseg ID)
     geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color=textcol[6],size=textsize[5],check_overlap=TRUE) + # no error up to here 
     # Text Labels
@@ -246,6 +253,9 @@ borders <- st_as_sf(borders)
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE ) 
+  
+
+
     
 ## Plotting sources/MPs
   if (type == "source") {
