@@ -31,18 +31,22 @@ for(i in 1:length(maplabs)){
   }
 
 ## aesthetics from styles$custom need to be joined to maplabs$all using the class column 
-styles_cus <- styles$custom
+text_aes <- style$text
 maplabs_all <- maplabs$all  
+
+textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
+label_fill <- styles[[map_style]]$color$fill$color
+
 ## extract colors for sf borders and metric bubbles
-colors_sf <- colors$custom$sf
-metric_col <- colors$custom$metrics
+colors_sf <- style$color$sf
+colors_metric <- style$color$metrics
 
 # join with sqldf 
 maplabs$final <- sqldf(
-  "SELECT styles_cus.*, maplabs_all.*  
-   FROM styles_cus 
+  "SELECT text_aes.*, maplabs_all.*  
+   FROM text_aes 
    LEFT OUTER JOIN maplabs_all
-      on (maplabs_all.class = styles_cus.class)"
+      on (maplabs_all.class = text_aes.class)"
   )
 
 labels <- maplabs$final
@@ -115,33 +119,12 @@ class(labelsP$bg.r) = "numeric"
  
  
  #Merging different border layers into 1 df for mapping & legend 
-# county_outlines <- counties$sf[c("name","geometry")]
-# county_outlines$class <- "countyline"
-# county_outlines$color = "gray27"
-# basin_outlines <- segs$basin_sf[c("name","bundle","geometry")]
-# names(basin_outlines)[names(basin_outlines) == 'bundle'] <- 'class'
-# basin_outlines$color = "sienna1"
-# 
-
-borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
-borders <- rbind(borders, segs$basin_sf[c("name","bundle","geometry")] )
-if (map_type=="region") {
-  borders <- rbind(borders, data.frame(name="region", bundle="region", geometry= st_geometry(segs$region_sf) ))
-}
-#borders$bundle <- mgsub(borders$bundle, pattern=c("county", "watershed", "region"), replacement=c(2.5,textsize[6],4.5) ) #line widths double as classifier for the legend
-borders <- st_as_sf(borders)
-
-#if (map_type=="region") {
-#  region_outline <- segs$region_sf
-#  region_outline$name <- region
-#  region_outline$class <- 'region'
-#  names(region_outline)[names(region_outline) == 'x'] <- 'geometry'
-#  st_geometry(region_outline) <- "geometry" #letting sf know which col now holds geometry
-#  region_outline$color = "black"
-#  outlines <- rbind(county_outlines,basin_outlines,region_outline)
-#} else { #for map types other than region
-#  outlines <- rbind(county_outlines,basin_outlines)
-#}
+  borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
+  borders <- rbind(borders, segs$basin_sf[c("name","bundle","geometry")] )
+  if (map_type=="region") {
+    borders <- rbind(borders, data.frame(name="region", bundle="region", geometry= st_geometry(segs$region_sf) ))
+  }
+  borders <- st_as_sf(borders)
  
  #Generate map gg object
   map <- basemap + #ggplot2::
@@ -150,7 +133,7 @@ borders <- st_as_sf(borders)
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
     ggtitle(title) +
     # Lighten base-map to help readability
-#    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
+    #geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
@@ -176,34 +159,32 @@ borders <- st_as_sf(borders)
 ##      geom_sf(data = segs$region_sf, color= colors_sf["region",], fill=NA, lwd=4.5, inherit.aes=F)
 ##   }
   
-  #Mapping all borders using 1 df called outlines, which will have 1 region line for map type region
+  #Mapping all borders using 1 df called borders, which will have 1 region line for map type region
   new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
- #   geom_sf(data = outlines, inherit.aes=FALSE, mapping = aes(color=color)) + #for identity scale, or (color = class) for manual scale
     
-  #     scale_color_identity(guide="legend") + 
     geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
             aes(color= bundle,
                 lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
                 linetype= bundle )
             ) +
         
-    scale_linetype_manual(values= c("county"= 1, "watershed"= 2,"region"= 1), ### new
-                          #breaks= c("county"= 1, "watershed"= 2,"region"= 1),
-                          labels= c("County", "Basin", "Region"),
+    scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), ### new
+                          labels= c("Region","County","Basin"),
                           name= "Borders"
                           ) +    
-    scale_colour_manual(values= c(colors_sf[c("county","rsegs","region"),]) ,
-                        breaks= c("county", "watershed","region"),
-                        labels= c("County", "Basin", "Region"),
+    scale_colour_manual(values= c(colors_sf[c("region","county","rsegs"),]) ,
+                        breaks= c("region","county","watershed"),
+                        labels= c("Region","County","Basin"),
                         name= "Borders",
                         ) +
     scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
-                    breaks= c(2.5,textsize[6],4.5),
-                    labels= c("County", "Basin", "Region"),
+                    breaks= c(4.5,2.5,textsize[6]),
+                    labels= c("Region","County","Basin"),
                     name= "Borders"
                     )
   
-  map <- map + new_scale("color") +
+  map <- map + 
+    new_scale("color") +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
@@ -245,7 +226,7 @@ borders <- st_as_sf(borders)
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE ) 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE )
     
 ## Plotting sources/MPs
   if (type == "source") {
@@ -263,16 +244,17 @@ borders <- st_as_sf(borders)
                       limits = lims,
                       name = legend_title[1]) +
     
-    scale_colour_manual(values= metric_col[c("Surface Water", "Groundwater"),] ,
+    scale_colour_manual(values= colors_metric[c("Surface Water", "Groundwater"),] ,
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
                         name= "Source Type",
-                        guide= guide_legend(override.aes=list(label="", size =5)) )            
+                        #guide= guide_legend(override.aes=list(label="", size =5))
+                        )            
   }  else if (type == "facility") { ## Plotting facilities 
     map <- map + 
       new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-              size = bin), color= metric_col["Surface Water",],
+              size = bin), color= colors_metric["Surface Water",],
               shape = 19) +
 
       scale_size_binned(range = c(2,20), 

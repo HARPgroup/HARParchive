@@ -36,19 +36,20 @@ wtbd_sm_pct_range <- c(0.25,0.6) #quantile range for classifying waterbodies as 
 wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as medium for mapping
 #large waterbodies will use max value from med_pct_range as min
   
-  
-#----Custom Aesthetics:----
-colors <- list()
 styles <- list()
-
-colors$custom$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
-                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
-)
-colors$custom$metrics <- data.frame(SourceType=c("Surface Water","Groundwater","Nondistinctive"),
+#----Custom Aesthetics:----
+styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow"),
+                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F")
+                              )
+styles$custom$color$metrics <- data.frame(row.names=c("Surface Water","Groundwater","Nondistinctive"),
                                     color=c("#F7FF00","#FF00FF","#FF9851")
-)
-colors$custom$text <- c("red","white","black","deepskyblue4","#003333")
-colors$custom$fill <- c("blue","#0B5F14","white")
+                                    )
+styles$custom$color$text <- data.frame(row.names=c("interstate","staterte","ushwy_cities","nhd","county","rsegs"),
+                                 color=c("red","white","black","deepskyblue4","#003333", "sienna3")
+                                 )
+styles$custom$color$fill <- data.frame(row.names=c("interstate","staterte","ushwy"),
+                                 color=c("blue","#0B5F14","white")
+                                 )
 
 
 styles$custom$a <- data.frame(class="I", #label type identifier; should match up with the labels df so aesthetics can be joined to it
@@ -183,149 +184,172 @@ styles$custom$l <- data.frame(class="smallTown",
                               sizecode=2, 
                               fillcode="NA"
 )
-#styles$custom$l <- data.frame(class="countyline",
-#                              color = "gray27",
-#                              lwd = 2.5,
-#                              linetype = "solid"
-#)
-#styles$custom$m <- data.frame(class="watershed",
-#                              color = "sienna1",
-#                              lwd = 1,
-#                              linetype = "twodash"
-#)
-#styles$custom$n <- data.frame(class="region",
-#                              color = "black",
-#                              lwd = 4.5,
-#                              linetype = "solid"
-#)
 
 
 #----Default Aesthetics:----
-colors$default$sf <- data.frame(geomsf_layer=c("lightenBase","county","nhd","roads","citypts","rsegs","shadow"),
-                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1", "#4040408F")
-)
-colors$default$metrics <- data.frame(SourceType=c("Surface Water","Groundwater","Nondistinctive"),
-                                    color=c("#F7FF00","#FF00FF","#FF9851")
-)
-colors$default$text <- c("red","white","black","deepskyblue4","#003333")
-colors$default$fill <- c("blue","#0B5F14","white")
+styles$default$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow"),
+                                     color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F")
+                                     )
+styles$default$color$metrics <- data.frame(row.names=c("Surface Water","Groundwater","Nondistinctive"),
+                                          color=c("#F7FF00","#FF00FF","#FF9851")
+                                          )
+styles$default$color$text <- data.frame(row.names=c("interstate","staterte","ushwy_cities","nhd","county","rsegs"),
+                                       color=c("red","white","black","deepskyblue4","#003333", "sienna3")
+                                       )
+styles$default$color$fill <- data.frame(row.names=c("interstate","staterte","ushwy"),
+                                       color=c("blue","#0B5F14","white")
+                                       )
 
 
-styles$default$a <- data.frame(class="Interstate",
+styles$default$a <- data.frame(class="I", #label type identifier; should match up with the labels df so aesthetics can be joined to it
+                              fontface="plain", #plain, bold, italic, bold.italic
+                              fontfam="Comic Sans MS",
+                              angle=0, #angle of the text; e.g. river names are tilted 15 degrees for clarity
+                              bg.r="NA", #thickness of the text's white outline; not applicable to labels with backgrounds (i.e. roads)
+                              segsize=0, #lollipop label line width
+                              segcol="NA", #lollipop label line color; typically matches colcode
+                              colcode=1, #denotes color of the text; corresponds to item in textcol
+                              sizecode=1, #size of text; ranges smallest=1 to largest=4; corresponds to variable textsize, which depends on extent
+                              fillcode=1 #denotes label background colors; corresponds to item in fillcol; applies to road bubbles
+)
+styles$default$b <- data.frame(class="S",
                               fontface="plain",
                               fontfam="Comic Sans MS",
                               angle=0,
                               bg.r="NA",
                               segsize=0,
                               segcol="NA",
-                              colcode=1,
+                              colcode=2,
                               sizecode=1, 
-                              fillcode=1
+                              fillcode=2
 )
-styles$default$b <- data.frame(class="StateRoute",
-                                 fontface="plain",
-                                 fontfam="Comic Sans MS",
-                                 angle=0,
-                                 bg.r="NA",
-                                 segsize=0,
-                                 segcol="NA",
-                                 colcode=2,
-                                 sizecode=1, 
-                                 fillcode=2
+styles$default$c <- data.frame(class="U",
+                              fontface="plain",
+                              fontfam="Comic Sans MS",
+                              angle=0,
+                              bg.r="NA",
+                              segsize=0,
+                              segcol="NA",
+                              colcode=3,
+                              sizecode=1, 
+                              fillcode=3
 )
-styles$default$c <- data.frame(class="USHwy",
-                                       fontface="plain",
-                                       fontfam="Comic Sans MS",
-                                       angle=0,
-                                       bg.r="NA",
-                                       segsize=0,
-                                       segcol="NA",
-                                       colcode=3,
-                                       sizecode=1, 
-                                       fillcode=3
+styles$default$d <- data.frame(class="town",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
 )
-styles$default$d <- data.frame(class="Town",
-                                       fontface="plain",
-                                       fontfam="sans",
-                                       angle=0,
-                                       bg.r=.05,
-                                       segsize=.5,
-                                       segcol=3,
-                                       colcode=3,
-                                       sizecode=2, 
-                                       fillcode="NA"
+styles$default$e <- data.frame(class="city",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
 )
-styles$default$e <- data.frame(class="MajorCity",
-                               fontface="plain",
-                               fontfam="sans",
-                               angle=0,
-                               bg.r=.05,
-                               segsize=.5,
-                               segcol=3,
-                               colcode=3,
-                               sizecode=2, 
-                               fillcode="NA"
+styles$default$f <- data.frame(class="waterbody_lg",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=1, 
+                              fillcode="NA"
 )
-styles$default$f <- data.frame(class="Waterbody",
-                               fontface="bold",
-                               fontfam="serif",
-                               angle=0,
-                               bg.r=.1,
-                               segsize=.5,
-                               segcol=4,
-                               colcode=4,
-                               sizecode=2, 
-                               fillcode="NA"
+styles$default$g <- data.frame(class="waterbody_med",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=.75, 
+                              fillcode="NA"
 )
-styles$default$g <- data.frame(class="Stream",
-                               fontface="bold",
-                               fontfam="serif",
-                               angle=15,
-                               bg.r=.1,
-                               segsize=.5,
-                               segcol=4,
-                               colcode=4,
-                               sizecode=2, 
-                               fillcode="NA"
+styles$default$h <- data.frame(class="waterbody_sm",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=0,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=.5, 
+                              fillcode="NA"
 )
-styles$default$h <- data.frame(class="MajorRivr",
-                               fontface="bold",
-                               fontfam="serif",
-                               angle=15,
-                               bg.r=.05,
-                               segsize=.75,
-                               segcol=4,
-                               colcode=4,
-                               sizecode=3, 
-                               fillcode="NA"
+styles$default$i <- data.frame(class="stream",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=15,
+                              bg.r=.1,
+                              segsize=.5,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=2, 
+                              fillcode="NA"
 )
-styles$default$i <- data.frame(class="County",
-                               fontface="bold.italic",
-                               fontfam="Luminari",
-                               angle=0,
-                               bg.r=.03,
-                               segsize=.1,
-                               segcol=5,
-                               colcode=5,
-                               sizecode=4, 
-                               fillcode="NA"
+styles$default$j <- data.frame(class="majorRiver",
+                              fontface="bold",
+                              fontfam="serif",
+                              angle=15,
+                              bg.r=.05,
+                              segsize=.75,
+                              segcol=4,
+                              colcode=4,
+                              sizecode=3, 
+                              fillcode="NA"
 )
-
-
+styles$default$k <- data.frame(class="county",
+                              fontface="bold.italic",
+                              fontfam="Luminari",
+                              angle=0,
+                              bg.r=.03,
+                              segsize=.1,
+                              segcol=5,
+                              colcode=5,
+                              sizecode=4, 
+                              fillcode="NA"
+)
+styles$default$l <- data.frame(class="smallTown",
+                              fontface="plain",
+                              fontfam="sans",
+                              angle=0,
+                              bg.r=.05,
+                              segsize=.5,
+                              segcol=3,
+                              colcode=3,
+                              sizecode=2, 
+                              fillcode="NA"
+)
 
 #----Creating Final List of Map Styles Data Frames:----
 for(i in 1:length(styles)){
   end <- length(styles[[i]])
   
   for(s in 1:length(styles[[i]])){
-    if(s==1){
-      styles[[i]]$all <- styles[[i]][[s]]
+  #  if(names(styles[[i]][s])=="color"){
+  #    s <- s+1
+  #  }
+    if(names(styles[[i]][s])!="color" & exists("text", styles[[i]]) ){
+      styles[[i]]$text <- rbind(styles[[i]]$text, styles[[i]][[s]])
     }
-    if(s!=1){
-      styles[[i]]$all <- rbind(styles[[i]]$all, styles[[i]][[s]])
+    if(names(styles[[i]][s])!="color" & !exists("text", styles[[i]]) ){
+      styles[[i]]$text <- styles[[i]][[s]]
     }
     if(s==end){
-      styles[[i]] <- data.frame(styles[[i]]$all)
+      styles[[i]] <- list(text=data.frame(styles[[i]]$text),color=styles[[i]]$color)
       remove(end,i,s)
     }
   }

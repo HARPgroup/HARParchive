@@ -17,6 +17,9 @@ params:
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
   map_type: ["region"] #should be one of: basin, locality, or region 
+
+#determining map aesthetics like colors, fonts, font sizes
+  map_style: ["custom"]
   
 #determining what metric(s) will be pulled and mapped
   model_version: ["vahydro-1.0"] #which model metric to be pulled from vahydro
@@ -65,6 +68,7 @@ runid_list <- params$runid_list
 metric_mod <- params$metric_mod
 metric_feat <- params$metric_feat
 map_type <- params$map_type
+map_style <- params$map_style
 map_by <- params$map_by
 limit <- params$limit
 table_col <- params$table_col
@@ -539,8 +543,6 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 
 ```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
 ## All labeling now done in this chunk
-textcol <- colors$default$text #from mapping aesthetics function
-label_fill <- colors$default$fill 
 rm(maplabs)
 nhdlabs <- fn_nhd_labs(data = nhd)
 roadlabs <- fn_road_labs(data = roads)
@@ -616,7 +618,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  fn_mapgen(type, map_type, styles, metric_mod, rivseg, bbox, segs, counties, roads, 
+  fn_mapgen(type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
   #assign map to environment
@@ -783,17 +785,18 @@ ft #display flextable
 
 rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"), 
                   output_file = paste0(export_path,"mappingRMD_knitTests"),
-                  output_format = "pdf_document",
+                  output_format = "word_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "MiddleJames_2", 
+                    region = "NorthernVirginia", 
                     type = "source", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     map_type = "region",
+                    map_style = "default",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
