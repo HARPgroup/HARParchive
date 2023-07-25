@@ -1,10 +1,13 @@
 ## Establishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
+library(sp)
 library(rgeos)
 library(ggmap)
 library(raster)
 library(ggplot2)
-library(ggnewscale)   
+library(ggnewscale)
+library(mgsub)
+library(sf)
 library(ggsn)
 library(ggspatial)
 library(ggrepel)
@@ -30,6 +33,9 @@ for(i in 1:length(maplabs)){
 ## aesthetics from styles$custom need to be joined to maplabs$all using the class column 
 styles_cus <- styles$custom
 maplabs_all <- maplabs$all  
+## extract colors for sf borders and metric bubbles
+colors_sf <- colors$custom$sf
+metric_col <- colors$custom$metrics
 
 # join with sqldf 
 maplabs$final <- sqldf(
@@ -108,7 +114,7 @@ class(labelsP$bg.r) = "numeric"
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
  
  
- #Merging different outline layers into 1 df for mapping & legend 
+ #Merging different border layers into 1 df for mapping & legend 
 # county_outlines <- counties$sf[c("name","geometry")]
 # county_outlines$class <- "countyline"
 # county_outlines$color = "gray27"
@@ -116,6 +122,15 @@ class(labelsP$bg.r) = "numeric"
 # names(basin_outlines)[names(basin_outlines) == 'bundle'] <- 'class'
 # basin_outlines$color = "sienna1"
 # 
+
+borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
+borders <- rbind(borders, segs$basin_sf[c("name","bundle","geometry")] )
+if (map_type=="region") {
+  borders <- rbind(borders, data.frame(name="region", bundle="region", geometry= st_geometry(segs$region_sf) ))
+}
+#borders$bundle <- mgsub(borders$bundle, pattern=c("county", "watershed", "region"), replacement=c(2.5,textsize[6],4.5) ) #line widths double as classifier for the legend
+borders <- st_as_sf(borders)
+
 #if (map_type=="region") {
 #  region_outline <- segs$region_sf
 #  region_outline$name <- region
@@ -138,46 +153,62 @@ class(labelsP$bg.r) = "numeric"
 #    geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill="honeydew", alpha=0.3) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd_plot, 
-            inherit.aes=FALSE, color="deepskyblue3", 
+            inherit.aes=FALSE, color= colors_sf["nhd",], 
             mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
-            inherit.aes=FALSE, fill="deepskyblue3", size=1) +
+            inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) +
+    
     # County Borders
    #   new_scale("color") +
-    geom_sf(data = counties$sf, color="gray27", 
-            fill=NA, lwd=2.5, inherit.aes = F) +
+##    geom_sf(data = counties$sf, color= colors_sf["county",], 
+##            fill=NA, lwd=2.5, inherit.aes = F) +
     # Basin Outlines
-    geom_sf(data = segs$basin_sf, color="sienna1", 
-            fill=NA, lwd=textsize[6], linetype="dashed", inherit.aes = F) 
+##    geom_sf(data = segs$basin_sf, color= colors_sf["rsegs",], 
+##            fill=NA, lwd=textsize[6], linetype="dashed", inherit.aes = F) 
    
    #   scale_color_identity(guide = "legend")
   
     # Region Outline
-   if (map_type == "region") { # thicker boundary around region
-    map <- map + 
-      geom_sf(data = segs$region_sf, color="black", fill=NA, lwd=4.5, inherit.aes=F)
-   }
+##   if (map_type == "region") { # thicker boundary around region
+##    map <- map + 
+##      geom_sf(data = segs$region_sf, color= colors_sf["region",], fill=NA, lwd=4.5, inherit.aes=F)
+##   }
   
   #Mapping all borders using 1 df called outlines, which will have 1 region line for map type region
- #     new_scale_color() +
+  new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
  #   geom_sf(data = outlines, inherit.aes=FALSE, mapping = aes(color=color)) + #for identity scale, or (color = class) for manual scale
     
   #     scale_color_identity(guide="legend") + 
+    geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
+            aes(color= bundle,
+                lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
+                linetype= bundle )
+            ) +
         
- #   scale_colour_manual(values= c("gray27","sienna1","black"), ### doesnt work 
- #                       breaks= c("county","watershed","region"),
- #                       labels= c("County Border", "Basin Border", "Region Border"),
-  #                      name= "Outlines",
-  #                      guide= guide_legend(override.aes=list()) ) +
+    scale_linetype_manual(values= c("county"= 1, "watershed"= 2,"region"= 1), ### new
+                          #breaks= c("county"= 1, "watershed"= 2,"region"= 1),
+                          labels= c("County", "Basin", "Region"),
+                          name= "Borders"
+                          ) +    
+    scale_colour_manual(values= c(colors_sf[c("county","rsegs","region"),]) ,
+                        breaks= c("county", "watershed","region"),
+                        labels= c("County", "Basin", "Region"),
+                        name= "Borders",
+                        ) +
+    scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
+                    breaks= c(2.5,textsize[6],4.5),
+                    labels= c("County", "Basin", "Region"),
+                    name= "Borders"
+                    )
   
-  map <- map +
+  map <- map + new_scale("color") +
     # Road Lines
-    geom_sf(data = roads_plot, inherit.aes=FALSE, color="black", fill=NA, lwd=1, linetype="twodash") +
+    geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
-               aes(x=lng, y=lat), color ="black", size=2) +
+               aes(x=lng, y=lat), color= colors_sf["citypts",], size=2) +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(Longitude, Latitude, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
@@ -197,7 +228,7 @@ class(labelsP$bg.r) = "numeric"
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
     # Basin Labels (by riverseg ID)
-    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="sienna",size=textsize[5],check_overlap=TRUE) + # no error up to here 
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color=textcol[6],size=textsize[5],check_overlap=TRUE) + # no error up to here 
     # Text Labels
     new_scale("size") + new_scale("color") +
     #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
@@ -232,7 +263,7 @@ class(labelsP$bg.r) = "numeric"
                       limits = lims,
                       name = legend_title[1]) +
     
-    scale_colour_manual(values=c("#F7FF00","#FF00FF"),
+    scale_colour_manual(values= metric_col[c("Surface Water", "Groundwater"),] ,
                         breaks= c("Surface Water", "Groundwater"),
                         labels= c("Surface Water", "Groundwater"),
                         name= "Source Type",
@@ -241,7 +272,7 @@ class(labelsP$bg.r) = "numeric"
     map <- map + 
       new_scale("size") +
     geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-              size = bin), color = "#F7FF00",
+              size = bin), color= metric_col["Surface Water",],
               shape = 19) +
 
       scale_size_binned(range = c(2,20), 
@@ -255,9 +286,9 @@ class(labelsP$bg.r) = "numeric"
   map <- map +
   geom_text(data = mp_layer, 
             aes(Longitude, Latitude, label=NUM, fontface="bold"), 
-            colour="black", size=textsize[5], check_overlap=TRUE) +
+            color="black", size=textsize[5], check_overlap=TRUE) +
     
-  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill="#4040408F", lwd=1 ) + # Reverse Fill
+  geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill= colors_sf["shadow",], lwd=1 ) + # Reverse Fill
 
   ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = segs$basin_sf
                   dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
