@@ -1,6 +1,5 @@
 ## Establishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
-library(sp)
 library(rgeos)
 library(ggmap)
 library(raster)

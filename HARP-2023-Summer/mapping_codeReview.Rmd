@@ -11,7 +11,7 @@ output: pdf_document #overridden by output_format in render command
 params: 
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Fairfax County"]
+  locality: ["Stafford"]
   region: ["MiddleJames_2"]    
 
 #determining which type/level of map is being created
@@ -40,19 +40,10 @@ library(data.table)
 library(hydrotools)
 library(mgsub)
 library(sp)
-library(rgeos)
 library(sf)
 library(nhdplusTools)
-library(ggmap)
-library(raster)
-library(ggplot2)
-library(ggnewscale)   
-library(ggsn)
-library(ggspatial)
-library(ggrepel)
 library(png)
 library(flextable)
-library(geosphere)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -174,21 +165,20 @@ centroid_coords <- function(data, geom_col) {
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
 legend_titling <- function(metric, runid_list){
   
-  if(metric=="wd_mgd"){ #titles for wd_mgd
+  if (metric=="wd_mgd"){ #titles for wd_mgd
     name <- "Withdrawal"
     unit <- "(MGD)"
     legend_title <- runid_list
     year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
-    
-  for(i in 1:length(runid_list)){
-    legend_title[i] <- paste(year[i],name,unit,sep="\n")
-  }
-  }
-  #titles for 5 yr avg
-  if(metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
+    for (i in 1:length(runid_list)){
+      legend_title[i] <- paste(year[i],name,unit,sep="\n")
+    }
+  } else if (metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
     name <- "5-yr Avg Use"
     unit <- "(MGY)"
     legend_title<- paste(name,unit,sep="\n")
+  } else {
+    legend_title<- paste(metric)
   }
   return(legend_title)
 }
@@ -575,8 +565,8 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
-  legend_title <- paste0(map_by[i])
-  #legend_title <- legend_titling(map_by[i], runid_list) #-- untested
+  #legend_title <- paste0(map_by[i])
+  legend_title <- legend_titling(map_by[i], runid_list)
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
   
   if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
@@ -704,14 +694,16 @@ for(i in 1:nrow(table)){
 
 table$Rivseg= facils$within$riverseg #add rivseg ID
 
-# for facility type only add permitted capacity from vahydro instead of measuring point info 
+# for facility type only add permitted capacity from vahydro 
 if (type=="facility"){
+  table$vwp_max_mgy <- NA #create empty col for permit capac storage
     for (i in 1:nrow(facils$within)){ #adding permitted capacity
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
-        propcode= "vahydro-1.0"), 
+        propcode= "vahydro-1.0",
+        varkey= "om_water_system_element"), 
       TRUE)
-        if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
+      if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
         table$vwp_max_mgy[i] <- "No Permit"
       } else {
       permCapac <- RomProperty$new(ds,list(
