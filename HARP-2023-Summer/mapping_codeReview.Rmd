@@ -124,7 +124,7 @@ download_read <- function(url, filetype, zip) { #creating function
 process_geom <- function(data, geom_col) {
   for (i in 1:nrow(data)) { 
     sp.i <- sp::addAttrToGeom(
-      x=readWKT(data[i,geom_col]), #EXPLAIN
+      x=readWKT(data[i,geom_col]), #read geometry from column identified in input
       y=as.data.frame(as.list(subset(data[i,],select=-c(names(data)==geom_col)))),      
       match.ID=TRUE
     )
@@ -452,7 +452,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
 ```
 
 ```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
-#Explain section
+#Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
 if (limit == "basins" | map_type == "basin") {
   segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
   segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
@@ -481,7 +481,6 @@ if (limit == "basins" | map_type == "basin") {
   facils$within <- st_drop_geometry(facils$within)
   facils$within <- cbind(facils$within, coords)
 }
-#need to turn point geom into coords and region after geo drop
 ```
 
 ```{r Feature Metric Pull (non-modeled metrics), echo=FALSE, message=FALSE, warning=FALSE}
@@ -591,21 +590,22 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   } else if (metric_unit == "mgy") {
   div <- wd_mgy
   }
-    #Explain
+  
   mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
-        FROM facils_within' , sep="")
+        FROM facils_within' , sep="") #Renaming metric of interest for generalized sorting into bins
   mp_layer <- sqldf(mp_layer_sql)
   bins = as.data.frame(div)
   bins$classid <- index(bins)
   names(bins) <- c("val", "bin")
 
-  entity_classes <- sqldf(
+  entity_classes <- sqldf( #sorting the data into bins based on their range 
       "select a.NUM, max(b.bin) as bin
       from mp_layer as a 
       left outer join bins as b 
       on (a.demand_metric >= b.val) 
       group by a.NUM" )
-  mp_layer <- sqldf(
+  
+  mp_layer <- sqldf( #joining the bins with the metric data 
       "select a.*, b.bin 
       from mp_layer as a 
       left outer join entity_classes as b 
@@ -747,14 +747,11 @@ names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
-#replace _ w a space for flextable headers:
-names(table) <- mgsub(names(table), pattern="_", replacement=" ") 
 
-#Rename modeled metrics if tied to common runid:
-#colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
-#colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
+names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-fn_tablegen(type = "facility", table = table, alignment = "left") #flextable saved as var ft
+#Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+fn_tablegen(type = "facility", table = table, alignment = "left") 
 ```
 
 # Display Map & Table
