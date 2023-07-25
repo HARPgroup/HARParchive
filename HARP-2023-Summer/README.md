@@ -56,6 +56,9 @@ Explain here how to use config files, what gets changed
 
 | `runid` List Key |                      Scenario                       |
 |:----------------:|:---------------------------------------------------:|
+|    `runid_0`     |                    Pre-Condition                    |
+|    `runid_1`     |                Historical Condition                 |
+|    `runid_3`     |                   Permit Term Max                   |
 |    `runid_11`    |                2020 Demand Scenario                 |
 |    `runid_12`    |                2030 Demand Scenario                 |
 |    `runid_13`    |                2040 Demand Scenario                 |
