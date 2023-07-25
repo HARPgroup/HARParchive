@@ -782,6 +782,8 @@ ft #display flextable
 
 ```{r Rivseg table creation}
 
+
+#fn_tablegen(type = "riverseg", table = rivseg_table, alignment = "left") #flextable saved as var ft
 ```
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
