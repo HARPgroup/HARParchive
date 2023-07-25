@@ -24,13 +24,14 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
+  rivseg_metric: ["7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
   map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
-  rivseg_met: ["nhdp_drainage_sqkm"] #choose riversegment map metric to use
+  
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -70,7 +71,7 @@ map_by <- params$map_by
 limit <- params$limit
 table_col <- params$table_col
 bbox_type <- params$bbox_type
-rivseg_met <- params$rivseg_met
+rivseg_metric <- params$rivseg_metric
 ```
 
 # Establish and Call Functions
@@ -549,21 +550,64 @@ roadlabs <- fn_road_labs(data = roads)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road", "nhd"))
 ```
 
-#Rivseg Maps Data Processing
-```{r, data processing for rivseg maps, message=FALSE}
+# Rivseg Metric Data Processing
 
-#pull metric(specified in rivseg_met param) into segs$basin dataframe
+```{r Get Rivseg Metrics, message=FALSE, warning=FALSE}
+#pull rivseg_metric from vahydro and add to segs$basin dataframe
+rivseg_runids <- c('runid_11','runid_13')
 
-for (i in 1:nrow(segs$basin)) {
-  rivsegMet <- RomProperty$new(ds,list(
-          hydrocode = segs$basin$hydrocode[i],
-          propname = rivseg_met),
-          TRUE)
-  segs$basin$rivsegMet[i] <- rivsegMet$propcode
+for (j in 1:length(rivseg_runids)) {
+  for (i in 1:nrow(segs$basin)) {
+
+riverseg<- RomFeature$new( #get riverseg feature from vahydro
+  ds,
+  list(
+    hydrocode=paste('vahydrosw_wshed_',segs$basin$riverseg[i], sep = ''),
+    ftype='vahydro',
+    bundle='watershed'
+  ),
+  TRUE)
+
+if (is.na(riverseg$hydroid) == FALSE) { #only continue if rivseg feature was found
+
+model <- RomProperty$new( #get vahydro-1.0 model feature from vahydro
+  ds,
+  list(
+    featureid=riverseg$hydroid, 
+    propcode='vahydro-1.0'
+  ), 
+  TRUE)
+
+model_scenario <- RomProperty$new( #get scenario/runid from vahydro
+  ds,
+  list(
+    varkey="om_scenario", 
+    featureid=model$pid, 
+    propname=rivseg_runids[j] 
+  ), 
+  TRUE)
+
+#skip metric pull if scenario pid = NA, meaning runid wasn't found
+  if (is.na(model_scenario$pid) == FALSE) {
+  
+  model_metric <- RomProperty$new( #get metric from vahydro
+    ds, list(
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = rivseg_metric
+    ),
+    TRUE)
+
+  segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric)] <- model_metric$propvalue
+  } else { #if the scenario/runid wasn't found
+    segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric)] <- NA
+      }
+   }
+  }
 }
 ```
 
-# Create Map
+# Create Map 1: Facils/Sources
 
 ```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
