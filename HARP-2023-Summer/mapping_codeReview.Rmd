@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["MiddleJames_2"]    
+  region: ["NorthernVirginia"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -30,6 +30,7 @@ params:
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
+  rivseg_met: ["nhdp_drainage_sqkm"] #choose riversegment map metric to use
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -69,6 +70,7 @@ map_by <- params$map_by
 limit <- params$limit
 table_col <- params$table_col
 bbox_type <- params$bbox_type
+rivseg_met <- params$rivseg_met
 ```
 
 # Establish and Call Functions
@@ -492,6 +494,7 @@ for (i in 1:nrow(facils$within)) {
           TRUE)
   facils$within[i,metric_feat] <- facil$propvalue
 }
+
 ```
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
@@ -548,8 +551,17 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), class
 ```
 
 #Rivseg Maps Data Processing
-```{r, data processing for rivseg maps}
+```{r, data processing for rivseg maps, message=FALSE}
 
+#pull metric(specified in rivseg_met param) into segs$basin dataframe
+
+for (i in 1:nrow(segs$basin)) {
+  rivsegMet <- RomProperty$new(ds,list(
+          hydrocode = segs$basin$hydrocode[i],
+          propname = rivseg_met),
+          TRUE)
+  segs$basin$rivsegMet[i] <- rivsegMet$propcode
+}
 ```
 
 # Create Map
