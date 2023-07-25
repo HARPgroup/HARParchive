@@ -117,7 +117,9 @@ class(labelsP$bg.r) = "numeric"
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
  
- 
+  #declare rivsegs tidal
+  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
+  
  #Merging different border layers into 1 df for mapping & legend 
   borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
   borders <- rbind(borders, segs$basin_sf[c("name","bundle","geometry")] )
@@ -183,8 +185,10 @@ class(labelsP$bg.r) = "numeric"
                     name= "Borders"
                     )
   
+
   map <- map + 
     new_scale("color") +
+
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
@@ -208,6 +212,10 @@ class(labelsP$bg.r) = "numeric"
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
+     
+    #Rivseg Tidal Labels- not fully functional
+    #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
+    
     # Basin Labels (by riverseg ID)
     geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color=textcol[6],size=textsize[5],check_overlap=TRUE) + # no error up to here 
     # Text Labels
@@ -227,6 +235,7 @@ class(labelsP$bg.r) = "numeric"
     ) + 
     scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE )
+
     
 ## Plotting sources/MPs
   if (type == "source") {

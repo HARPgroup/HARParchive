@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["MiddleJames_2"]    
+  region: ["NorthernVirginia"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -27,12 +27,14 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  rivseg_metric: ["7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
+  
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -73,6 +75,7 @@ map_by <- params$map_by
 limit <- params$limit
 table_col <- params$table_col
 bbox_type <- params$bbox_type
+rivseg_metric <- params$rivseg_metric
 ```
 
 # Establish and Call Functions
@@ -128,7 +131,7 @@ download_read <- function(url, filetype, zip) { #creating function
 process_geom <- function(data, geom_col) {
   for (i in 1:nrow(data)) { 
     sp.i <- sp::addAttrToGeom(
-      x=readWKT(data[i,geom_col]), #EXPLAIN
+      x=readWKT(data[i,geom_col]), #read geometry from column identified in input
       y=as.data.frame(as.list(subset(data[i,],select=-c(names(data)==geom_col)))),      
       match.ID=TRUE
     )
@@ -456,7 +459,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
 ```
 
 ```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
-#Explain section
+#Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
 if (limit == "basins" | map_type == "basin") {
   segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
   segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
@@ -485,7 +488,6 @@ if (limit == "basins" | map_type == "basin") {
   facils$within <- st_drop_geometry(facils$within)
   facils$within <- cbind(facils$within, coords)
 }
-#need to turn point geom into coords and region after geo drop
 ```
 
 ```{r Feature Metric Pull (non-modeled metrics), echo=FALSE, message=FALSE, warning=FALSE}
@@ -496,6 +498,7 @@ for (i in 1:nrow(facils$within)) {
           TRUE)
   facils$within[i,metric_feat] <- facil$propvalue
 }
+
 ```
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
@@ -549,12 +552,72 @@ roadlabs <- fn_road_labs(data = roads)
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road", "nhd"))
 ```
 
-#Rivseg Maps Data Processing
-```{r, data processing for rivseg maps}
+# Rivseg Metric Data Processing
 
+```{r Get Rivseg Metrics, message=FALSE, warning=FALSE}
+#pull rivseg_metric from vahydro and add to segs$basin dataframe
+rivseg_runids <- c('runid_11','runid_13')
+
+for (j in 1:length(rivseg_runids)) {
+  for (i in 1:nrow(segs$basin)) {
+
+riverseg<- RomFeature$new( #get riverseg feature from vahydro
+  ds,
+  list(
+    hydrocode=paste('vahydrosw_wshed_',segs$basin$riverseg[i], sep = ''),
+    ftype='vahydro',
+    bundle='watershed'
+  ),
+  TRUE)
+
+if (is.na(riverseg$hydroid) == FALSE) { #only continue if rivseg feature was found
+
+model <- RomProperty$new( #get vahydro-1.0 model feature from vahydro
+  ds,
+  list(
+    featureid=riverseg$hydroid, 
+    propcode='vahydro-1.0'
+  ), 
+  TRUE)
+
+model_scenario <- RomProperty$new( #get scenario/runid from vahydro
+  ds,
+  list(
+    varkey="om_scenario", 
+    featureid=model$pid, 
+    propname=rivseg_runids[j] 
+  ), 
+  TRUE)
+
+#skip metric pull if scenario pid = NA, meaning runid wasn't found
+  if (is.na(model_scenario$pid) == FALSE) {
+  
+  model_metric <- RomProperty$new( #get metric from vahydro
+    ds, list(
+    featureid=model_scenario$pid,
+    entity_type='dh_properties',
+    propname = rivseg_metric
+    ),
+    TRUE)
+
+  segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric)] <- model_metric$propvalue
+  } else { #if the scenario/runid wasn't found
+    segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric)] <- NA
+      }
+   }
+  }
+}
 ```
 
-# Create Map
+```{r Rivseg Metric % Difference}
+segs$basin <- st_drop_geometry(segs$basin)
+colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric)
+colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric)
+segs$basin$diff <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
+segs$basin$pct_diff <- (as.numeric(segs$basin$diff) / as.numeric(segs$basin[,colname1])) * 100
+```
+
+# Create Map 1: Facils/Sources
 
 ```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
@@ -569,12 +632,12 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   #legend_title <- paste0(map_by[i])
   legend_title <- legend_titling(map_by[i], runid_list)
-  #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
   
+  #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
   if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
     facils_within[map_by[i]] <- NA
-    metMessage <- TRUE
-  }
+    mapMessage <- TRUE #for returning message to user if map is empty
+  } else { mapMessage <- FALSE  }
   #Ordering & numbering data by the metric to be mapped 
   facils_within <- sqldf(paste0( #ordering the data using sqldf 
   "SELECT facils_within.*  
@@ -592,21 +655,22 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   } else if (metric_unit == "mgy") {
   div <- wd_mgy
   }
-    #Explain
+  
   mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
-        FROM facils_within' , sep="")
+        FROM facils_within' , sep="") #Renaming metric of interest for generalized sorting into bins
   mp_layer <- sqldf(mp_layer_sql)
   bins = as.data.frame(div)
   bins$classid <- index(bins)
   names(bins) <- c("val", "bin")
 
-  entity_classes <- sqldf(
+  entity_classes <- sqldf( #sorting the data into bins based on their range 
       "select a.NUM, max(b.bin) as bin
       from mp_layer as a 
       left outer join bins as b 
       on (a.demand_metric >= b.val) 
       group by a.NUM" )
-  mp_layer <- sqldf(
+  
+  mp_layer <- sqldf( #joining the bins with the metric data 
       "select a.*, b.bin 
       from mp_layer as a 
       left outer join entity_classes as b 
@@ -649,7 +713,6 @@ if (type == "source") {
   map_name <- paste0(map_name, '_facils')
 }
 
-
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
 mapfilename <- character() #empty character var, not a list
@@ -662,7 +725,6 @@ for (i in 1:length(map_by)) {
     width = 25,
     height = 20)
 }
-
 ```
 
 # Create Table 
@@ -725,6 +787,21 @@ for (i in 1:length(table_col)){
     table[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2) #round all values to 2 decimal place digits
   }
 }
+
+table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
+
+#compare requested table columns with those that actually exist 
+novals <- data.frame(metric=character())
+for (i in 1:length(table_col)) {
+  if (!table_col[i] %in% names(table)) {
+    novals[i,] <- table_col[i]
+  }
+}
+
+#for returning message if metric table columns were missing 
+if (nrow(novals > 0)) {
+  tableMessage <- TRUE
+} else { tableMessage <- FALSE }
 ```
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
@@ -735,47 +812,43 @@ names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
-#replace _ w a space for flextable headers:
-names(table) <- mgsub(names(table), pattern="_", replacement=" ") 
 
-#Rename modeled metrics if tied to common runid:
-#colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
-#colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
+names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-fn_tablegen(table) #flextable saved as var ft
+#Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+fn_tablegen(type = "facility", table = table, alignment = "left") 
 ```
 
 # Display Map & Table
 
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
-if (metMessage == TRUE) {
+if (mapMessage == TRUE) {
   message("The metric requested does not exist for this map.")
   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
 }
-
 ```
 
 ```{r View Table, echo=FALSE, out.width='100%', message=TRUE}
-if (metMessage == TRUE) {
-  message("The metric requested does not exist for this table (see above message)")
-  message("Note column requested will return all NA values")
+if (tableMessage == TRUE) {
+  message("Missing column indicates the metric requested does not exist for this table")
 }
-
 ft #display flextable
+```
+
+# Rivseg Map Creation
+
+```{r Rivseg Map Creation}
 
 
 ```
 
-#River Segment Map Creation
-```{r, Rivseg Map Creation}
+# Rivseg Table Creation
+
+```{r Rivseg table creation}
 
 
-```
-
-#Rivseg Map Table Creation
-```{r, rivseg table creation}
-
+#fn_tablegen(type = "riverseg", table = rivseg_table, alignment = "left") #flextable saved as var ft
 ```
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
@@ -798,7 +871,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     map_type = "region",
                     map_style = "default",
                     map_by = "runid_13_wd_mgd",
-                    limit = "basins",
+                    limit = "boundary",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
 ```
