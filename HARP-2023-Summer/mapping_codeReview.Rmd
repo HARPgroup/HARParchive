@@ -24,7 +24,7 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  rivseg_metric: ["7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  rivseg_metric: ["l90_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
   map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
@@ -725,7 +725,7 @@ for (i in 1:length(map_by)) {
 }
 ```
 
-# Create Table 
+# Create Table 1
 
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -844,6 +844,16 @@ ft #display flextable
 # Rivseg Table Creation
 
 ```{r Rivseg table creation}
+
+rivTable <- data.frame(
+  Riverseg= segs$basin$riverseg,
+  Diff = segs$basin$diff,
+  percDiff= segs$basin$pct_diff
+)
+
+#create metric type column- means get rid of metric title in titling atm
+
+#create metric column- change titling as well
 
 
 #fn_tablegen(type = "riverseg", table = rivseg_table, alignment = "left") #flextable saved as var ft
