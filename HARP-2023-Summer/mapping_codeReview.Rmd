@@ -607,6 +607,14 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 }
 ```
 
+```{r Rivseg Metric % Difference}
+segs$basin <- st_drop_geometry(segs$basin)
+colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric)
+colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric)
+segs$basin$diff <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
+segs$basin$pct_diff <- (as.numeric(segs$basin$diff) / as.numeric(segs$basin[,colname1])) * 100
+```
+
 # Create Map 1: Facils/Sources
 
 ```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
