@@ -754,7 +754,7 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ")
 #colnames(table)[grepl('runid_11',colnames(table))] <- paste0('2020 ',metric)
 #colnames(table)[grepl('runid_13',colnames(table))] <- paste0('2040 ',metric)
 
-fn_tablegen(table) #flextable saved as var ft
+fn_tablegen(type = "facility", table = table, alignment = "left") #flextable saved as var ft
 ```
 
 # Display Map & Table
