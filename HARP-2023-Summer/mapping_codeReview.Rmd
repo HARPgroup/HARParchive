@@ -172,7 +172,7 @@ centroid_coords <- function(data, geom_col) {
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
 legend_titling <- function(metric, runid_list){
   
-  if (metric=="wd_mgd"){ #titles for wd_mgd
+  if ("wd_mgd" %in% metric){ #titles for wd_mgd
     name <- "Withdrawal"
     unit <- "(MGD)"
     legend_title <- runid_list
@@ -554,7 +554,7 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), class
 
 # Rivseg Metric Data Processing
 
-```{r Get Rivseg Metrics, message=FALSE, warning=FALSE}
+```{r Get Rivseg Metrics, message=FALSE, warning=FALSE, echo=FALSE}
 #pull rivseg_metric from vahydro and add to segs$basin dataframe
 rivseg_runids <- c('runid_11','runid_13')
 
@@ -609,7 +609,7 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 }
 ```
 
-```{r Rivseg Metric % Difference}
+```{r Rivseg Metric % Difference, echo=FALSE}
 segs$basin <- st_drop_geometry(segs$basin)
 colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric)
 colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric)
@@ -682,7 +682,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  fn_mapgen(type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+  fn_mapgen(map = "facility", type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
   #assign map to environment
@@ -838,8 +838,34 @@ ft #display flextable
 
 # Rivseg Map Creation
 
-```{r Rivseg Map Creation}
+```{r Rivseg Map Creation, echo=FALSE}
+#Adding categories to rivseg df based on the % difference 
+rivdiv <- c(50,20,10,0,-10,-20,-50)
+rivbins = as.data.frame(rivdiv)
+rivbins$classid <- index(rivbins)
+names(rivbins) <- c("val", "bin")
 
+segs_basin <- segs$basin #for sqldf
+
+rivseg_classes <- sqldf( #sorting the data into bins based on their range 
+    "select a.riverseg, min(b.bin) as bin
+    from segs_basin as a 
+    left outer join bins as b 
+    on (a.pct_diff < b.val) 
+    group by a.riverseg" )
+  
+segs$basin <- sqldf( #joining the bins with the metric data 
+    "select a.*, b.bin 
+    from segs_basin as a 
+    left outer join rivseg_classes as b 
+    on a.riverseg = b.riverseg " )
+
+segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom") #create sf object for mapping w/ geom_sf
+
+
+##Mapping function
+  fn_mapgen(map = "riverseg",type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit)
 
 ```
 
@@ -873,7 +899,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
                     region = "NorthernVirginia", 
-                    type = "source", 
+                    type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric_mod = "wd_mgd",

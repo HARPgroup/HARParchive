@@ -20,8 +20,8 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## "type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
-
-fn_mapgen <- function(type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
+## "map": either 'facility' (map 1) or 'riverseg' (map 2)
+fn_mapgen <- function(map, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
                       nhd, maplabs, locality, region, mp_layer, metric_unit) { 
 
 # Combine all map labels into one df:
@@ -109,7 +109,8 @@ class(labelsP$bg.r) = "numeric"
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
  
   #declare rivsegs tidal
-  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
+  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | 
+                          riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
   
  #Merging different border layers into 1 df for mapping & legend 
   borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
@@ -124,9 +125,17 @@ class(labelsP$bg.r) = "numeric"
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
-    ggtitle(title) +
+    ggtitle(title)
+    
+##### Rivseg fill based on drought metric % difference for rivseg maps 
+  if (map == "riverseg") {
+    map <- map + 
+      geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = bin))
+  }
+#####  
+    
     # Flowlines & Waterbodies
-    geom_sf(data = nhd_plot, 
+  map <- map + geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
             mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
