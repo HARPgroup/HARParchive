@@ -73,15 +73,6 @@ labels <- maplabs$final
   bbox_st <- st_as_sfc(st_bbox(bbox))
   nonbasin <- st_difference(bbox_st, segs$union) #method of erasing
   st_crs(nonbasin) <- 4326
-  
- #Lighten terrain basemap 
-#  bb <- unlist(attr(basemap_0, "bb"))
-#  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-#  basemap_0 <- sp::SpatialPolygons(
-#      list(sp::Polygons(list(Polygon(coords)), "id")), 
-#      proj4string = CRS(proj4string(as_Spatial(segs$union))))
-#  basemap_0 <- st_as_sf(basemap_0)
-#  st_crs(basemap_0) <- 4326
     
 #----Filtering what's plotted by size of boundary box---- 
 fn_filter_map(labels, nhd, roads, distance)
@@ -134,8 +125,6 @@ class(labelsP$bg.r) = "numeric"
     theme(text=element_text(size=30), title=element_text(size=40),
           axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
     ggtitle(title) +
-    # Lighten base-map to help readability
-    #geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill=colors_sf["lightenBase",], alpha=0.3) +
     # Flowlines & Waterbodies
     geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
@@ -144,23 +133,6 @@ class(labelsP$bg.r) = "numeric"
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) +
-    
-    # County Borders
-   #   new_scale("color") +
-##    geom_sf(data = counties$sf, color= colors_sf["county",], 
-##            fill=NA, lwd=2.5, inherit.aes = F) +
-    # Basin Outlines
-##    geom_sf(data = segs$basin_sf, color= colors_sf["rsegs",], 
-##            fill=NA, lwd=textsize[6], linetype="dashed", inherit.aes = F) 
-   
-   #   scale_color_identity(guide = "legend")
-  
-    # Region Outline
-##   if (map_type == "region") { # thicker boundary around region
-##    map <- map + 
-##      geom_sf(data = segs$region_sf, color= colors_sf["region",], fill=NA, lwd=4.5, inherit.aes=F)
-##   }
-  
   #Mapping all borders using 1 df called borders, which will have 1 region line for map type region
   new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
     
@@ -185,7 +157,6 @@ class(labelsP$bg.r) = "numeric"
                     name= "Borders"
                     )
   
-
   map <- map + 
     new_scale("color") +
 
