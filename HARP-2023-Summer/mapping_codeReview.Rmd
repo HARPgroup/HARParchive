@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["region"] #should be one of: basin, locality, or region 
+  map_type: ["locality"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["custom"]
@@ -455,6 +455,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
   st_crs(segs$sf) <- 4326
   sf_use_s2(FALSE)
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
+  segs$basin <- segs$basin[, !names(segs$basin) == "geom"]  #get rid of geom col unique to region map type
 }
 ```
 
@@ -462,7 +463,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
 #Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
 if (limit == "basins" | map_type == "basin") {
   segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
-  segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
+  segs$basin_sf <- st_as_sf(segs$basin)
   st_crs(segs$basin_sf) <- 4326 
   facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
   facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
@@ -507,7 +508,9 @@ if (map_type == "locality" || map_type == "region") {
   segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
   st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
 }
-segs$basin_sf <- centroid_coords(segs$basin_sf, "geom") # new colnames for centroids: lng, lat
+names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
+st_geometry(segs$basin_sf) <- "geometry"
+segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
 
 # Create bbox
 sf_use_s2(FALSE) # switch off Spherical geometry
@@ -610,7 +613,7 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 ```
 
 ```{r Rivseg Metric % Difference, echo=FALSE}
-segs$basin <- st_drop_geometry(segs$basin)
+segs$basin <- st_drop_geometry(segs$basin) #needed to do diff & pct diff calcs 
 colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric)
 colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric)
 segs$basin$diff <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
@@ -627,7 +630,6 @@ facils_within <- facils$within
 
 wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins day and year 
 wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
-
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   #legend_title <- paste0(map_by[i])
@@ -873,10 +875,9 @@ segs$basin <- sqldf(bins_sql)
 #    left outer join rivseg_classes as b 
 #    on a.riverseg = b.riverseg " )
 
-segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom") #create sf object for mapping w/ geom_sf
+segs$basin$geometry <- segs$basin_sf$geometry
+segs$basin_sf <- st_as_sf(segs$basin) #create sf object for mapping w/ geom_sf
 st_crs(segs$basin_sf) <- 4326
-names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
-st_geometry(segs$basin_sf) <- 'geometry'
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
 
 ##Mapping function
@@ -898,7 +899,6 @@ rivmapname <- paste(export_path, map_name, "_rivsegs.png", sep="")
 # Rivseg Table Creation
 
 ```{r Rivseg table creation}
-
 rivTable <- data.frame(
   Riverseg= segs$basin$riverseg,
   Diff = segs$basin$diff,
@@ -912,6 +912,11 @@ rivTable <- data.frame(
 
 #fn_tablegen(type = "riverseg", table = rivseg_table, alignment = "left") #flextable saved as var ft
 ```
+
+```{r Display Rivseg Map, echo=FALSE}
+knitr::include_graphics(rivmapname)
+```
+
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
@@ -931,7 +936,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l90_Qout",
-                    map_type = "region",
+                    map_type = "locality",
                     map_style = "default",
                     map_by = "runid_13_wd_mgd",
                     limit = "boundary",

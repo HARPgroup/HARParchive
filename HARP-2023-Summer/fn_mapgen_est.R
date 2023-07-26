@@ -81,7 +81,6 @@ st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
 
 labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
 class(labelsP$bg.r) = "numeric"
-labelsP <- labelsP[, !duplicated(colnames(labelsP))]
   
 #----Legend & Titling----
   #For map title:
