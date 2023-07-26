@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["NorthernVirginia"]    
+  region: ["Shenandoah_1"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -682,7 +682,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  fn_mapgen(map = "facility", type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+  fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
   #assign map to environment
@@ -838,36 +838,62 @@ ft #display flextable
 
 # Rivseg Map Creation
 
-```{r Rivseg Map Creation, echo=FALSE}
+```{r Rivseg Map Creation, echo=FALSE, warning=FALSE}
 #Adding categories to rivseg df based on the % difference 
-rivdiv <- c(50,20,10,0,-10,-20,-50)
-rivbins = as.data.frame(rivdiv)
-rivbins$classid <- index(rivbins)
-names(rivbins) <- c("val", "bin")
-
+rivdiv <- c(-20,-10,-5,0,5,10,20)
 segs_basin <- segs$basin #for sqldf
+bins_sql <-  paste("SELECT segs_basin.*,
+	                  CASE WHEN pct_diff <= ",rivdiv[1]," THEN '1'
+		                WHEN pct_diff >  ",rivdiv[1]," AND pct_diff <= ",rivdiv[2]," THEN '2'
+		                WHEN pct_diff >  ",rivdiv[2]," AND pct_diff <= ",rivdiv[3]," THEN '3'
+		                WHEN pct_diff >  ",rivdiv[3]," AND pct_diff <= ",rivdiv[4]," THEN '4'
+		                WHEN pct_diff >  ",rivdiv[4]," AND pct_diff <= ",rivdiv[5]," THEN '5'
+		                WHEN pct_diff > ",rivdiv[5]," AND pct_diff <= ",rivdiv[6]," THEN '6'
+		                WHEN pct_diff > ",rivdiv[6]," AND pct_diff <= ",rivdiv[7]," THEN '7'
+		                ELSE 'X'
+		                END AS bin
+		                FROM segs_basin",sep="")
 
-rivseg_classes <- sqldf( #sorting the data into bins based on their range 
-    "select a.riverseg, min(b.bin) as bin
-    from segs_basin as a 
-    left outer join bins as b 
-    on (a.pct_diff < b.val) 
-    group by a.riverseg" )
+segs$basin <- sqldf(bins_sql)
+
+#rivbins = as.data.frame(rivdiv)
+#rivbins$classid <- index(rivbins)
+#names(rivbins) <- c("val", "bin")
+
+#rivseg_classes <- sqldf( #sorting the data into bins based on their range 
+#    "select a.riverseg, min(b.bin) as bin
+#    from segs_basin as a 
+#    left outer join bins as b 
+#    on (a.pct_diff < b.val) 
+#    group by a.riverseg" )
   
-segs$basin <- sqldf( #joining the bins with the metric data 
-    "select a.*, b.bin 
-    from segs_basin as a 
-    left outer join rivseg_classes as b 
-    on a.riverseg = b.riverseg " )
+#segs$basin <- sqldf( #joining the bins with the metric data 
+#    "select a.*, b.bin 
+#    from segs_basin as a 
+#    left outer join rivseg_classes as b 
+#    on a.riverseg = b.riverseg " )
 
 segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom") #create sf object for mapping w/ geom_sf
-
+st_crs(segs$basin_sf) <- 4326
+names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
+st_geometry(segs$basin_sf) <- 'geometry'
+segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
 
 ##Mapping function
-  fn_mapgen(map = "riverseg",type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit)
+fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+        nhd, maplabs, locality, region, mp_layer, metric_unit)
 
 ```
+
+```{r Save Rivseg Map, echo=FALSE}
+rivmapname <- paste(export_path, map_name, "_rivsegs.png", sep="")
+  ggsave(
+    filename = rivmapname,
+    plot = map,
+    width = 25,
+    height = 20)
+```
+
 
 # Rivseg Table Creation
 

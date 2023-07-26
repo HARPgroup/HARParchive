@@ -20,8 +20,8 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## "type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
-## "map": either 'facility' (map 1) or 'riverseg' (map 2)
-fn_mapgen <- function(map, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
+## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
+fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
                       nhd, maplabs, locality, region, mp_layer, metric_unit) { 
 
 # Combine all map labels into one df:
@@ -81,6 +81,7 @@ st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
 
 labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
 class(labelsP$bg.r) = "numeric"
+labelsP <- labelsP[, !duplicated(colnames(labelsP))]
   
 #----Legend & Titling----
   #For map title:
@@ -107,6 +108,8 @@ class(labelsP$bg.r) = "numeric"
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
+ segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
+ class(segs$basin_sf$bin) <- "numeric"
  
   #declare rivsegs tidal
   rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | 
@@ -124,15 +127,15 @@ class(labelsP$bg.r) = "numeric"
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
-          axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
+          axis.title.x=element_blank(), axis.title.y=element_blank()) +
     ggtitle(title)
     
-##### Rivseg fill based on drought metric % difference for rivseg maps 
-  if (map == "riverseg") {
-    map <- map + 
-      geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = bin))
+  #Rivseg fill based on drought metric % difference for rivseg maps 
+  if (mapnum == 2) {
+    map <- map + new_scale("fill") +
+      geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = bin), alpha = 0.75 ) +
+      scale_fill_steps2(low = "red", mid = "white", high = "green", midpoint = 4)
   }
-#####  
     
     # Flowlines & Waterbodies
   map <- map + geom_sf(data = nhd_plot, 
@@ -167,8 +170,7 @@ class(labelsP$bg.r) = "numeric"
                     )
   
   map <- map + 
-    new_scale("color") +
-
+    new_scale("color") + new_scale("fill") +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
@@ -190,14 +192,14 @@ class(labelsP$bg.r) = "numeric"
     ) +
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
-    scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
+    scale_fill_manual(values=label_fill, breaks=c(1,2,3), 
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
      
     #Rivseg Tidal Labels- not fully functional
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
     
     # Basin Labels (by riverseg ID)
-    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color=textcol[6],size=textsize[5],check_overlap=TRUE) + # no error up to here 
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
     new_scale("size") + new_scale("color") +
     #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
@@ -213,10 +215,9 @@ class(labelsP$bg.r) = "numeric"
                     force= 40, direction="both",
                     min.segment.length=0.5
     ) + 
-    scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE )
+    scale_size(range= range(textsize[2:4]), breaks= textsize[2:4]) + 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE)
 
-    
 ## Plotting sources/MPs
   if (type == "source") {
     map <- map +
