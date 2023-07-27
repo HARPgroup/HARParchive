@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["Shenandoah_1"]    
+  region: ["NewRiver_1"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -554,7 +554,7 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), class
 #pull rivseg_metric from vahydro and add to segs$basin dataframe
 rivseg_runids <- c('runid_11','runid_13')
 
-for (k in 1:length(rivseg_metric)){
+for (k in 1:length(rivseg_metric)) {
   for (j in 1:length(rivseg_runids)) {
     for (i in 1:nrow(segs$basin)) {
 
@@ -600,9 +600,9 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
   segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric[k])] <- model_metric$propvalue
   } else { #if the scenario/runid wasn't found
     segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric[k])] <- NA
+       }
       }
-   }
-  }
+    }
   }
 }
 ```
@@ -611,16 +611,16 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 ```{r Rivseg Metric % Difference}
 for (k in 1:length(rivseg_metric)){
   segs$basin <- st_drop_geometry(segs$basin)
-  colname1[k] <- paste0(rivseg_runids[1],'_',rivseg_metric[k])
-  colname2[k] <- paste0(rivseg_runids[2],'_',rivseg_metric[k])
+  colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric[k])
+  colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric[k])
   #colname <- segs$basin[,rivseg_metric[k])] 
  # segs$basin[,rivseg_metric[k]] <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2[k]]) -as.numeric(segs$basin[,colname1[k]])
+  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) -as.numeric(segs$basin[,colname1])
   #names(segs$basin)[names(segs$basin)=="diff"]<-sprintf("Difference%d",1:sum(names(segs$basin)=="diff"))
   
   
  # segs$basin$diff <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / as.numeric(segs$basin[,colname1[k]])) * 100
+  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / as.numeric(segs$basin[,colname1])) * 100
   #segs$basin$pct_diff <- (as.numeric(segs$basin$diff[k]) / as.numeric(segs$basin[,colname1[k]])) * 100
 }
 ```
@@ -846,10 +846,18 @@ ft #display flextable
 # Rivseg Map Creation
 
 ```{r Rivseg Map Creation, echo=FALSE, warning=FALSE}
-#Adding categories to rivseg df based on the % difference 
-rivdiv <- c(-20,-10,-5,0,5,10,20)
+#Adding bins to rivseg df based on the % difference 
+rivdiv <- c(-20,-10,-5,0,5,10,20) #% difference breaks for rivseg map
 segs_basin <- segs$basin #for sqldf
-bins_sql <-  paste("SELECT segs_basin.*,
+for (i in 1:length(rivseg_metric)) { #create separate map for each rivseg metric  
+  segs_basin <- segs_basin[ ,!names(segs_basin) == "pct_diff"] #remove col to prevent duplicate colnames
+  
+  rseg_sql <- paste('SELECT *, ',paste0('percentDiff','_',rivseg_metric[i]),' AS pct_diff
+        FROM segs_basin' , sep="") #Renaming metric of interest for generalized sorting into bins
+  
+  segs_basin <- sqldf(rseg_sql)
+  
+  bins_sql <-  paste("SELECT segs_basin.*,
 	                  CASE WHEN pct_diff <= ",rivdiv[1]," THEN '1'
 		                WHEN pct_diff >  ",rivdiv[1]," AND pct_diff <= ",rivdiv[2]," THEN '2'
 		                WHEN pct_diff >  ",rivdiv[2]," AND pct_diff <= ",rivdiv[3]," THEN '3'
@@ -861,44 +869,35 @@ bins_sql <-  paste("SELECT segs_basin.*,
 		                ELSE 'X'
 		                END AS bin
 		                FROM segs_basin",sep="")
-
-segs$basin <- sqldf(bins_sql)
-
-#rivbins = as.data.frame(rivdiv)
-#rivbins$classid <- index(rivbins)
-#names(rivbins) <- c("val", "bin")
-
-#rivseg_classes <- sqldf( #sorting the data into bins based on their range 
-#    "select a.riverseg, min(b.bin) as bin
-#    from segs_basin as a 
-#    left outer join bins as b 
-#    on (a.pct_diff < b.val) 
-#    group by a.riverseg" )
   
-#segs$basin <- sqldf( #joining the bins with the metric data 
-#    "select a.*, b.bin 
-#    from segs_basin as a 
-#    left outer join rivseg_classes as b 
-#    on a.riverseg = b.riverseg " )
+  segs$basin <- sqldf(bins_sql)
+  
+  segs$basin$geometry <- segs$basin_sf$geometry
+  segs$basin_sf <- st_as_sf(segs$basin) #create sf object for mapping w/ geom_sf
+  st_crs(segs$basin_sf) <- 4326
+  segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
 
-segs$basin$geometry <- segs$basin_sf$geometry
-segs$basin_sf <- st_as_sf(segs$basin) #create sf object for mapping w/ geom_sf
-st_crs(segs$basin_sf) <- 4326
-segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
-
-##Mapping function
-fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-        nhd, maplabs, locality, region, mp_layer, metric_unit)
-
+  ##Mapping function
+  fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit)
+  
+  #assign map to environment
+  assign(paste0('map_rivseg', i), map, envir = globalenv())
+  
+}
 ```
 
 ```{r Save Rivseg Map, echo=FALSE}
-rivmapname <- paste(export_path, map_name, "_rivsegs.png", sep="")
+mapfilename <- character() #empty character var, not a list
+for (i in 1:length(rivseg_metric)) {
+  mapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
+  mapf <- get(paste0('map_rivseg',i))
   ggsave(
-    filename = rivmapname,
-    plot = map,
+    filename = mapfilename[i],
+    plot = mapf,
     width = 25,
     height = 20)
+}
 ```
 
 
@@ -946,11 +945,12 @@ for (k in 1:length(rivseg_metric)){
 
 
 fn_tablegen(type = "riverseg", table = rivTable, alignment = "center") #flextable saved as var ft
-ft
 ```
 
-```{r Display Rivseg Map, echo=FALSE}
-knitr::include_graphics(rivmapname)
+```{r Display Rivseg Map & Table, echo=FALSE}
+knitr::include_graphics(mapfilename)
+
+ft #view flextable
 ```
 
 
@@ -965,14 +965,14 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "NorthernVirginia", 
+                    region = "Shenandoah_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l90_Qout",
-                    map_type = "locality",
+                    map_type = "region",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",
