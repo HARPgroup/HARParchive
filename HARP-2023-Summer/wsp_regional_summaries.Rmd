@@ -275,12 +275,10 @@ cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-S
 ```{r Pull Data, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Facility Data----
 facils <- list() #create empty list to store dfs
-
 # note: the variable "github_location" should be in config.local and provides easy access to these resources
-if(type == "source"){
-  # foundational MP(measuring pt)/sources data:
-  facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv"))
-}
+
+# foundational MP(measuring pt)/sources data:
+facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv"))
 
 if (type == "facility") { 
   #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
@@ -299,52 +297,113 @@ if (type == "facility") {
     ds = ds
     )
   #pull facility-level geometry to join with model data:
-  facils$facil_geo <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
+  facils$fac_geo <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
 } 
-
 #----Watershed/Riverseg Data----
 #rsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ## VAhydro gives errors
-if(!exists("segs")){
+if(!exists("rsegs")){
   rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
   # pulls csv with All vahydro watershed features
   # note: potential NULLs for newly carved data^
 }
-
 #----County Data----
 counties <- list()
 counties$fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
 counties$regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
- 
 #----Cities & Roads----
-roads <- download_read(
+roads <- fn_download_read(
   url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
   filetype="shp", zip=TRUE) # (shp) for US states & primary roads
 
 cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') 
-
 ```
 
-# Filter Data (Cleanup)
-```{r Facilities, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
-
-#filter out WSP entries from facility-level metric data:
-facils$metrics <- with(facils, sqldf("SELECT * 
-                                      FROM metrics 
+# Filter/Process Data (Cleanup)
+```{r Merging Facility Data, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+if(type == "source"){
+  facils <- facils$foundatn_mp
+  #names(facils) <- gsub(" ", "_", names(facils)) #substitute spaces with underscores in column names ?
+}
+if(type == "facility"){
+  #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
+  facils$foundatn <- with(facils, sqldf("select foundatn_mp.*,
+                    sum(fiveyr_avg_mgy) as sum
+                    from foundatn_mp
+                    group by Facility_hydroid")) #all source-related data now only applies to 1 source (random) within the facil 
+  #filter out WSP entries from facility-level metric data:
+  facils$model <- with(facils, sqldf("SELECT * 
+                                      FROM model 
                                       WHERE hydrocode not like 'wsp_%'"))
+  #merge/full join foundational & modeled facil data:
+  facils$merge <- with(facils,merge(x=model, 
+                                    y=foundatn[names(foundatn)!="Hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
+                                    by.x="featureid", by.y="Facility_hydroid", all=T)) 
+  #join facility geometry to merged data frame:
+  statemt <- paste("SELECT 
+                      a.Facility, a.featureid, a.'Use Type', a.Locality, a.sum as fiveyr_avg_mgy, a.",df$runlabel[1],", a.",df$runlabel[2],",
+                      b.dh_geofield
+                      FROM merge as a
+                      LEFT OUTER JOIN fac_geo as b
+                      ON (a.featureid = b.Facility_hydroid)", sep="")
+  facils <- with(facils, sqldf(statemt)) #selects desired columns from facils$merge, matches them with geometry from facils$fac_geo based on featureid, and renames that calculated 'sum' column to "fiveyr_avg_mgy" ; saves over facils to simplify data access/storage
+  facils <- facils[grep("POINT", facils$dh_geofield),] #omits facilities with blank or NA geometry
+}
 
 ```
-
-```{r Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Processing Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+#----Counties----
 counties$fips$name <- sub(" County", "", counties$fips$name) # fix any names followed by " County" to match the names in counties$regions
 counties$fips <- with(counties, sqldf("SELECT fips.*, regions.*
                                       FROM fips
                                       left outer join regions
                                       where (fips.name = regions.County)
                                       ")) #add region column to county data; keep only counties in regional planning areas
-# remove counties outside of VA using the fips code; save over as "counties" to simplify data handling:
+#remove counties outside of VA using the fips code; save over as "counties" to simplify data handling:
 counties <- counties$fips[grep(51,counties$fips$dh_fips),] 
-
+#----Regions----
 regions <- split(counties, counties$VMDWA_Reg2) #creates a list containing a data frame per each region, which all contain the county polygons corresponding to that region
+for(i in 1:length(regions)){ #merge counties into one polygon for each region
+  regions[[i]] <- st_as_sf(regions[[i]], wkt=grep("geo", colnames(regions[[i]]), value=TRUE), crs=4326) #converts to sf based on geometry column grep finds
+  regions[[i]] <- st_union(regions[[i]]) #combine polygons
+}
+```
+```{r Filtering Cities & Roads, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+#----Roads----
+roads <- subset(roads, MTFCC=="S1100") #primary roads only
+#keep only interstate, US hwy, or state Rte:
+roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
+#shorten names to number only; column RTTYP gives classification I, U, or S:
+roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
+#remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space:
+roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
+#----Cities----
+cities <- sqldf("SELECT cities.* 
+                FROM cities 
+                WHERE NAME 
+                NOT IN (select counties.name from counties)
+                AND (cities.ST == 'VA')
+                ") #VA cities only & Remove city/town names that match their county/locality name
+
+statemt <- paste("SELECT cities.*
+                 FROM cities
+                 WHERE POPULATION BETWEEN", quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
+                 "IS (cities.class == 'smallTown')",
+                 sep=" ")
+smallTowns <- sqldf(statemt) ##!!!!!!!!!!!!!!! where ya left off
+
+#Classify towns/cities based on population
+smallTowns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.1) & 
+                     cities$POPULATION <  quantile(cities$POPULATION, 0.5),]
+smallTowns$CLASS <- "smallTown"
+towns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.5) & 
+                     cities$POPULATION <  quantile(cities$POPULATION, 0.8),]
+towns$CLASS <- "town"
+citiesp <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.8) & 
+                     cities$POPULATION <=  quantile(cities$POPULATION, 1.0),]
+citiesp$CLASS <- "city"
+cities <- rbind(smallTowns, towns, citiesp)
+cities <- cities[!names(cities) == 'class']
+names(cities)[names(cities) == 'CLASS'] <- "class"
 
 ```
 
@@ -656,7 +715,11 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ## All labeling now done in this chunk
 rm(maplabs)
 nhdlabs <- fn_nhd_labs(data = nhd)
+<<<<<<< HEAD:HARP-2023-Summer/wsp_regional_summaries.Rmd
 roadlabs <- fn_road_labs(data = roads)
+=======
+roads <- fn_road_labs(data = roads)
+>>>>>>> 6c966e3642a3b98de0149508c7d21daa9594b8ed:HARP-2023-Summer/mapping_codeReview.Rmd
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 
