@@ -20,8 +20,8 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
 ## "type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
-
-fn_mapgen <- function(type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
+## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
+fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
                       nhd, maplabs, locality, region, mp_layer, metric_unit) { 
 
 # Combine all map labels into one df:
@@ -73,15 +73,6 @@ labels <- maplabs$final
   bbox_st <- st_as_sfc(st_bbox(bbox))
   nonbasin <- st_difference(bbox_st, segs$union) #method of erasing
   st_crs(nonbasin) <- 4326
-  
- #Lighten terrain basemap 
-#  bb <- unlist(attr(basemap_0, "bb"))
-#  coords <- cbind( bb[c(2,2,4,4)], bb[c(1,3,3,1)] )
-#  basemap_0 <- sp::SpatialPolygons(
-#      list(sp::Polygons(list(Polygon(coords)), "id")), 
-#      proj4string = CRS(proj4string(as_Spatial(segs$union))))
-#  basemap_0 <- st_as_sf(basemap_0)
-#  st_crs(basemap_0) <- 4326
     
 #----Filtering what's plotted by size of boundary box---- 
 fn_filter_map(labels, nhd, roads, distance)
@@ -116,9 +107,15 @@ class(labelsP$bg.r) = "numeric"
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
+ #segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
+ if (mapnum ==2) {
+   class(segs$basin_sf$bin) <- "numeric"
+ }
+
  
   #declare rivsegs tidal
-  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
+  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | 
+                          riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
   
  #Merging different border layers into 1 df for mapping & legend 
   borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
@@ -132,63 +129,75 @@ class(labelsP$bg.r) = "numeric"
   map <- basemap + #ggplot2::
     # Titles
     theme(text=element_text(size=30), title=element_text(size=40),
-          axis.title.x=element_blank(), axis.title.y=element_blank()  ) +
-    ggtitle(title) +
-    # Lighten base-map to help readability
-    #geom_sf(data = basemap_0, inherit.aes=FALSE, color=NA, fill=colors_sf["lightenBase",], alpha=0.3) +
+          axis.title.x=element_blank(), axis.title.y=element_blank()) +
+    ggtitle(title)
+    
+  #Rivseg fill based on drought metric % difference for rivseg maps 
+  if (mapnum == 2) {
+    map <- map + new_scale("fill") +
+      geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = bin), alpha = 0.75 ) +
+      scale_fill_steps2(low = "red", mid = "white", high = "green", midpoint = 4,
+                        breaks = breaks,
+                        limits = lims,
+                        labels = c(-20,-10,-5,0,5,10,20),
+                        name = "% change")
+  }
+    
     # Flowlines & Waterbodies
-    geom_sf(data = nhd_plot, 
+  map <- map + geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
             mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
-            inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) +
-    
-    # County Borders
-   #   new_scale("color") +
-##    geom_sf(data = counties$sf, color= colors_sf["county",], 
-##            fill=NA, lwd=2.5, inherit.aes = F) +
-    # Basin Outlines
-##    geom_sf(data = segs$basin_sf, color= colors_sf["rsegs",], 
-##            fill=NA, lwd=textsize[6], linetype="dashed", inherit.aes = F) 
-   
-   #   scale_color_identity(guide = "legend")
+            inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) 
   
-    # Region Outline
-##   if (map_type == "region") { # thicker boundary around region
-##    map <- map + 
-##      geom_sf(data = segs$region_sf, color= colors_sf["region",], fill=NA, lwd=4.5, inherit.aes=F)
-##   }
-  
-  #Mapping all borders using 1 df called borders, which will have 1 region line for map type region
-  new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
-    
+  #Mapping all borders using 1 df called borders, which will have 1 region line only for map type region
+  if (map_type == "region") { 
+  map <- map +
+    new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
     geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
-            aes(color= bundle,
-                lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
-                linetype= bundle )
-            ) +
-        
+              aes(color= bundle,
+                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
+                  linetype= bundle )
+      ) +
     scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), ### new
                           labels= c("Region","County","Basin"),
                           name= "Borders"
-                          ) +    
-    scale_colour_manual(values= c(colors_sf[c("region","county","rsegs"),]) ,
-                        breaks= c("region","county","watershed"),
-                        labels= c("Region","County","Basin"),
-                        name= "Borders",
-                        ) +
-    scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
-                    breaks= c(4.5,2.5,textsize[6]),
-                    labels= c("Region","County","Basin"),
-                    name= "Borders"
-                    )
-  
-
+    ) +    
+      scale_colour_manual(values= c(colors_sf[c("region","county","rsegs"),]) ,
+                          breaks= c("region","county","watershed"),
+                          labels= c("Region","County","Basin"),
+                          name= "Borders",
+      ) +
+      scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
+                      breaks= c(4.5,2.5,textsize[6]),
+                      labels= c("Region","County","Basin"),
+                      name= "Borders")
+  }  else {
+    map <- map +
+      new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
+      geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
+              aes(color= bundle,
+                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
+                  linetype= bundle )
+      ) +
+      scale_linetype_manual(values= c("county"= 1,"watershed"= 2), ### new
+                            labels= c("County","Basin"),
+                            name= "Borders"
+      ) +    
+      scale_colour_manual(values= c(colors_sf[c("county","rsegs"),]) ,
+                          breaks= c("county","watershed"),
+                          labels= c("County","Basin"),
+                          name= "Borders",
+      ) +
+      scale_linewidth(range= range(c(textsize[6],4.5)), 
+                      breaks= c(2.5,textsize[6]),
+                      labels= c("County","Basin"),
+                      name= "Borders")  
+  }
   map <- map + 
-    new_scale("color") +
-
+    new_scale("color") + new_scale("fill") +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
@@ -210,14 +219,14 @@ class(labelsP$bg.r) = "numeric"
     ) +
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
                         labels=c("Interstate","State Route", "US Hwy"), name="") + 
-    scale_fill_manual(values=label_fill, breaks=c(1,2,3), #Error: Continuous value supplied to discrete scale
+    scale_fill_manual(values=label_fill, breaks=c(1,2,3), 
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
      
     #Rivseg Tidal Labels- not fully functional
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
     
     # Basin Labels (by riverseg ID)
-    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color=textcol[6],size=textsize[5],check_overlap=TRUE) + # no error up to here 
+    geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
     new_scale("size") + new_scale("color") +
     #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
@@ -233,10 +242,9 @@ class(labelsP$bg.r) = "numeric"
                     force= 40, direction="both",
                     min.segment.length=0.5
     ) + 
-    scale_size(range= range(textsize[2:4]), breaks=textsize[2:4] ) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE )
+    scale_size(range= range(textsize[2:4]), breaks= textsize[2:4]) + 
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE)
 
-    
 ## Plotting sources/MPs
   if (type == "source") {
     map <- map +

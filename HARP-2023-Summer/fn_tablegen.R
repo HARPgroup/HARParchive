@@ -8,6 +8,7 @@ fn_tablegen <- function(type, table, alignment) {
 #table: data frame to be transformed into a flextable 
 #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
   
+
 #set table defaults of theme and font and make sure theres no blanks from NAs, can be edited if desired
 set_flextable_defaults(
   font.size = 8, background.color = "white", 
@@ -21,7 +22,7 @@ ft <- flextable(table)
 if (type == 'facility') {
   ft <- void(ft, j=1, part = "header") #remove name of 1st column in facil/source tables, which will always be the # for the facil/source
   ft <- width(ft, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
-}
+
 
 ft <- line_spacing(ft, space = 1.25)
 ft <- theme_vanilla(ft)
@@ -32,3 +33,11 @@ ft <- align(ft, align = alignment, part = "all")
 
 assign('ft', ft, envir = globalenv())
 }
+
+else {
+  ft <- theme_vanilla(ft)
+  ft <- autofit(ft)
+  assign('ft', ft, envir = globalenv())
+}
+}
+
