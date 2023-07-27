@@ -12,11 +12,11 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["MiddleJames_1"]    
+  region: ["Shenandoah_2"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["region"] #should be one of: basin, locality, or region 
+  map_type: ["locality"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["custom"]
@@ -28,7 +28,7 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  rivseg_metric: ["l90_Qout", "7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  rivseg_metric: ["l90_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
   map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
@@ -845,7 +845,7 @@ for (i in 1:length(map_by)) {
 ```
 
 # Create Table 1
-```{r Create Table, include=FALSE, warning=FALSE, message=TRUE}
+```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
 #create initial table
@@ -973,7 +973,7 @@ ft #display flextable
 ```
 
 # Rivseg Map Creation
-```{r Rivseg Map Creation, echo=FALSE, warning=FALSE}
+```{r Old:Rivseg Map Creation, echo=FALSE, warning=FALSE, eval=FALSE}
 #Adding bins to rivseg df based on the % difference 
 rivdiv <- c(-20,-10,-5,0,5,10,20) #% difference breaks for rivseg map
 segs_basin <- segs$basin #for sqldf
@@ -1015,7 +1015,56 @@ for (i in 1:length(rivseg_metric)) { #create separate map for each rivseg metric
 }
 ```
 
+```{r Upgrade: auto-bins for % diff, warning=FALSE}
+## Need to adapt this for multiple maps
+
+rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - move to config
+
+segs_basin <- segs$basin
+
+rseg_sql <- paste('SELECT *, ',paste0('percentDiff','_',rivseg_metric[1]),' AS pct_diff
+        FROM segs_basin' , sep="") #Renaming metric of interest for generalized sorting into bins
+  
+segs_basin <- sqldf(rseg_sql)
+  
+bins = as.data.frame(rivdiv) #rivdiv to be moved to config 
+bins$classid <- index(bins)
+names(bins) <- c("val", "bin")
+
+rivseg_classes <- sqldf( #sorting the data into bins based on their range 
+    "select a.riverseg, min(b.bin) as bin
+    from segs_basin as a 
+    left outer join bins as b 
+    on (a.pct_diff <= b.val) 
+    group by a.riverseg" )
+
+segs$basin <- sqldf( #joining the bins with the metric data 
+    "select a.*, b.bin 
+    from segs_basin as a 
+    left outer join rivseg_classes as b 
+    on a.riverseg = b.riverseg " )
+
+segs$basin$geometry <- segs$basin_sf$geometry
+segs$basin_sf <- st_as_sf(segs$basin) #create sf object for mapping w/ geom_sf
+st_crs(segs$basin_sf) <- 4326
+segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
+
+##Mapping function
+fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit)
+
+
+```
+
+
 ```{r Save Rivseg Map, echo=FALSE}
+ggsave(
+    filename = mapfilename,
+    plot = map,
+    width = 25,
+    height = 20)
+
+
 mapfilename <- character() #empty character var, not a list
 for (i in 1:length(rivseg_metric)) {
   mapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
@@ -1095,7 +1144,8 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     region = "MiddleJames_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
-                    runid_list = c("runid_11","runid_13"), 
+                    runid_list_facilities = c("runid_11","runid_13"), 
+                    runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l90_Qout",

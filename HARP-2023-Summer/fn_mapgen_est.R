@@ -135,12 +135,13 @@ class(labelsP$bg.r) = "numeric"
   #Rivseg fill based on drought metric % difference for rivseg maps 
   if (mapnum == 2) {
     map <- map + new_scale("fill") +
-      geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = bin), alpha = 0.75 ) +
-      scale_fill_steps2(low = "red", mid = "white", high = "green", midpoint = 4,
+      geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.75 ) +
+      scale_fill_manual(values = c("firebrick2","orange","yellow","white","palegreen","limegreen","green4"),
                         breaks = breaks,
-                        limits = lims,
-                        labels = c(-20,-10,-5,0,5,10,20),
-                        name = "% change") +
+                        labels = c(" <= -20","-20 to -10","-10 to -2","-2 to +2","+2 to +10","+10 to +20", "> +20"),
+                        limits = as.factor(breaks),
+                        name = "% change",
+                        ) +
         theme(legend.spacing.y = unit(0.1, 'cm')) + #spacing out items in legend 
         guides(fill = guide_legend(byrow = TRUE))
   }
