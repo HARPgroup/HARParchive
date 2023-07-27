@@ -23,7 +23,8 @@ params:
   
 #determining what metric(s) will be pulled and mapped
   model_version: ["vahydro-1.0"] #which model metric to be pulled from vahydro
-  runid_list: [ "runid_11", "runid_13" ] # Use runid_11 and runid_13 in that order for 2020 vs 2040 table
+  runid_list_facilities: [ "runid_11", "runid_13" ] #the runids to be pulled & compared in map & table #1
+  runid_list_riversegs: [ "runid_11", "runid_13" ] #the runids for riverseg drought metric % difference, map & table #2
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
@@ -66,7 +67,8 @@ locality <- params$locality
 region <- params$region 
 type <- params$type 
 model_version <- params$model_version
-runid_list <- params$runid_list
+runid_list <- params$runid_list_facilities
+runid_list_riversegs <- params$runid_list_riversegs
 metric_mod <- params$metric_mod
 metric_feat <- params$metric_feat
 map_type <- params$map_type
@@ -620,15 +622,10 @@ names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
 
-# Create bbox
+#Create bbox
+#auto bbox should always be around the basins intersecting region of interest
 sf_use_s2(FALSE) # switch off Spherical geometry
-if (limit == "basins" | map_type == "basin") {
-  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
-} else if (limit == "boundary" & map_type == "locality") {
-  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .02)
-} else if (limit == "boundary" & map_type == "region") {
-  bbox <- st_buffer(st_as_sfc(st_bbox(st_as_sf(segs$region_sf))), .02)
-}
+bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
 bbox <- st_bbox(bbox)
 ```
 
@@ -666,7 +663,7 @@ maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=
 # Rivseg Metric Data Processing
 ```{r Get Rivseg Metrics, message=FALSE, warning=FALSE, echo=FALSE}
 #pull rivseg_metric from vahydro and add to segs$basin dataframe
-rivseg_runids <- c('runid_11','runid_13')
+rivseg_runids <- runid_list_riversegs
 
 for (k in 1:length(rivseg_metric)) {
   for (j in 1:length(rivseg_runids)) {
@@ -848,7 +845,7 @@ for (i in 1:length(map_by)) {
 ```
 
 # Create Table 1
-```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
+```{r Create Table, include=FALSE, warning=FALSE, message=TRUE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
 #create initial table
@@ -887,29 +884,38 @@ if (type=="facility"){
         bundle = "facility"),
         token = ds$get_token(rest_pw),
         base_url = site)
-      #skip model pull if fstatus = proposed 
-      if (facilObj$fstatus != "proposed") {
+      if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
        #get facil model object
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
         propcode= "vahydro-1.0",
         varkey= "om_water_system_element"), 
       TRUE)
-      if (is.na(systemObj$pid) == TRUE) { #if no feature exists 
+      if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
         table$vwp_max_mgy[i] <- "No Permit"
       } else {
-      permCapac <- RomProperty$new(ds,list(
+      permCapac <- RomProperty$new(ds,list( #get permitted capacity
         featureid = systemObj$pid,
         propname = 'vwp_max_mgy'),
       TRUE)
       table$vwp_max_mgy[i] <- permCapac$propcode  
+     #get permit status to label exempt
+      permit_status <- RomProperty$new(ds,list( #get permitted capacity
+        featureid = systemObj$pid,
+        propname = 'permit_status'),
+      TRUE)
+        if (permit_status$propcode == "exempt") {
+          table$vwp_max_mgy[i] <- "Exempt"
+          }
         }
-      } else { #if ftatus = proposed
+      } else { #if ftatus = proposed -- dont try and pull metric
         table$vwp_max_mgy[i] <- "No Permit"
       }
     } 
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
 }
+
+#to-do: add exempt to permitted capacity column when appropriate 
 
 for (i in 1:length(table_col)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case 
@@ -937,7 +943,7 @@ if (nrow(novals > 0)) {
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
 #ordered before renaming, order by name not col #
-names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
+#names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
 names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
 names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
@@ -1086,7 +1092,7 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "Shenandoah_2", 
+                    region = "MiddleJames_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
