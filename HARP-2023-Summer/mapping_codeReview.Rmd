@@ -79,7 +79,6 @@ rivseg_metric <- params$rivseg_metric
 ```
 
 # Establish and Call Functions
-
 ```{r Dev Code-libs: Load Functions from Online, echo=FALSE}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
@@ -89,6 +88,12 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),loc
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_road_labs.R"),local = TRUE) #local road label function
+
+# NEW as of cleanup ; will have to take them out of Establish Functions
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_download_read.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_process_geom.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.R"),local = TRUE)
+
 ```
 
 ```{r Establish Functions, echo=FALSE, warning=FALSE}
@@ -191,8 +196,45 @@ legend_titling <- function(metric, runid_list){
 }
 ```
 
-# Get Foundational Data
+# Establish and Call Functions (Cleanup)
+```{r Establish Developer Functions, echo=FALSE, warning=FALSE, eval=FALSE}
+# For planners, updated when changes are merged to master
+# Make sure github location in config file is properly set 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_download_read.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_process_geom.R"),local = TRUE) 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.R"),local = TRUE)
 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen_est.R"),local = TRUE) #load mapping function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
+
+# legend_titling() --> Generate user-understandable legend titles
+## Kept up here as a function so that it's easy to add if-statements when user-input options expand
+legend_titling <- function(metric, runid_list){
+  
+  if (metric=="wd_mgd"){ #titles for wd_mgd
+    name <- "Withdrawal"
+    unit <- "(MGD)"
+    legend_title <- runid_list
+    year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
+    for (i in 1:length(runid_list)){
+      legend_title[i] <- paste(year[i],name,unit,sep="\n")
+    }
+  } else if (metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
+    name <- "5-yr Avg Use"
+    unit <- "(MGY)"
+    legend_title<- paste(name,unit,sep="\n")
+  } else {
+    legend_title<- paste(metric)
+  }
+  return(legend_title)
+}
+
+```
+
+# Get Foundational Data
 ```{r Pull Foundational Data w/ github_location, echo=FALSE} 
 facils <- list() #create empty list to store dfs
 # the variable "github_location" should be in config.local and provides easy access to these resources
@@ -202,18 +244,16 @@ facilities_df <- fread(paste0(github_location, "/Foundational_Data/2023/faciliti
 ```
 
 # Pull Data
-
 ```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE}
 #----Pull VAhydro Features----
-
+if (!exists("segs")) { segs <- list() } #create empty list 
 #segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
-if (exists("segs")==FALSE) { segs <- list() } #create empty list 
-
 if (!"all" %in% names(segs)) { #will execute loop when segs$all not yet pulled 
-  segs$all <- download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
+  segs$all <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
   # pull csv with All vahydro watershed features
+  # note: potential NULLs for newly carved data^
 } 
-# note: potential NULLs for newly carved data
+
 counties <- list() # County Features data
 counties$df <- ds$get('dh_feature', config=list(bundle='usafips')) #collect fips codes for counties
 
@@ -222,13 +262,91 @@ counties$df <- ds$get('dh_feature', config=list(bundle='usafips')) #collect fips
 roads <- download_read(
   url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
   filetype="shp", zip=TRUE) # (shp) for US states & primary roads
+
 regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #Retrieving regional planning groups 
+
 cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') 
 #rivr_maj <- read.csv("https://github.com/HARPgroup/HARParchive/raw/master/GIS_layers/MajorRivers.csv")
 ```
 
-# Geom Processing
+# Pull Data (Cleanup)
+```{r Pull Data, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+#----Facility Data----
+facils <- list() #create empty list to store dfs
 
+# note: the variable "github_location" should be in config.local and provides easy access to these resources
+if(type == "source"){
+  # foundational MP(measuring pt)/sources data:
+  facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv"))
+}
+
+if (type == "facility") { 
+  #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
+  #create df of model run specifications for om_vahydro_metric_grid():
+  df <- data.frame(runid=runid_list, model_version, metric=metric_mod) 
+  #add column to df containing 'runlabel' which will become the metric column names in facils$model:
+  for(i in 1:length(runid_list)){ 
+    df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
+  }
+  #pull facilities w/ metric of interest from vahydro:
+  facils$model <- om_vahydro_metric_grid(
+    metric=FALSE, runids=df, featureid='all', 
+    entity_type='dh_feature', bundle='facility',
+    ftype='all', model_version = model_version,
+    base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
+    ds = ds
+    )
+  #pull facility-level geometry to join with model data:
+  facils$facil_geo <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
+} 
+
+#----Watershed/Riverseg Data----
+#rsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ## VAhydro gives errors
+if(!exists("segs")){
+  rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
+  # pulls csv with All vahydro watershed features
+  # note: potential NULLs for newly carved data^
+}
+
+#----County Data----
+counties <- list()
+counties$fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
+counties$regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
+ 
+#----Cities & Roads----
+roads <- download_read(
+  url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
+  filetype="shp", zip=TRUE) # (shp) for US states & primary roads
+
+cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv') 
+
+```
+
+# Filter Data (Cleanup)
+```{r Facilities, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+
+#filter out WSP entries from facility-level metric data:
+facils$metrics <- with(facils, sqldf("SELECT * 
+                                      FROM metrics 
+                                      WHERE hydrocode not like 'wsp_%'"))
+
+```
+
+```{r Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+counties$fips$name <- sub(" County", "", counties$fips$name) # fix any names followed by " County" to match the names in counties$regions
+counties$fips <- with(counties, sqldf("SELECT fips.*, regions.*
+                                      FROM fips
+                                      left outer join regions
+                                      where (fips.name = regions.County)
+                                      ")) #add region column to county data; keep only counties in regional planning areas
+# remove counties outside of VA using the fips code; save over as "counties" to simplify data handling:
+counties <- counties$fips[grep(51,counties$fips$dh_fips),] 
+
+regions <- split(counties, counties$VMDWA_Reg2) #creates a list containing a data frame per each region, which all contain the county polygons corresponding to that region
+
+```
+
+# Geom Processing
 ```{r Region Geom Processing, echo=FALSE}
 ## Processing and combining locality geometries into their regions 
 counties$df <- counties$df[grepl(51,counties$df$dh_fips),] #removing counties outside of VA using the fips code
@@ -277,7 +395,6 @@ facilities_df <- cbind(facilities_df, coords) #add coordinates to facilities df
 ```
 
 # Process Data
-
 ```{r PROCESS Data, echo=FALSE, warning=FALSE, message=FALSE}
 #----General data organization----
 segs$all$riverseg <- str_replace(segs$all$hydrocode, 'vahydrosw_wshed_', '') #prerequisite for fn_extract_basin()
@@ -351,7 +468,6 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 ```
 
 # Pull Modeled Metrics
-
 ```{r Create df for Modeled Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
 df <- data.frame(runid=runid_list, model_version, metric=metric_mod)
 #modeled metrics pulled every facility-level run 
@@ -422,7 +538,6 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 ```
 
 # Mapping Prep
-
 ```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE, message=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
@@ -545,11 +660,10 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 rm(maplabs)
 nhdlabs <- fn_nhd_labs(data = nhd)
 roadlabs <- fn_road_labs(data = roads)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road", "nhd"))
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 
 # Rivseg Metric Data Processing
-
 ```{r Get Rivseg Metrics, message=FALSE, warning=FALSE, echo=FALSE}
 #pull rivseg_metric from vahydro and add to segs$basin dataframe
 rivseg_runids <- c('runid_11','runid_13')
@@ -626,7 +740,6 @@ for (k in 1:length(rivseg_metric)){
 ```
 
 # Create Map 1: Facils/Sources
-
 ```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
@@ -735,7 +848,6 @@ for (i in 1:length(map_by)) {
 ```
 
 # Create Table 1
-
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
@@ -827,7 +939,6 @@ fn_tablegen(type = "facility", table = table1, alignment = "left")
 ```
 
 # Display Map & Table
-
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
 if (mapMessage == TRUE) {
@@ -844,7 +955,6 @@ ft #display flextable
 ```
 
 # Rivseg Map Creation
-
 ```{r Rivseg Map Creation, echo=FALSE, warning=FALSE}
 #Adding bins to rivseg df based on the % difference 
 rivdiv <- c(-20,-10,-5,0,5,10,20) #% difference breaks for rivseg map
@@ -902,7 +1012,6 @@ for (i in 1:length(rivseg_metric)) {
 
 
 # Rivseg Table Creation
-
 ```{r Rivseg table creation}
 rivTable <- data.frame(
   Riverseg= segs$basin$riverseg,
