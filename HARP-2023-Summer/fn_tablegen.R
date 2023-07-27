@@ -35,7 +35,8 @@ assign('ft', ft, envir = globalenv())
 }
 
 else {
-  ft <- theme_vader(ft)
+  ft <- theme_vanilla(ft)
+  ft <- autofit(ft)
   assign('ft', ft, envir = globalenv())
 }
 }
