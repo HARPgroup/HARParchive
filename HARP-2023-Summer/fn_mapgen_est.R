@@ -107,8 +107,11 @@ class(labelsP$bg.r) = "numeric"
  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
- segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
- class(segs$basin_sf$bin) <- "numeric"
+ #segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
+ if (mapnum ==2) {
+   class(segs$basin_sf$bin) <- "numeric"
+ }
+
  
   #declare rivsegs tidal
   rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | 
@@ -143,31 +146,52 @@ class(labelsP$bg.r) = "numeric"
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
-            inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) +
-  #Mapping all borders using 1 df called borders, which will have 1 region line for map type region
-  new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
-    
+            inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) 
+  
+  #Mapping all borders using 1 df called borders, which will have 1 region line only for map type region
+  if (map_type == "region") { 
+  map <- map +
+    new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
     geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
-            aes(color= bundle,
-                lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
-                linetype= bundle )
-            ) +
-        
+              aes(color= bundle,
+                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
+                  linetype= bundle )
+      ) +
     scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), ### new
                           labels= c("Region","County","Basin"),
                           name= "Borders"
-                          ) +    
-    scale_colour_manual(values= c(colors_sf[c("region","county","rsegs"),]) ,
-                        breaks= c("region","county","watershed"),
-                        labels= c("Region","County","Basin"),
-                        name= "Borders",
-                        ) +
-    scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
-                    breaks= c(4.5,2.5,textsize[6]),
-                    labels= c("Region","County","Basin"),
-                    name= "Borders"
-                    )
-  
+    ) +    
+      scale_colour_manual(values= c(colors_sf[c("region","county","rsegs"),]) ,
+                          breaks= c("region","county","watershed"),
+                          labels= c("Region","County","Basin"),
+                          name= "Borders",
+      ) +
+      scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
+                      breaks= c(4.5,2.5,textsize[6]),
+                      labels= c("Region","County","Basin"),
+                      name= "Borders")
+  }  else {
+    map <- map +
+      new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
+      geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
+              aes(color= bundle,
+                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
+                  linetype= bundle )
+      ) +
+      scale_linetype_manual(values= c("county"= 1,"watershed"= 2), ### new
+                            labels= c("County","Basin"),
+                            name= "Borders"
+      ) +    
+      scale_colour_manual(values= c(colors_sf[c("county","rsegs"),]) ,
+                          breaks= c("county","watershed"),
+                          labels= c("County","Basin"),
+                          name= "Borders",
+      ) +
+      scale_linewidth(range= range(c(textsize[6],4.5)), 
+                      breaks= c(2.5,textsize[6]),
+                      labels= c("County","Basin"),
+                      name= "Borders")  
+  }
   map <- map + 
     new_scale("color") + new_scale("fill") +
     # Road Lines

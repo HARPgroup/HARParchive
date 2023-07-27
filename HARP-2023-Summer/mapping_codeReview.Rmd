@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["locality"] #should be one of: basin, locality, or region 
+  map_type: ["region"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["custom"]
@@ -457,32 +457,30 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
   segs$basin <- segs$basin[, !names(segs$basin) == "geom"]  #get rid of geom col unique to region map type
 }
+ segs$basin_sf <- st_as_sf(segs$basin)
+ st_crs(segs$basin_sf) <- 4326
 ```
 
 ```{r Filter Sources/Facils by Segs or Boundary, include=FALSE}
 #Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
 if (limit == "basins" | map_type == "basin") {
   segs_basin <- st_drop_geometry(segs$basin) #will be sf object for locality and region, not usable for sqldf
-  segs$basin_sf <- st_as_sf(segs$basin)
-  st_crs(segs$basin_sf) <- 4326 
   facils_all <- st_drop_geometry(facils$all) #create temporary df for use in sqldf for ordering
   facils_all <- facils_all[,colSums(is.na(facils_all))<nrow(facils_all)]
-
   facils$within <- sqldf("SELECT facils_all.* 
                           FROM facils_all 
                           WHERE riverseg 
                           IN (select segs_basin.riverseg from segs_basin)")
   facils$within <- st_drop_geometry(facils$within)
-  
 } else if (limit=="boundary") {
   facils$sf <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
   st_crs(facils$sf) <- 4326
   
   if (map_type=="locality") {
-    facils$within <- st_filter(facils$sf, locality_sf)
+  facils$within <- st_filter(facils$sf, locality_sf)
   } else if (map_type=="region") {
-    st_crs(segs$region_sf) <- 4326
-    facils$within <- st_filter(facils$sf, segs$region_sf)
+  st_crs(segs$region_sf) <- 4326
+  facils$within <- st_filter(facils$sf, segs$region_sf)
   } 
   coords <- st_coordinates(facils$within$geometry)
   colnames(coords) <- c('Longitude','Latitude')
@@ -499,15 +497,10 @@ for (i in 1:nrow(facils$within)) {
           TRUE)
   facils$within[i,metric_feat] <- facil$propvalue
 }
-
 ```
 
 ```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
-if (map_type == "locality" || map_type == "region") {
-  segs$basin_sf <- st_as_sf(segs$basin, wkt = "geom")
-  st_crs(segs$basin_sf) <- 4326 #Set coord. reference syst.
-}
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
@@ -852,6 +845,7 @@ bins_sql <-  paste("SELECT segs_basin.*,
 		                WHEN pct_diff >  ",rivdiv[4]," AND pct_diff <= ",rivdiv[5]," THEN '5'
 		                WHEN pct_diff > ",rivdiv[5]," AND pct_diff <= ",rivdiv[6]," THEN '6'
 		                WHEN pct_diff > ",rivdiv[6]," AND pct_diff <= ",rivdiv[7]," THEN '7'
+		                WHEN pct_diff > ",rivdiv[7]," THEN '8'
 		                ELSE 'X'
 		                END AS bin
 		                FROM segs_basin",sep="")
@@ -937,9 +931,9 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l90_Qout",
                     map_type = "locality",
-                    map_style = "default",
+                    map_style = "custom",
                     map_by = "runid_13_wd_mgd",
-                    limit = "boundary",
+                    limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
 ```
