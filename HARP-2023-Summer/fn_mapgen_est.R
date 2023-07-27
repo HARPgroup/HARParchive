@@ -136,7 +136,11 @@ class(labelsP$bg.r) = "numeric"
   if (mapnum == 2) {
     map <- map + new_scale("fill") +
       geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = bin), alpha = 0.75 ) +
-      scale_fill_steps2(low = "red", mid = "white", high = "green", midpoint = 4)
+      scale_fill_steps2(low = "red", mid = "white", high = "green", midpoint = 4,
+                        breaks = breaks,
+                        limits = lims,
+                        labels = c(-20,-10,-5,0,5,10,20),
+                        name = "% change")
   }
     
     # Flowlines & Waterbodies

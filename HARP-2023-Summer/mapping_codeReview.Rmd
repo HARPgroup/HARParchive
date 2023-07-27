@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["Shenandoah_1"]    
+  region: ["NewRiver_1"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -888,13 +888,6 @@ for (i in 1:length(rivseg_metric)) { #create separate map for each rivseg metric
 ```
 
 ```{r Save Rivseg Map, echo=FALSE}
-#rivmapname <- paste(export_path, map_name, "_rivsegs.png", sep="")
-#  ggsave(
-#    filename = rivmapname,
-#    plot = map,
-#    width = 25,
-#    height = 20)
-  
 mapfilename <- character() #empty character var, not a list
 for (i in 1:length(rivseg_metric)) {
   mapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
@@ -952,11 +945,12 @@ for (k in 1:length(rivseg_metric)){
 
 
 fn_tablegen(type = "riverseg", table = rivTable, alignment = "center") #flextable saved as var ft
-ft
 ```
 
-```{r Display Rivseg Map, echo=FALSE}
-knitr::include_graphics(rivmapname)
+```{r Display Rivseg Map & Table, echo=FALSE}
+knitr::include_graphics(mapfilename)
+
+ft #view flextable
 ```
 
 
@@ -971,14 +965,14 @@ rmarkdown::render(paste0(getwd(),"/mapping_codeReview.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "NorthernVirginia", 
+                    region = "Shenandoah_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list = c("runid_11","runid_13"), 
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l90_Qout",
-                    map_type = "locality",
+                    map_type = "region",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",
