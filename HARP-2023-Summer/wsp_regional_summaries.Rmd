@@ -350,6 +350,7 @@ if(type == "facility"){
 }
 
 ```
+ 
 ```{r Processing Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Counties----
 counties$fips$name <- sub(" County", "", counties$fips$name) # fix any names followed by " County" to match the names in counties$regions
@@ -715,11 +716,7 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 ## All labeling now done in this chunk
 rm(maplabs)
 nhdlabs <- fn_nhd_labs(data = nhd)
-<<<<<<< HEAD:HARP-2023-Summer/wsp_regional_summaries.Rmd
-roadlabs <- fn_road_labs(data = roads)
-=======
 roads <- fn_road_labs(data = roads)
->>>>>>> 6c966e3642a3b98de0149508c7d21daa9594b8ed:HARP-2023-Summer/mapping_codeReview.Rmd
 maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 
@@ -789,12 +786,13 @@ for (k in 1:length(rivseg_metric)){
   colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric[k])
   #colname <- segs$basin[,rivseg_metric[k])] 
  # segs$basin[,rivseg_metric[k]] <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) -as.numeric(segs$basin[,colname1])
+  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
   #names(segs$basin)[names(segs$basin)=="diff"]<-sprintf("Difference%d",1:sum(names(segs$basin)=="diff"))
   
   
  # segs$basin$diff <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / as.numeric(segs$basin[,colname1])) * 100
+  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / 
+                                                                as.numeric(segs$basin[,colname1])) * 100
   #segs$basin$pct_diff <- (as.numeric(segs$basin$diff[k]) / as.numeric(segs$basin[,colname1[k]])) * 100
 }
 ```
@@ -1036,7 +1034,7 @@ ft #display flextable
 ```
 
 # Rivseg Map Creation
-```{r Upgrade: auto-bins for % diff, warning=FALSE}
+```{r Sorting into Bins & Map, warning=FALSE, echo=FALSE}
 ## Need to adapt this for multiple maps
 #rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - moved to config
 segs_basin <- segs$basin
@@ -1079,8 +1077,6 @@ for (i in 1:length(rivseg_metric)){
   assign(paste0('map_rivseg', i), map, envir = globalenv())
 
 }
-
-
 ```
 
 
@@ -1099,7 +1095,7 @@ for (i in 1:length(rivseg_metric)) {
 
 
 # Rivseg Table Creation
-```{r Rivseg table creation}
+```{r Rivseg Table Creation, echo=FALSE}
 rivTable <- data.frame(
   Riverseg= segs$basin$riverseg,
   RivsegName= segs$basin$name
