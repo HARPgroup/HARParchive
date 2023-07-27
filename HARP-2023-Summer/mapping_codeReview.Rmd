@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["NewRiver_1"]    
+  region: ["MiddleJames_1"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -660,7 +660,7 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 rm(maplabs)
 nhdlabs <- fn_nhd_labs(data = nhd)
 roadlabs <- fn_road_labs(data = roads)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roadlabs, nhdlabs), classes=c("county","city","road","nhd"))
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 
 # Rivseg Metric Data Processing
@@ -852,35 +852,44 @@ for (i in 1:length(map_by)) {
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
 #create initial table
-table1 <- data.frame(
+table <- data.frame(
   Number= facils$within$NUM,
   Facility=facils$within$Facility
 )
 
 #for source type only add mp name and source type to table
 if (type=="source"){
-  table1$Source = facils$within$MP_Name  
-  table1$Source_Type = facils$within$Source_Type
+  table$Source = facils$within$MP_Name  
+  table$Source_Type = facils$within$Source_Type
 }
 
-table1$Locality = facils$within$Locality
+table$Locality = facils$within$Locality
 
 #add rivseg names
-for(i in 1:nrow(table1)){ 
+for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
-    table1$rivsegName[i] <- loc_rivseg$name
+    table$rivsegName[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table1$rivsegName[i] <- ""
+    table$rivsegName[i] <- ""
     }
 }
 
-table1$Rivseg= facils$within$riverseg #add rivseg ID
+table$Rivseg= facils$within$riverseg #add rivseg ID
 
 # for facility type only add permitted capacity from vahydro 
 if (type=="facility"){
   table$vwp_max_mgy <- NA #create empty col for permit capac storage
     for (i in 1:nrow(facils$within)){ #adding permitted capacity
+      #pull facility object
+      facilObj <- getFeature(inputs = list(
+        hydroid = facils$within$Facility_hydroid[i],
+        bundle = "facility"),
+        token = ds$get_token(rest_pw),
+        base_url = site)
+      #skip model pull if fstatus = proposed 
+      if (facilObj$fstatus != "proposed") {
+       #get facil model object
       systemObj <- RomProperty$new(ds,list(
         featureid = facils$within$Facility_hydroid[i],
         propcode= "vahydro-1.0",
@@ -893,7 +902,10 @@ if (type=="facility"){
         featureid = systemObj$pid,
         propname = 'vwp_max_mgy'),
       TRUE)
-      table$vwp_max_mgy[i] <- permCapac$propcode
+      table$vwp_max_mgy[i] <- permCapac$propcode  
+        }
+      } else { #if ftatus = proposed
+        table$vwp_max_mgy[i] <- "No Permit"
       }
     } 
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
@@ -903,11 +915,11 @@ for (i in 1:length(table_col)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case 
   if (table_col[i] %in% colnames(facils$within)) {
   #adding requested columns to table 
-    table1[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2) #round all values to 2 decimal place digits
+    table[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2) #round all values to 2 decimal place digits
   }
 }
 
-table <- table[,colSums(is.na(table1))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
+table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
 
 #compare requested table columns with those that actually exist 
 novals <- data.frame(metric=character())
@@ -925,17 +937,17 @@ if (nrow(novals > 0)) {
 
 ```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
 #ordered before renaming, order by name not col #
-names(table1)[names(table1) == 'Number'] <- '#' #can't have empty column names for flextable
-names(table1)[names(table1) == 'rivsegName'] <- 'River Segment Name'
-names(table1)[names(table1) == 'Rivseg'] <- 'River Segment ID'
-names(table1)[names(table1) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
-names(table1)[names(table1) == 'Source_Type'] <- 'Source Type'
-names(table1)[names(table1) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
+names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
+names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
+names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
+names(table)[names(table) == 'Source_Type'] <- 'Source Type'
+names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
 #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
-fn_tablegen(type = "facility", table = table1, alignment = "left") 
+fn_tablegen(type = "facility", table = table, alignment = "left") 
 ```
 
 # Display Map & Table

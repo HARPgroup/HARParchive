@@ -140,7 +140,9 @@ class(labelsP$bg.r) = "numeric"
                         breaks = breaks,
                         limits = lims,
                         labels = c(-20,-10,-5,0,5,10,20),
-                        name = "% change")
+                        name = "% change") +
+        theme(legend.spacing.y = unit(0.1, 'cm')) + #spacing out items in legend 
+        guides(fill = guide_legend(byrow = TRUE))
   }
     
     # Flowlines & Waterbodies
