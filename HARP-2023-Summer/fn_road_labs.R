@@ -10,7 +10,7 @@ roads <- list(sf=data)
   # Filter roads to only Interstate, US Hwy, State Rte
   roads$sf <- subset( roads$sf, roads$sf$MTFCC=="S1100") #primary roads only
   ## Interstate, Us Hwy, or State Rte only
-  roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", data[[d]][["FULLNAME"]], value=TRUE) | RTTYP=="S")
+  roads$sf <- subset(roads$sf, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$sf[["FULLNAME"]], value=TRUE) | RTTYP=="S")
   ## Shorten to rte number only
   roads$sf[["FULLNAME"]] <- mgsub(roads$sf[["FULLNAME"]], pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
   ## Remove remaining names with spaces (e.g. US Hwy Bus or Alt Rte)
