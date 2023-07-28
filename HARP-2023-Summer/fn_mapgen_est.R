@@ -24,34 +24,34 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
                       nhd, maplabs, locality, region, mp_layer, metric_unit) { 
 
-# Combine all map labels into one df:
-for(i in 1:length(maplabs)){
-  if(i==1){ maplabs$all <- maplabs[[i]] }
-  if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
+  # Combine all map labels into one df:
+  for(i in 1:length(maplabs)){
+    if(i==1){ maplabs$all <- maplabs[[i]] }
+    if(i!=1){ maplabs$all <- rbind(maplabs$all, maplabs[[i]]) }
   }
 
-## aesthetics from styles$custom need to be joined to maplabs$all using the class column 
-text_aes <- style$text
-maplabs_all <- maplabs$all  
+  ## aesthetics from styles$custom need to be joined to maplabs$all using the class column 
+  text_aes <- style$text
+  maplabs_all <- maplabs$all  
 
-textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
-label_fill <- styles[[map_style]]$color$fill$color
+  textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
+  label_fill <- styles[[map_style]]$color$fill$color
 
-## extract colors for sf borders and metric bubbles
-colors_sf <- style$color$sf
-colors_metric <- style$color$metrics
+  ## extract colors for sf borders and metric bubbles
+  colors_sf <- style$color$sf
+  colors_metric <- style$color$metrics
 
-# join with sqldf 
-maplabs$final <- sqldf(
-  "SELECT text_aes.*, maplabs_all.*  
-   FROM text_aes 
-   LEFT OUTER JOIN maplabs_all
+  # join with sqldf 
+  maplabs$final <- sqldf(
+    "SELECT text_aes.*, maplabs_all.*  
+    FROM text_aes 
+    LEFT OUTER JOIN maplabs_all
       on (maplabs_all.class = text_aes.class)"
   )
 
-labels <- maplabs$final
+  labels <- maplabs$final
 
-#----Generating Basemap-Specific Data----  
+  #----Generating Basemap-Specific Data----  
  #For the scalebar:  
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   colnames(bbox_points) <- c('x','y')
@@ -74,15 +74,15 @@ labels <- maplabs$final
   nonbasin <- st_difference(bbox_st, segs$union) #method of erasing
   st_crs(nonbasin) <- 4326
     
-#----Filtering what's plotted by size of boundary box---- 
-fn_filter_map(labels, nhd, roads, distance)
+  #----Filtering what's plotted by size of boundary box---- 
+  fn_filter_map(labels, nhd, roads, distance)
 
-st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
+  st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
 
-labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
-class(labelsP$bg.r) = "numeric"
+  labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
+  class(labelsP$bg.r) = "numeric"
   
-#----Legend & Titling----
+  #----Legend & Titling----
   #For map title:
   if (map_type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
@@ -104,18 +104,16 @@ class(labelsP$bg.r) = "numeric"
     labs = c(0.5, 1.0, 2, 10, 25, 100, 1000) #default to mgd if unit is neither mgd or mgy
   }
 
- #We don't want any bubbles for MPs with no metric value -- stored with bin = X
- mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
- class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
- #segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
- if (mapnum ==2) {
+  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
+  mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
+  class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
+  #segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
+  if (mapnum ==2) {
    class(segs$basin_sf$bin) <- "numeric"
- }
+  }
 
- 
   #declare rivsegs tidal
-  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE) | 
-                          riverseg %in% grep("0001", segs$basin_sf$riverseg, value=TRUE))
+  rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE))
   
  #Merging different border layers into 1 df for mapping & legend 
   borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
@@ -146,6 +144,14 @@ class(labelsP$bg.r) = "numeric"
         guides(fill = guide_legend(byrow = TRUE))
   }
     
+  #Adding fill for Tidal Rivsegs
+  map <- map + new_scale("fill") +
+    geom_sf(data = rivsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 0.8) +
+    scale_fill_manual(values = "gray62", #move into config
+                      breaks = "watershed",
+                      labels = "Tidal Basins",
+                      name = NULL)
+  
     # Flowlines & Waterbodies
   map <- map + geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
