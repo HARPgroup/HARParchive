@@ -931,12 +931,12 @@ if (type=="source"){
 table$Locality = facils$within$Locality
 
 #add rivseg names
-for(i in 1:nrow(table1)){ 
+for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
     table$rivsegName[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table1$rivsegName[i] <- ""
+    table$rivsegName[i] <- ""
     }
 }
 
