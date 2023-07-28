@@ -53,8 +53,8 @@ rivmap_labs <- c(" <= -20", #less than or equal to first value in pct vector
   
 styles <- list()
 #----Custom Aesthetics:----
-styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow"),
-                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F")
+styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow","tidal"),
+                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F","gray62")
                               )
 styles$custom$color$metrics <- data.frame(row.names=c("Surface Water","Groundwater","Nondistinctive"),
                                     color=c("#F7FF00","#FF00FF","#FF9851")

@@ -1101,7 +1101,6 @@ for (i in 1:length(rivseg_metric)) {
 }
 ```
 
-
 # Table #2 (Rivseg)
 ```{r Rivseg Table Creation, echo=FALSE}
 rivTable <- data.frame(

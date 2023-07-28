@@ -147,7 +147,7 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   #Adding fill for Tidal Rivsegs
   map <- map + new_scale("fill") +
     geom_sf(data = rivsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 0.8) +
-    scale_fill_manual(values = "gray62", #move into config
+    scale_fill_manual(values = colors_sf["tidal",], #color set in config
                       breaks = "watershed",
                       labels = "Tidal Basins",
                       name = NULL)
