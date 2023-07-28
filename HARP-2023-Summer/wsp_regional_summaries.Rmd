@@ -35,12 +35,10 @@ params:
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
   table_col: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"] ##specific metrics included in flextable
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
-  
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
 #ensure all packages and dependencies are installed prior to running 
 library(data.table)
 library(hydrotools)
@@ -61,23 +59,10 @@ ds$get_token(rest_pw)
 ```
 
 ```{r UserInputs, echo=FALSE}
-# all descriptions are the same as above in the parameter descriptions, naming is the same as well
-rivseg <- params$rivseg 
-locality <- params$locality 
-region <- params$region 
-type <- params$type 
-model_version <- params$model_version
-runid_list <- params$runid_list_facilities
-runid_list_riversegs <- params$runid_list_riversegs
-metric_mod <- params$metric_mod
-metric_feat <- params$metric_feat
-map_type <- params$map_type
-map_style <- params$map_style
-map_by <- params$map_by
-limit <- params$limit
-table_col <- params$table_col
-bbox_type <- params$bbox_type
-rivseg_metric <- params$rivseg_metric
+# reading in the user inputs from params
+for(i in 1:length(params)){
+  assign(names(params[i]), params[[i]])
+}
 ```
 
 # Establish and Call Functions
@@ -348,9 +333,7 @@ if(type == "facility"){
   facils <- with(facils, sqldf(statemt)) #selects desired columns from facils$merge, matches them with geometry from facils$fac_geo based on featureid, and renames that calculated 'sum' column to "fiveyr_avg_mgy" ; saves over facils to simplify data access/storage
   facils <- facils[grep("POINT", facils$dh_geofield),] #omits facilities with blank or NA geometry
 }
-
 ```
- 
 ```{r Processing Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Counties----
 counties$fips$name <- sub(" County", "", counties$fips$name) # fix any names followed by " County" to match the names in counties$regions
@@ -370,41 +353,24 @@ for(i in 1:length(regions)){ #merge counties into one polygon for each region
 ```
 ```{r Filtering Cities & Roads, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Roads----
-roads <- subset(roads, MTFCC=="S1100") #primary roads only
-#keep only interstate, US hwy, or state Rte:
-roads <- subset(roads, RTTYP=="I" | FULLNAME %in% grep("US Hwy.*", roads$FULLNAME, value=TRUE) | RTTYP=="S")
-#shorten names to number only; column RTTYP gives classification I, U, or S:
-roads$FULLNAME <- mgsub(roads$FULLNAME, pattern=c("\\I- ", "US Hwy ", "State Rte "), replacement=c("","",""))
-#remove any road followed by Bus, Byp, Alt, etc. by removing any row whose name still has a space:
-roads <- subset(roads, !(FULLNAME %in% grep(".* .*", roads$FULLNAME, value=TRUE)))
+roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
+                & FULLNAME %in% grep("([0-9]+).$", roads$FULLNAME, value=TRUE)) #finds where last char is a number -> Omits names followed by Byp, Alt, etc.
+roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
 #----Cities----
-cities <- sqldf("SELECT cities.* 
-                FROM cities 
-                WHERE NAME 
-                NOT IN (select counties.name from counties)
-                AND (cities.ST == 'VA')
-                ") #VA cities only & Remove city/town names that match their county/locality name
-
-statemt <- paste("SELECT cities.*
-                 FROM cities
-                 WHERE POPULATION BETWEEN", quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
-                 "IS (cities.class == 'smallTown')",
-                 sep=" ")
-smallTowns <- sqldf(statemt) ##!!!!!!!!!!!!!!! where ya left off
-
-#Classify towns/cities based on population
-smallTowns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.1) & 
-                     cities$POPULATION <  quantile(cities$POPULATION, 0.5),]
-smallTowns$CLASS <- "smallTown"
-towns <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.5) & 
-                     cities$POPULATION <  quantile(cities$POPULATION, 0.8),]
-towns$CLASS <- "town"
-citiesp <- cities[cities$POPULATION > quantile(cities$POPULATION, 0.8) & 
-                     cities$POPULATION <=  quantile(cities$POPULATION, 1.0),]
-citiesp$CLASS <- "city"
-cities <- rbind(smallTowns, towns, citiesp)
-cities <- cities[!names(cities) == 'class']
-names(cities)[names(cities) == 'CLASS'] <- "class"
+statemt <- paste("SELECT cities.X, cities.Y, cities.NAME,",
+                 "CASE WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
+                    "THEN 'smallTown' 
+                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.5),"AND",quantile(cities$POPULATION, 0.8),
+                    "THEN 'town'
+                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.8),"AND",quantile(cities$POPULATION, 1.0),
+                    "THEN 'city'
+                  ELSE CLASS", #keeping value from original class column
+                  "END as CLASS", #new class column being written
+                  "FROM cities
+                  WHERE NAME 
+                  NOT IN (select counties.name from counties)", #remove city/town names that match their county/locality name
+                  "AND (cities.ST == 'VA')", sep=" ") #keep VA cities only
+cities <- sqldf(statemt)
 ```
 
 # Geom Processing
