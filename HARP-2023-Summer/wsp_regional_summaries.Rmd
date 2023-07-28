@@ -28,7 +28,7 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  rivseg_metric: ["l90_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  rivseg_metric: ["l90_Qout", "7q10", "l30_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
   map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
@@ -679,6 +679,7 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate ri
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
+
 ```
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
@@ -686,7 +687,7 @@ segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for c
 rivseg_runids <- runid_list_riversegs
 
 for (k in 1:length(rivseg_metric)) {
-  for (j in 1:length(rivseg_runids)) {
+  for (j in 1:length(runid_list_riversegs)) {
     for (i in 1:nrow(segs$basin)) {
 
 riverseg<- RomFeature$new( #get riverseg feature from vahydro
@@ -713,7 +714,7 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
   list(
     varkey="om_scenario", 
     featureid=model$pid, 
-    propname=rivseg_runids[j] 
+    propname=runid_list_riversegs[j] 
   ), 
   TRUE)
 
@@ -728,9 +729,9 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
     ),
     TRUE)
   
-  segs$basin[i,paste0(rivseg_runids[j],'_', rivseg_metric[k])] <- model_metric$propvalue
+  segs$basin[i,paste0(runid_list_riversegs[j],'_', rivseg_metric[k])] <- model_metric$propvalue
   } else { #if the scenario/runid wasn't found
-    segs$basin[i,paste0(rivseg_runids[j],'_', rivseg_metric[k])] <- NA
+    segs$basin[i,paste0(runid_list_riversegs[j],'_', rivseg_metric[k])] <- NA
        }
       }
     }
@@ -1104,47 +1105,39 @@ for (i in 1:length(rivseg_metric)) {
 
 # Table #2 (Rivseg)
 ```{r Rivseg Table Creation, echo=FALSE}
-rivTable <- data.frame(
-  Riverseg= segs$basin$riverseg,
-  RivsegName= segs$basin$name
-)
 
 #create metric type column
+
+rivTables <- list()
 for (k in 1:length(rivseg_metric)){
-  for (j in 1:length(rivseg_runids)){
+  rivTables[[k]] <- data.frame(segs$basin$name)
+    for (j in 1:length(runid_list_riversegs)){
+       for (i in 1:nrow(segs$basin)) {
   
-  for (i in 1:nrow(rivTable)){
-    met<- rivseg_metric[k]
-    rivTable$Metric <- met[i]
-    
-    #create metric basic columns
-    if (rivseg_runids[j] == 'runid_11')
-    {
-      rivYear = '2020'
+  
+   rivTables[[k]][,paste0('Name')] <-segs$basin$name
+   rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg
+   
+  rivTables[[k]][i,paste0(runid_list_riversegs[j])] = segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])]
+  
+  rivTables[[k]][,paste0('Difference')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
+  
+  rivTables[[k]][,paste0('% Difference')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
+
+  rivTables[[k]]$metric <- rivseg_metric[k]
+  
+  
     }
-    else 
-    {
-      rivYear = '2040'
+    fn_tablegen(type = "riverseg", table = rivTables[[k]], alignment = "center") #flextable saved as var ft
+  
+  assign(paste0('ft'), ft, envir = globalenv())
+
+  ft
     }
-    rivTable[,paste0(rivYear,'(',rivseg_metric[k], ')')] = round(segs$basin[,paste0(rivseg_runids[j],'_',rivseg_metric[k])], digits=2)
-    
-  }
-  }
 }
-  
-  for (k in 1:length(rivseg_metric)){
-  for (j in 1:length(rivseg_runids)){
-  
-  for (i in 1:nrow(rivTable)){
- rivTable[,paste0('Difference','(',rivseg_metric[k], ')')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
-    rivTable[,paste0('% Difference','(',rivseg_metric[k], ')')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
-  }
-  }
-  }
-#table[,table_col[i]] <- round(facils$within[,table_col[i]], digits = 2)
+  ft
 
 
-fn_tablegen(type = "riverseg", table = rivTable, alignment = "center") #flextable saved as var ft
 ```
 
 ```{r Display Rivseg Map & Table, echo=FALSE}
