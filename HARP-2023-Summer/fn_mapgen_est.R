@@ -73,7 +73,7 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   nonbasin <- st_difference(bbox_st, segs$union) #method of erasing
   st_crs(nonbasin) <- 4326
     
-  #----Filtering what's plotted by size of boundary box---- 
+  # Filter labels & flowlines 
   fn_filter_map(labels, nhd, roads, distance)
 
   st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
@@ -81,8 +81,8 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
   class(labelsP$bg.r) = "numeric"
   
-  #----Legend & Titling----
-  #For map title:
+  # Legend & Titling
+    # For map title:
   if (map_type == "basin") {
     title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
   } else if (map_type == "locality") {
@@ -91,30 +91,26 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
     title <- paste0(region)
   } 
   
-  #For binned legend 
+    # For binned legend 
   breaks <- seq(1:7)
   lims <- c(min(breaks),max(breaks)) #limits based on range of breaks
-  
   if (metric_unit == "mgd") { 
     labs = c(0.5, 1.0, 2, 10, 25, 100, 1000)
   } else if (metric_unit == "mgy") {
     labs = c(1, 5, 10, 50, 250, 1000, 10000)
   } else {
-    labs = c(0.5, 1.0, 2, 10, 25, 100, 1000) #default to mgd if unit is neither mgd or mgy
-  }
-
-  #We don't want any bubbles for MPs with no metric value -- stored with bin = X
+    labs = c(0.5, 1.0, 2, 10, 25, 100, 1000) } #default to mgd if unit is neither mgd or mgy
+  
+  # Remove bubbles for MPs with no metric value -- stored with bin = X
   mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
   class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
-  #segs$basin_sf <- segs$basin_sf[!segs$basin_sf$bin == "X" , ] #remove rows from riverseg df without a numeric bin
   if (mapnum ==2) {
    class(segs$basin_sf$bin) <- "numeric"
   }
-
-  #declare rivsegs tidal
+  # Tidal riversegs
   rivsegTidal <- subset(segs$basin_sf, riverseg %in% grep("0000", segs$basin_sf$riverseg, value=TRUE))
   
- #Merging different border layers into 1 df for mapping & legend 
+ # Merging Borders into 1 df
   borders <- data.frame( counties$sf[c("name","geometry")], bundle= rep("county", nrow(counties$sf)) )
   borders <- rbind(borders, segs$basin_sf[c("name","bundle","geometry")] )
   if (map_type=="region") {
@@ -122,14 +118,13 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   }
   borders <- st_as_sf(borders)
  
- #----Generate map gg object----
-  map <- basemap + #ggplot2::
+###### GENERATE MAP #######
+map <- basemap + 
     # Titles
-    theme(text=element_text(size=30), title=element_text(size=40),
-          axis.title.x=element_blank(), axis.title.y=element_blank()) +
+    theme(text=element_text(size=20), title=element_text(size=40), #setting text sizes
+          legend.title = element_text(size=25), axis.title.x=element_blank(), axis.title.y=element_blank()) +
     ggtitle(title)
-    
-  #Rivseg fill based on drought metric % difference for rivseg maps 
+  # Rivseg fill based on drought metric % difference for rivseg maps 
   if (mapnum == 2) {
     map <- map + new_scale("fill") +
       geom_sf(data = segs$basin_sf, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 ) +
@@ -137,30 +132,26 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
                         breaks = rivbreaks,
                         labels = rivmap_labs,
                         limits = as.factor(rivbreaks),
-                        name = "% change",
-                        ) +
-        theme(legend.spacing.y = unit(0.1, 'cm')) + #spacing out items in legend 
+                        name = rseg_leg_title) +
+        theme(legend.spacing.y = unit(0.1, 'cm')) + #adjust spacing of legend 
         guides(fill = guide_legend(byrow = TRUE))
   }
-    
-  #Adding fill for Tidal Rivsegs
-  map <- map + new_scale("fill") +
+  # Tidal Rivsegs
+map <- map + new_scale("fill") +
     geom_sf(data = rivsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 0.8) +
     scale_fill_manual(values = colors_sf["tidal",], #color set in config
                       breaks = "watershed",
-                      labels = "Tidal Basins",
-                      name = NULL)
-  
-    # Flowlines & Waterbodies
-  map <- map + geom_sf(data = nhd_plot, 
+                      labels = "Tidal/Unmodeled",
+                      name = NULL) + 
+  # Flowlines & Waterbodies
+    geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
             mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) 
-  
-  #Mapping all borders using 1 df called borders, which will have 1 region line only for map type region
+  # Mapping all Borders (basins, localities, regions)
   if (map_type == "region") { 
   map <- map +
     new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
@@ -169,7 +160,7 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
                   lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
                   linetype= bundle )
       ) +
-    scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), ### new
+    scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), 
                           labels= c("Region","County","Basin"),
                           name= "Borders"
     ) +    
@@ -190,7 +181,7 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
                   lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
                   linetype= bundle )
       ) +
-      scale_linetype_manual(values= c("county"= 1,"watershed"= 2), ### new
+      scale_linetype_manual(values= c("county"= 1,"watershed"= 2),
                             labels= c("County","Basin"),
                             name= "Borders"
       ) +    
@@ -230,14 +221,13 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), 
                       labels=c("Interstate","State Route", "US Hwy"), name="" ) +
      
-    #Rivseg Tidal Labels- not fully functional
+    # Rivseg Tidal Labels- not fully functional
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
     
     # Basin Labels (by riverseg ID)
     geom_text(data = segs$basin_sf, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
     new_scale("size") + new_scale("color") +
-    #lb_wtbd <- lb_wtbd[!(lb_wtbd$gnis_name==' ' | lb_wtbd$gnis_name=='Noname')
     geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
@@ -286,7 +276,9 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
                         breaks = breaks, 
                         labels = labs,
                         limits = lims,
-                        name = legend_title[1])
+                        name = legend_title[1]) + 
+      theme(legend.spacing.y = unit(0.1, 'cm')) + #spacing out items in legend 
+      guides(size = guide_legend(byrow = TRUE))
   }
  
   # Source or Facility Labels
@@ -306,6 +298,4 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
                                     style= north_arrow_orienteering(text_size=35)
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
-  #print('Map stored in environment as: map')
-  #return(map)
 }
