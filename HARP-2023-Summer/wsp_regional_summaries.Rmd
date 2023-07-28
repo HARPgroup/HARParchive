@@ -529,7 +529,7 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
                             fiveyr_avg_mgy = facils_foundatn$fiveyr_avg_mgy)#select cols of interest, not including coordinates which are from sources 
 ```
 
-# Pull Modeled Metrics
+# Get Metrics
 ```{r Create df for Modeled Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
 df <- data.frame(runid=runid_list, model_version, metric=metric_mod)
 #modeled metrics pulled every facility-level run 
@@ -675,35 +675,11 @@ for (i in 1:nrow(facils$within)) {
 }
 ```
 
-```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
+```{r Process Basin Geom, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
-
-#Create bbox
-#auto bbox should always be around the basins intersecting region of interest
-sf_use_s2(FALSE) # switch off Spherical geometry
-bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
-bbox <- st_bbox(bbox)
-```
-
-```{r VAhydro bbox if Desired, include=FALSE}
-## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
-# only operational for river segments/basins
-if (bbox_type == "vahydro") {
-  for (i in 1:nrow(segs$basin)) { 
-  hid <- segs$basin$hydroid[i] 
-  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE) #pulling data from vahydro
-  extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
-  extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
-  extent_coords <- extent_coords[c('propname','propvalue')]
-  extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
-  bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05) #organizing data in bbox
-  bbox_ex <- st_bbox(bbox_ex)
-  assign("bbox", bbox_ex)
-  }
-}
 ```
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
@@ -780,6 +756,34 @@ for (k in 1:length(rivseg_metric)){
   #segs$basin$pct_diff <- (as.numeric(segs$basin$diff[k]) / as.numeric(segs$basin[,colname1[k]])) * 100
 }
 ```
+
+# Map Prep
+```{r Create Bbox}
+#Create bbox
+#auto bbox should always be around the basins intersecting region of interest
+sf_use_s2(FALSE) # switch off Spherical geometry
+bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
+bbox <- st_bbox(bbox)
+```
+
+```{r VAhydro bbox if Desired, include=FALSE}
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
+# only operational for river segments/basins
+if (bbox_type == "vahydro") {
+  for (i in 1:nrow(segs$basin)) { 
+  hid <- segs$basin$hydroid[i] 
+  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE) #pulling data from vahydro
+  extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+  extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+  extent_coords <- extent_coords[c('propname','propvalue')]
+  extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+  bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05) #organizing data in bbox
+  bbox_ex <- st_bbox(bbox_ex)
+  assign("bbox", bbox_ex)
+  }
+}
+```
+
 
 ```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
 # NHD data within the bbox
@@ -1138,7 +1142,6 @@ knitr::include_graphics(rivmapfilename)
 
 ft #view flextable
 ```
-
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
