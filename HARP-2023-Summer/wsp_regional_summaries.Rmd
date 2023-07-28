@@ -599,7 +599,6 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 }
 ```
 
-# Mapping Prep
 ```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE, message=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
@@ -707,21 +706,7 @@ if (bbox_type == "vahydro") {
 }
 ```
 
-```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
-# NHD data within the bbox
-nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-```
-
-```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
-## All labeling now done in this chunk
-rm(maplabs)
-nhdlabs <- fn_nhd_labs(data = nhd)
-roads <- fn_road_labs(data = roads)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
-```
-
-# Rivseg Metric Data Processing
-```{r Get Rivseg Metrics, message=FALSE, warning=FALSE, echo=FALSE}
+```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
 #pull rivseg_metric from vahydro and add to segs$basin dataframe
 rivseg_runids <- runid_list_riversegs
 
@@ -778,7 +763,6 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 }
 ```
 
-
 ```{r Rivseg Metric % Difference}
 for (k in 1:length(rivseg_metric)){
   segs$basin <- st_drop_geometry(segs$basin)
@@ -797,7 +781,19 @@ for (k in 1:length(rivseg_metric)){
 }
 ```
 
-# Create Map 1: Facils/Sources
+```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
+# NHD data within the bbox
+nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+```
+
+```{r Labeling, warning=FALSE, echo=FALSE, message=FALSE}
+## All labeling now done in this chunk
+rm(maplabs)
+nhdlabs <- fn_nhd_labs(data = nhd)
+roads <- fn_road_labs(data = roads)
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
+```
+# Map #1
 ```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
 facils$within <- facils$within[,colSums(is.na(facils$within))<nrow(facils$within)] #for extra long & lat columns full of NAs
 names(facils$within)[names(facils$within) == 'Longitude.1'] <- 'Longitude' #rename coord cols 
@@ -905,7 +901,7 @@ for (i in 1:length(map_by)) {
 }
 ```
 
-# Create Table 1
+# Table #1
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 
@@ -1017,7 +1013,6 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 fn_tablegen(type = "facility", table = table, alignment = "left") 
 ```
 
-# Display Map & Table
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
 if (mapMessage == TRUE) {
@@ -1033,7 +1028,7 @@ if (tableMessage == TRUE) {
 ft #display flextable
 ```
 
-# Rivseg Map Creation
+# Map #2
 ```{r Sorting into Bins & Map, warning=FALSE, echo=FALSE}
 ## Need to adapt this for multiple maps
 #rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - moved to config
@@ -1079,7 +1074,6 @@ for (i in 1:length(rivseg_metric)){
 }
 ```
 
-
 ```{r Save Rivseg Map, echo=FALSE}
 rivmapfilename <- character() #empty character var, not a list
 for (i in 1:length(rivseg_metric)) {
@@ -1094,7 +1088,7 @@ for (i in 1:length(rivseg_metric)) {
 ```
 
 
-# Rivseg Table Creation
+# Table #2
 ```{r Rivseg Table Creation, echo=FALSE}
 rivTable <- data.frame(
   Riverseg= segs$basin$riverseg,
