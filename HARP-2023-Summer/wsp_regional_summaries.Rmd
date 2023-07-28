@@ -747,7 +747,6 @@ for (k in 1:length(rivseg_metric)){
   segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
   segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / 
                                                                 as.numeric(segs$basin[,colname1])) * 100
-  
   segs_basin <- segs$basin #for sqldf
   # Since 0/0 = NA, need to have pct diff = 0 when diff =0
   update_sqldf <-  paste('SELECT *, ',paste0('diff','_',rivseg_metric[k]),' AS diff, ',
@@ -757,7 +756,7 @@ for (k in 1:length(rivseg_metric)){
                       set pct_diff=0
                       WHERE diff=0',
                       'SELECT * FROM main.segs_basin')) #ignore warning output, main.segs_basin necessary for update action
-  ## Incomplete:
+  
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c(paste0('percentDiff','_',rivseg_metric[k]), 'diff')] #remove original pct diff col and new diff col
   names(segs_basin)[names(segs_basin) == 'pct_diff'] <- paste0('percentDiff','_',rivseg_metric[k]) #change column name back to the specific metric
   segs$basin <- segs_basin
