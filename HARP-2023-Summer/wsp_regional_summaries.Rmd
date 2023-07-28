@@ -28,7 +28,7 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  rivseg_metric: ["l90_Qout", "7q10", "l30_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  rivseg_metric: ["l90_Qout", "7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
   map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
@@ -168,7 +168,7 @@ centroid_coords <- function(data, geom_col) {
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
 legend_titling <- function(metric, runid_list){
   
-  if ("wd_mgd" %in% metric){ #titles for wd_mgd
+  if (grepl("wd_mgd", metric)==TRUE){ #titles for wd_mgd -- doesn't work yet
     name <- "Withdrawal"
     unit <- "(MGD)"
     legend_title <- runid_list
@@ -180,11 +180,25 @@ legend_titling <- function(metric, runid_list){
     name <- "5-yr Avg Use"
     unit <- "(MGY)"
     legend_title<- paste(name,unit,sep="\n")
-  } else {
+  } else if (metric == "l90_Qout"){ #for use in rivserseg drought metric maps
+    name <- "L90"
+    year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
+    legend_title <- paste0(name,' % change \n', year[1], ' - ',year[2])
+  } else if (metric == "l30_Qout"){ #for use in rivserseg drought metric maps
+    name <- "L30"
+    year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
+    legend_title <- paste0(name,' % change \n', year[1], ' - ',year[2])
+  } else if (metric == "7q10"){ #for use in rivserseg drought metric maps
+    name <- "7Q10"
+    year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
+    legend_title <- paste0(name,' % change \n', year[1], ' - ',year[2])
+  } else { #if the metric hasn't been added to this function yet
     legend_title<- paste(metric)
   }
   return(legend_title)
 }
+
+
 ```
 
 # Establish and Call Functions (Cleanup)
@@ -709,7 +723,7 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 }
 ```
 
-```{r Rivseg Metric % Difference}
+```{r Rivseg Metric % Difference, echo=FALSE, warning=FALSE}
 for (k in 1:length(rivseg_metric)){
   segs$basin <- st_drop_geometry(segs$basin)
   colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric[k])
@@ -734,7 +748,7 @@ for (k in 1:length(rivseg_metric)){
 ```
 
 # Map Prep
-```{r Create Bbox}
+```{r Create Bbox, echo=FALSE, warning=FALSE}
 #Create bbox
 #auto bbox should always be around the basins intersecting region of interest
 sf_use_s2(FALSE) # switch off Spherical geometry
@@ -836,8 +850,9 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit)
+  suppressWarnings(suppressMessages( 
+    fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit) ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -1020,6 +1035,8 @@ ft #display flextable
 segs_basin <- segs$basin
 
 for (i in 1:length(rivseg_metric)){
+  rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list_riversegs)
+  
   segs_basin <- st_drop_geometry(segs_basin)
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c("pct_diff", "bin")]
   
@@ -1051,8 +1068,9 @@ for (i in 1:length(rivseg_metric)){
   segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
 
   ##Mapping function
-  fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit)
+  suppressWarnings(suppressMessages(
+    fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit) ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -1101,16 +1119,19 @@ for (k in 1:length(rivseg_metric)){
   
   assign(paste0('ft'), ft, envir = globalenv())
 
-  ft
+#  ft
     }
 }
-  ft
+#  ft
 
 
 ```
 
-```{r Display Rivseg Map & Table, echo=FALSE}
+```{r Display Rivseg Map, echo=FALSE}
 knitr::include_graphics(rivmapfilename)
+```
+
+```{r Display Rivseg Table, echo=FALSE}
 ft #view flextable
 ```
 
@@ -1125,14 +1146,14 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "MiddleJames_2", 
+                    region = "BigSandy_UpperTennessee_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    rivseg_metric = "7q10",
+                    rivseg_metric = "l30_Qout",
                     map_type = "region",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
