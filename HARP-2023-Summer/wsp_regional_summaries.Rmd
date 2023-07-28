@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Stafford"]
-  region: ["MiddleJames_1"]    
+  region: ["MiddleJames_3"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -598,7 +598,6 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 }
 ```
 
-# Mapping Prep
 ```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE, message=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
@@ -665,7 +664,7 @@ if (limit == "basins" | map_type == "basin") {
 }
 ```
 
-```{r Feature Metric Pull (non-modeled metrics), echo=FALSE, message=FALSE, warning=FALSE}
+```{r Facil-Feature Metric Pull (non-modeled), echo=FALSE, message=FALSE, warning=FALSE}
 for (i in 1:nrow(facils$within)) {
   facil <- RomProperty$new(ds,list(
           featureid = facils$within$Facility_hydroid[i],
@@ -675,57 +674,13 @@ for (i in 1:nrow(facils$within)) {
 }
 ```
 
-```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
+```{r Process Basin Geom, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
 
-# Create bbox
-sf_use_s2(FALSE) # switch off Spherical geometry
-if (limit == "basins" | map_type == "basin") {
-  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
-} else if (limit == "boundary" & map_type == "locality") {
-  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .02)
-} else if (limit == "boundary" & map_type == "region") {
-  bbox <- st_buffer(st_as_sfc(st_bbox(st_as_sf(segs$region_sf))), .02)
-}
-bbox <- st_bbox(bbox)
 ```
-
-```{r VAhydro bbox if Desired, include=FALSE}
-## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
-# only operational for river segments/basins
-if (bbox_type == "vahydro") {
-  for (i in 1:nrow(segs$basin)) { 
-  hid <- segs$basin$hydroid[i] 
-  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE) #pulling data from vahydro
-  extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
-  extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
-  extent_coords <- extent_coords[c('propname','propvalue')]
-  extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
-  bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05) #organizing data in bbox
-  bbox_ex <- st_bbox(bbox_ex)
-  assign("bbox", bbox_ex)
-  }
-}
-```
-
-```{r Get NHD Data in bbox, message=FALSE, echo=FALSE, eval=FALSE}
-# NHD data within the bbox
-nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-```
-
-```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE, eval=FALSE}
-## All labeling now done in this chunk
-rm(maplabs)
-nhdlabs <- fn_nhd_labs(data = nhd)
-roadlabs <- fn_road_labs(data = roads)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
-
-```
-
-# Rivseg Metric Data Processing
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
 #pull rivseg_metric from vahydro and add to segs$basin dataframe
@@ -787,22 +742,28 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
 ```{r Rivseg Metric % Difference}
 for (k in 1:length(rivseg_metric)){
   segs$basin <- st_drop_geometry(segs$basin)
-  colname1 <- paste0(runid_list_riversegs[1],'_',rivseg_metric[k])
-  colname2 <- paste0(runid_list_riversegs[2],'_',rivseg_metric[k])
-  #colname <- segs$basin[,rivseg_metric[k])] 
- # segs$basin[,rivseg_metric[k]] <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) -as.numeric(segs$basin[,colname1])
+  colname1 <- paste0(rivseg_runids[1],'_',rivseg_metric[k])
+  colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric[k])
+  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
+  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / 
+                                                                as.numeric(segs$basin[,colname1])) * 100
+  segs_basin <- segs$basin #for sqldf
+  # Since 0/0 = NA, need to have pct diff = 0 when diff =0
+  update_sqldf <-  paste('SELECT *, ',paste0('diff','_',rivseg_metric[k]),' AS diff, ',
+                         paste0('percentDiff','_',rivseg_metric[k]),' AS pct_diff FROM segs_basin' , sep="")
+  segs_basin <- sqldf(update_sqldf)
+  segs_basin <- sqldf(c('UPDATE segs_basin
+                      set pct_diff=0
+                      WHERE diff=0',
+                        'SELECT * FROM main.segs_basin')) #ignore warning output, main.segs_basin necessary for update action
   
-  #names(segs$basin)[names(segs$basin)=="diff"]<-sprintf("Difference%d",1:sum(names(segs$basin)=="diff"))
-  
-  
- # segs$basin$diff <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / as.numeric(segs$basin[,colname1])) * 100
-  #segs$basin$pct_diff <- (as.numeric(segs$basin$diff[k]) / as.numeric(segs$basin[,colname1[k]])) * 100
+  segs_basin <- segs_basin[ , !names(segs_basin) %in% c(paste0('percentDiff','_',rivseg_metric[k]), 'diff')] #remove original pct diff col and new diff col
+  names(segs_basin)[names(segs_basin) == 'pct_diff'] <- paste0('percentDiff','_',rivseg_metric[k]) #change column name back to the specific metric
+  segs$basin <- segs_basin
 }
 ```
 
-# Create Map 1: Facils/Sources
+# Map Prep
 ```{r Create Bbox}
 #Create bbox
 #auto bbox should always be around the basins intersecting region of interest
@@ -829,6 +790,18 @@ if (bbox_type == "vahydro") {
 }
 ```
 
+```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
+# NHD data within the bbox
+nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+```
+
+```{r Labeling, warning=FALSE, echo=FALSE, message=FALSE}
+## All labeling now done in this chunk
+rm(maplabs)
+nhdlabs <- fn_nhd_labs(data = nhd)
+roadlabs <- fn_road_labs(data = roads)
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
+```
 
 # Map #1
 ```{r Data into Bins & Map, echo=FALSE, warning=TRUE, message=TRUE}
@@ -938,12 +911,12 @@ for (i in 1:length(map_by)) {
 }
 ```
 
-# Create Table 1
+# Table #1
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 #facils$within$hydroid <- as.numeric(gsub(",", "", facils$within$hydroid, fixed = TRUE))
 #create initial table
-table1 <- data.frame(
+table <- data.frame(
   Number= facils$within$NUM,
   Facility=facils$within$Facility,
   HydroID = facils$within$hydroid
@@ -952,23 +925,23 @@ table1 <- data.frame(
 
 #for source type only add mp name and source type to table
 if (type=="source"){
-  table1$Source = facils$within$MP_Name  
-  table1$Source_Type = facils$within$Source_Type
+  table$Source = facils$within$MP_Name  
+  table$Source_Type = facils$within$Source_Type
 }
 
-table1$Locality = facils$within$Locality
+table$Locality = facils$within$Locality
 
 #add rivseg names
-for(i in 1:nrow(table1)){ 
+for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
-    table1$rivsegName[i] <- loc_rivseg$name
+    table$rivsegName[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table1$rivsegName[i] <- ""
+    table$rivsegName[i] <- ""
     }
 }
 
-table1$Rivseg= facils$within$riverseg #add rivseg ID
+table$Rivseg= facils$within$riverseg #add rivseg ID
 
 # for facility type only add permitted capacity from vahydro 
 if (type=="facility"){
