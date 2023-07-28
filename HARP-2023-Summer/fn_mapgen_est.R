@@ -12,7 +12,6 @@ library(ggsn)
 library(ggspatial)
 library(ggrepel)
 library(geosphere)
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),local = TRUE) 
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 

@@ -35,22 +35,7 @@ wtbd_sm_pct_range <- c(0.25,0.6) #quantile range for classifying waterbodies as 
 wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as medium for mapping
 #large waterbodies will use max value from med_pct_range as min
 
-#For riverseg drought metric maps 
-rivseg_pct_vect <- c(-20,-10,-2,2,10,20,500) #vector of values for rivseg drought maps
-#^last value should be higher than any % difference value expected, since classification is done using <=
-rivbreaks <- seq(1:length(rivseg_pct_vect))
-rivmap_colors <- c("firebrick2","darkorange","#FFCC99",
-                   "white","palegreen","limegreen","green4") #colors for fills based on % diff 
-#^needs to be same length as rivseg_pct_vect
-rivmap_labs <- c(" <= -20", #less than or equal to first value in pct vector
-                 "-20 to -10", #labeling the ranges between each value from pct vector 
-                 "-10 to -2",
-                 "-2 to +2",
-                 "+2 to +10",
-                 "+10 to +20",
-                 " > +20") #last label should be greater than 2nd-to-last value in pct vector 
-#^needs to be same length as rivseg_pct_vect
-  
+
 styles <- list()
 #----Custom Aesthetics:----
 styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow","tidal"),
