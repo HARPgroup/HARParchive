@@ -215,6 +215,12 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),loc
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
 
+# returns the name of the geometry column in the data:
+geoCol <- function(data){
+  colname <- grep("geo",colnames(data),value=TRUE)
+  return(colname)
+}
+
 # legend_titling() --> Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
 legend_titling <- function(metric, runid_list){
@@ -286,10 +292,10 @@ facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/fou
 if (type == "facility") { 
   #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   #create df of model run specifications for om_vahydro_metric_grid():
-  df <- data.frame(runid=runid_list, model_version, metric=metric_mod) 
+  df <- data.frame(runid=runid_list_facilities, model_version, metric=metric_mod) 
   #add column to df containing 'runlabel' which will become the metric column names in facils$model:
-  for(i in 1:length(runid_list)){ 
-    df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
+  for(i in 1:length(runid_list_facilities)){ 
+    df$runlabel[i] <- paste0(runid_list_facilities[i], '_', metric_mod)
   }
   #pull facilities w/ metric of interest from vahydro:
   facils$model <- om_vahydro_metric_grid(
@@ -344,13 +350,52 @@ if(type == "facility"){
   #join facility geometry to merged data frame:
   statemt <- paste("SELECT 
                       a.Facility, a.featureid, a.'Use Type', a.Locality, a.sum as fiveyr_avg_mgy, a.",df$runlabel[1],", a.",df$runlabel[2],",
-                      b.dh_geofield
-                      FROM merge as a
+                      b.",geoCol(facils$fac_geo), #robust for varying geometry column names
+                      " FROM merge as a
                       LEFT OUTER JOIN fac_geo as b
                       ON (a.featureid = b.Facility_hydroid)", sep="")
   facils <- with(facils, sqldf(statemt)) #selects desired columns from facils$merge, matches them with geometry from facils$fac_geo based on featureid, and renames that calculated 'sum' column to "fiveyr_avg_mgy" ; saves over facils to simplify data access/storage
-  facils <- facils[grep("POINT", facils$dh_geofield),] #omits facilities with blank or NA geometry
+  facils3 <- facils[facils[geoCol(facils)]!="" & facils[geoCol(facils)]!="NA",] #omits facilities with blank or NA geometry
 }
+#connect facilities to the watersheds they are in:
+rsegs <- rsegs[-which(rsegs[geoCol(rsegs)] == "" | rsegs[geoCol(rsegs)] == "NA" ), ] #finds geom column & omits rsegs with blank or NA geometry
+rsegs <- st_as_sf(rsegs, wkt = geoCol(rsegs), crs=4326)
+facils3 <- st_as_sf(facils2, wkt = geoCol(facils2), crs=4326) #doesn't work. can't get rid of some NA-presenting values. breaks
+
+for(i in 1:length(facils2$Facility)){
+  if(i==1){
+    facils3 <- st_as_sf(facils2[i,], wkt = geoCol(facils2), crs=4326)
+  }
+  if(i!=1){
+    facils3 <- rbind(facils3, st_as_sf(facils2[i,], wkt = geoCol(facils2), crs=4326) )
+  }
+}
+
+facils3 <- facils2[facils[geoCol(facils)]=="<NA>"|facils[geoCol(facils)]=="NA",]
+
+if (!"riverseg" %in% colnames(facils$all)) { # TRUE when riverseg column not present, will execute loop
+  facils$all <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
+  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
+  #segs$sp <- process_geom(segs_all, "geom") #takes several seconds
+  segs$sf <- st_as_sf(segs_all, wkt = "geom")
+  rm(segs_all)
+  #segs$sf <- st_as_sf(segs$sp)
+  st_crs(segs$sf) <- 4326
+  st_crs(facils$all) <- 4326
+  # do spatial join to determine which seg each source/facility is in
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  spat_join <- st_join(facils$all, segs$sf) #riverseg column added, polygons in col geom
+  coords <- st_coordinates(spat_join$geometry)
+  colnames(coords) <- c("Longitude","Latitude")
+  spat_join <- spat_join[ , !names(spat_join) == "geom"]
+  spat_join <- st_drop_geometry(spat_join)
+  facils$all <- spat_join
+  facils$all <- cbind(facils$all, coords)
+  colnames(facils$all) <- gsub("hydrocode", "rseg_hydrocode", colnames(facils$all))
+}
+
+
+
 ```
 ```{r Processing Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Counties----
@@ -1106,8 +1151,12 @@ for (i in 1:length(rivseg_metric)) {
 #create metric type column
 
 rivTables <- list()
+      ftable<- list()
 for (k in 1:length(rivseg_metric)){
+  
   rivTables[[k]] <- data.frame(segs$basin$name)
+  rivTables[[k]]$Metric <- rivseg_metric[k]
+  
     for (j in 1:length(runid_list_riversegs)){
        for (i in 1:nrow(segs$basin)) {
   
@@ -1115,25 +1164,25 @@ for (k in 1:length(rivseg_metric)){
    rivTables[[k]][,paste0('Name')] <-segs$basin$name
    rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg
    
-  rivTables[[k]][i,paste0(runid_list_riversegs[j])] = segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])]
+  rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])], digits= 2)
   
   rivTables[[k]][,paste0('Difference')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
   
   rivTables[[k]][,paste0('% Difference')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
 
-  rivTables[[k]]$metric <- rivseg_metric[k]
   
+  drop <- c("segs.basin.name")
+  rivTables[[k]] = rivTables[[k]][,!(names(rivTables[[k]]) %in% drop)]
   
+ 
+  
+       }
+  
+     fn_tablegen(type = "riverseg", table = rivTables[[k]], alignment = "center") #flextable saved as var ft
+    assign(paste0('table', k), ft, envir = globalenv())
     }
-    fn_tablegen(type = "riverseg", table = rivTables[[k]], alignment = "center") #flextable saved as var ft
-  
-  assign(paste0('ft'), ft, envir = globalenv())
-
-#  ft
-    }
+  print(get(paste0('table', k)))
 }
-#  ft
-
 
 ```
 
