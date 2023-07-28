@@ -141,7 +141,7 @@ map <- map + new_scale("fill") +
     geom_sf(data = rivsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 0.8) +
     scale_fill_manual(values = colors_sf["tidal",], #color set in config
                       breaks = "watershed",
-                      labels = "Tidal Basins",
+                      labels = "Tidal/Unmodeled",
                       name = NULL) + 
   # Flowlines & Waterbodies
     geom_sf(data = nhd_plot, 

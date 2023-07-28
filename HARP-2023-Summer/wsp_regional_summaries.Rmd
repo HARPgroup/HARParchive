@@ -11,8 +11,8 @@ output: pdf_document #overridden by output_format in render command
 params: 
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Stafford"]
-  region: ["MiddleJames_3"]    
+  locality: ["Fairfax"]
+  region: ["NorthernVirginia"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -774,6 +774,20 @@ if (bbox_type == "vahydro") {
 }
 ```
 
+```{r Filter Cities by Bbox, echo=FALSE, warning=FALSE, message=FALSE}
+cities_sf <- st_as_sf(cities, coords = c('X','Y'), crs = 4326) #make cities sf obj to be filtered
+cities_within <- st_drop_geometry(st_filter(cities_sf, segs$basin_sf))
+#cities_large <- cities_within[cities_within$POPULATION > quantile(cities_within$POPULATION, 0.5, na.rm = T),] #largest 50% by population within area 
+cities_sorted <- sqldf("SELECT cities_within.*  
+                    FROM cities_within 
+                    ORDER BY POPULATION DESC") #sort by highest population
+cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 10 by population
+cities_plot <- sqldf("SELECT a.*, b.X, b.Y 
+                      FROM cities_plot as a 
+                      LEFT OUTER JOIN cities as b
+                      ON a.NAME = b.NAME") #join coordinates back onto data
+```
+
 ```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
@@ -784,7 +798,7 @@ nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 rm(maplabs)
 nhdlabs <- fn_nhd_labs(data = nhd)
 roadlabs <- fn_road_labs(data = roads)
-maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
+maplabs <- fn_labelprep(data=list(counties$sf, cities_plot, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 
 # Map #1
@@ -958,7 +972,7 @@ if (type=="facility"){
         featureid = systemObj$pid,
         propname = 'permit_status'),
       TRUE)
-        if (permit_status$propcode == "exempt") {
+        if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") { #source of error
           table$vwp_max_mgy[i] <- "Exempt"
           }
         }
@@ -968,9 +982,6 @@ if (type=="facility"){
     } 
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
 }
-
-
-#to-do: add exempt to permitted capacity column when appropriate 
 
 for (i in 1:length(table_col)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case 
@@ -1036,7 +1047,6 @@ segs_basin <- segs$basin
 
 for (i in 1:length(rivseg_metric)){
   rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list_riversegs)
-  
   segs_basin <- st_drop_geometry(segs_basin)
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c("pct_diff", "bin")]
   
@@ -1146,7 +1156,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "BigSandy_UpperTennessee_2", 
+                    region = "NorthernVirginia", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
