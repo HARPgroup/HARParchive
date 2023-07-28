@@ -500,10 +500,10 @@ facils_foundatn <- data.frame(Facility_hydroid = facils_foundatn$Facility_hydroi
 
 # Get Metrics
 ```{r Create df for Modeled Metric Pull, include=FALSE, warning=FALSE, message=FALSE}
-df <- data.frame(runid=runid_list, model_version, metric=metric_mod)
+df <- data.frame(runid=runid_list_facilities, model_version, metric=metric_mod)
 #modeled metrics pulled every facility-level run 
-for(i in 1:length(runid_list)){
-  df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
+for(i in 1:length(runid_list_facilities)){
+  df$runlabel[i] <- paste0(runid_list_facilities[i], '_', metric_mod)
 } 
 ```
 
@@ -785,7 +785,7 @@ wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 for (i in 1:length(map_by)) { #execute for each metric in map_by param 
   #legend_title <- paste0(map_by[i])
-  legend_title <- legend_titling(map_by[i], runid_list)
+  legend_title <- legend_titling(map_by[i], runid_list_facilities)
   
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
   if ((map_by[i] %in% colnames(facils_within)) == FALSE) {
