@@ -1078,8 +1078,12 @@ for (i in 1:length(rivseg_metric)) {
 #create metric type column
 
 rivTables <- list()
+      ftable<- list()
 for (k in 1:length(rivseg_metric)){
+  
   rivTables[[k]] <- data.frame(segs$basin$name)
+  rivTables[[k]]$Metric <- rivseg_metric[k]
+  
     for (j in 1:length(runid_list_riversegs)){
        for (i in 1:nrow(segs$basin)) {
   
@@ -1087,25 +1091,26 @@ for (k in 1:length(rivseg_metric)){
    rivTables[[k]][,paste0('Name')] <-segs$basin$name
    rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg
    
-  rivTables[[k]][i,paste0(runid_list_riversegs[j])] = segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])]
+  rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])], digits= 2)
   
   rivTables[[k]][,paste0('Difference')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
   
   rivTables[[k]][,paste0('% Difference')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
 
-  rivTables[[k]]$metric <- rivseg_metric[k]
+  
+  drop <- c("segs.basin.name")
+  rivTables[[k]] = rivTables[[k]][,!(names(rivTables[[k]]) %in% drop)]
   
   
-    }
-    fn_tablegen(type = "riverseg", table = rivTables[[k]], alignment = "center") #flextable saved as var ft
-  
-  assign(paste0('ft'), ft, envir = globalenv())
 
-  ft
+  
+       }
+  
+     fn_tablegen(type = "riverseg", table = rivTables[[k]], alignment = "center") #flextable saved as var ft
+    assign(paste0('table', k), ft, envir = globalenv())
     }
+  print(get(paste0('table', k)))
 }
-  ft
-
 
 ```
 

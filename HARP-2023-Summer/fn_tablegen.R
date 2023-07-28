@@ -38,6 +38,12 @@ else if (type == 'riverseg'){
   
   ft <- theme_vanilla(ft)
   ft <- autofit(ft)
+  x <- 10 # change percent desired
+  # highlight when percent difference is above x or below negative x 
+  ft <- flextable::highlight(ft, 
+                             #j= "% Difference", 
+                             i = ft$body$dataset$`% Difference` > x |   ft$body$dataset$`% Difference` < -x ,
+                             color = "yellow")
   
   assign('ft', ft, envir = globalenv())
 }
