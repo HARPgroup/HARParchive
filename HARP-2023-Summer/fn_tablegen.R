@@ -14,7 +14,7 @@ set_flextable_defaults(
   font.size = 8, background.color = "white", 
   padding = 1, na_str = "NA", nan_str = "NA", 
   table.layout = 'fixed', tabcolsep = 1.5,
-  fonts_ignore = T) #fonts_ignore applies when knitting as pdf 
+  fonts_ignore = T, big.mark = "", decimal.mark= ".") #fonts_ignore applies when knitting as pdf 
 
 # specify aesthetics for spacing in the table, can be edited if desired
 ft <- flextable(table)
@@ -34,9 +34,11 @@ ft <- align(ft, align = alignment, part = "all")
 assign('ft', ft, envir = globalenv())
 }
 
-else {
+else if (type == 'riverseg'){
+  
   ft <- theme_vanilla(ft)
   ft <- autofit(ft)
+  
   assign('ft', ft, envir = globalenv())
 }
 }

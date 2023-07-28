@@ -405,7 +405,6 @@ citiesp$CLASS <- "city"
 cities <- rbind(smallTowns, towns, citiesp)
 cities <- cities[!names(cities) == 'class']
 names(cities)[names(cities) == 'CLASS'] <- "class"
-
 ```
 
 # Geom Processing
@@ -599,6 +598,7 @@ facils$all <- facils$all[!is.na(facils$all$Latitude),]
 }
 ```
 
+# Mapping Prep
 ```{r Filter Segs by Boundary, echo=FALSE, warning=FALSE, message=FALSE}
 #Filter segs/basins by boundary 
 if (map_type == "basin") { #finding upstream riversegs for basin maps 
@@ -675,11 +675,65 @@ for (i in 1:nrow(facils$within)) {
 }
 ```
 
-```{r Process Basin Geom, warning=FALSE, echo=FALSE, message=FALSE}
+```{r Process Basin Geom & Bbox, warning=FALSE, echo=FALSE, message=FALSE}
 segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate riversegs for overlapping basins
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
+
+# Create bbox
+sf_use_s2(FALSE) # switch off Spherical geometry
+if (limit == "basins" | map_type == "basin") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(segs$basin_sf)), .02) #slightly past basin
+} else if (limit == "boundary" & map_type == "locality") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(locality_sf)), .02)
+} else if (limit == "boundary" & map_type == "region") {
+  bbox <- st_buffer(st_as_sfc(st_bbox(st_as_sf(segs$region_sf))), .02)
+}
+bbox <- st_bbox(bbox)
+```
+
+```{r VAhydro bbox if Desired, include=FALSE}
+## Retrieve bbox from vahydro property --- only run if this bbox is desired, otherwise skip 
+# only operational for river segments/basins
+if (bbox_type == "vahydro") {
+  for (i in 1:nrow(segs$basin)) { 
+  hid <- segs$basin$hydroid[i] 
+  map <- RomProperty$new(ds, list(varkey="map", entity_type="dh_feature",featureid=hid),TRUE) #pulling data from vahydro
+  extent <- RomProperty$new(ds, list(propname="extent", entity_type="dh_properties",featureid=map$pid),TRUE)
+  extent_coords = ds$get_prop(config = list(featureid = extent$pid, entity_type='dh_properties'))
+  extent_coords <- extent_coords[c('propname','propvalue')]
+  extent_df <- data.frame(X = c(extent_coords[1,2], extent_coords[2,2]), Y = c(extent_coords[3,2], extent_coords[4,2]))
+  bbox_ex <- st_buffer(st_as_sf(extent_df, coords = c("X","Y"), crs = 4326), .05) #organizing data in bbox
+  bbox_ex <- st_bbox(bbox_ex)
+  assign("bbox", bbox_ex)
+  }
+}
+```
+
+```{r Get NHD Data in bbox, message=FALSE, echo=FALSE}
+# NHD data within the bbox
+nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+```
+
+```{r Labeling & Mapping Prep, warning=FALSE, echo=FALSE, message=FALSE}
+## All labeling now done in this chunk
+rm(maplabs)
+nhdlabs <- fn_nhd_labs(data = nhd)
+roadlabs <- fn_road_labs(data = roads)
+maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
+```
+
+# Rivseg Metric Data Processing
+```{r Get Rivseg Metrics, message=FALSE, warning=FALSE, echo=FALSE}
+#pull rivseg_metric from vahydro and add to segs$basin dataframe
+rivseg_runids <- c('runid_11','runid_13')
+segs$keep <- segs$basin
+for (k in 1:length(rivseg_metric)) {
+  for (j in 1:length(rivseg_runids)) {
+    for (i in 1:nrow(segs$basin)) {
+      
+#segs$basin$metric[i] <- rivseg_metric[k]
 ```
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
@@ -728,10 +782,10 @@ model_scenario <- RomProperty$new( #get scenario/runid from vahydro
     propname = rivseg_metric[k]
     ),
     TRUE)
-
-  segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric[k])] <- model_metric$propvalue
+  
+  segs$basin[i,paste0(rivseg_runids[j],'_', rivseg_metric[k])] <- model_metric$propvalue
   } else { #if the scenario/runid wasn't found
-    segs$basin[i ,paste0(rivseg_runids[j],'_',rivseg_metric[k])] <- NA
+    segs$basin[i,paste0(rivseg_runids[j],'_', rivseg_metric[k])] <- NA
        }
       }
     }
@@ -746,18 +800,18 @@ for (k in 1:length(rivseg_metric)){
   colname2 <- paste0(rivseg_runids[2],'_',rivseg_metric[k])
   #colname <- segs$basin[,rivseg_metric[k])] 
  # segs$basin[,rivseg_metric[k]] <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) - as.numeric(segs$basin[,colname1])
+  segs$basin[,paste0('diff','_',rivseg_metric[k])] <- as.numeric(segs$basin[,colname2]) -as.numeric(segs$basin[,colname1])
+  
   #names(segs$basin)[names(segs$basin)=="diff"]<-sprintf("Difference%d",1:sum(names(segs$basin)=="diff"))
   
   
  # segs$basin$diff <- as.numeric(segs$basin[,colname2[k]]) - as.numeric(segs$basin[,colname1[k]])
-  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / 
-                                                                as.numeric(segs$basin[,colname1])) * 100
+  segs$basin[,paste0('percentDiff','_',rivseg_metric[k])] <- (as.numeric(segs$basin[,paste0('diff','_',rivseg_metric[k])]) / as.numeric(segs$basin[,colname1])) * 100
   #segs$basin$pct_diff <- (as.numeric(segs$basin$diff[k]) / as.numeric(segs$basin[,colname1[k]])) * 100
 }
 ```
 
-# Map Prep
+# Create Map 1: Facils/Sources
 ```{r Create Bbox}
 #Create bbox
 #auto bbox should always be around the basins intersecting region of interest
@@ -905,35 +959,37 @@ for (i in 1:length(map_by)) {
 }
 ```
 
-# Table #1
+# Create Table 1
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
-
+#facils$within$hydroid <- as.numeric(gsub(",", "", facils$within$hydroid, fixed = TRUE))
 #create initial table
-table <- data.frame(
+table1 <- data.frame(
   Number= facils$within$NUM,
-  Facility=facils$within$Facility
+  Facility=facils$within$Facility,
+  HydroID = facils$within$hydroid
+
 )
 
 #for source type only add mp name and source type to table
 if (type=="source"){
-  table$Source = facils$within$MP_Name  
-  table$Source_Type = facils$within$Source_Type
+  table1$Source = facils$within$MP_Name  
+  table1$Source_Type = facils$within$Source_Type
 }
 
-table$Locality = facils$within$Locality
+table1$Locality = facils$within$Locality
 
 #add rivseg names
-for(i in 1:nrow(table)){ 
+for(i in 1:nrow(table1)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
-    table$rivsegName[i] <- loc_rivseg$name
+    table1$rivsegName[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table$rivsegName[i] <- ""
+    table1$rivsegName[i] <- ""
     }
 }
 
-table$Rivseg= facils$within$riverseg #add rivseg ID
+table1$Rivseg= facils$within$riverseg #add rivseg ID
 
 # for facility type only add permitted capacity from vahydro 
 if (type=="facility"){
@@ -976,6 +1032,7 @@ if (type=="facility"){
     table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
 }
 
+
 #to-do: add exempt to permitted capacity column when appropriate 
 
 for (i in 1:length(table_col)){
@@ -1014,6 +1071,8 @@ names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
 #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+
+# Display Map & Table
 fn_tablegen(type = "facility", table = table, alignment = "left") 
 ```
 
@@ -1032,7 +1091,7 @@ if (tableMessage == TRUE) {
 ft #display flextable
 ```
 
-# Map #2
+# Map #2 (Rivseg Map)
 ```{r Sorting into Bins & Map, warning=FALSE, echo=FALSE}
 ## Need to adapt this for multiple maps
 #rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - moved to config
@@ -1073,8 +1132,8 @@ for (i in 1:length(rivseg_metric)){
   fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit)
   
+  #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
-
 }
 ```
 
@@ -1092,7 +1151,7 @@ for (i in 1:length(rivseg_metric)) {
 ```
 
 
-# Table #2
+# Table #2 (Rivseg)
 ```{r Rivseg Table Creation, echo=FALSE}
 rivTable <- data.frame(
   Riverseg= segs$basin$riverseg,
@@ -1139,7 +1198,6 @@ fn_tablegen(type = "riverseg", table = rivTable, alignment = "center") #flextabl
 
 ```{r Display Rivseg Map & Table, echo=FALSE}
 knitr::include_graphics(rivmapfilename)
-
 ft #view flextable
 ```
 
