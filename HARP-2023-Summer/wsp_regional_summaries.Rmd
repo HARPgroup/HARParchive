@@ -12,7 +12,7 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Fairfax"]
-  region: ["NorthernVirginia"]    
+  region: ["Chowan_1"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
@@ -28,7 +28,7 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  rivseg_metric: ["l90_Qout", "7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  rivseg_metric: ["l90_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
   map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
@@ -48,6 +48,7 @@ library(sf)
 library(nhdplusTools)
 library(png)
 library(flextable)
+library(pandoc)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -996,9 +997,10 @@ if (type=="facility"){
         base_url = site)
       if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
        #get facil model object
-      systemObj <- RomProperty$new(ds,list(
+      systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features
         featureid = facils$within$Facility_hydroid[i],
         propcode= "vahydro-1.0",
+        propname= facilObj$name,
         varkey= "om_water_system_element"), 
       TRUE)
       if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
@@ -1174,9 +1176,14 @@ for (k in 1:length(rivseg_metric)){
   #Flextable function
   fn_tablegen(type = "riverseg", table = rivdf, alignment = "left") #flextable saved as var ft
   
-  ft
-  #assign(paste0('table', k), ft, envir = globalenv())
-  #print(get(paste0('table', k)))
+  assign(paste0('table', k), ft, envir = globalenv())
+  #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+}
+```
+
+```{r View Rivseg Flextable, results='asis', echo=FALSE}
+for (k in 1:length(rivseg_metric)){
+  cat(knitr::knit_print(get(paste0('table', k))))
 }
 ```
 
@@ -1200,7 +1207,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l30_Qout",
-                    map_type = "region",
+                    map_type = "locality",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",
