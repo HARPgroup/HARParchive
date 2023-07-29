@@ -963,9 +963,7 @@ names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propn
 table <- data.frame(
   Number= facils$within$NUM,
   Facility=facils$within$Facility,
-  HydroID = facils$within$hydroid
-
-)
+  HydroID = facils$within$hydroid)
 
 #for source type only add mp name and source type to table
 if (type=="source"){
@@ -974,7 +972,6 @@ if (type=="source"){
 }
 
 table$Locality = facils$within$Locality
-
 #add rivseg names
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
@@ -1037,7 +1034,6 @@ for (i in 1:length(table_col)){
 }
 
 table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
-
 #compare requested table columns with those that actually exist 
 novals <- data.frame(metric=character())
 for (i in 1:length(table_col)) {
@@ -1045,14 +1041,13 @@ for (i in 1:length(table_col)) {
     novals[i,] <- table_col[i]
   }
 }
-
 #for returning message if metric table columns were missing 
 if (nrow(novals > 0)) {
   tableMessage <- TRUE
 } else { tableMessage <- FALSE }
 ```
 
-```{r Rename Table Columns & Process Flextable, include=FALSE, echo=FALSE}
+```{r Rename Table Columns & Create Flextable, include=FALSE, echo=FALSE}
 #ordered before renaming, order by name not col #
 #names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
 names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
@@ -1060,13 +1055,9 @@ names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
 names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
 names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
-
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-#Execute flextable function, which saves the flextable as variable 'ft' for displaying later
-
-# Display Map & Table
-fn_tablegen(type = "facility", table = table, alignment = "left") 
+fn_tablegen(type = "facility", table = table, alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 ```
 
 ```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
@@ -1088,11 +1079,12 @@ ft #display flextable
 ```{r Sorting into Bins & Map, warning=FALSE, echo=FALSE}
 ## Need to adapt this for multiple maps
 #rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - moved to config
-segs_basin <- segs$basin
+
+segs_basin <- segs$basin #for sqldf
 
 for (i in 1:length(rivseg_metric)){
   rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list_riversegs)
-  segs_basin <- st_drop_geometry(segs_basin)
+  segs_basin$geometry <- NULL #get rid of geometry, st_drop_geometry unreliable
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c("pct_diff", "bin")]
   
   rseg_sql <- paste('SELECT *, ',paste0('percentDiff','_',rivseg_metric[i]),' AS pct_diff
@@ -1145,54 +1137,49 @@ for (i in 1:length(rivseg_metric)) {
 }
 ```
 
-# Table #2 (Rivseg)
-```{r Rivseg Table Creation, echo=FALSE}
-
-#create metric type column
-
-rivTables <- list()
-      ftable<- list()
-for (k in 1:length(rivseg_metric)){
-  
-  rivTables[[k]] <- data.frame(segs$basin$name)
-  rivTables[[k]]$Metric <- rivseg_metric[k]
-  
-    for (j in 1:length(runid_list_riversegs)){
-       for (i in 1:nrow(segs$basin)) {
-  
-  
-   rivTables[[k]][,paste0('Name')] <-segs$basin$name
-   rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg
-   
-  rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])], digits= 2)
-  
-  rivTables[[k]][,paste0('Difference')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
-  
-  rivTables[[k]][,paste0('% Difference')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
-
-  
-  drop <- c("segs.basin.name")
-  rivTables[[k]] = rivTables[[k]][,!(names(rivTables[[k]]) %in% drop)]
-  
- 
-  
-       }
-  
-     fn_tablegen(type = "riverseg", table = rivTables[[k]], alignment = "center") #flextable saved as var ft
-    assign(paste0('table', k), ft, envir = globalenv())
-    }
-  print(get(paste0('table', k)))
-}
-
-```
-
 ```{r Display Rivseg Map, echo=FALSE}
 knitr::include_graphics(rivmapfilename)
 ```
 
-```{r Display Rivseg Table, echo=FALSE}
-ft #view flextable
+# Table #2 (Rivseg)
+```{r Rivseg Table Creation, echo=FALSE}
+#create metric type column
+rivTables <- list() #to store dataframes for each drought metric
+#ftable<- list()
+for (k in 1:length(rivseg_metric)){
+  rivTables[[k]] <- data.frame(Name = segs$basin$name)
+  rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg
+  rivTables[[k]]$Metric <- rivseg_metric[k]
+  
+   for (i in 1:nrow(segs$basin)) {
+        for (j in 1:length(runid_list_riversegs)){
+          rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])], digits= 2)
+        }
+   }
+  rivTables[[k]][,paste0('Difference')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
+  rivTables[[k]][,paste0('pct_diff')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
+  #order by lowest % difference from rivTables[[k]]
+  rivdf <- rivTables[[k]] # for sqldf
+  rivdf <- sqldf( "SELECT rivdf.*  
+              FROM rivdf 
+              ORDER BY pct_diff ASC") #ordering by the metric of interest, descending 
+  
+  names(rivdf)[names(rivdf) == 'pct_diff'] <- '% Difference'
+  
+  #need to put NA values @ bottom of df
+  nanum <- sum(is.na(rivdf$`% Difference`))
+  narows <- head(rivdf, nanum)
+  goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
+  rivdf <- rbind(goodrows, narows)
+  #Flextable function
+  fn_tablegen(type = "riverseg", table = rivdf, alignment = "left") #flextable saved as var ft
+  
+  ft
+  #assign(paste0('table', k), ft, envir = globalenv())
+  #print(get(paste0('table', k)))
+}
 ```
+
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
@@ -1205,7 +1192,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Montgomery", 
-                    region = "NorthernVirginia", 
+                    region = "Chowan_1", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
