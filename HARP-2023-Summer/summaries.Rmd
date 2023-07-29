@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["region"] #should be one of: basin, locality, or region 
+  map_type: ["locality"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["custom"]
@@ -956,6 +956,14 @@ for (i in 1:length(map_by)) {
 }
 ```
 
+```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
+knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+if (mapMessage == TRUE) {
+  message("The metric requested does not exist for this map.")
+  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+}
+```
+
 # Table #1
 ```{r Create Table, include=FALSE, warning=FALSE, message=FALSE}
 names(facils$within)[names(facils$within) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -989,35 +997,33 @@ table$Rivseg= facils$within$riverseg #add rivseg ID
 if (type=="facility"){
   table$vwp_max_mgy <- NA #create empty col for permit capac storage
     for (i in 1:nrow(facils$within)){ #adding permitted capacity
-      #pull facility object
-      facilObj <- getFeature(inputs = list(
+      facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
         hydroid = facils$within$Facility_hydroid[i],
         bundle = "facility"),
         token = ds$get_token(rest_pw),
         base_url = site)
       if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
-       #get facil model object
+      #get facil model object
       systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features
         featureid = facils$within$Facility_hydroid[i],
         propcode= "vahydro-1.0",
-        propname= facilObj$name,
+        #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
         varkey= "om_water_system_element"), 
-      TRUE)
+        TRUE)
       if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
         table$vwp_max_mgy[i] <- "No Permit"
       } else {
       permCapac <- RomProperty$new(ds,list( #get permitted capacity
         featureid = systemObj$pid,
         propname = 'vwp_max_mgy'),
-      TRUE)
+        TRUE)
       table$vwp_max_mgy[i] <- permCapac$propcode  
      #get permit status to label exempt
       permit_status <- RomProperty$new(ds,list( #get permitted capacity
         featureid = systemObj$pid,
         propname = 'permit_status'),
-      TRUE)
-        if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") { #source of error
-          table$vwp_max_mgy[i] <- "Exempt"
+        TRUE)
+        if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
           }
         }
       } else { #if ftatus = proposed -- dont try and pull metric
@@ -1060,14 +1066,6 @@ names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
 fn_tablegen(type = "facility", table = table, alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
-```
-
-```{r View Map(s), echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
-if (mapMessage == TRUE) {
-  message("The metric requested does not exist for this map.")
-  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
-}
 ```
 
 ```{r View Table, echo=FALSE, out.width='100%', message=TRUE}
@@ -1182,11 +1180,12 @@ for (k in 1:length(rivseg_metric)){
 ```
 
 ```{r View Rivseg Flextable, results='asis', echo=FALSE}
+#result = 'asis' necessary 
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
 }
+#note: doesn't display readable flextable within Rstudio but does upon render
 ```
-
 
 ```{r General Render, eval=FALSE, echo=FALSE, include=FALSE}
 #Requires loading of export_path from config (setup chunk)
@@ -1198,7 +1197,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                   output_format = "word_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
-                    locality = "Montgomery", 
+                    locality = "Stafford", 
                     region = "Chowan_1", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
