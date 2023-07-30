@@ -1065,14 +1065,14 @@ names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-fn_tablegen(type = "facility", table = table, alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+ft1 <- fn_tablegen(type = "facility", table = table, alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 ```
 
 ```{r View Table, echo=FALSE, out.width='100%', message=TRUE}
 if (tableMessage == TRUE) {
   message("Missing column indicates the metric requested does not exist for this table")
 }
-ft #display flextable
+ft1 #display flextable
 ```
 
 # Map #2 (Rivseg Map)
@@ -1171,11 +1171,11 @@ for (k in 1:length(rivseg_metric)){
   narows <- head(rivdf, nanum)
   goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
   rivdf <- rbind(goodrows, narows)
-  #Flextable function
-  fn_tablegen(type = "riverseg", table = rivdf, alignment = "left") #flextable saved as var ft
   
-  assign(paste0('table', k), ft, envir = globalenv())
-  #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, alignment = "left") #Flextable function
+  
+  assign(paste0('table', k), ft2, envir = globalenv())
+  print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
 ```
 
