@@ -3,11 +3,11 @@
 library(flextable)
 
 #create function
-fn_tablegen <- function(type, table, alignment) { 
+fn_tablegen <- function(type, table, columns, alignment) { 
 #type: either 'facility' (map 1) or 'riverseg' (map 2)
 #table: data frame to be transformed into a flextable 
 #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
-  
+#columns: a list of columns to display from the dataframe supplied, in the order the columns will be 
 
 #set table defaults of theme and font and make sure theres no blanks from NAs, can be edited if desired
 set_flextable_defaults(
@@ -16,10 +16,14 @@ set_flextable_defaults(
   table.layout = 'fixed', tabcolsep = 1.5,
   fonts_ignore = T, big.mark = "", decimal.mark= ".") #fonts_ignore applies when knitting as pdf 
 
-# specify aesthetics for spacing in the table, can be edited if desired
-ft <- flextable(table)
-ft <- theme_vanilla(ft)
+if (columns == "all") {
+  ft <- flextable(table)
+} else {
+  tablecols <- table[, paste0(columns)] 
+  ft <- flextable(tablecols)
+}
 
+ft <- theme_vanilla(ft)
 if (type == 'facility') {
   ft <- void(ft, j=1, part = "header") #remove name of 1st column in facil/source tables, which will always be the # for the facil/source
   ft <- width(ft, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
@@ -30,7 +34,7 @@ if (type == 'facility') {
 } else if (type == 'riverseg') {
   ft <- autofit(ft)
 #  x <- -10 # change percent desired -- to moved to config
-  ft <- flextable::highlight(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit) ,color = "yellow")  #highlight row when percent difference is below limit
+  ft <- flextable::highlight(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit),color = "yellow")  #highlight row when percent difference is below limit
 }
 return(ft)
 #assign('ft', ft, envir = globalenv())

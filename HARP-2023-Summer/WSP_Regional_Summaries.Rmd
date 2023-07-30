@@ -1065,7 +1065,7 @@ names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-ft1 <- fn_tablegen(type = "facility", table = table, alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 ```
 
 ```{r View Table, echo=FALSE, out.width='100%', message=TRUE}
@@ -1172,7 +1172,7 @@ for (k in 1:length(rivseg_metric)){
   goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
   rivdf <- rbind(goodrows, narows)
   
-  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, alignment = "left") #Flextable function
+  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left") #Flextable function
   
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
