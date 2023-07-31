@@ -912,7 +912,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   suppressWarnings(suppressMessages( 
     fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit) ))
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -1084,6 +1084,7 @@ segs_basin <- segs$basin #for sqldf
 
 for (i in 1:length(rivseg_metric)){
   rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list_riversegs)
+  title <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
   segs_basin$geometry <- NULL #get rid of geometry, st_drop_geometry unreliable
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c("pct_diff", "bin")]
   
@@ -1117,7 +1118,7 @@ for (i in 1:length(rivseg_metric)){
   ##Mapping function
   suppressWarnings(suppressMessages(
     fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit) ))
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -1205,7 +1206,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    rivseg_metric = "l30_Qout",
+                    rivseg_metric = c("l30_Qout", "7q10"),
                     map_type = "locality",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
