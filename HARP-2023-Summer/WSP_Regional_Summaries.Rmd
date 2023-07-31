@@ -694,6 +694,50 @@ if (limit == "basins" | map_type == "basin") {
 }
 ```
 
+```{r Pull Facility Permitted Capacity, echo=FALSE, message=FALSE, warning=FALSE}
+#facils$within currently has multiple 'duplicated' facility rows for facils with multiple vahydro-1.0 features 
+#need to pull & join permitted capacity for each of these ^, including the so-called duplicates
+#perm capac (vwp_max) is not within a runid scenario, but attatched directly to facil-model element 
+
+facils$within$vwp_max_mgy <- NA #create empty col for permit capac storage
+for (i in 1:nrow(facils$within)){ #adding permitted capacity
+  facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
+    hydroid = facils$within$Facility_hydroid[i],
+    bundle = "facility"),
+    token = ds$get_token(rest_pw),
+    base_url = site)
+  if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
+  #get facil model object
+  systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features -- not always the case 
+    featureid = facils$within$Facility_hydroid[i],
+    propcode= "vahydro-1.0",
+    #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
+    varkey= "om_water_system_element"), 
+    TRUE)
+  if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
+    facils$within$vwp_max_mgy[i] <- "No Permit"
+  } else {
+  permCapac <- RomProperty$new(ds,list( #get permitted capacity
+    featureid = systemObj$pid,
+    propname = 'vwp_max_mgy'),
+    TRUE)
+  facils$within$vwp_max_mgy[i] <- permCapac$propcode  
+ #get permit status to label exempt
+  permit_status <- RomProperty$new(ds,list( #get permitted capacity
+    featureid = systemObj$pid,
+    propname = 'permit_status'),
+    TRUE)
+    if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
+      facils$within$vwp_max_mgy[i] <- "Exempt" #label exempt from a permitted capacity 
+      }
+    }
+  } else { #if ftatus = proposed -- dont try and pull metric
+        facils$within$vwp_max_mgy[i] <- "No Permit"
+  }
+} 
+facils$within$vwp_max_mgy <-  replace(facils$within$vwp_max_mgy, facils$within$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
+```
+
 ```{r Facil-Feature Metric Pull (non-modeled), echo=FALSE, message=FALSE, warning=FALSE}
 for (i in 1:nrow(facils$within)) {
   facil <- RomProperty$new(ds,list(
@@ -709,7 +753,6 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate ri
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
-
 ```
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
@@ -827,7 +870,7 @@ cities_within <- st_drop_geometry(st_filter(cities_sf, segs$basin_sf))
 cities_sorted <- sqldf("SELECT cities_within.*  
                     FROM cities_within 
                     ORDER BY POPULATION DESC") #sort by highest population
-cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 10 by population
+cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 5 by population
 cities_plot <- sqldf("SELECT a.*, b.X, b.Y 
                       FROM cities_plot as a 
                       LEFT OUTER JOIN cities as b
@@ -985,53 +1028,15 @@ table$Locality = facils$within$Locality
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
-    table$rivsegName[i] <- loc_rivseg$name
+    table$`River Segment Name`[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table$rivsegName[i] <- ""
+    table$`River Segment Name`[i] <- ""
     }
 }
 
-table$Rivseg= facils$within$riverseg #add rivseg ID
+table$`River Segment ID`= facils$within$riverseg #add rivseg ID
 
-# for facility type only add permitted capacity from vahydro 
-if (type=="facility"){
-  table$vwp_max_mgy <- NA #create empty col for permit capac storage
-    for (i in 1:nrow(facils$within)){ #adding permitted capacity
-      facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
-        hydroid = facils$within$Facility_hydroid[i],
-        bundle = "facility"),
-        token = ds$get_token(rest_pw),
-        base_url = site)
-      if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
-      #get facil model object
-      systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features
-        featureid = facils$within$Facility_hydroid[i],
-        propcode= "vahydro-1.0",
-        #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
-        varkey= "om_water_system_element"), 
-        TRUE)
-      if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
-        table$vwp_max_mgy[i] <- "No Permit"
-      } else {
-      permCapac <- RomProperty$new(ds,list( #get permitted capacity
-        featureid = systemObj$pid,
-        propname = 'vwp_max_mgy'),
-        TRUE)
-      table$vwp_max_mgy[i] <- permCapac$propcode  
-     #get permit status to label exempt
-      permit_status <- RomProperty$new(ds,list( #get permitted capacity
-        featureid = systemObj$pid,
-        propname = 'permit_status'),
-        TRUE)
-        if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
-          }
-        }
-      } else { #if ftatus = proposed -- dont try and pull metric
-        table$vwp_max_mgy[i] <- "No Permit"
-      }
-    } 
-    table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
-}
+table$`Permitted Capacity` <- facils$within$vwp_max_mgy #add permitted capacity to table 
 
 for (i in 1:length(table_col)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case 
@@ -1056,12 +1061,7 @@ if (nrow(novals > 0)) {
 ```
 
 ```{r Rename Table Columns & Create Flextable, include=FALSE, echo=FALSE}
-#ordered before renaming, order by name not col #
-#names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
-names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
-names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
-names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
-names(table)[names(table) == 'Source_Type'] <- 'Source Type'
+#names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 

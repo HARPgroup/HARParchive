@@ -28,7 +28,7 @@ if (type == 'facility') {
   ft <- void(ft, j=1, part = "header") #remove name of 1st column in facil/source tables, which will always be the # for the facil/source
   ft <- width(ft, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
 #  ft <- line_spacing(ft, space = 1.25)
-  ft <- width(ft, j=1, width = 0.25)
+  ft <- width(ft, j=1, width = 0.5)
   ft <- width(ft, j=2, width = 0.8)
   ft <- align(ft, align = alignment, part = "all")
 } else if (type == 'riverseg') {
