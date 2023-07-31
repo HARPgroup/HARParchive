@@ -20,8 +20,9 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## "type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
+## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
 fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
-                      nhd, maplabs, locality, region, mp_layer, metric_unit) { 
+                      nhd, maplabs, locality, region, mp_layer, metric_unit, title) { 
 
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
@@ -83,13 +84,25 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   
   # Legend & Titling
     # For map title:
-  if (map_type == "basin") {
-    title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
-  } else if (map_type == "locality") {
-    title <- paste0(locality)
-  }  else if (map_type == "region") {
-    title <- paste0(region)
-  } 
+  
+  if (title == "default"){
+    if (map_type == "basin") {
+      title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
+    } else if (map_type == "locality") {
+      title <- paste0(locality)
+    }  else if (map_type == "region") {
+      title <- paste0(region)
+    } 
+  }
+  else {
+    if (map_type == "basin") {
+      title <- ( paste(title, "Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
+    } else if (map_type == "locality") {
+      title <- paste0(title, "_", locality )
+    }  else if (map_type == "region") {
+      title <- paste0(title, "_", region)
+    } 
+  }
   
     # For binned legend 
   breaks <- seq(1:7)
@@ -118,8 +131,9 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   }
   borders <- st_as_sf(borders)
  
+
 ###### GENERATE MAP #######
-map <- basemap + 
+  map <- basemap + 
     # Titles
     theme(text=element_text(size=20), title=element_text(size=40), #setting text sizes
           legend.title = element_text(size=25), axis.title.x=element_blank(), axis.title.y=element_blank()) +
@@ -298,4 +312,4 @@ map <- map + new_scale("fill") +
                                     style= north_arrow_orienteering(text_size=35)
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
-}
+  }
