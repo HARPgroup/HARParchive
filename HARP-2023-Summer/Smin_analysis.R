@@ -12,17 +12,19 @@ mountAltoImp <- RomProperty$new(ds,list( #test case: Rob's vineyard
   varkey = "om_hydroimpoundment"),
   TRUE)
 
-impound_list <- list()
-for (i in 1:nrow(facilities_df)) {
-  # pull all impoundment features?
-  impoundment <- RomProperty$new(ds,list( #test case: Rob's vineyard 
-    featureid = facilities_df$Facility_hydroid[i],
-    propcode = "vahydro-1.0",
-    varkey = "om_hydroimpoundment"),
-    TRUE)
-  impound_list[[i]] <- impoundment
-  }
+#Lake Anna Dam
+AnnaDam <- RomProperty$new(ds,list( #test case: Rob's vineyard 
+  featureid = 166269,
+  propcode = "vahydro-1.0",
+  varkey = "om_hydroimpoundment"),
+  TRUE)
 
+#check imp_off
+imp_off <- RomProperty$new(ds,list( #test case: Rob's vineyard -- unsuccessful 
+  featureid = AnnaDam$pid,
+  entity_type = "dh_feature",
+  propname = "imp_off"),
+  TRUE)
 
 # pull impoundment var
 imp_use <- RomProperty$new(ds,list( #test case: Rob's vineyard -- unsuccessful 

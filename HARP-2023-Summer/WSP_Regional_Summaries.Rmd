@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["locality"] #should be one of: basin, locality, or region 
+  map_type: ["region"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["custom"]
@@ -694,6 +694,92 @@ if (limit == "basins" | map_type == "basin") {
 }
 ```
 
+```{r (New) Get Permitted Capacity, echo=FALSE}
+facils_within <- facils$within #for sqldf 
+fac_bind <- data.frame()
+for (i in 1:length(facils$within)) {
+  #Pull permitted capacity
+  rseg_hydroid <- facils$within$hydroid[i] #riverseg hydroid, not facility
+  runid <- runid_list_facilities[1] #can we run this for each runid?
+  model_run_metrics <- metric_mod
+  model_props <- c("vwp_max_mgy","permit_status")
+  fac_model_data <- read.csv(paste(site,"/model-summary-users-export-all-cols/",
+                                 gsub(" ","",toString(rseg_hydroid)),"/",
+                                 runid,"/",
+                                 gsub(" ","",toString(model_run_metrics)),"/",
+                                 gsub(" ","",toString(model_props)),sep=""))
+  fac_bind <- rbind(fac_bind,fac_model_data)
+} #permitted capacity stored in procode column
+
+permstat <- data.frame(facility_hydroid = fac_bind$facility_hydroid[fac_bind$model_prop_propname=="permit_status"],
+                       permit_status = fac_bind$model_prop_propcode[fac_bind$model_prop_propname=="permit_status"])
+
+permcapac_mgy <- data.frame(facility_hydroid = fac_bind$facility_hydroid[fac_bind$model_prop_propname=="vwp_max_mgy"],
+                            vwp_max_mgy = fac_bind$model_prop_propcode[fac_bind$model_prop_propname=="vwp_max_mgy"])
+
+facils_within <- sqldf("SELECT a.*, b.permit_status
+                        FROM facils_within as a
+                        LEFT OUTER JOIN permstat as b
+                        ON (a.Facility_hydroid = b.facility_hydroid)")
+
+facils_within <- sqldf("SELECT a.*, b.vwp_max_mgy
+                        FROM facils_within as a
+                        LEFT OUTER JOIN permcapac_mgy as b
+                        ON (a.Facility_hydroid = b.facility_hydroid)") #I think we can combine these 2 joins -- union?
+
+facils_within <- facils_within[!duplicated(facils_within),] #remove duplicated rows 
+
+#label exempt in permit capac column
+for (i in 1:nrow(facils_within)) {
+  if (is.na(facils_within$permit_status[i]) == FALSE & facils_within$permit_status[i] == "exempt") {
+    facils_within$vwp_max_mgy[i] = "Exempt"
+  } 
+}
+facils_within$vwp_max_mgy[is.na(facils_within$vwp_max_mgy)] <- 0 #replace NA w/ 0
+facils_within$vwp_max_mgy <-  replace(facils_within$vwp_max_mgy, facils_within$vwp_max_mgy==0, "No Permit") #Replace zeros with no permit
+
+facils$within <- facils_within
+```
+```{r (Old) Pull Facility Permitted Capacity, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+facils$within$vwp_max_mgy <- NA #create empty col for permit capac storage
+for (i in 1:nrow(facils$within)){ #adding permitted capacity
+  facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
+    hydroid = facils$within$Facility_hydroid[i],
+    bundle = "facility"),
+    token = ds$get_token(rest_pw),
+    base_url = site)
+  if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
+  #get facil model object
+  systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features -- not always the case 
+    featureid = facils$within$Facility_hydroid[i],
+    propcode= "vahydro-1.0",
+    #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
+    varkey= "om_water_system_element"), 
+    TRUE)
+  if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
+    facils$within$vwp_max_mgy[i] <- "No Permit"
+  } else {
+  permCapac <- RomProperty$new(ds,list( #get permitted capacity
+    featureid = systemObj$pid,
+    propname = 'vwp_max_mgy'),
+    TRUE)
+  facils$within$vwp_max_mgy[i] <- permCapac$propcode  
+ #get permit status to label exempt
+  permit_status <- RomProperty$new(ds,list( #get permitted capacity
+    featureid = systemObj$pid,
+    propname = 'permit_status'),
+    TRUE)
+    if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
+      facils$within$vwp_max_mgy[i] <- "Exempt" #label exempt from a permitted capacity 
+      }
+    }
+  } else { #if ftatus = proposed -- dont try and pull metric
+        facils$within$vwp_max_mgy[i] <- "No Permit"
+  }
+} 
+facils$within$vwp_max_mgy <-  replace(facils$within$vwp_max_mgy, facils$within$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
+```
+
 ```{r Facil-Feature Metric Pull (non-modeled), echo=FALSE, message=FALSE, warning=FALSE}
 for (i in 1:nrow(facils$within)) {
   facil <- RomProperty$new(ds,list(
@@ -709,7 +795,6 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate ri
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
-
 ```
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
@@ -827,7 +912,7 @@ cities_within <- st_drop_geometry(st_filter(cities_sf, segs$basin_sf))
 cities_sorted <- sqldf("SELECT cities_within.*  
                     FROM cities_within 
                     ORDER BY POPULATION DESC") #sort by highest population
-cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 10 by population
+cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 5 by population
 cities_plot <- sqldf("SELECT a.*, b.X, b.Y 
                       FROM cities_plot as a 
                       LEFT OUTER JOIN cities as b
@@ -985,53 +1070,15 @@ table$Locality = facils$within$Locality
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
-    table$rivsegName[i] <- loc_rivseg$name
+    table$`River Segment Name`[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table$rivsegName[i] <- ""
+    table$`River Segment Name`[i] <- ""
     }
 }
 
-table$Rivseg= facils$within$riverseg #add rivseg ID
+table$`River Segment ID`= facils$within$riverseg #add rivseg ID
 
-# for facility type only add permitted capacity from vahydro 
-if (type=="facility"){
-  table$vwp_max_mgy <- NA #create empty col for permit capac storage
-    for (i in 1:nrow(facils$within)){ #adding permitted capacity
-      facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
-        hydroid = facils$within$Facility_hydroid[i],
-        bundle = "facility"),
-        token = ds$get_token(rest_pw),
-        base_url = site)
-      if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
-      #get facil model object
-      systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features
-        featureid = facils$within$Facility_hydroid[i],
-        propcode= "vahydro-1.0",
-        #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
-        varkey= "om_water_system_element"), 
-        TRUE)
-      if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
-        table$vwp_max_mgy[i] <- "No Permit"
-      } else {
-      permCapac <- RomProperty$new(ds,list( #get permitted capacity
-        featureid = systemObj$pid,
-        propname = 'vwp_max_mgy'),
-        TRUE)
-      table$vwp_max_mgy[i] <- permCapac$propcode  
-     #get permit status to label exempt
-      permit_status <- RomProperty$new(ds,list( #get permitted capacity
-        featureid = systemObj$pid,
-        propname = 'permit_status'),
-        TRUE)
-        if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
-          }
-        }
-      } else { #if ftatus = proposed -- dont try and pull metric
-        table$vwp_max_mgy[i] <- "No Permit"
-      }
-    } 
-    table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
-}
+table$`Permitted Capacity` <- facils$within$vwp_max_mgy #add permitted capacity to table 
 
 for (i in 1:length(table_col)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case 
@@ -1056,12 +1103,7 @@ if (nrow(novals > 0)) {
 ```
 
 ```{r Rename Table Columns & Create Flextable, include=FALSE, echo=FALSE}
-#ordered before renaming, order by name not col #
-#names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
-names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
-names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
-names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
-names(table)[names(table) == 'Source_Type'] <- 'Source Type'
+#names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
@@ -1206,8 +1248,8 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    rivseg_metric = c("l30_Qout", "7q10"),
-                    map_type = "locality",
+                    rivseg_metric = "l30_Qout",
+                    map_type = "region",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",
