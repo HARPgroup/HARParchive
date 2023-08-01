@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["locality"] #should be one of: basin, locality, or region 
+  map_type: ["region"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["custom"]
@@ -694,11 +694,55 @@ if (limit == "basins" | map_type == "basin") {
 }
 ```
 
-```{r Pull Facility Permitted Capacity, echo=FALSE, message=FALSE, warning=FALSE}
-#facils$within currently has multiple 'duplicated' facility rows for facils with multiple vahydro-1.0 features 
-#need to pull & join permitted capacity for each of these ^, including the so-called duplicates
-#perm capac (vwp_max) is not within a runid scenario, but attatched directly to facil-model element 
+```{r (New) Get Permitted Capacity, echo=FALSE}
+facils_within <- facils$within #for sqldf 
+fac_bind <- data.frame()
+for (i in 1:length(facils$within)) {
+  #Pull permitted capacity
+  rseg_hydroid <- facils$within$hydroid[i] #riverseg hydroid, not facility
+  runid <- runid_list_facilities[1] #can we run this for each runid?
+  model_run_metrics <- metric_mod
+  model_props <- c("vwp_max_mgy","permit_status")
+  fac_model_data <- read.csv(paste(site,"/model-summary-users-export-all-cols/",
+                                 gsub(" ","",toString(rseg_hydroid)),"/",
+                                 runid,"/",
+                                 gsub(" ","",toString(model_run_metrics)),"/",
+                                 gsub(" ","",toString(model_props)),sep=""))
+  fac_bind <- rbind(fac_bind,fac_model_data)
+} #permitted capacity stored in procode column
 
+permstat <- data.frame(facility_hydroid = fac_bind$facility_hydroid[fac_bind$model_prop_propname=="permit_status"],
+                       permit_status = fac_bind$model_prop_propcode[fac_bind$model_prop_propname=="permit_status"])
+
+permcapac_mgy <- data.frame(facility_hydroid = fac_bind$facility_hydroid[fac_bind$model_prop_propname=="vwp_max_mgy"],
+                            vwp_max_mgy = fac_bind$model_prop_propcode[fac_bind$model_prop_propname=="vwp_max_mgy"])
+
+facils_within <- sqldf("SELECT a.*, b.permit_status
+                        FROM facils_within as a
+                        LEFT OUTER JOIN permstat as b
+                        ON (a.Facility_hydroid = b.facility_hydroid)")
+
+facils_within <- sqldf("SELECT a.*, b.vwp_max_mgy
+                        FROM facils_within as a
+                        LEFT OUTER JOIN permcapac_mgy as b
+                        ON (a.Facility_hydroid = b.facility_hydroid)") #I think we can combine these 2 joins -- union?
+
+facils_within <- facils_within[!duplicated(facils_within),] #remove duplicated rows 
+
+#label exempt in permit capac column
+for (i in 1:nrow(facils_within)) {
+  if (is.na(facils_within$permit_status[i]) == FALSE & facils_within$permit_status[i] == "exempt") {
+    facils_within$vwp_max_mgy[i] = "Exempt"
+  } 
+}
+facils_within$vwp_max_mgy[is.na(facils_within$vwp_max_mgy)] <- 0 #replace NA w/ 0
+facils_within$vwp_max_mgy <-  replace(facils_within$vwp_max_mgy, facils_within$vwp_max_mgy==0, "No Permit") #Replace zeros with no permit
+
+#facils$within <- facils_within
+```
+
+
+```{r (Old) Pull Facility Permitted Capacity, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 facils$within$vwp_max_mgy <- NA #create empty col for permit capac storage
 for (i in 1:nrow(facils$within)){ #adding permitted capacity
   facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
@@ -1198,7 +1242,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Stafford", 
-                    region = "Chowan_1", 
+                    region = "MiddleJames_2", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
@@ -1206,7 +1250,7 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = "l30_Qout",
-                    map_type = "locality",
+                    map_type = "region",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",
