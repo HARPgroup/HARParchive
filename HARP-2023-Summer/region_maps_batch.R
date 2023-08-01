@@ -2,6 +2,7 @@
 #RMD responsible for map & table creation is mapping_codeReview.R
 library(data.table) #needed for fread
 library(sqldf)
+library(pandoc)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
