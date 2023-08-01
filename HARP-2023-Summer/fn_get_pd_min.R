@@ -9,7 +9,7 @@ startdate <- as.POSIXct(date_filter[1])
 enddate <- as.POSIXct(date_filter[2])  
 
 #create zoo to filter by date  
-ts_zoo <- zoo(ts_data, order.by = ts_data$Date)  
+ts_zoo <- zoo(ts_data, order.by = index(ts_data))
 
 #filter by date
 ts_filtered <- window(ts_zoo, start = startdate, end = enddate)
