@@ -12,10 +12,10 @@ params:
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["Fairfax"]
-  region: ["MiddleJames_1"]    
+  region: ["MiddleJames_3"]    
 
 #determining which type/level of map is being created
-  type: ["source"] #either 'source' or 'facility'
+  type: ["facility"] #either 'source' or 'facility'
   map_type: ["region"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
@@ -639,6 +639,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
     segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
     }
   }
+  names(segs$basin)[names(segs$basin) == 'geom'] <- 'geometry' #rename geom col as geometry
 } else if (map_type =="locality") { #for locality level
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
@@ -662,7 +663,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
   segs$basin <- segs$basin[, !names(segs$basin) == "geom"]  #get rid of geom col unique to region map type
 }
- segs$basin_sf <- st_as_sf(segs$basin)
+ segs$basin_sf <- st_as_sf(segs$basin, wkt = "geometry")
  st_crs(segs$basin_sf) <- 4326
 ```
 
