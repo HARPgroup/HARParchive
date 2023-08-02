@@ -72,8 +72,8 @@ Explain here how to use config files, what gets changed
 |    `runid_21`    |                  2015 Demand 2010                   |
 |    `runid_22`    |                  2015 Demand 2040                   |
 
--   **metric**: the modeled metric name to be mapped & used in table. Does not need to be set to fiver_avg_mgy
-    -   *Possible Metrics*: `wd_mgd`, `gw_demand_mgd`, `l30_Qintake`, `ps_mgd`, `fiver_avg_mgy`
+-   **metric**: the modeled metric name to be mapped & used in table. Does not need to be set to fiveyr_avg_mgy
+    -   *Possible Metrics*: `wd_mgd`, `gw_demand_mgd`, `l30_Qintake`, `ps_mgd`, `fiveyr_avg_mgy`
 -   **map_type**: either `basin`, `locality`, or `region` , to control the extent of the map & table
 -   **map_by**: metric(s) to map and scale points/bubbles by. Must include both the runid and metric name for modeled metrics formatted like `runid_11_wd_mgd`
 -   **limit**: either basins, for including all facils/sources from intersecting basins in the map/table, or boundary to only include those within the locality or regional - boundary

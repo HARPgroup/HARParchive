@@ -10,13 +10,13 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
-  rivseg: ["JL7_7070_0001"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Stafford"]
-  region: ["Chowan_1"]    
+  rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  locality: ["Fairfax"]
+  region: ["MiddleJames_3"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["locality"] #should be one of: basin, locality, or region 
+  map_type: ["region"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["colorblind"]
@@ -29,7 +29,7 @@ params:
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
   rivseg_metric: ["l90_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
-  map_by: ["runid_11_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
@@ -736,6 +736,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
     segs$basin <- rbind(segs$basin, fn_extract_basin(segs$all, i))
     }
   }
+  names(segs$basin)[names(segs$basin) == 'geom'] <- 'geometry' #rename geom col as geometry
 } else if (map_type =="locality") { #for locality level
   locality_sf <- counties$sf[counties$sf$name == locality, ] #if REST IS working
   segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
@@ -759,7 +760,7 @@ if (map_type == "basin") { #finding upstream riversegs for basin maps
   segs$basin <- st_filter(segs$sf, region_sf) #filter basins by the region
   segs$basin <- segs$basin[, !names(segs$basin) == "geom"]  #get rid of geom col unique to region map type
 }
- segs$basin_sf <- st_as_sf(segs$basin)
+ segs$basin_sf <- st_as_sf(segs$basin, wkt = "geometry")
  st_crs(segs$basin_sf) <- 4326
 ```
 
@@ -791,6 +792,92 @@ if (limit == "basins" | map_type == "basin") {
 }
 ```
 
+```{r (New) Get Permitted Capacity, echo=FALSE}
+facils_within <- facils$within #for sqldf 
+fac_bind <- data.frame()
+for (i in 1:length(facils$within)) {
+  #Pull permitted capacity
+  rseg_hydroid <- facils$within$hydroid[i] #riverseg hydroid, not facility
+  runid <- runid_list_facilities[1] #can we run this for each runid?
+  model_run_metrics <- metric_mod
+  model_props <- c("vwp_max_mgy","permit_status")
+  fac_model_data <- read.csv(paste(site,"/model-summary-users-export-all-cols/",
+                                 gsub(" ","",toString(rseg_hydroid)),"/",
+                                 runid,"/",
+                                 gsub(" ","",toString(model_run_metrics)),"/",
+                                 gsub(" ","",toString(model_props)),sep=""))
+  fac_bind <- rbind(fac_bind,fac_model_data)
+} #permitted capacity stored in procode column
+
+permstat <- data.frame(facility_hydroid = fac_bind$facility_hydroid[fac_bind$model_prop_propname=="permit_status"],
+                       permit_status = fac_bind$model_prop_propcode[fac_bind$model_prop_propname=="permit_status"])
+
+permcapac_mgy <- data.frame(facility_hydroid = fac_bind$facility_hydroid[fac_bind$model_prop_propname=="vwp_max_mgy"],
+                            vwp_max_mgy = fac_bind$model_prop_propcode[fac_bind$model_prop_propname=="vwp_max_mgy"])
+
+facils_within <- sqldf("SELECT a.*, b.permit_status
+                        FROM facils_within as a
+                        LEFT OUTER JOIN permstat as b
+                        ON (a.Facility_hydroid = b.facility_hydroid)")
+
+facils_within <- sqldf("SELECT a.*, b.vwp_max_mgy
+                        FROM facils_within as a
+                        LEFT OUTER JOIN permcapac_mgy as b
+                        ON (a.Facility_hydroid = b.facility_hydroid)") #I think we can combine these 2 joins -- union?
+
+facils_within <- facils_within[!duplicated(facils_within),] #remove duplicated rows 
+
+#label exempt in permit capac column
+for (i in 1:nrow(facils_within)) {
+  if (is.na(facils_within$permit_status[i]) == FALSE & facils_within$permit_status[i] == "exempt") {
+    facils_within$vwp_max_mgy[i] = "Exempt"
+  } 
+}
+facils_within$vwp_max_mgy[is.na(facils_within$vwp_max_mgy)] <- 0 #replace NA w/ 0
+facils_within$vwp_max_mgy <-  replace(facils_within$vwp_max_mgy, facils_within$vwp_max_mgy==0, "No Permit") #Replace zeros with no permit
+
+facils$within <- facils_within
+```
+```{r (Old) Pull Facility Permitted Capacity, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+facils$within$vwp_max_mgy <- NA #create empty col for permit capac storage
+for (i in 1:nrow(facils$within)){ #adding permitted capacity
+  facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
+    hydroid = facils$within$Facility_hydroid[i],
+    bundle = "facility"),
+    token = ds$get_token(rest_pw),
+    base_url = site)
+  if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
+  #get facil model object
+  systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features -- not always the case 
+    featureid = facils$within$Facility_hydroid[i],
+    propcode= "vahydro-1.0",
+    #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
+    varkey= "om_water_system_element"), 
+    TRUE)
+  if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
+    facils$within$vwp_max_mgy[i] <- "No Permit"
+  } else {
+  permCapac <- RomProperty$new(ds,list( #get permitted capacity
+    featureid = systemObj$pid,
+    propname = 'vwp_max_mgy'),
+    TRUE)
+  facils$within$vwp_max_mgy[i] <- permCapac$propcode  
+ #get permit status to label exempt
+  permit_status <- RomProperty$new(ds,list( #get permitted capacity
+    featureid = systemObj$pid,
+    propname = 'permit_status'),
+    TRUE)
+    if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
+      facils$within$vwp_max_mgy[i] <- "Exempt" #label exempt from a permitted capacity 
+      }
+    }
+  } else { #if ftatus = proposed -- dont try and pull metric
+        facils$within$vwp_max_mgy[i] <- "No Permit"
+  }
+} 
+facils$within$vwp_max_mgy <-  replace(facils$within$vwp_max_mgy, facils$within$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
+```
+
 ```{r Facil-Feature Metric Pull (non-modeled), echo=FALSE, message=FALSE, warning=FALSE}
 for (i in 1:nrow(facils$within)) {
   facil <- RomProperty$new(ds,list(
@@ -806,7 +893,6 @@ segs$basin <- segs$basin[!duplicated(segs$basin$riverseg),] # don't duplicate ri
 names(segs$basin_sf)[names(segs$basin_sf) == 'geom'] <- 'geometry'
 st_geometry(segs$basin_sf) <- "geometry"
 segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry") # new colnames for centroids: lng, lat
-
 ```
 
 ```{r Get Rivseg Drought Metrics, message=FALSE, warning=FALSE, echo=FALSE}
@@ -930,7 +1016,7 @@ cities_within <- st_drop_geometry(st_filter(cities_sf, segs$basin_sf))
 cities_sorted <- sqldf("SELECT cities_within.*  
                     FROM cities_within 
                     ORDER BY POPULATION DESC") #sort by highest population
-cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 10 by population
+cities_plot <- head(cities_sorted, 5) #max 5 cities/towns on map, largest 5 by population
 cities_plot <- sqldf("SELECT a.*, b.X, b.Y 
                       FROM cities_plot as a 
                       LEFT OUTER JOIN cities as b
@@ -1015,7 +1101,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   suppressWarnings(suppressMessages( 
     fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit) ))
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -1088,53 +1174,15 @@ table$Locality = facils$within$Locality
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (segs$basin[grep(facils$within$riverseg[i], segs$basin$riverseg),]) #find rivseg in segs and compare to facils to add name
   if (nrow(loc_rivseg) != 0) {
-    table$rivsegName[i] <- loc_rivseg$name
+    table$`River Segment Name`[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
-    table$rivsegName[i] <- ""
+    table$`River Segment Name`[i] <- ""
     }
 }
 
-table$Rivseg= facils$within$riverseg #add rivseg ID
+table$`River Segment ID`= facils$within$riverseg #add rivseg ID
 
-# for facility type only add permitted capacity from vahydro 
-if (type=="facility"){
-  table$vwp_max_mgy <- NA #create empty col for permit capac storage
-    for (i in 1:nrow(facils$within)){ #adding permitted capacity
-      facilObj <- getFeature(inputs = list(  #pull facility object to check fstatus
-        hydroid = facils$within$Facility_hydroid[i],
-        bundle = "facility"),
-        token = ds$get_token(rest_pw),
-        base_url = site)
-      if (facilObj$fstatus != "proposed") { #skip modeled metric pull if fstatus = proposed 
-      #get facil model object
-      systemObj <- RomProperty$new(ds,list( #rbind error returned when facil has multiple vahydro-1.0 model features
-        featureid = facils$within$Facility_hydroid[i],
-        propcode= "vahydro-1.0",
-        #propname= facilObj$name, #NOT a usable solution, name doesn't always match and apostrophes give syntax error
-        varkey= "om_water_system_element"), 
-        TRUE)
-      if (is.na(systemObj$pid) == TRUE) { #if no model feature exists 
-        table$vwp_max_mgy[i] <- "No Permit"
-      } else {
-      permCapac <- RomProperty$new(ds,list( #get permitted capacity
-        featureid = systemObj$pid,
-        propname = 'vwp_max_mgy'),
-        TRUE)
-      table$vwp_max_mgy[i] <- permCapac$propcode  
-     #get permit status to label exempt
-      permit_status <- RomProperty$new(ds,list( #get permitted capacity
-        featureid = systemObj$pid,
-        propname = 'permit_status'),
-        TRUE)
-        if (is.na(permit_status$propcode) == FALSE & permit_status$propcode == "exempt") {
-          }
-        }
-      } else { #if ftatus = proposed -- dont try and pull metric
-        table$vwp_max_mgy[i] <- "No Permit"
-      }
-    } 
-    table$vwp_max_mgy <-  replace(table$vwp_max_mgy, table$vwp_max_mgy==0, "No Permit") #Replace zeros with "no permit"
-}
+table$`Permitted Capacity` <- facils$within$vwp_max_mgy #add permitted capacity to table 
 
 for (i in 1:length(table_col)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case 
@@ -1159,12 +1207,7 @@ if (nrow(novals > 0)) {
 ```
 
 ```{r Rename Table Columns & Create Flextable, include=FALSE, echo=FALSE}
-#ordered before renaming, order by name not col #
-#names(table)[names(table) == 'Number'] <- '#' #can't have empty column names for flextable
-names(table)[names(table) == 'rivsegName'] <- 'River Segment Name'
-names(table)[names(table) == 'Rivseg'] <- 'River Segment ID'
-names(table)[names(table) == 'vwp_max_mgy'] <- 'Permitted Capacity (mgy)'
-names(table)[names(table) == 'Source_Type'] <- 'Source Type'
+#names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
@@ -1187,6 +1230,7 @@ segs_basin <- segs$basin #for sqldf
 
 for (i in 1:length(rivseg_metric)){
   rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list_riversegs)
+  title <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
   segs_basin$geometry <- NULL #get rid of geometry, st_drop_geometry unreliable
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c("pct_diff", "bin")]
   
@@ -1220,7 +1264,7 @@ for (i in 1:length(rivseg_metric)){
   ##Mapping function
   suppressWarnings(suppressMessages(
     fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit) ))
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -1240,7 +1284,7 @@ for (i in 1:length(rivseg_metric)) {
 }
 ```
 
-```{r Display Rivseg Map, echo=FALSE}
+```{r Display Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
 knitr::include_graphics(rivmapfilename)
 ```
 
@@ -1274,6 +1318,17 @@ for (k in 1:length(rivseg_metric)){
   narows <- head(rivdf, nanum)
   goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
   rivdf <- rbind(goodrows, narows)
+
+  nacols <- data.frame(colSums(is.na(rivdf)) == nrow(rivdf)) #dataframe of which columns are all na or not
+  for (i in 1:nrow(nacols)) {
+    if (nacols$colSums.is.na.rivdf......nrow.rivdf.[i] == TRUE){ #if column is all na, then return true
+      tablemessage2 = TRUE
+    }
+    else { #if column is not all na, then return false
+      tablemessage2 = FALSE
+    }
+  }
+    
   
   ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left") #Flextable function
   
@@ -1282,8 +1337,12 @@ for (k in 1:length(rivseg_metric)){
 }
 ```
 
-```{r View Rivseg Flextable, results='asis', echo=FALSE}
+```{r View Rivseg Flextable, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 #result = 'asis' necessary 
+if (tablemessage2==TRUE) {
+  message("A column in the table is completely NA values, 
+          likely meaning the metric requested is not modeled for this data")
+}
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
 }
@@ -1297,19 +1356,19 @@ for (k in 1:length(rivseg_metric)){
 
 rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"), 
                   output_file = paste0(export_path,"mappingRMD_knitTests"),
-                  output_format = "word_document",
+                  output_format = "pdf_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Stafford", 
-                    region = "Chowan_1", 
+                    region = "BigSandy_UpperTennessee_1", 
                     type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    rivseg_metric = "l30_Qout",
-                    map_type = "locality",
+                    rivseg_metric = c("l30_Qout"),
+                    map_type = "region",
                     map_style = "custom",
                     map_by = "runid_13_wd_mgd",
                     limit = "basins",

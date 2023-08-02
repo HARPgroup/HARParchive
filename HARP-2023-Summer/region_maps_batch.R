@@ -2,6 +2,7 @@
 #RMD responsible for map & table creation is mapping_codeReview.R
 library(data.table) #needed for fread
 library(sqldf)
+library(pandoc)
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
@@ -20,16 +21,19 @@ for (i in (1:nrow(region_names))) {
                     output_format = "word_document",
                     params = list(
                       rivseg = "JL7_7070_0001", 
-                      locality = "Montgomery", 
+                      locality = "Stafford", 
                       region = region, 
                       type = "facility", 
                       model_version = "vahydro-1.0", 
-                      runid_list = c("runid_11","runid_13"), 
+                      runid_list_facilities = c("runid_11","runid_13"), 
+                      runid_list_riversegs = c("runid_11","runid_13"),
                       metric_mod = "wd_mgd",
                       metric_feat = "wsp2020_2040_mgy",
+                      rivseg_metric = "l30_Qout",
                       map_type = "region",
+                      map_style = "custom",
                       map_by = "fiveyr_avg_mgy",
-                      limit = "boundary",
+                      limit = "basins",
                       table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                       bbox_type = "auto"))
   
