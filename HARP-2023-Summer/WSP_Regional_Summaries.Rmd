@@ -10,8 +10,8 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
-  rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Fairfax"]
+  rivseg: ["JL7_7070_0001"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
+  locality: ["Stafford"]
   region: ["Chowan_1"]    
 
 #determining which type/level of map is being created
@@ -19,7 +19,7 @@ params:
   map_type: ["locality"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
-  map_style: ["custom"]
+  map_style: ["colorblind"]
   
 #determining what metric(s) will be pulled and mapped
   model_version: ["vahydro-1.0"] #which model metric to be pulled from vahydro
@@ -219,7 +219,29 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),loc
 # returns the name of the geometry column in the data:
 geoCol <- function(data){
   colname <- grep("geo",colnames(data),value=TRUE)
+  if(length(colname) > 1){
+  colname <- grep("geom",colname,value=TRUE) #for the case of "dh_geofield.geom" "dh_geofield.geo_type" "dh_geofield.lat" "dh_geofield.lon", etc.
+  }
   return(colname)
+}
+
+# allows the usage of SQLDF with sf data frames:
+sqldf_sf <- function(statemt, geomback="NA"){
+  #statement is any SQLDF string; reference the data frames per usual
+  #geomback is the character name of the data.frame you are filtering, where, if applicable, the sf geometry column will need to be added back from
+  dfs <- as.environment(as.list(.GlobalEnv, all.names=TRUE)) #make a copy of the global environment
+  for(i in names(dfs)){
+    if(class(dfs[[i]])=="sf"){ #drop the geometry on any sf objects so they can go through SQLDF
+      dfs[[i]] <- sf::st_drop_geometry( dfs[[i]] )
+    }
+  }
+  dfs[["result"]] <- sqldf(statemt, envir=dfs) #SQLDF the non-sf dataframes in the new environment (so that the global envir. retains the sf objects)
+  if(geomback!="NA"){
+    output <- merge(dfs[["result"]], .GlobalEnv[[geomback]], all.x=TRUE) #match the newly filtered obs. to their geometries
+    output <- st_as_sf(output, crs=4326) #convert back to sf
+  } else {
+    output <- dfs[["result"]]
+  }
 }
 
 # legend_titling() --> Generate user-understandable legend titles
@@ -302,9 +324,9 @@ if (type == "facility") {
   facils$model <- om_vahydro_metric_grid(
     metric=FALSE, runids=df, featureid='all', 
     entity_type='dh_feature', bundle='facility',
-    ftype='all', model_version = model_version,
-    base_url = "http://deq1.bse.vt.edu/d.dh/entity-model-prop-level-export",
-    ds = ds
+    ftype='all', model_version=model_version,
+    base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
+    ds=ds
     )
   #pull facility-level geometry to join with model data:
   facils$fac_geo <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
@@ -330,9 +352,13 @@ cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-S
 
 # Filter/Process Data (Cleanup)
 ```{r Merging Facility Data, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+#note: bottom of this chunk also includes some rsegs geoprocessing necessary for pairing facilities with watersheds. Therefore, this chunk needs to stay above the rsegs filtering chunk.
 if(type == "source"){
-  facils <- facils$foundatn_mp
-  #names(facils) <- gsub(" ", "_", names(facils)) #substitute spaces with underscores in column names ?
+  facils <- with(facils, 
+                 foundatn_mp[foundatn_mp$Latitude!="" & foundatn_mp$Longitude!="" 
+                   & !is.na(foundatn_mp$Latitude) & !is.na(foundatn_mp$Longitude) ,] #omits facilities with blank or NA geometry
+                 )
+  facils <- st_as_sf(facils, coords=c("Longitude","Latitude"), crs=4326) #convert to sf
 }
 if(type == "facility"){
   #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
@@ -356,70 +382,42 @@ if(type == "facility"){
                       LEFT OUTER JOIN fac_geo as b
                       ON (a.featureid = b.Facility_hydroid)", sep="")
   facils <- with(facils, sqldf(statemt)) #selects desired columns from facils$merge, matches them with geometry from facils$fac_geo based on featureid, and renames that calculated 'sum' column to "fiveyr_avg_mgy" ; saves over facils to simplify data access/storage
-  facils3 <- facils[facils[geoCol(facils)]!="" & facils[geoCol(facils)]!="NA",] #omits facilities with blank or NA geometry
+  facils <- facils[facils[,geoCol(facils)]!="" & !is.na(facils[,geoCol(facils)]),] #omits facilities with blank or NA geometry
+  facils <- st_as_sf(facils, wkt = geoCol(facils), crs=4326) #convert to sf
 }
 #connect facilities to the watersheds they are in:
-rsegs <- rsegs[-which(rsegs[geoCol(rsegs)] == "" | rsegs[geoCol(rsegs)] == "NA" ), ] #finds geom column & omits rsegs with blank or NA geometry
-rsegs <- st_as_sf(rsegs, wkt = geoCol(rsegs), crs=4326)
-facils3 <- st_as_sf(facils2, wkt = geoCol(facils2), crs=4326) #doesn't work. can't get rid of some NA-presenting values. breaks
-
-for(i in 1:length(facils2$Facility)){
-  if(i==1){
-    facils3 <- st_as_sf(facils2[i,], wkt = geoCol(facils2), crs=4326)
-  }
-  if(i!=1){
-    facils3 <- rbind(facils3, st_as_sf(facils2[i,], wkt = geoCol(facils2), crs=4326) )
-  }
-}
-
-facils3 <- facils2[facils[geoCol(facils)]=="<NA>"|facils[geoCol(facils)]=="NA",]
-
-if (!"riverseg" %in% colnames(facils$all)) { # TRUE when riverseg column not present, will execute loop
-  facils$all <- st_as_sf(facils$all, coords = c("Longitude","Latitude"))
-  segs_all <- segs$all[-which(segs$all$geom == ""), ] #need to remove rows with empty geometries 
-  #segs$sp <- process_geom(segs_all, "geom") #takes several seconds
-  segs$sf <- st_as_sf(segs_all, wkt = "geom")
-  rm(segs_all)
-  #segs$sf <- st_as_sf(segs$sp)
-  st_crs(segs$sf) <- 4326
-  st_crs(facils$all) <- 4326
-  # do spatial join to determine which seg each source/facility is in
-  sf_use_s2(FALSE) # switch off Spherical geometry
-  spat_join <- st_join(facils$all, segs$sf) #riverseg column added, polygons in col geom
-  coords <- st_coordinates(spat_join$geometry)
-  colnames(coords) <- c("Longitude","Latitude")
-  spat_join <- spat_join[ , !names(spat_join) == "geom"]
-  spat_join <- st_drop_geometry(spat_join)
-  facils$all <- spat_join
-  facils$all <- cbind(facils$all, coords)
-  colnames(facils$all) <- gsub("hydrocode", "rseg_hydrocode", colnames(facils$all))
-}
-
-
-
+rsegs$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs$hydrocode) #prereq. for fn_extract_basin() & desired for facils/table riverseg column
+rsegs <- rsegs[ rsegs[,geoCol(rsegs)]!="" & !is.na(rsegs[,geoCol(rsegs)]) ,] #finds geom column & omits rsegs with blank or NA geometry
+rsegs <- st_as_sf(rsegs, wkt=geoCol(rsegs), crs=4326) #convert to sf
+facils <- st_join(facils, rsegs[ ,c("riverseg",geoCol(rsegs)) ]) #pairs riverseg column from rsegs w/ facils based on geometry
 ```
+
 ```{r Processing Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Counties----
 counties$fips$name <- sub(" County", "", counties$fips$name) # fix any names followed by " County" to match the names in counties$regions
-counties$fips <- with(counties, sqldf("SELECT fips.*, regions.*
-                                      FROM fips
-                                      left outer join regions
-                                      where (fips.name = regions.County)
-                                      ")) #add region column to county data; keep only counties in regional planning areas
+counties$fips <- with(counties, sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
+                                      FROM fips as a
+                                      LEFT OUTER JOIN regions as b
+                                      WHERE (a.name = b.County)
+                                      ")) #add region column to county data; WHERE instead of ON means only counties in regional planning areas are kept
 #remove counties outside of VA using the fips code; save over as "counties" to simplify data handling:
-counties <- counties$fips[grep(51,counties$fips$dh_fips),] 
+counties <- counties$fips[grep(51,counties$fips$dh_fips),]
+counties <- st_as_sf(counties, wkt = geoCol(counties), crs=4326) #convert to sf based on geometry column found by geoCol() (developer-defined fn above)
 #----Regions----
-regions <- split(counties, counties$VMDWA_Reg2) #creates a list containing a data frame per each region, which all contain the county polygons corresponding to that region
-for(i in 1:length(regions)){ #merge counties into one polygon for each region
-  regions[[i]] <- st_as_sf(regions[[i]], wkt=grep("geo", colnames(regions[[i]]), value=TRUE), crs=4326) #converts to sf based on geometry column grep finds
-  regions[[i]] <- st_union(regions[[i]]) #combine polygons
+regions_split <- split(counties, counties$Region) #creates a list containing a sf data frame per each region, which all contain the county polygons corresponding to that region
+for(i in 1:length(regions_split)){ #merge counties into one polygon for each region
+  if(i==1){
+    regions <- st_union(regions_split[[i]])
+  }
+  if(i!=1){
+    regions <- rbind( regions, st_union(regions_split[[i]]) )
+  } #note: had to do this in IF statements instead of resetting regions_split[i] <- regions_split[[i]] because keeping it in list form causes st_union() to put geom into sfg format, which causes problems with st_filter() in the rsegs filtering chunk
 }
+regions <- st_as_sf(data.frame(region=names(regions_split),geo=regions,row.names=NULL), crs=4326)
+rm(regions_split)
 ```
-```{r Filtering Cities & Roads, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
-#----Roads----
-roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
-                & FULLNAME %in% grep("([0-9]+).$", roads$FULLNAME, value=TRUE)) #finds where last char is a number -> Omits names followed by Byp, Alt, etc.
-roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
+
+```{r Filter Cities & Roads, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Cities----
 statemt <- paste("SELECT cities.X, cities.Y, cities.NAME,",
                  "CASE WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
@@ -434,7 +432,106 @@ statemt <- paste("SELECT cities.X, cities.Y, cities.NAME,",
                   WHERE NAME 
                   NOT IN (select counties.name from counties)", #remove city/town names that match their county/locality name
                   "AND (cities.ST == 'VA')", sep=" ") #keep VA cities only
-cities <- sqldf(statemt)
+cities <- sqldf_sf(statemt)
+#----Roads----
+roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
+                & FULLNAME %in% grep("([0-9]+).$", roads$FULLNAME, value=TRUE)) #finds where last char is a number -> Omits names followed by Byp, Alt, etc.
+roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
+```
+
+```{r Filter Rsegs by Boundary Type, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_filter) give errors without this
+if (map_type=="basin") { #finding upstream riversegs for basin maps 
+  for(i in rivseg){
+    if(i==rivseg[1]){
+    basin <- fn_extract_basin(data.frame(rsegs), i) 
+    }
+    if(i!=rivseg[1]){
+    basin <- rbind(basin, fn_extract_basin(data.frame(rsegs), i))
+    }
+  }
+  rsegs <- st_as_sf( basin[!duplicated(basin$riverseg),] ,wkt=geoCol(basin), crs=4326) #convert back to sf & don't duplicate riversegs for overlapping basins
+  rm(basin)
+  
+} else if (map_type=="locality") { #for locality level
+  rsegs <- st_filter(rsegs, counties[counties$name==locality, ]) #filter basins by locality (if REST is working)
+  
+} else if (map_type=="region") { #for region level
+  region_OI <- regions[regions$region==region,] #extract region of interest for darker border around region 
+  region_sp <- as_Spatial(region_OI, cast=FALSE)
+  rsegs <- st_filter(rsegs, region_OI) #filter basins by the region given in params
+}
+```
+
+```{r Filter Sources/Facils by Basin or Boundary, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+#Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
+if (limit=="basins" | map_type=="basin") {
+  facils <- st_filter(facils, rsegs)
+  
+} else if (limit=="boundary"){
+  if(map_type=="locality"){
+    facils <- st_filter(facils, counties[counties$name==locality, ])
+  } else if (map_type=="region") {
+    facils <- st_filter(facils, region_OI)
+  }
+}
+```
+
+# Pulling Feature Metrics Post-Filtering (Cleanup)
+```{r Non-Modeled Facility Metrics, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+for (i in 1:nrow(facils)) {
+  facils[i,metric_feat] <- RomProperty$new(ds,list(
+                                featureid = facils$featureid[i],
+                                propname = metric_feat),
+                              TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
+}
+```
+
+```{r Rseg Drought Metrics, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+for (k in 1:length(rivseg_metric)) {
+  for (j in 1:length(runid_list_riversegs)) {
+    for (i in 1:nrow(rsegs)) {
+      riverseg <- RomFeature$new(ds,list( #get riverseg feature from vahydro
+          hydrocode = paste('vahydrosw_wshed_',rsegs$riverseg[i],sep=''),
+          ftype = 'vahydro',
+          bundle = 'watershed'
+        ),TRUE)
+      
+      if (!is.na(riverseg$hydroid)) { #only continue if rivseg feature was found
+        model <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
+            featureid = riverseg$hydroid,
+            propcode = 'vahydro-1.0'
+            ),TRUE)
+        
+        model_scenario <- RomProperty$new(ds,list( #get scenario/runid from vahydro
+            varkey = "om_scenario",
+            featureid = model$pid,
+            propname = runid_list_riversegs[j]
+          ),TRUE)
+        
+        if (!is.na(model_scenario$pid)) { #only continue if runid was found (scenario pid!=NA)
+          rsegs[i, paste0(runid_list_riversegs[j],'_',rivseg_metric[k]) ] <- RomProperty$new(ds,list( #get metric from vahydro
+                                                                                featureid = model_scenario$pid,
+                                                                                entity_type = 'dh_properties',
+                                                                                propname = rivseg_metric[k]
+                                                                              ),TRUE)$propvalue #directly assign metric propvalue
+        } else { #the scenario/runid wasn't found
+          rsegs[i, paste0(runid_list_riversegs[j],'_',rivseg_metric[k]) ] <- NA
+        }
+      } else { #the rivseg feature wasn't found
+        rsegs[i, paste0(runid_list_riversegs[j],'_',rivseg_metric[k]) ] <- NA
+      }
+    }
+  }
+}
+rm(riverseg)
+rm(model)
+rm(model_scenario)
+```
+
+```{r Calculate Rseg Metric % Diff, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+
+
 ```
 
 # Geom Processing
@@ -719,50 +816,56 @@ rivseg_runids <- runid_list_riversegs
 for (k in 1:length(rivseg_metric)) {
   for (j in 1:length(runid_list_riversegs)) {
     for (i in 1:nrow(segs$basin)) {
-
-riverseg<- RomFeature$new( #get riverseg feature from vahydro
-  ds,
-  list(
-    hydrocode=paste('vahydrosw_wshed_',segs$basin$riverseg[i], sep = ''),
-    ftype='vahydro',
-    bundle='watershed'
-  ),
-  TRUE)
-
-if (is.na(riverseg$hydroid) == FALSE) { #only continue if rivseg feature was found
-
-model <- RomProperty$new( #get vahydro-1.0 model feature from vahydro
-  ds,
-  list(
-    featureid=riverseg$hydroid, 
-    propcode='vahydro-1.0'
-  ), 
-  TRUE)
-
-model_scenario <- RomProperty$new( #get scenario/runid from vahydro
-  ds,
-  list(
-    varkey="om_scenario", 
-    featureid=model$pid, 
-    propname=runid_list_riversegs[j] 
-  ), 
-  TRUE)
-
-#skip metric pull if scenario pid = NA, meaning runid wasn't found
-  if (is.na(model_scenario$pid) == FALSE) {
-  
-  model_metric <- RomProperty$new( #get metric from vahydro
-    ds, list(
-    featureid=model_scenario$pid,
-    entity_type='dh_properties',
-    propname = rivseg_metric[k]
-    ),
-    TRUE)
-  
-  segs$basin[i,paste0(runid_list_riversegs[j],'_', rivseg_metric[k])] <- model_metric$propvalue
-  } else { #if the scenario/runid wasn't found
-    segs$basin[i,paste0(runid_list_riversegs[j],'_', rivseg_metric[k])] <- NA
-       }
+      riverseg <- RomFeature$new(#get riverseg feature from vahydro
+        ds,
+        list(
+          hydrocode = paste('vahydrosw_wshed_', segs$basin$riverseg[i], sep = ''),
+          ftype = 'vahydro',
+          bundle = 'watershed'
+        ),
+        TRUE)
+      
+      if (is.na(riverseg$hydroid) == FALSE) {
+        #only continue if rivseg feature was found
+        
+        model <-
+          RomProperty$new(#get vahydro-1.0 model feature from vahydro
+            ds,
+            list(featureid = riverseg$hydroid,
+                 propcode = 'vahydro-1.0'),
+            TRUE)
+        
+        model_scenario <- RomProperty$new(
+          #get scenario/runid from vahydro
+          ds,
+          list(
+            varkey = "om_scenario",
+            featureid = model$pid,
+            propname = runid_list_riversegs[j]
+          ),
+          TRUE
+        )
+        
+        #skip metric pull if scenario pid = NA, meaning runid wasn't found
+        if (is.na(model_scenario$pid) == FALSE) {
+          model_metric <- RomProperty$new(
+            #get metric from vahydro
+            ds,
+            list(
+              featureid = model_scenario$pid,
+              entity_type = 'dh_properties',
+              propname = rivseg_metric[k]
+            ),
+            TRUE
+          )
+          
+          segs$basin[i, paste0(runid_list_riversegs[j], '_', rivseg_metric[k])] <-
+            model_metric$propvalue
+        } else {
+          #if the scenario/runid wasn't found
+          segs$basin[i, paste0(runid_list_riversegs[j], '_', rivseg_metric[k])] <-
+            NA
+        }
       }
     }
   }
