@@ -1180,7 +1180,7 @@ for (i in 1:length(rivseg_metric)) {
 }
 ```
 
-```{r Display Rivseg Map, echo=FALSE}
+```{r Display Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
 knitr::include_graphics(rivmapfilename)
 ```
 
@@ -1214,6 +1214,17 @@ for (k in 1:length(rivseg_metric)){
   narows <- head(rivdf, nanum)
   goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
   rivdf <- rbind(goodrows, narows)
+
+  nacols <- data.frame(colSums(is.na(rivdf)) == nrow(rivdf)) #dataframe of which columns are all na or not
+  for (i in 1:nrow(nacols)) {
+    if (nacols$colSums.is.na.rivdf......nrow.rivdf.[i] == TRUE){ #if column is all na, then return true
+      tablemessage2 = TRUE
+    }
+    else { #if column is not all na, then return false
+      tablemessage2 = FALSE
+    }
+  }
+    
   
   ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left") #Flextable function
   
@@ -1222,8 +1233,12 @@ for (k in 1:length(rivseg_metric)){
 }
 ```
 
-```{r View Rivseg Flextable, results='asis', echo=FALSE}
+```{r View Rivseg Flextable, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 #result = 'asis' necessary 
+if (tablemessage2==TRUE) {
+  message("A column in the table is completely NA values, 
+          likely meaning the metric requested is not modeled for this data")
+}
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
 }
@@ -1237,21 +1252,21 @@ for (k in 1:length(rivseg_metric)){
 
 rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"), 
                   output_file = paste0(export_path,"mappingRMD_knitTests"),
-                  output_format = "word_document",
+                  output_format = "pdf_document",
                   params = list(
                     rivseg = "JL7_7070_0001", 
                     locality = "Stafford", 
-                    region = "Chowan_1", 
-                    type = "source", 
+                    region = "BigSandy_UpperTennessee_1", 
+                    type = "facility", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    rivseg_metric = "l30_Qout",
+                    rivseg_metric = c("l30_Qout"),
                     map_type = "region",
                     map_style = "custom",
-                    map_by = "fiveyr_avg_mgy",
+                    map_by = "runid_13_wd_mgd",
                     limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
