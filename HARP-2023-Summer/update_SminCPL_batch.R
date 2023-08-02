@@ -29,36 +29,41 @@ all_imp_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
-#all_imp_data$Smin_L90_exact <- NA
-#all_imp_data$Smin_L90_approx <- NA
-
-## add loop-through of all elements in all_imp_data ?
-#for (i in 1:nrow(all_imp_data)) { #fails on i=2
-
-#set i = row for test case of interest
-i = 28
-
-#get model element
-model <- RomProperty$new(ds,list( #only works for impoundment features not those within riverseg models 
-  featureid = all_imp_data$featureid[i],
-  propcode = "vahydro-1.0",
-  varkey = "om_hydroimpoundment"),
-  TRUE
+#L90 and L30 years for all riversegs
+df <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_13', 'runid_11', 'runid_13'),
+  'metric' = c('l30_year','l30_year', 'l90_year', 'l90_year'),
+  'runlabel' = c('L30_year_11', 'L30_year_13', 'L90_year_11', 'L90_year_13')
 )
+l90year_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df, bundle = 'watershed', 
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+
+#join L90 & L30 years with imp data
+all_imp_data <- sqldf("SELECT a.*, b.L30_year_11, b.L30_year_13, b.L90_year_11, b.L90_year_13
+                      FROM all_imp_data as a
+                      LEFT OUTER JOIN l90year_data as b
+                      ON (a.riverseg = b.riverseg)")
+
+token = ds$get_token(rest_pw) #needed for elid function in loop
+for (i in 1:nrow(all_imp_data)) { 
 
 #get om_element_connection value for elid to get runfile 
-token = ds$get_token(rest_pw) #needed for om_get_model_elid
+ #needed for om_get_model_elid
 elid <- om_get_model_elementid(
   base_url = site,
-  mid = model$pid
+  mid = all_imp_data$pid[i]
 )
-rm(token) #security!
 
 #get runfile whcih has storage timeseries data 
 dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE)
 
 #is the impoundment active? (imp_off = 0?)
 cols <- names(dat)
+
 if ("imp_off" %in% cols) {
   imp_off <- as.integer(median(dat$imp_off))
 } else {
@@ -66,67 +71,31 @@ if ("imp_off" %in% cols) {
   imp_off = 0
 }
 
-#apply Smin_cpl function
-#this would be classified as an exact method, while using sqldf to crop by L30/L90_year would be an approx. method 
-Smin_L90_exact <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, date_filter = c('1995-01-01','2020-12-31'), colname = "Storage")
+#different names for same storage value
+names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
+names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
 
-#L30_year and L90_year from the riverseg-model-scenario -- should be in loop
-riverseg<- RomFeature$new( #get riverseg feature from vahydro
-  ds,
-  list(
-    hydrocode=paste('vahydrosw_wshed_',all_imp_data$riverseg[i], sep = ''),
-    ftype='vahydro',
-    bundle='watershed'
-  ),
-  TRUE)
-  
-model <- RomProperty$new( #get vahydro-1.0 model feature from vahydro
-  ds,
-  list(
-    featureid=riverseg$hydroid, 
-    propcode='vahydro-1.0'
-  ), 
-  TRUE)
-  
-model_scenario <- RomProperty$new( #get scenario/runid from vahydro
-  ds,
-  list(
-    varkey="om_scenario", 
-    featureid=model$pid, 
-    propname= paste0('runid_',runid) 
-  ), 
-  TRUE)
-  
-L30prop <- RomProperty$new( #get metric from vahydro
-  ds, list(
-    featureid=model_scenario$pid,
-    entity_type='dh_properties',
-    propname = 'l30_year'
-  ),
-  TRUE)
-L30_year <- L30prop$propvalue
+#apply Smin_cpl function, exact method
+all_imp_data$Smin_L90_exact[i] <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, date_filter = c('1995-01-01','2020-12-31'), colname = "Storage")
 
-L90prop <- RomProperty$new( #get metric from vahydro
-  ds, list(
-    featureid=model_scenario$pid,
-    entity_type='dh_properties',
-    propname = 'l90_year'
-  ),
-  TRUE)
-L90_year <- L90prop$propvalue
-
-dat_df <- as.data.frame(dat) #zoo to df
-dat_df$L90_year <- L90_year
+dat_df <- as.data.frame(dat)
 
 #Smin using approx method
+
 Smin_L90 <- sqldf("SELECT min(Storage), year
                     FROM dat_df 
-                    WHERE year = L90_year")
+                    WHERE year = (select L90_year_11 from all_imp_data)")
 
-Smin_L90_approx <- as.numeric(Smin_L90$`min(Storage)`)
+all_imp_data$Smin_L90_approx[i] <- as.numeric(Smin_L90$`min(Storage)`)
 
-#}
+}
+rm(token) #security!
 
-paste0(all_imp_data$propname[i])
-paste0('Approx Smin_L90: ', round(Smin_L90_approx, digits = 3))
-paste0('Exact Smin_L90: ', round(Smin_L90_exact, digits = 3))
+#get scenario prop from vahydro, where metric will be posted?
+scenprop <- RomProperty$new(ds, list(
+  varkey = 'om_scenario',
+  propname = paste0('runid_', runid),
+  featureid = all_imp_data$pid[1], #model pids in all_imp_data
+  entity_type = "dh_properties",
+  bundle = "dh_properties"), 
+TRUE)
