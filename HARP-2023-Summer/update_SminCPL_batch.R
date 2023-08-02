@@ -12,32 +12,32 @@ ds$get_token(rest_pw)
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #load Smin_CPL function
 
 # Read Args
-argst <- commandArgs(trailingOnly=T)
-runid <- as.integer(argst[1]) #number-only part of a runid (ex. 11)
-#runid = 11
+#argst <- commandArgs(trailingOnly=T)
+#runid <- as.integer(argst[1]) #number-only part of a runid (ex. 11)
+runid = 11
 
 #get all impoundment features 
-df <- data.frame(
+df_imp <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
   'runid' = c('runid_11', 'runid_400', 'runid_600', 'runid_13'),
   'metric' = c('usable_pct_p0','usable_pct_p0', 'usable_pct_p0', 'usable_pct_p0'),
   'runlabel' = c('Smin_pct_11', 'Smin_pct_perm', 'Smin_pct_prop', 'Smin_pct_800')
 )
 all_imp_data <- om_vahydro_metric_grid(
-  metric = metric, runids = df, bundle = 'all', ftype = "all",
+  metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
 
 #L90 and L30 years for all riversegs
-df <- data.frame(
+df_yr <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
   'runid' = c('runid_11', 'runid_13', 'runid_11', 'runid_13'),
   'metric' = c('l30_year','l30_year', 'l90_year', 'l90_year'),
   'runlabel' = c('L30_year_11', 'L30_year_13', 'L90_year_11', 'L90_year_13')
 )
 l90year_data <- om_vahydro_metric_grid(
-  metric = metric, runids = df, bundle = 'watershed', 
+  metric = metric, runids = df_yr, bundle = 'watershed', 
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
@@ -76,26 +76,44 @@ names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
 names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
 
 #apply Smin_cpl function, exact method
-all_imp_data$Smin_L90_exact[i] <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, date_filter = c('1995-01-01','2020-12-31'), colname = "Storage")
+all_imp_data$Smin_L90_exact[i] <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, date_filter = c('1980-01-01','2022-12-31'), colname = "Storage")
+all_imp_data$Smin_L30_exact[i] <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30, date_filter = c('1980-01-01','2022-12-31'), colname = "Storage")
 
 dat_df <- as.data.frame(dat)
 
 #Smin using approx method
 
-Smin_L90 <- sqldf("SELECT min(Storage), year
+#get low flow years
+L90_year <- all_imp_data$L90_year_11[i] #just using runid 11 to test
+L30_year <- all_imp_data$L30_year_11[i]
+
+Smin_L90 <- sqldf(paste0("SELECT min(Storage), year
                     FROM dat_df 
-                    WHERE year = (select L90_year_11 from all_imp_data)")
+                    WHERE year = ", L90_year)) #need to pipe in single year 
+
+Smin_L30 <- sqldf(paste0("SELECT min(Storage), year
+                    FROM dat_df 
+                    WHERE year = ", L30_year))
 
 all_imp_data$Smin_L90_approx[i] <- as.numeric(Smin_L90$`min(Storage)`)
+all_imp_data$Smin_L30_approx[i] <- as.numeric(Smin_L30$`min(Storage)`)
+
+#get scenario prop from vahydro, where metric will be posted?
+#scenprop <- RomProperty$new(ds, list(
+#  varkey = 'om_scenario',
+#  propname = paste0('runid_', runid),
+#  featureid = all_imp_data$pid[1], #model pids in all_imp_data
+#  entity_type = "dh_properties",
+#  bundle = "dh_properties"), 
+#TRUE)
+
+#post metrics? units: mg
+#vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
+#vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
 
 }
 rm(token) #security!
+#An error will come up 'Error: no such column: NA' when the year used to find approx Smin diesn't exist
 
-#get scenario prop from vahydro, where metric will be posted?
-scenprop <- RomProperty$new(ds, list(
-  varkey = 'om_scenario',
-  propname = paste0('runid_', runid),
-  featureid = all_imp_data$pid[1], #model pids in all_imp_data
-  entity_type = "dh_properties",
-  bundle = "dh_properties"), 
-TRUE)
+
+
