@@ -290,9 +290,9 @@ map <- map + new_scale("fill") +
                         breaks = breaks, 
                         labels = labs,
                         limits = lims,
-                        name = legend_title[1]) + 
-      theme(legend.spacing.y = unit(0.1, 'cm')) + #spacing out items in legend 
-      guides(size = guide_legend(byrow = TRUE))
+                        name = legend_title[1]) 
+#      theme(legend.spacing.y = unit(0.1, 'cm')) + #spacing out items in legend 
+#      guides(size = guide_legend(byrow = TRUE))
   }
  
   # Source or Facility Labels
