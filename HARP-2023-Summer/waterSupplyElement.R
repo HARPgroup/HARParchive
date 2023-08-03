@@ -22,6 +22,9 @@ library(sqldf)
 library(ggnewscale)
 library(dplyr)
 
+#Load Smin_CPL function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
+
 # Read Args
 argst <- commandArgs(trailingOnly=T)
 pid <- as.integer(argst[1])
@@ -223,14 +226,22 @@ end_date_30 <- paste0(l30_year,"-12-31")
 start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
 end_date_90 <- paste0(l90_year,"-12-31")
 
+# Storage col could be a couple different names 
+if("local_impoundment_Storage" %in% cols) {
+  storagecol <- "local_impoundment_Storage"
+}
+if("impoundment_Storage" %in% cols) {
+  storagecol <- "impoundment_Storage"
+}
+
 # Calculate Smin_CPLs using function
 Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
                                start_date = start_date_30, end_date = end_date_30,
-                               colname = "Storage")
+                               colname = storagecol)
 
 Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
                                start_date = start_date_90, end_date = end_date_90,
-                               colname = "Storage")
+                               colname = storagecol)
 
 # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
 Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)

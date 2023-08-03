@@ -29,7 +29,7 @@ class(ts_crop[,colname]) <- "numeric" #data for rollmean needs to be numeric
 Smin_CPL <- sqldf(paste0("SELECT min(", colname ,")
                     FROM ts_crop"))
 
-assign(paste0('Smin_L', critical_pd_length), as.numeric(Smin_CPL$`min(Storage)`[1]))
+assign(paste0('Smin_L', critical_pd_length), as.numeric(Smin_CPL[1,1]))
 
 return(get(paste0('Smin_L', critical_pd_length)))
 }
