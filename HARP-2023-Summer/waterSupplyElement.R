@@ -22,6 +22,9 @@ library(sqldf)
 library(ggnewscale)
 library(dplyr)
 
+#Load Smin_CPL function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
+
 # Read Args
 argst <- commandArgs(trailingOnly=T)
 pid <- as.integer(argst[1])
@@ -207,6 +210,53 @@ l90 <- loflows["90 Day Min"];
 ndx = which.min(as.numeric(l90[,"90 Day Min"]));
 l90_Qout = round(loflows[ndx,]$"90 Day Min",6);
 l90_year = loflows[ndx,]$"year";
+
+# Find l30_year for Smin_L30
+l30 <- loflows["30 Day Min"];
+ndx = which.min(as.numeric(l30[,"30 Day Min"]));
+l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
+l30_year = loflows[ndx,]$"year";
+
+# Smin_CPL metrics
+
+# Prep for Smin_CPL function
+start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
+end_date_30 <- paste0(l30_year,"-12-31")
+
+start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
+end_date_90 <- paste0(l90_year,"-12-31")
+
+# Storage col could be a couple different names 
+if("local_impoundment_Storage" %in% cols) {
+  storagecol <- "local_impoundment_Storage"
+}
+if("impoundment_Storage" %in% cols) {
+  storagecol <- "impoundment_Storage"
+}
+
+# Calculate Smin_CPLs using function
+Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
+                               start_date = start_date_30, end_date = end_date_30,
+                               colname = storagecol)
+
+Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
+                               start_date = start_date_90, end_date = end_date_90,
+                               colname = storagecol)
+
+# Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
+Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
+Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
+
+# Set Smin metrics to 0 if impoundment is not active
+#imp_enabled used in this script instead of imp_off, and set to either TRUE or FALSE
+if (imp_enabled == FALSE) { 
+  Smin_L30_mg <- 0
+  Smin_L90_mg <- 0
+}
+
+# Post Smin metrics to vahydro
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 
 ##### Define fname before graphing
 # hydroImpoundment lines 144-151

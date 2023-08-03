@@ -17,6 +17,8 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
+#Load Smin_CPL function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -250,6 +252,38 @@ if (is.na(unmet_demand_mgd)) {
   unmet_demand_mgd = 0.0
 }
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
+
+# Smin_CPL metrics
+
+# Prep for Smin_CPL function
+start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
+end_date_30 <- paste0(l30_year,"-12-31")
+
+start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
+end_date_90 <- paste0(l90_year,"-12-31")
+
+# Calculate Smin_CPLs using function
+Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
+                               start_date = start_date_30, end_date = end_date_30,
+                               colname = "impoundment_Storage")
+
+Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
+                               start_date = start_date_90, end_date = end_date_90,
+                               colname = "impoundment_Storage")
+
+# Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
+Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
+Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
+
+# Set Smin metrics to 0 if impoundment is not active
+if (imp_off == 1) { 
+  Smin_L30_mg <- 0
+  Smin_L90_mg <- 0
+}
+
+# Post Smin metrics to vahydro
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 
 # Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
 if (syear <= 1990 && eyear >= 2000) {
