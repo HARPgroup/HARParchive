@@ -1278,13 +1278,13 @@ for (i in 1:length(rivseg_metric)){
   title1 <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
   
   if (rivseg_metric[i]=="l30_Qout"){
-      title <- gsub("l30_Qout", "30 Day Low Flow", title1)
+      title <- gsub("l30_Qout", "Lowest 30 Day Flow", title1)
   }
   else if (rivseg_metric[i]=="l90_Qout"){
-          title <- gsub("l90_Qout", "90 Day Low Flow", title1)
+          title <- gsub("l90_Qout", "Lowest 90 Day Flow", title1)
   }
   else if (rivseg_metric[i]=="7q10"){
-      title <- gsub("7q10", "7 Day Low Flow", title1)
+      title <- gsub("7q10", "Lowest 7 Day Flow", title1)
   }
   else {
     title <- title1
@@ -1426,14 +1426,14 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                     rivseg = "MN0_7870_0000", 
                     locality = "Stafford", 
                     region = "BigSandy_UpperTennessee_1", 
-                    type = "facility", 
+                    type = "source", 
                     model_version = "vahydro-1.0", 
                     runid_list_facilities = c("runid_11","runid_13"), 
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
                     rivseg_metric = c("l30_Qout", "7q10"),
-                    map_type = "locality",
+                    map_type = "region",
                     map_style = "custom",
                     map_by = "fiveyr_avg_mgy",
                     limit = "basins",
