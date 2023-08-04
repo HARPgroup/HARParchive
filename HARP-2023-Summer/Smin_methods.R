@@ -89,13 +89,16 @@ datpd_30 <- window(
   end = l30_end
 )
 
-#Approximate method: Smin within low-flow years:
-all_imp_data$Smin_L90_approx[i] <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, 
+##Approximate method: Smin within low-flow years:
+Smin_L90_approx <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, 
                                                  start_date = l90_start, end_date = l90_end, colname = "Storage")
-all_imp_data$Smin_L30_approx[i] <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30, 
+Smin_L30_approx <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30, 
                                                  start_date = l30_start, end_date = l30_end, colname = "Storage")
 
-#Exact method: Smin within the L30 and L90 periods:
+all_imp_data$Smin_L90_approx_perday[i] <- Smin_L90_approx / 90
+all_imp_data$Smin_L30_approx_perday[i] <- Smin_L30_approx / 30
+
+##Near-exact method: Smin within the L30 and L90 periods:
 
 #data for each l30 and l90 years
 l30yr_flows <- window(flows, start = l30_start, end = l30_end)
@@ -127,7 +130,17 @@ l30pd_df <- as.data.frame(l30pd_flows)
 l90pd_df <- as.data.frame(l90pd_flows)
 
 #Smin within the low flow periods
-all_imp_data$Smin_L90_exact[i] <- min(l90pd_df$Storage)
-all_imp_data$Smin_L30_exact[i] <- min(l30pd_df$Storage)
+Smin_L90_nearexact <- min(l90pd_df$Storage)
+Smin_L30_nearexact <- min(l30pd_df$Storage)
+
+all_imp_data$Smin_L90_nearexact_perday[i] <- Smin_L90_nearexact / 90
+all_imp_data$Smin_L30_nearexact_perday[i] <- Smin_L30_nearexact / 30
+
+##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
+dayno_90 <- which.min(l90pd_df$Storage)
+dayno_30 <- which.min(l30pd_df$Storage)
+
+all_imp_data$Smin_L90_exact_perday[i] <- Smin_L90_nearexact / dayno_90
+all_imp_data$Smin_L30_exact_perday[i] <- Smin_L30_nearexact / dayno_30
 
 }
