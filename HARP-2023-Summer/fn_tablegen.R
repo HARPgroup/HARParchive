@@ -34,7 +34,8 @@ if (type == 'facility') {
 } else if (type == 'riverseg') {
   ft <- autofit(ft)
 #  x <- -10 # change percent desired -- to moved to config
-  ft <- flextable::highlight(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit),color = "yellow")  #highlight row when percent difference is below limit
+#  ft <- flextable::highlight(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit),color = "yellow")  #highlight row when percent difference is below limit
+  ft <- flextable::bg(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
 }
 return(ft)
 #assign('ft', ft, envir = globalenv())

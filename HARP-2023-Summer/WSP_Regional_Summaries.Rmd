@@ -11,12 +11,12 @@ output: pdf_document #overridden by output_format in render command
 params: 
 #rivseg, locality, region based on desired location for planner, ensure syntax is correct
   rivseg: ["JL6_7430_7320"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
-  locality: ["Fairfax"]
+  locality: ["Stafford"]
   region: ["MiddleJames_3"]    
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["region"] #should be one of: basin, locality, or region 
+  map_type: ["basin"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["colorblind"]
@@ -1144,7 +1144,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   suppressWarnings(suppressMessages( 
-    fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+    fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric = map_by[i], rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
@@ -1307,8 +1307,8 @@ for (i in 1:length(rivseg_metric)){
 
   ##Mapping function
   suppressWarnings(suppressMessages(
-    fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
+    fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric = rivseg_metric[i], rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
