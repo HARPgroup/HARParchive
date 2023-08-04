@@ -16,7 +16,7 @@ params:
 
 #determining which type/level of map is being created
   type: ["facility"] #either 'source' or 'facility'
-  map_type: ["region"] #should be one of: basin, locality, or region 
+  map_type: ["basin"] #should be one of: basin, locality, or region 
 
 #determining map aesthetics like colors, fonts, font sizes
   map_style: ["colorblind"]
@@ -237,7 +237,7 @@ sqldf_sf <- function(statemt, geomback="NA"){
   }
   dfs[["result"]] <- sqldf(statemt, envir=dfs) #SQLDF the non-sf dataframes in the new environment (so that the global envir. retains the sf objects)
   if(geomback!="NA"){
-    output <- merge(dfs[["result"]], .GlobalEnv[[geomback]], all.x=TRUE) #match the newly filtered obs. to their geometries
+    output <- merge(x=dfs[["result"]], y=.GlobalEnv[[geomback]], all.x=TRUE, all.y=FALSE) #match the newly filtered obs. to their geometries
     output <- st_as_sf(output, crs=4326) #convert back to sf
   } else {
     output <- dfs[["result"]]
@@ -389,7 +389,9 @@ if(type == "facility"){
 rsegs$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs$hydrocode) #prereq. for fn_extract_basin() & desired for facils/table riverseg column
 rsegs <- rsegs[ rsegs[,geoCol(rsegs)]!="" & !is.na(rsegs[,geoCol(rsegs)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 rsegs <- st_as_sf(rsegs, wkt=geoCol(rsegs), crs=4326) #convert to sf
-facils <- st_join(facils, rsegs[ ,c("riverseg",geoCol(rsegs)) ]) #pairs riverseg column from rsegs w/ facils based on geometry
+sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_join, st_filter) give errors without this
+facils <- st_join(facils, rsegs[ ,c("riverseg","hydroid",geoCol(rsegs)) ]) #pairs riverseg column from rsegs w/ facils based on geometry
+#we add an riverseg column via goemetry in both source & facility cases b/c even when facilities come in with a riverseg column, many are blank
 ```
 
 ```{r Processing Counties & Regions, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
@@ -440,7 +442,6 @@ roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces befor
 ```
 
 ```{r Filter Rsegs by Boundary Type, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
-sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_filter) give errors without this
 if (map_type=="basin") { #finding upstream riversegs for basin maps 
   for(i in rivseg){
     if(i==rivseg[1]){
@@ -478,7 +479,7 @@ if (limit=="basins" | map_type=="basin") {
 ```
 
 # Pulling Feature Metrics Post-Filtering (Cleanup)
-```{r Non-Modeled Facility Metrics, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Pull Non-Modeled Facility Metrics, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 for (i in 1:nrow(facils)) {
   facils[i,metric_feat] <- RomProperty$new(ds,list(
                                 featureid = facils$featureid[i],
@@ -487,7 +488,50 @@ for (i in 1:nrow(facils)) {
 }
 ```
 
-```{r Rseg Drought Metrics, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Pull Permitted Capacity, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+fac_model_data <- data.frame()
+for (i in facils$hydroid ){
+  #i is a rseg hydroid corresponding to each facility, but it won't pull for the same hydroid twice b/c that is redundant and time-consuming
+  model_props <- c("vwp_max_mgy","permit_status")
+  fac_model_data <- rbind( fac_model_data ,  # [[ runid_list_facilities[1] ]]
+                                                        read.csv(paste(site,"/model-summary-users-export-all-cols/",
+                                                            gsub(" ","",toString( i )),"/",
+                                                            runid_list_facilities[1],"/", #just use 1st runid b/c perm.cap doesn't change
+                                                            gsub(" ","",toString( metric_mod )),"/", #user's model metric
+                                                            gsub(" ","",toString( model_props )),sep=""))
+                                                          )
+}
+
+statemt <- paste("SELECT a.*, b.permit_status, c.perm_cap_mgy
+                  FROM facils as a
+                  LEFT OUTER JOIN (
+                    SELECT facility_hydroid, model_prop_propcode as permit_status
+                    FROM fac_model_data
+                    WHERE (model_prop_propname == 'permit_status')
+                    ) as b
+                  ON (a.featureid = b.facility_hydroid)
+                  LEFT OUTER JOIN (
+                    SELECT facility_hydroid, model_prop_propcode as perm_cap_mgy
+                    FROM fac_model_data
+                    WHERE (model_prop_propname == 'vwp_max_mgy')
+                    ) as c
+                  ON (a.featureid = c.facility_hydroid)
+                 ")
+
+
+                  
+test <- sqldf_sf(statemt, geomback="facils")
+test2 <- test[!duplicated(test),] #remove duplicated rows 
+
+test4 <- test3[test3$Facility == facils$Facility,]
+what <- test[test$featureid == facils$featureid,]
+hm <- unique(facils$hydroid)
+
+#something wacky is going on here
+
+```
+
+```{r Pull Rseg Drought Metrics, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 for (k in 1:length(rivseg_metric)) {
   for (j in 1:length(runid_list_riversegs)) {
     for (i in 1:nrow(rsegs)) {
@@ -1100,7 +1144,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 ##Mapping function
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   suppressWarnings(suppressMessages( 
-    fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
+    fn_mapgen(mapnum = 1, type, map_type, styles[[map_style]], metric = map_by[i], rivseg, bbox, segs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
@@ -1280,8 +1324,8 @@ for (i in 1:length(rivseg_metric)){
 
   ##Mapping function
   suppressWarnings(suppressMessages(
-    fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric_mod, rivseg, bbox, segs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
+    fn_mapgen(mapnum = 2,type, map_type, styles[[map_style]], metric = rivseg_metric[i], rivseg, bbox, segs, counties, roads, 
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
