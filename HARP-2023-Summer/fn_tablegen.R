@@ -16,18 +16,18 @@ set_flextable_defaults(
   table.layout = 'fixed', tabcolsep = 1.5,
   fonts_ignore = T, big.mark = "", decimal.mark= ".") #fonts_ignore applies when knitting as pdf 
 
-if (columns == "all") {
+if (columns == "all") { #columns param in function is all meaning keep columns as normal
   ft <- flextable(table)
-} else {
+} else { # want specific columns in table 
   tablecols <- table[, paste0(columns)] 
   ft <- flextable(tablecols)
 }
 
 ft <- theme_vanilla(ft)
-if (type == 'facility') {
+
+if (type == 'facility') { #facility tables need more editing then riverseg at the moment, this is subject to change 
   ft <- void(ft, j=1, part = "header") #remove name of 1st column in facil/source tables, which will always be the # for the facil/source
   ft <- width(ft, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
-#  ft <- line_spacing(ft, space = 1.25)
   ft <- width(ft, j=1, width = 0.5)
   ft <- width(ft, j=2, width = 0.8)
   ft <- align(ft, align = alignment, part = "all")

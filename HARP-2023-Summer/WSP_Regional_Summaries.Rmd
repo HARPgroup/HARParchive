@@ -28,8 +28,8 @@ params:
   metric_mod: ["wd_mgd"] #for modeled metrics, ex: wd_mgd, ps_mgd, gw_demand_mgd
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
-  rivseg_metric: ["l90_Qout"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
-  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  rivseg_metric: ["l90_Qout", "7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
+  map_by: ["runid_13_wd_mgd"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
@@ -1274,7 +1274,23 @@ segs_basin <- segs$basin #for sqldf
 
 for (i in 1:length(rivseg_metric)){
   rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list_riversegs)
-  title <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
+  
+  title1 <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
+  
+  if (rivseg_metric[i]=="l30_Qout"){
+      title <- gsub("l30_Qout", "30 Day Low Flow", title1)
+  }
+  else if (rivseg_metric[i]=="l90_Qout"){
+          title <- gsub("l90_Qout", "90 Day Low Flow", title1)
+  }
+  else if (rivseg_metric[i]=="7q10"){
+      title <- gsub("7q10", "7 Day Low Flow", title1)
+  }
+  else {
+    title <- title1
+  }
+
+  
   segs_basin$geometry <- NULL #get rid of geometry, st_drop_geometry unreliable
   segs_basin <- segs_basin[ , !names(segs_basin) %in% c("pct_diff", "bin")]
   
@@ -1304,6 +1320,7 @@ for (i in 1:length(rivseg_metric)){
   segs$basin_sf <- st_as_sf(segs_basin) #create sf object for mapping w/ geom_sf
   st_crs(segs$basin_sf) <- 4326
   segs$basin_sf <- centroid_coords(segs$basin_sf, "geometry")
+  
 
   ##Mapping function
   suppressWarnings(suppressMessages(
@@ -1312,6 +1329,7 @@ for (i in 1:length(rivseg_metric)){
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
+
 }
 ```
 
@@ -1337,18 +1355,20 @@ knitr::include_graphics(rivmapfilename)
 #create metric type column
 rivTables <- list() #to store dataframes for each drought metric
 #ftable<- list()
-for (k in 1:length(rivseg_metric)){
-  rivTables[[k]] <- data.frame(Name = segs$basin$name)
-  rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg
-  rivTables[[k]]$Metric <- rivseg_metric[k]
+for (k in 1:length(rivseg_metric)){ #loop thru metrics
+  rivTables[[k]] <- data.frame(Name = segs$basin$name) # add rivseg name
+  rivTables[[k]][,paste0('Riverseg')] <- segs$basin$riverseg # add rivseg number
+  rivTables[[k]]$Metric <- rivseg_metric[k] #add metric
   
    for (i in 1:nrow(segs$basin)) {
-        for (j in 1:length(runid_list_riversegs)){
+        for (j in 1:length(runid_list_riversegs)){ #add actual metric column data
           rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(segs$basin[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])], digits= 2)
         }
    }
+  #format table columns, add percent difference 
   rivTables[[k]][,paste0('Difference')] = round(segs$basin[,paste0('diff','_',rivseg_metric[k])],digits= 2)
   rivTables[[k]][,paste0('pct_diff')]= round(segs$basin[,paste0('percentDiff','_',rivseg_metric[k])], digits= 2)
+  
   #order by lowest % difference from rivTables[[k]]
   rivdf <- rivTables[[k]] # for sqldf
   rivdf <- sqldf( "SELECT rivdf.*  
@@ -1365,7 +1385,7 @@ for (k in 1:length(rivseg_metric)){
 
   nacols <- data.frame(colSums(is.na(rivdf)) == nrow(rivdf)) #dataframe of which columns are all na or not
   for (i in 1:nrow(nacols)) {
-    if (nacols$colSums.is.na.rivdf......nrow.rivdf.[i] == TRUE){ #if column is all na, then return true
+    if (nacols$colSums.is.na.rivdf......nrow.rivdf.[i] == TRUE){ #if any column is all na, then return true
       tablemessage2 = TRUE
     }
     else { #if column is not all na, then return false
@@ -1385,7 +1405,8 @@ for (k in 1:length(rivseg_metric)){
 #result = 'asis' necessary 
 if (tablemessage2==TRUE) {
   message("A column in the table is completely NA values, 
-          likely meaning the metric requested is not modeled for this data")
+          likely meaning the metric requested is not modeled for this data
+          or the segments are all tidal")
 }
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
@@ -1399,10 +1420,10 @@ for (k in 1:length(rivseg_metric)){
 # Also ensure your export_path in config file is properly declared
 
 rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"), 
-                  output_file = paste0(export_path,"mappingRMD_knitTests"),
-                  output_format = "pdf_document",
+                  output_file = paste0(export_path,"mappingRMD_knitTestRegion"),
+                  output_format = "word_document",
                   params = list(
-                    rivseg = "JL7_7070_0001", 
+                    rivseg = "MN0_7870_0000", 
                     locality = "Stafford", 
                     region = "BigSandy_UpperTennessee_1", 
                     type = "facility", 
@@ -1411,10 +1432,10 @@ rmarkdown::render(paste0(getwd(),"/wsp_regional_summaries.Rmd"),
                     runid_list_riversegs = c("runid_11","runid_13"),
                     metric_mod = "wd_mgd",
                     metric_feat = "wsp2020_2040_mgy",
-                    rivseg_metric = c("l30_Qout"),
-                    map_type = "region",
+                    rivseg_metric = c("l30_Qout", "7q10"),
+                    map_type = "locality",
                     map_style = "custom",
-                    map_by = "runid_13_wd_mgd",
+                    map_by = "fiveyr_avg_mgy",
                     limit = "basins",
                     table_col = c("runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"),
                     bbox_type = "auto"))
