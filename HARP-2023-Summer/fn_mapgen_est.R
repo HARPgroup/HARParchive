@@ -87,20 +87,20 @@ fn_mapgen <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs,
   
   if (title == "default"){
     if (map_type == "basin") {
-      title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
+      title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, title, sep=" ") )
     } else if (map_type == "locality") {
-      title <- paste0(locality)
+      title <- paste0(locality, " Locality, ", title  )
     }  else if (map_type == "region") {
-      title <- paste0(region)
+      title <- paste0(region, " Region, " ,title)
     } 
   }
   else {
     if (map_type == "basin") {
-      title <- ( paste(title, "Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, sep=" ") )
+      title <- ( paste("Basin Upstream of", segs$basin$name[segs$basin$riverseg==rivseg] , rivseg, title, sep=" ") )
     } else if (map_type == "locality") {
-      title <- paste0(title, "_", locality )
+      title <- paste0(locality, " Locality, ", title  )
     }  else if (map_type == "region") {
-      title <- paste0(title, "_", region)
+      title <- paste0(region, " Region, " ,title)
     } 
   }
   
