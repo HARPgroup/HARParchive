@@ -31,8 +31,8 @@ all_imp_data <- om_vahydro_metric_grid(
 
 token = ds$get_token(rest_pw) #needed for elid function in loop
 for (i in 1:nrow(all_imp_data)) { 
-
-  #get om_element_connection value for elid to get runfile 
+  
+  #get om_element_connection value for elid 
   elid <- om_get_model_elementid(
     base_url = site,
     mid = all_imp_data$pid[i]
@@ -52,5 +52,7 @@ for (i in 1:nrow(all_imp_data)) {
     commandArgs <- function(...) c(pid,elid,runid)
     source(paste0(github_location,"/HARParchive/HARP-2023-Summer/hydroImpoundment.R"))
   }
+  
 }
+
 rm(token) #security
