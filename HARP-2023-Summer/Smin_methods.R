@@ -144,3 +144,50 @@ all_imp_data$Smin_L90_exact_perday[i] <- Smin_L90_nearexact / dayno_90
 all_imp_data$Smin_L30_exact_perday[i] <- Smin_L30_nearexact / dayno_30
 
 }
+
+##Getting other variables in the WA equation 
+
+#For a L90 scenario:
+#Qdem = l90_Qout(cfs)
+#Qbase = l90_Qout + wd_mgd - ps_mgd 
+#WA = Qdem - 0.9*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
+#Storage values still in ac-ft, need to convert to mg for use in eqn
+
+df_metrics <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11', 'runid_11', 'runid_11'),
+  'metric' = c('l90_Qout', 'l30_Qout', 'wd_mgd','ps_mgd'),
+  'runlabel' = c('l90_Qout', 'l30_Qout', 'wd_mgd', 'ps_mgd')
+)
+metric_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+
+data <- sqldf('SELECT a.*, b.Smin_L30_approx_perday, b.Smin_L90_approx_perday
+                   FROM metric_data as a
+                   LEFT OUTER JOIN all_imp_data as b
+                   ON (a.riverseg = b.riverseg)')
+
+#replace NA storage values with 0
+data[is.na(data)] <- 0
+
+names(data)[names(data) == 'Smin_L30_approx_perday'] <- 'SminL30_afd'
+names(data)[names(data) == 'Smin_L90_approx_perday'] <- 'SminL90_afd'
+
+#convert afd to mgd 
+data$SminL30_mgd = data$SminL30_afd / 3.069
+data$SminL90_mgd = data$SminL90_afd / 3.069
+
+#convert cfs to mgd 
+data$l90_Qout_mgd = data$l90_Qout / 1.547
+data$l30_Qout_mgd = data$l30_Qout / 1.547
+
+#solve for WA
+data$WA_L90_mgd = data$l90_Qout_mgd - 0.9*(data$l90_Qout_mgd + data$wd_mgd - data$ps_mgd) + data$SminL90_mgd 
+data$WA_L30_mgd = data$l30_Qout_mgd - 0.9*(data$l30_Qout_mgd + data$wd_mgd - data$ps_mgd) + data$SminL30_mgd
+
+#WA as a % of flow 
+data$pct_WA30 = (data$WA_L30_mgd / data$l30_Qout_mgd)*100
+data$pct_WA90 = (data$WA_L90_mgd / data$l90_Qout_mgd)*100
