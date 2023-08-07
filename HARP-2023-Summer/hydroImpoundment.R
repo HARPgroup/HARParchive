@@ -132,7 +132,7 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'remain
 
 # Dat for Critical Period
 flows <- zoo(dat$Qin, order.by = index(dat));
-loflows <- group2(flows);
+loflows <- group2(flows, year = 'calendar');
 l90 <- loflows["90 Day Min"];
 ndx = which.min(as.numeric(l90[,"90 Day Min"]));
 l90_Qout = round(loflows[ndx,]$"90 Day Min",6);
