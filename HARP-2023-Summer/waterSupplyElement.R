@@ -205,7 +205,7 @@ if (sum(datdf$unmet_demand_mgd)==0) {
 
 # Metrics that need Zoo (IHA)
 flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
-loflows <- group2(flows);
+loflows <- group2(flows, year = 'calendar');
 l90 <- loflows["90 Day Min"];
 ndx = which.min(as.numeric(l90[,"90 Day Min"]));
 l90_Qout = round(loflows[ndx,]$"90 Day Min",6);

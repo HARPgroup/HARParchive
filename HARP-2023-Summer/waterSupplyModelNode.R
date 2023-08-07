@@ -192,7 +192,8 @@ flows <- aggregate(
   ),
   'mean'
 )
-loflows <- group2(flows, flow_year_type);
+#loflows <- group2(flows, flow_year_type); 
+loflows <- group2(flows, year = 'calendar');
 l90 <- loflows["90 Day Min"];
 ndx = which.min(as.numeric(l90[,"90 Day Min"]));
 l90_Qout = round(loflows[ndx,]$"90 Day Min",6);

@@ -160,7 +160,7 @@ df_metrics <- data.frame(
   'runlabel' = c('l90_Qout', 'l30_Qout', 'wd_mgd', 'ps_mgd')
 )
 metric_data <- om_vahydro_metric_grid(
-  metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
+  metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
