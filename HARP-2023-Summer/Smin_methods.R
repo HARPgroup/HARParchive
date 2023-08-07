@@ -191,3 +191,17 @@ data$WA_L30_mgd = data$l30_Qout_mgd - 0.9*(data$l30_Qout_mgd + data$wd_mgd - dat
 #WA as a % of flow 
 data$pct_WA30 = (data$WA_L30_mgd / data$l30_Qout_mgd)*100
 data$pct_WA90 = (data$WA_L90_mgd / data$l90_Qout_mgd)*100
+
+
+#Pulling in Smin metrics exported so far (only a few)
+df_storage <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11'),
+  'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
+  'runlabel' = c('SminL30mg_11', 'SminL90mg_11')
+)
+storage_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
