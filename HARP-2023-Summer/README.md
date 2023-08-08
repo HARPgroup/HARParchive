@@ -41,25 +41,29 @@ Make sure to have installed all the following packages to ensure all functions a
 
 ### -Functions:
 
--   **fn_mapgen** : contains the mapping process used to create all map types (facils/sources only and rivserseg maps)
+-   **fn_mapgen** : contains the mapping process used to create all map types (facils/sources only and rivserseg maps)gen
+
+-   **fn_mapgen2** : temporary version of fn_mapgen, updated to contain the new variable names from the restructuring/cleanup
 
 -   **fn_filter_map** : contains process of filtering flowlines, labels etc. to be mapped based on size of boundary box, only called within mapping function
 
 -   **fn_tablegen** : creates a flextable from data frame provided (and soon the columns specified within that data)
 
--   **fn_ndh_labs** : contains nhd-specific actions for labeling (flowlines and waterbodies)
+-   **fn_ndh_labs** : contains nhd-specific actions for labeling (flowlines and waterbodies); want to do away with this function since it only filters NHD data (this can be done with the rest of the data processing)
 
--   **fn_road_labs** : contains roads-specific actions for labeling
+-   **fn_road_labs** : contains roads-specific actions for labeling; no longer used post-cleanup
 
 -   **fn_labelprep** : general actions for label processing, run on nhd labels and road labels after each of their respective functions
 
--   **fn_download_read** : used for downloading & unpacking less-straightforward filetypes like .zip files
+-   **fn_download_read** : used for files that need to be downloaded prior to reading in the data; typically necessary for downloading & unpacking less-straightforward filetypes like .zip files, .shp files, etc.
 
--   **fn_process_geom** : for creating spatial objects by specifying which data column contains geometry information
+-   **fn_process_geom** : for creating spatial objects by specifying which data column contains geometry information; most likely no longer needed now that we found we can specify a WKT column and crs in st_as_sf()
 
 -   **fn_centroid_coords** : for adding centroid coordinates to a data frame based on the geometry contained, used mostly for labeling purposes
 
--   **fn_get_pd_min** :
+-   **sqldf_sf** : allows the use of sqldf with sf objects. Limitations: data frames contained in a list cannot be passed in using with([List], sqldf("[statement]"))
+
+-   **geoCol** : returns the character name of the column containing the feature's geometry
 
 ### -Confg Files: Usage explained in Usage section
 

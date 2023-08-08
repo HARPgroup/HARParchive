@@ -96,7 +96,7 @@ sqldf_sf <- function(statemt, geomback="NA"){
   #geomback is the character name of the data.frame you are filtering, where, if applicable, the sf geometry column will need to be added back from
   dfs <- as.environment(as.list(.GlobalEnv, all.names=TRUE)) #make a copy of the global environment
   for(i in names(dfs)){
-    if(class(dfs[[i]])=="sf"){ #drop the geometry on any sf objects so they can go through SQLDF
+    if( "sf" %in% class(dfs[[i]]) ){ #drop the geometry on any sf objects so they can go through SQLDF
       dfs[[i]] <- sf::st_drop_geometry( dfs[[i]] )
     }
   }
