@@ -128,8 +128,9 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   names(borders) <- c("name", "geom", "bundle")
   borders <- rbind(borders, rsegs[c("name","bundle")] )
   if (map_type=="region") {
-    st_geometry(region_OI) <- "geom"
+    # st_geometry(region_OI) <- "geom"
     region_OI <- data.frame(name="region", bundle="region", geom=region_OI[geoCol(region_OI)] )
+    names(region_OI) <- c("name", "geom", "bundle")
     borders <- rbind(borders, region_OI)
   }
   borders <- st_as_sf(borders)
