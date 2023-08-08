@@ -2,6 +2,7 @@
 # Ability to pass in one or multiple raw df's at once so that these can be generated anywhere throughout the code; any order
 library(mgsub)
 # Note: requires function centroid_coords() , which is currently defined in mapping_codeReview.Rmd 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.R"),local = TRUE)
 
 # Note: NHD-related data is passed in all at once & automatically separated into the different labels via a special case loop
 # Note: Supply singular nouns into classes (city, road, etc. NOT cities, roads, etc)
@@ -11,11 +12,6 @@ library(mgsub)
 ## maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 
 fn_labelprep <- function(data, classes){
-# Check to make sure required function is loaded
-  if(!exists("centroid_coords", ".GlobalEnv")){
-    message("Error: Please load function centroid_coords() into Global Environment")
-  }
-  
 # Create a list "maplabs" to append final output to, if it doesn't already exist
   if(!exists("maplabs", ".GlobalEnv")){
     maplabs <- list()
@@ -87,7 +83,7 @@ fn_labelprep <- function(data, classes){
         geoCol <- grep("geo", colnames(data[[d]]), value=TRUE) #returns all geo columns
         if(length(geoCol) > 1){geoCol <- geoCol[geoCol=="geometry"]} #aka geometry was already put in sf format; use that column
         print(paste("calculating", classes[d], "coords", sep=' '))
-        data[[d]] <- centroid_coords(data=data[[d]], geoCol)
+        data[[d]] <- fn_centroid_coords(data=data[[d]], geoCol)
         
       }
       
