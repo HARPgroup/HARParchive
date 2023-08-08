@@ -21,27 +21,27 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
 ## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
-fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
-                       nhd, maplabs, locality, region, mp_layer, metric_unit, title) { 
+fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, rsegs, counties, roads,
+                      nhd, maplabs, locality, region, mp_layer, metric_unit, title) { 
   
-  ## set vars for testing:
-  # mapnum = 1
-  # type = type
-  # map_type = map_type
-  # style = styles[[map_style]]
-  # metric = map_by[i]
-  # rivseg = rivseg
-  # bbox = bbox
-  # rsegs = rsegs
-  # counties = counties
-  # roads = roads
-  # nhd = nhd
-  # maplabs = maplabs
-  # locality = locality
-  # region = region
-  # mp_layer = mp_layer
-  # metric_unit = metric_unit
-  # title = "default"
+  mapnum = 1
+  type = type
+  map_type = map_type
+  style = styles[[map_style]]
+  metric = map_by[i]
+  rivseg = rivseg
+  bbox = bbox
+  rsegs = rsegs
+  counties = counties
+  roads = roads
+  nhd = nhd
+  maplabs = maplabs
+  locality = locality
+  region = region
+  mp_layer = mp_layer
+  metric_unit = metric_unit
+  title = "default"
+  
   
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
@@ -145,11 +145,11 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # Merging Borders into 1 df
   borders <- data.frame( counties[,"name"] , bundle= rep("county", nrow(counties)) )
   names(borders) <- c("name", "geom", "bundle")
-  # borders <- rbind(borders, rsegs[c("name","bundle")] )
-  borders <- rbind(borders, rsegs$basin_sf[c("name","bundle","geometry")] )
+  borders <- rbind(borders, rsegs[c("name","bundle")] )
   if (map_type=="region") {
-    st_geometry(region_OI) <- "geom"
+    # st_geometry(region_OI) <- "geom"
     region_OI <- data.frame(name="region", bundle="region", geom=region_OI[geoCol(region_OI)] )
+    names(region_OI) <- c("name", "geom", "bundle")
     borders <- rbind(borders, region_OI)
   }
   borders <- st_as_sf(borders)
@@ -264,7 +264,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     # Basin Labels (by riverseg ID)
     geom_text(data = rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
-    # new_scale("size") + new_scale("color") +
+    new_scale("size") + new_scale("color") +
     geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
