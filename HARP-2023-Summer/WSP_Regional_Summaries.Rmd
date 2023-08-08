@@ -186,7 +186,7 @@ write.csv(counties$regions, paste0(export_path,"07_regions.csv"))
 roads <- fn_download_read(
   url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
   filetype="shp", zip=TRUE) # (shp) for US states & primary roads
-write.csv(roads, paste0(export_path,"08_roads.csv"))
+st_write(roads, paste0(export_path,"08_roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv')
 write.csv(cities, paste0(export_path,"09_cities.csv"))
@@ -290,8 +290,12 @@ if (map_type=="basin") { #finding upstream riversegs for basin maps
     basin <- rbind(basin, fn_extract_basin(st_drop_geometry(rsegs), i))
     }
   }
+  write.csv(basin, paste0(export_path,"19_basin.csv"))
+  
   rsegs <- st_as_sf( merge(x=basin,y=rsegs), crs=4326) #add the geometries back on
   rsegs <- unique(rsegs) #don't duplicate riversegs for overlapping basins
+  st_write(rsegs, paste0(export_path,"20_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  
   rm(basin)
 } else if (map_type=="locality") { #for locality level
   rsegs <- st_filter(rsegs, counties[counties$name==locality, ]) #filter basins by locality (if REST is working)
@@ -304,6 +308,7 @@ if (map_type=="basin") { #finding upstream riversegs for basin maps
 #Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
 if (limit=="basins" | map_type=="basin") {
   facils <- st_filter(facils, rsegs)
+  st_write(facils, paste0(export_path,"21_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 } else if (limit=="boundary"){
   if(map_type=="locality"){
     facils <- st_filter(facils, counties[counties$name==locality, ])
@@ -330,11 +335,14 @@ statemt <- paste("SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,",
                   "AND (cities.ST == 'VA') ", #keep VA cities only
                  "ORDER BY POPULATION DESC", sep=" ") 
 cities <- sqldf_sf(statemt)
+write.csv(cities, paste0(export_path,"22_cities.csv"))
+
 #----Roads----
 roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
                 & FULLNAME %in% grep("([0-9]+).$", roads$FULLNAME, value=TRUE)) #finds where last char is a number -> Omits names followed by Byp, Alt, etc.
 roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
 names(roads) <- gsub("RTTYP", "CLASS", names(roads)) #re-name class column -> needed for fn_labelprep()
+st_write(roads, paste0(export_path,"23_roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 ```
 
 ## Additional Pulling Post-Filtering (Cleanup)
@@ -346,6 +354,8 @@ for (i in 1:nrow(facils)) {
                                 propname = metric_feat),
                               TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
 }
+st_write(facils, paste0(export_path,"24_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+
 #----Permitted Capacity----
 fac_model_data <- data.frame()
 for (i in unique(facils$hydroid) ){
@@ -358,6 +368,8 @@ for (i in unique(facils$hydroid) ){
                                                 gsub(" ","",toString( model_props )),sep="")
                                                 ))
 }
+write.csv(fac_model_data, paste0(export_path,"25_fac_model_data.csv"))
+
 #statemt <- paste("SELECT a.*, b.permit_status, c.vwp_max_mgy
 #                  FROM facils as a
 #                  LEFT OUTER JOIN (
@@ -410,6 +422,7 @@ statemt <- paste("SELECT a.*, z.vwp_max_mgy, z.permit_status
 facils <- sqldf_sf(statemt, geomback="facils")
 facils <- unique(facils) #remove duplicated rows 
 facils$vwp_max_mgy[is.na(facils$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why exactly NAs still exist
+st_write(facils, paste0(export_path,"26_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 rm(fac_model_data)
 ```
@@ -451,6 +464,7 @@ for (k in 1:length(rivseg_metric)) {
     }
   }
 }
+st_write(rsegs, paste0(export_path,"27_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(riverseg)
 rm(model)
 rm(model_scenario)
@@ -471,6 +485,7 @@ statemt <- paste("SELECT rsegs.*,
                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
 rsegs <- sqldf_sf(statemt, geomback="rsegs")
 }
+st_write(rsegs, paste0(export_path,"28_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(colname1)
 rm(colname2)
 ```
@@ -505,6 +520,7 @@ if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
 # NHD data within the bbox
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 nhdlabs <- fn_nhd_labs(data=nhd)
+st_write(nhdlabs, paste0(export_path,"29_nhdlabs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 ```
 
 ```{r Filter NHD, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
