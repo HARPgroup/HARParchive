@@ -976,7 +976,7 @@ facilities_df <- fread(paste0(github_location, "/Foundational_Data/2023/faciliti
 ```
 
 ## Pull Data
-```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE}
+```{r PULL Data, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #----Pull VAhydro Features----
 if (!exists("segs")) { segs <- list() } #create empty list 
 #segs$all <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ##gives errors
