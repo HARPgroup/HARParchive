@@ -266,8 +266,8 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
       # Plotting using bins in a single layer:
       new_scale("size") + new_scale("color") +
       
-      geom_point(data = mp_layer_plot, aes(x = Longitude, y = Latitude, 
-                                           color = Source_Type, size = bin), 
+      geom_point(data = mp_layer_plot, aes(x = lng, y = lat, 
+                                           color = 'Source Type', size = bin), 
                  shape = 19) +
       
       scale_size_binned(range = c(2,20), 
