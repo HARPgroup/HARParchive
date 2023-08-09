@@ -486,7 +486,7 @@ for (i in 1:length(rivseg_metric)){
     from rsegs as a 
     left outer join rivseg_classes as b 
     on a.riverseg = b.riverseg " , "rsegs")
-  #st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+  # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
 
   ##Mapping function
   suppressWarnings(suppressMessages(
