@@ -1,5 +1,5 @@
 ---
-title: "Mapping Workflow"
+title: "WSP Regional Summaries"
 author: "HARP Analysts"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
@@ -9,7 +9,15 @@ output: pdf_document #overridden by output_format in render command
 #Can edit here or in a render command 
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
-#rivseg, locality, region based on desired location for planner, ensure syntax is correct
+  facils_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/26_facils_sf.csv"
+  facils_file_bubble_column: ["fiveyr_avg_mgy"]
+  
+  rsegs_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/28_rsegs_sf.csv"
+  counties_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/11_counties_sf.csv"
+  cities_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/22_cities.csv"
+  roads_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/23_roads_sf.csv"
+  
+  
   rivseg: ["JU4_7330_7000"] #test rivsegs ["JL6_7320_7150","JL6_6890_6990","JL6_7430_7320","JA2_7410_7470", "JA4_7280_7340","JB3_6820_7053"] 
   locality: ["NA"]
   region: ["NA"]    
@@ -29,7 +37,7 @@ params:
   metric_feat: ["wsp2020_2040_mgy"] #for non-modeled facility metrics, ex: wd_current_mgy, wsp2020_2020_mgy, wsp2020_2040_mgy 
   #fiveyr_avg_mgy is already part of data and is mappable without calling in either metric_mod or metric_feat
   rivseg_metric: ["l30_Qout", "7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
-  map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
+  # map_by: ["fiveyr_avg_mgy"] #the metric(s) for mapping, which the bubbles & legend will be scaled to. Ex: runid_11_wd_mgd, fiveyr_avg_mgy
   
 #asthetic changes  
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
@@ -66,8 +74,7 @@ for(i in 1:length(params)){
 }
 ```
 
-## Load Functions
-```{r Load Functions, echo=FALSE, warning=FALSE}
+```{r Load Functions, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.R"),local = TRUE)
@@ -79,17 +86,16 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_spatial.R"),loca
 
 ```
 
-## Load Dataframes
-```{r Load Dataframes Functions, echo=FALSE, warning=FALSE}
+```{r Load Dataframes Functions, echo=FALSE, warning=FALSE, results='hide'}
 
-rsegs <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/28_rsegs_sf.csv")
-facils <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/26_facils_sf.csv")
-counties <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/11_counties_sf.csv")
-cities <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/22_cities.csv")
-roads <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/23_roads_sf.csv")
+facils <- st_read(facils_file)
+rsegs <- st_read(rsegs_file)
+counties <- st_read(counties_file)
+cities <- st_read(cities_file)
+roads <- st_read(roads_file)
 
-st_crs(rsegs) <- 4326
 st_crs(facils) <- 4326
+st_crs(rsegs) <- 4326
 st_crs(counties) <- 4326
 st_crs(roads) <- 4326
 
@@ -174,11 +180,11 @@ nhd2 <- rbind( flow[,c("gnis_name", "class", "geometry")], wtbd[,c("gnis_name", 
 #st_write(nhd2, paste0(export_path,"32_nhd2_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 ```
 
-```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 
-## Remaining RMD w/ fixed variable names
+## Map 1:
 ```{r Remainder of the RMD, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
@@ -188,35 +194,35 @@ facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat col
 wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins day and year 
 wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
-for (i in 1:length(map_by)) { #execute for each metric in map_by param 
-  #legend_title <- paste0(map_by[i])
-  legend_title <- legend_titling(map_by[i], runid_list_facilities)
+for (i in 1:length(facils_file_bubble_column)) { #execute for each metric in facils_file_bubble_column param 
+  #legend_title <- paste0(facils_file_bubble_column[i])
+  legend_title <- legend_titling(facils_file_bubble_column[i], runid_list_facilities)
   
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
-  if ((map_by[i] %in% colnames(facils)) == FALSE) {
-    facils[map_by[i]] <- NA
+  if ((facils_file_bubble_column[i] %in% colnames(facils)) == FALSE) {
+    facils[facils_file_bubble_column[i]] <- NA
     mapMessage <- TRUE #for returning message to user if map is empty
   } else { mapMessage <- FALSE  }
   #Ordering & numbering data by the metric to be mapped 
   facils <- sqldf_sf(paste0( #ordering the data using sqldf 
   "SELECT facils.*  
   FROM facils
-  ORDER BY", ' ', map_by[i], ' ', "DESC"), #ordering by the metric of interest, descending 
+  ORDER BY", ' ', facils_file_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
   "facils")
   facils$NUM <- seq(1, nrow(facils))
   #st_write(facils, paste0(export_path,"34_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
- if (i==1) { #data for table will be sorted by the first of map_by
+ if (i==1) { #data for table will be sorted by the first of facils_file_bubble_column
    #facils$within <- facils_within
  } 
   
-  metric_unit <- substr(map_by[i], nchar(map_by[i]) - 2, nchar(map_by[i]))  #get metric unit from last 3 characters of metric 
+  metric_unit <- substr(facils_file_bubble_column[i], nchar(facils_file_bubble_column[i]) - 2, nchar(facils_file_bubble_column[i]))  #get metric unit from last 3 characters of metric 
   if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
   } else if (metric_unit == "mgy") {
   div <- wd_mgy
   }
   
-  mp_layer_sql <- paste('SELECT *, ',map_by[i],' AS demand_metric
+  mp_layer_sql <- paste('SELECT *, ',facils_file_bubble_column[i],' AS demand_metric
         FROM facils' , sep="") #Renaming metric of interest for generalized sorting into bins
   mp_layer <- sqldf_sf(mp_layer_sql, "facils")
   #st_write(mp_layer, paste0(export_path,"35_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -240,7 +246,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
       on a.NUM = b.NUM " , "mp_layer")
 
   mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
-  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- map_by[i] #change column name back to the specific metric
+  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- facils_file_bubble_column[i] #change column name back to the specific metric
   mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
   mp_layer <- fn_centroid_coords(mp_layer)
   #st_write(mp_layer, paste0(export_path,"38_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -253,7 +259,7 @@ for (i in 1:length(map_by)) { #execute for each metric in map_by param
 
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   suppressWarnings(suppressMessages( 
-    fn_mapgen2(mapnum = 1, type, map_type, styles[[map_style]], metric = map_by[i], rivseg, bbox, rsegs, counties, roads, 
+    fn_mapgen2(mapnum = 1, type, map_type, styles[[map_style]], metric = facils_file_bubble_column[i], rivseg, bbox, rsegs, counties, roads, 
           nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
   
   #assign map to environment
@@ -286,8 +292,8 @@ if (type == "source") {
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
 # mapfilename <- character() #empty character var, not a list
-# for (i in 1:length(map_by)) {
-#   mapfilename[i] <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
+# for (i in 1:length(facils_file_bubble_column)) {
+#   mapfilename[i] <- paste(export_path, map_name, "_", facils_file_bubble_column[i], ".png", sep="")
 #   mapf <- get(paste0('map',i))
 #   ggsave(
 #     filename = mapfilename[i],
@@ -393,12 +399,16 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 
 ```
+
+## Table 1:
 ```{r Viewing Table 1, echo=FALSE, out.width='100%', message=TRUE}
 if (tableMessage == TRUE) {
   message("Missing column indicates the metric requested does not exist for this table")
 }
 ft1 #display flextable
 ```
+
+## Rseg Map(s):
 ```{r Continued..(map2), echo=FALSE, message=FALSE, warning=FALSE}
 #----Map/Table2----
 ## Need to adapt this for multiple maps
@@ -536,6 +546,8 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
 ```
+
+## Rseg Table(s):
 ```{r Viewing Rivseg Flextable, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 #result = 'asis' necessary 
 if (tablemessage2==TRUE) {
