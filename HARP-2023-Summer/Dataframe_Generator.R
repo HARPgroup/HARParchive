@@ -10,6 +10,21 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R")
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/rivsegmaps_config.R"),local = TRUE) #load rivseg-specific mapping aesthetics
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 
+################################################################
+# inputs
+################################################################
+crs_default <- 4326
+runid_list <- c("runid_11","runid_13")
+model_version <- c("vahydro-1.0")
+metric_mod <- c("wd_mgd")
+metric_feat <- c("wsp2020_2040_mgy")
+rivseg <- "JU4_7330_7000"
+locality <- "NA"
+region <- "NA"   
+map_type <- "basin"
+################################################################
+################################################################
+
 # returns the name of the geometry column in the data:
 geoCol <- function(data){
   colname <- grep("geo",colnames(data),value=TRUE)
@@ -32,7 +47,7 @@ sqldf_sf <- function(statemt, geomback="NA"){
   dfs[["result"]] <- sqldf(statemt, envir=dfs) #SQLDF the non-sf dataframes in the new environment (so that the global envir. retains the sf objects)
   if(geomback!="NA"){
     output <- merge(x=dfs[["result"]], y=.GlobalEnv[[geomback]], all.x=TRUE, all.y=FALSE) #match the newly filtered obs. to their geometries
-    output <- st_as_sf(output, crs=4326) #convert back to sf
+    output <- st_as_sf(output, crs=crs_default) #convert back to sf
   } else {
     output <- dfs[["result"]]
   }
@@ -56,11 +71,11 @@ write.csv(facils$foundatn_mp, paste0(export_path,"00_foundatn_mp.csv"))
 if (type=="facility") { 
   #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   #create df of model run specifications for om_vahydro_metric_grid():
-  df <- data.frame(runid=runid_list_facilities, model_version, metric=metric_mod) 
+  df <- data.frame(runid=runid_list, model_version, metric=metric_mod) 
   write.csv(df, paste0(export_path,"01_df.csv"))
   #add column to df containing 'runlabel' which will become the metric column names in facils$model:
-  for(i in 1:length(runid_list_facilities)){ 
-    df$runlabel[i] <- paste0(runid_list_facilities[i], '_', metric_mod)
+  for(i in 1:length(runid_list)){ 
+    df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
   }
   write.csv(df, paste0(export_path,"02_df.csv"))
   
@@ -115,7 +130,7 @@ write.csv(counties$fips, paste0(export_path,"10_fips.csv"))
 
 #remove counties outside of VA using the fips code; save over as "counties" to simplify data handling:
 counties <- counties$fips[grep(51,counties$fips$dh_fips),]
-counties <- st_as_sf(counties, wkt = geoCol(counties), crs=4326) #convert to sf based on geometry column found by geoCol() (developer-defined fn above)
+counties <- st_as_sf(counties, wkt = geoCol(counties), crs=crs_default) #convert to sf based on geometry column found by geoCol() (developer-defined fn above)
 # write.csv(counties, paste0(export_path,"11_counties.csv"))
 st_write(counties, paste0(export_path,"11_counties_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
@@ -129,7 +144,7 @@ for(i in 1:length(regions_split)){ #merge counties into one polygon for each reg
     regions <- rbind( regions, st_union(regions_split[[i]]) )
   } #note: had to do this in IF statements instead of resetting regions_split[i] <- regions_split[[i]] because keeping it in list form causes st_union() to put geom into sfg format, which causes problems with st_filter() in the rsegs filtering chunk
 }
-regions <- st_as_sf(data.frame(region=names(regions_split),geo=regions,row.names=NULL), crs=4326)
+regions <- st_as_sf(data.frame(region=names(regions_split),geo=regions,row.names=NULL), crs=crs_default)
 # write.csv(regions, paste0(export_path,"12_regions.csv"))
 st_write(regions, paste0(export_path,"12_regions_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(regions_split)
@@ -141,7 +156,7 @@ if(type == "source"){
                  foundatn_mp[foundatn_mp$Latitude!="" & foundatn_mp$Longitude!="" 
                              & !is.na(foundatn_mp$Latitude) & !is.na(foundatn_mp$Longitude) ,] #omits facilities with blank or NA geometry
   )
-  facils <- st_as_sf(facils, coords=c("Longitude","Latitude"), crs=4326) #convert to sf
+  facils <- st_as_sf(facils, coords=c("Longitude","Latitude"), crs=crs_default) #convert to sf
   write.csv(facils, paste0(export_path,"13_facils.csv"))
 }
 if(type == "facility"){
@@ -174,13 +189,13 @@ if(type == "facility"){
                       ON (a.featureid = b.Facility_hydroid)", sep="")
   facils <- with(facils, sqldf(statemt)) #selects/renames desired columns from facils$merge, matches them with geometry from facils$fac_geo based on featureid ; saves over facils to simplify data access/storage
   facils <- facils[facils[,geoCol(facils)]!="" & !is.na(facils[,geoCol(facils)]),] #omits facilities with blank or NA geometry
-  facils <- st_as_sf(facils, wkt = geoCol(facils), crs=4326) #convert to sf
+  facils <- st_as_sf(facils, wkt = geoCol(facils), crs=crs_default) #convert to sf
   st_write(facils, paste0(export_path,"16_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 #connect facilities to the watersheds they are in:
 rsegs$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs$hydrocode) #prereq. for fn_extract_basin() & desired for facils/table riverseg column
 rsegs <- rsegs[ rsegs[,geoCol(rsegs)]!="" & !is.na(rsegs[,geoCol(rsegs)]) ,] #finds geom column & omits rsegs with blank or NA geometry
-rsegs <- st_as_sf(rsegs, wkt=geoCol(rsegs), crs=4326) #convert to sf
+rsegs <- st_as_sf(rsegs, wkt=geoCol(rsegs), crs=crs_default) #convert to sf
 st_write(rsegs, paste0(export_path,"17_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_join, st_filter) give errors without this
@@ -203,7 +218,7 @@ if (map_type=="basin") { #finding upstream riversegs for basin maps
   }
   write.csv(basin, paste0(export_path,"19_basin.csv"))
   
-  rsegs <- st_as_sf( merge(x=basin,y=rsegs), crs=4326) #add the geometries back on
+  rsegs <- st_as_sf( merge(x=basin,y=rsegs), crs=crs_default) #add the geometries back on
   rsegs <- unique(rsegs) #don't duplicate riversegs for overlapping basins
   st_write(rsegs, paste0(export_path,"20_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
@@ -274,7 +289,7 @@ for (i in unique(facils$hydroid) ){
   model_props <- c("vwp_max_mgy","permit_status")
   fac_model_data <- rbind( fac_model_data , read.csv(paste(site,"/model-summary-users-export-all-cols/",
                                                            gsub(" ","",toString( i )),"/",
-                                                           runid_list_facilities[1],"/", #perm.cap doesn't change w/ runid ?
+                                                           runid_list[1],"/", #perm.cap doesn't change w/ runid ?
                                                            gsub(" ","",toString( metric_mod )),"/", #user's model run metric
                                                            gsub(" ","",toString( model_props )),sep="")
   ))
@@ -340,7 +355,7 @@ rm(fac_model_data)
 
 #```{r Pull Rseg Drought Metrics, echo=FALSE, message=FALSE, warning=FALSE}
 for (k in 1:length(rivseg_metric)) {
-  for (j in 1:length(runid_list_riversegs)) {
+  for (j in 1:length(runid_list)) {
     for (i in 1:nrow(rsegs)) {
       riverseg <- RomFeature$new(ds,list( #get riverseg feature from vahydro
         hydrocode = paste('vahydrosw_wshed_',rsegs$riverseg[i],sep=''),
@@ -357,20 +372,20 @@ for (k in 1:length(rivseg_metric)) {
         model_scenario <- RomProperty$new(ds,list( #get scenario/runid from vahydro
           varkey = "om_scenario",
           featureid = model$pid,
-          propname = runid_list_riversegs[j]
+          propname = runid_list[j]
         ),TRUE)
         
         if (!is.na(model_scenario$pid)) { #only continue if runid was found (scenario pid!=NA)
-          rsegs[i, paste0(runid_list_riversegs[j],'_',rivseg_metric[k]) ] <- RomProperty$new(ds,list( #get metric from vahydro
+          rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- RomProperty$new(ds,list( #get metric from vahydro
             featureid = model_scenario$pid,
             entity_type = 'dh_properties',
             propname = rivseg_metric[k]
           ),TRUE)$propvalue #directly assign metric propvalue
         } else { #the scenario/runid wasn't found
-          rsegs[i, paste0(runid_list_riversegs[j],'_',rivseg_metric[k]) ] <- NA
+          rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- NA
         }
       } else { #the rivseg feature wasn't found
-        rsegs[i, paste0(runid_list_riversegs[j],'_',rivseg_metric[k]) ] <- NA
+        rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- NA
       }
     }
   }
@@ -384,8 +399,8 @@ rm(model_scenario)
 ## Calculations & Map Prep (Cleanup)
 #```{r Calculate Rseg Metric % Diff, echo=FALSE, message=FALSE, warning=FALSE}
 for (k in 1:length(rivseg_metric)){
-  colname1 <- paste0(runid_list_riversegs[1],'_',rivseg_metric[k])
-  colname2 <- paste0(runid_list_riversegs[2],'_',rivseg_metric[k])
+  colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
+  colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
   
   statemt <- paste("SELECT rsegs.*,
                   CASE WHEN (",colname2," - ",colname1,")==0
