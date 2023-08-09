@@ -13,7 +13,8 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 #Load Smin_CPL function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
+source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
+#source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #left for testing in R
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
