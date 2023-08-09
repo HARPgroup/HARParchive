@@ -19,6 +19,7 @@ model_version <- c("vahydro-1.0")
 metric_mod <- c("wd_mgd")
 metric_feat <- c("wsp2020_2040_mgy")
 rivseg <- "JU4_7330_7000"
+rivseg_metric <- c("l30_Qout","7q10")
 locality <- "NA"
 region <- "NA"   
 map_type <- "basin"

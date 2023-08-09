@@ -14,12 +14,7 @@ params:
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
   
   rsegs_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
-  
-  # default files for mapping base layers
-  counties_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/counties_sf.csv"
-  cities_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/cities.csv"
-  roads_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/roads_sf.csv"
-  
+  rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
   runid_list: [ "runid_11", "runid_13" ]
@@ -30,10 +25,10 @@ params:
   region: ["NA"]    
   map_type: ["basin"] #one of: basin, locality, or region 
 
-  
-#determining what metric(s) will be pulled and mapped
-  rivseg_metric: ["l30_Qout", "7q10"] #drought metric to be used in river segment maps, options: 7q10, l30_Qout, l90_Qout
-
+# default files for mapping base layers
+  counties_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/counties_sf.csv"
+  cities_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/cities.csv"
+  roads_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/roads_sf.csv"
 #asthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
