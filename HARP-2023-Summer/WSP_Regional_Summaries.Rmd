@@ -25,11 +25,11 @@ params:
   region: ["NA"]    
   map_type: ["basin"] #one of: basin, locality, or region 
 
-# default files for mapping base layers
+  # default files for mapping base layers
   counties_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/counties_sf.csv"
   cities_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/cities.csv"
   roads_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/roads_sf.csv"
-#asthetic changes
+  # asthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   limit: ["basins"] #either 'basins' or 'boundary', depending if all sources/facils in intersecting basins should be in table, or only points within locality/region boundary. Won't apply to map type basin
