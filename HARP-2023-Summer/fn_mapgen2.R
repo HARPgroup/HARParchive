@@ -112,8 +112,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     }  else if (map_type == "region") {
       title <- paste0(region, " Region, ", metric)
     } 
-  }
-  else {
+  } else {
     if (map_type == "basin") {
       title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, title, sep=" ") )
     } else if (map_type == "locality") {
@@ -188,6 +187,8 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     scale_linewidth(range= c(0.4,2), guide = FALSE) + 
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) 
+  
+  
   # Mapping all Borders (basins, localities, regions)
   if (map_type == "region") { 
     map <- map +
@@ -215,7 +216,8 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
       new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
       geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
               aes(color= bundle,
-                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
+                  # lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
+                  lwd= as.numeric(mgsub(bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
                   linetype= bundle )
       ) +
       scale_linetype_manual(values= c("county"= 1,"watershed"= 2),

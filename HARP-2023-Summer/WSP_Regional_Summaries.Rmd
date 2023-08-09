@@ -74,6 +74,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/rivsegmaps_config.R"),local = TRUE) #load rivseg-specific mapping aesthetics
 
 # allows the usage of SQLDF with sf data frames:
 sqldf_sf <- function(statemt, geomback="NA"){
@@ -324,23 +325,23 @@ if (type == "source") {
 
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
-mapfilename <- character() #empty character var, not a list
-for (i in 1:length(map_by)) {
-  mapfilename[i] <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
-  mapf <- get(paste0('map',i))
-  ggsave(
-    filename = mapfilename[i],
-    plot = mapf,
-    width = 25,
-    height = 20)
-}
+# mapfilename <- character() #empty character var, not a list
+# for (i in 1:length(map_by)) {
+#   mapfilename[i] <- paste(export_path, map_name, "_", map_by[i], ".png", sep="")
+#   mapf <- get(paste0('map',i))
+#   ggsave(
+#     filename = mapfilename[i],
+#     plot = mapf,
+#     width = 25,
+#     height = 20)
+# }
 ```
 ```{r Viewing Map(s) 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
-if (mapMessage == TRUE) {
-  message("The metric requested does not exist for this map.")
-  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
-}
+# knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+# if (mapMessage == TRUE) {
+#   message("The metric requested does not exist for this map.")
+#   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+# }
 ```
 ```{r Continued..(table1), echo=FALSE, message=FALSE, warning=FALSE}
 names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -379,10 +380,13 @@ table$`Permitted Capacity` <- facils$vwp_max_mgy #add permitted capacity to tabl
 
 
 for (i in 1:length(table_col)){
-  #metric col of interest may not exist if none were found in extent: don't break if this is the case 
+  #metric col of interest may not exist if none were found in extent: don't break if this is the case
   if (table_col[i] %in% colnames(facils)) {
-  #adding requested columns to table 
-    table[,table_col[i]] <- round( st_drop_geometry(facils[,table_col[i]]), digits = 2) #round all values to 2 decimal place digits
+  #adding requested columns to table
+    # table[,table_col[i]] <- round( st_drop_geometry(facils[,table_col[i]]), digits = 2) #round all values to 2 decimal place digits
+    tmp_df <- st_drop_geometry(facils[,table_col[i]])
+    tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
+    table[,table_col[i]] <- round(tmp_df, digits = 2)
   }
 }
 
@@ -409,22 +413,22 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 #write.csv(table, paste0(export_path,"44_table.csv"))
 
 
-table <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/44_table.csv")
-table_sql <- sqldf_sf( #sorting the data into bins based on their range 
-      "SELECT field_1 AS '',
-              Number,
-              Facility,
-              HydroID,
-              Locality,     
-              River.Segment.Name AS 'River Segment Name',
-              River.Segment.ID AS 'River Segment ID',
-              Permitted.Capacity AS 'Permitted Capacity',
-              runid.11.wd.mgd AS 'runid 11 wd.mgd',
-              runid.13.wd.mgd AS 'runid 13 wd.mgd',
-              X5.yr.Avg.Use..mgy. AS '5-yr Avg Use (mgy)',
-              wsp2020.2040.mgy AS 'wsp2020 2040 mgy',
-      from table")
-table <- sqldf(table_sql)
+# table <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/44_table.csv")
+# table_sql <- sqldf_sf( #sorting the data into bins based on their range 
+#       "SELECT field_1 AS '',
+#               Number,
+#               Facility,
+#               HydroID,
+#               Locality,     
+#               River.Segment.Name AS 'River Segment Name',
+#               River.Segment.ID AS 'River Segment ID',
+#               Permitted.Capacity AS 'Permitted Capacity',
+#               runid.11.wd.mgd AS 'runid 11 wd.mgd',
+#               runid.13.wd.mgd AS 'runid 13 wd.mgd',
+#               X5.yr.Avg.Use..mgy. AS '5-yr Avg Use (mgy)',
+#               wsp2020.2040.mgy AS 'wsp2020 2040 mgy',
+#       from table")
+# table <- sqldf(table_sql)
 
 ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 
@@ -495,19 +499,19 @@ for (i in 1:length(rivseg_metric)){
 }
 
 #Save rivseg map
-rivmapfilename <- character() #empty character var, not a list
-for (i in 1:length(rivseg_metric)) {
-  rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
-  mapf <- get(paste0('map_rivseg',i))
-  ggsave(
-    filename = rivmapfilename[i],
-    plot = mapf,
-    width = 25,
-    height = 20)
-}
+# rivmapfilename <- character() #empty character var, not a list
+# for (i in 1:length(rivseg_metric)) {
+#   rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
+#   mapf <- get(paste0('map_rivseg',i))
+#   ggsave(
+#     filename = rivmapfilename[i],
+#     plot = mapf,
+#     width = 25,
+#     height = 20)
+# }
 ```
 ```{r Displaying Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
-knitr::include_graphics(rivmapfilename)
+# knitr::include_graphics(rivmapfilename)
 ```
 ```{r Continued..(table2), echo=FALSE, message=FALSE, warning=FALSE}
 #create metric type column
@@ -518,17 +522,25 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   rivTables[[k]][,paste0('Riverseg')] <- rsegs$riverseg # add rivseg number
   rivTables[[k]]$Metric <- rivseg_metric[k] #add metric
   #write.csv(rivTables[[k]], paste0(export_path,"50_rivTables_",rivseg_metric[k],".csv"))
-  
+
    for (i in 1:nrow(rsegs)) {
         for (j in 1:length(runid_list_riversegs)){ #add actual metric column data
-          rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(
-                st_drop_geometry( rsegs[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])] ), digits= 2)
+          # rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(st_drop_geometry( rsegs[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])] ), digits= 2)
+          tmp_df <- st_drop_geometry(rsegs[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])])
+          tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
+          rivTables[[k]][i,paste0(runid_list_riversegs[j])] <- round(tmp_df, digits = 2)
+          
         }
    }
   #write.csv(rivTables[[k]], paste0(export_path,"51_rivTables_",rivseg_metric[k],".csv"))
   #format table columns, add percent difference 
  # rivTables[[k]][,paste0('Difference')] = round( st_drop_geometry(rsegs[,paste0('diff','_',rivseg_metric[k])]) ,digits= 2)
-  rivTables[[k]][,paste0('pct_diff')]= round( st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) , digits= 2)
+  # rivTables[[k]][,paste0('pct_diff')]= round( st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) , digits= 2)
+  tmp_df <- st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])])
+  tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
+  rivTables[[k]][,paste0('pct_diff')] <- round(tmp_df, digits = 2)
+  
+  
   #write.csv(rivTables[[k]], paste0(export_path,"52_rivTables_",rivseg_metric[k],".csv"))
   
   #order by lowest % difference from rivTables[[k]]
