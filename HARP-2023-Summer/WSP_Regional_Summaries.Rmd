@@ -9,17 +9,19 @@ output: pdf_document #overridden by output_format in render command
 #Can edit here or in a render command 
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
-  facils_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/26_facils_sf.csv"
+  facils_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
   facils_file_map_bubble_column: ["fiveyr_avg_mgy"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
   
-  rsegs_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/28_rsegs_sf.csv"
+  rsegs_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
   
-  counties_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/11_counties_sf.csv"
-  cities_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/22_cities.csv"
-  roads_file: "C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/23_roads_sf.csv"
+  # default files for mapping base layers
+  counties_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/counties_sf.csv"
+  cities_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/cities.csv"
+  roads_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/mapping_base_layers/roads_sf.csv"
   
 
+  # list of runids for facil and rseg data
   runid_list: [ "runid_11", "runid_13" ]
   
   # specify the type of map by supplying either a rivseg, locality, or region
@@ -376,24 +378,6 @@ if (nrow(novals > 0)) {
 names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 #write.csv(table, paste0(export_path,"44_table.csv"))
-
-
-# table <- st_read("C:/Users/nrf46657/Desktop/GitHub/plots/JU4_7330_7000_all_csvs/44_table.csv")
-# table_sql <- sqldf_sf( #sorting the data into bins based on their range 
-#       "SELECT field_1 AS '',
-#               Number,
-#               Facility,
-#               HydroID,
-#               Locality,     
-#               River.Segment.Name AS 'River Segment Name',
-#               River.Segment.ID AS 'River Segment ID',
-#               Permitted.Capacity AS 'Permitted Capacity',
-#               runid.11.wd.mgd AS 'runid 11 wd.mgd',
-#               runid.13.wd.mgd AS 'runid 13 wd.mgd',
-#               X5.yr.Avg.Use..mgy. AS '5-yr Avg Use (mgy)',
-#               wsp2020.2040.mgy AS 'wsp2020 2040 mgy',
-#       from table")
-# table <- sqldf(table_sql)
 
 ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 
