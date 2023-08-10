@@ -9,9 +9,8 @@ ds$get_token(rest_pw)
 
 # Read args
 argst <- commandArgs(trailingOnly=T)
-pid <- as.integer(argst[2]) #model element pid
-runid <- as.integer(argst[1]) #numeric part of a runid (ex. 11)
-
+pid <- as.integer(argst[1]) #model element pid
+runid <- as.integer(argst[2]) #numeric part of a runid (ex. 11)
 
 token = ds$get_token(rest_pw) #needed for elid function 
 elid <- om_get_model_elementid(base_url = site, mid = pid) #get om_element_connection value for elid
