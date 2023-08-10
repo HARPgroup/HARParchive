@@ -1,4 +1,4 @@
-#Updating vahydro metrics incl. Smin by calling 
+#Updating vahydro metrics incl. Smin by calling model post-processing scripts
 # Load Libraries
 library(hydrotools)
 basepath='/var/www/R';
