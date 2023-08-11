@@ -86,7 +86,7 @@ type <- "facility"
 facils <- st_read(facils_file)
 rsegs <- st_read(rsegs_file)
 counties <- st_read(counties_file)
-cities <- st_read(cities_file)
+cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
 roads <- st_read(roads_file)
 
 st_crs(facils) <- crs_default

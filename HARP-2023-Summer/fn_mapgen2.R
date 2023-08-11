@@ -29,7 +29,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # type = type
   # map_type = map_type
   # style = styles[[map_style]]
-  # metric = map_by[i]
+  # metric = facils_file_map_bubble_column[i] #map_by[i]
   # rivseg = rivseg
   # bbox = bbox
   # rsegs = rsegs
@@ -63,7 +63,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   
   # join with sqldf 
   maplabs$final <- sqldf(
-    "SELECT text_aes.*, maplabs_all.*  
+    "SELECT text_aes.*, maplabs_all.label,maplabs_all.lat, maplabs_all.lng
     FROM text_aes 
     LEFT OUTER JOIN maplabs_all
       on (maplabs_all.class = text_aes.class)"
@@ -99,7 +99,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   
   st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
   
-  labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
+  #labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
   class(labelsP$bg.r) = "numeric"
   
   # Legend & Titling
@@ -235,15 +235,18 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
                       name= "Borders")  
   }
   map <- map + 
-    new_scale("color") + new_scale("fill") +
+    new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
+    new_scale("color") + new_scale("size") +
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color= colors_sf["citypts",], size=2) +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
+    new_scale("color") + new_scale("fill") +
+    
     geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ],
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
