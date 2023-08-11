@@ -732,6 +732,9 @@ furl <- paste(
   sep = '/'
 )
 
+#Can't have negative values plotted in a FDC, replace neg Qbaseline w/ 0 
+datpd_pos <- datpd
+datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
@@ -739,7 +742,7 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(datpd[names(datpd)== base_var])),
                  as.numeric(unlist(datpd[names(datpd)== comp_var]))))
 fdc_plot <- hydroTSM::fdc(
-  cbind(datpd[names(datpd)== base_var], datpd[names(datpd)== comp_var]),
+  cbind(datpd_pos[names(datpd_pos)== base_var], datpd_pos[names(datpd_pos)== comp_var]),
   # yat = c(0.10,1,5,10,25,100,400),
   # yat = c(round(min(datpd),0),500,1000,5000,10000),
   # yat = seq(round(min(datpd),0),round(max(datpd),0), by = 500),
