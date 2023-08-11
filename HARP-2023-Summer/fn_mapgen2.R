@@ -42,6 +42,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # mp_layer = mp_layer
   # metric_unit = metric_unit
   # title = "default"
+  # #
   
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
@@ -144,12 +145,13 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   
   # Merging Borders into 1 df
   borders <- data.frame( counties[,"name"] , bundle= rep("county", nrow(counties)) )
-  names(borders) <- c("name", "geom", "bundle")
-  # borders <- rbind(borders, rsegs[c("name","bundle")] )
-  borders <- rbind(borders, rsegs$basin_sf[c("name","bundle","geometry")] )
+  names(borders) <- c("name", "geometry", "bundle")
+  #st_geometry(rsegs) <- "geom"
+  #st_crs(rsegs) <- crs(borders)
+  borders <- rbind(borders, data.frame( rsegs[,c("name", "bundle")] )  )
   if (map_type=="region") {
-    st_geometry(region_OI) <- "geom"
-    region_OI <- data.frame(name="region", bundle="region", geom=region_OI[geoCol(region_OI)] )
+    st_geometry(region_OI) <- "geometry"
+    region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[geoCol(region_OI)] )
     borders <- rbind(borders, region_OI)
   }
   borders <- st_as_sf(borders)

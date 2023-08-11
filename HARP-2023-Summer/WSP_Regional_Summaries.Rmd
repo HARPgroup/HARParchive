@@ -9,11 +9,11 @@ output: pdf_document #overridden by output_format in render command
 #Can edit here or in a render command 
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
-  facils_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
+  facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
   facils_file_map_bubble_column: ["fiveyr_avg_mgy"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
   
-  rsegs_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
+  rsegs_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
@@ -26,9 +26,9 @@ params:
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  counties_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/Users/nrf46657/Desktop/GitHub/Foundational_Data/example_files/roads_sf.csv"
+  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
   # asthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
@@ -286,23 +286,23 @@ if (type == "source") {
 
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
-# mapfilename <- character() #empty character var, not a list
-# for (i in 1:length(facils_file_map_bubble_column)) {
-#   mapfilename[i] <- paste(export_path, map_name, "_", facils_file_map_bubble_column[i], ".png", sep="")
-#   mapf <- get(paste0('map',i))
-#   ggsave(
-#     filename = mapfilename[i],
-#     plot = mapf,
-#     width = 25,
-#     height = 20)
-# }
+mapfilename <- character() #empty character var, not a list
+for (i in 1:length(facils_file_map_bubble_column)) {
+  mapfilename[i] <- paste(export_path, map_name, "_", facils_file_map_bubble_column[i], ".png", sep="")
+  mapf <- get(paste0('map',i))
+  ggsave(
+    filename = mapfilename[i],
+    plot = mapf,
+    width = 25,
+    height = 20)
+ }
 ```
 ```{r Viewing Map(s) 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-# knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
-# if (mapMessage == TRUE) {
-#   message("The metric requested does not exist for this map.")
-#   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
-# }
+knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+if (mapMessage == TRUE) {
+  message("The metric requested does not exist for this map.")
+  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+}
 ```
 ```{r Continued..(table1), echo=FALSE, message=FALSE, warning=FALSE}
 names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -445,20 +445,20 @@ for (i in 1:length(rivseg_metric)){
 
 }
 
-#Save rivseg map
-# rivmapfilename <- character() #empty character var, not a list
-# for (i in 1:length(rivseg_metric)) {
-#   rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
-#   mapf <- get(paste0('map_rivseg',i))
-#   ggsave(
-#     filename = rivmapfilename[i],
-#     plot = mapf,
-#     width = 25,
-#     height = 20)
-# }
+## Save rivseg map
+rivmapfilename <- character() #empty character var, not a list
+for (i in 1:length(rivseg_metric)) {
+  rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
+  mapf <- get(paste0('map_rivseg',i))
+  ggsave(
+    filename = rivmapfilename[i],
+    plot = mapf,
+    width = 25,
+    height = 20)
+}
 ```
 ```{r Displaying Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
-# knitr::include_graphics(rivmapfilename)
+knitr::include_graphics(rivmapfilename)
 ```
 ```{r Continued..(table2), echo=FALSE, message=FALSE, warning=FALSE}
 #create metric type column

@@ -17,6 +17,15 @@ sqldf_sf <- function(statemt, geomback="NA"){
   }
 }
 
+# returns the name of the geometry column in the data:
+geoCol <- function(data){
+  colname <- grep("geo",colnames(data),value=TRUE)
+  if(length(colname) > 1){
+    colname <- grep("geom",colname,value=TRUE) #for the case of "dh_geofield.geom" "dh_geofield.geo_type" "dh_geofield.lat" "dh_geofield.lon", etc.
+  }
+  return(colname)
+}
+
 # legend_titling() --> Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
 legend_titling <- function(metric, runid_list){
