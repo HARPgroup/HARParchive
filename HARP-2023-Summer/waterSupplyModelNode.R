@@ -119,6 +119,7 @@ if ("wd_cumulative_mgd" %in% cols) {
   }
 } else {
   wd_cumulative_mgd = 0.0
+  dat$wd_cumulative_mgd <- wd_cumulative_mgd
 }
 
 ps_mgd <- mean(as.numeric(dat$ps_mgd) )
@@ -132,6 +133,7 @@ if ("ps_cumulative_mgd" %in% cols) {
   }
 } else {
   ps_cumulative_mgd = 0.0
+  dat$ps_cumulative_mgd <- ps_cumulative_mgd
 }
 
 ps_nextdown_mgd <- mean(as.numeric(dat$ps_nextdown_mgd) )
@@ -176,14 +178,7 @@ daily_consumptive_use_frac <-  mean(as.numeric(dat$consumptive_use_frac) )
 if (is.na(daily_consumptive_use_frac)) {
   daily_consumptive_use_frac <- 1.0 - (Qout / Qbaseline)
 }
-if (!("wd_cumulative_mgd" %in% cols)){
-  dat$wd_cumulative_mgd <- wd_cumulative_mgd
-}
-if (!("ps_cumulative_mgd" %in% cols)){
-  dat$ps_cumulative_mgd <- ps_cumulative_mgd
-}
 datdf <- as.data.frame(dat)
-
 modat <- sqldf("select month, avg(wd_cumulative_mgd) as wd_mgd, avg(ps_cumulative_mgd) as ps_mgd from datdf group by month")
 #barplot(wd_mgd ~ month, data=modat)
 
