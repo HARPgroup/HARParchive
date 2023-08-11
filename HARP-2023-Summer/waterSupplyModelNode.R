@@ -112,18 +112,28 @@ if (is.na(wd_imp_child_mgd)) {
 # combine these two for reporting
 wd_mgd <- wd_mgd + wd_imp_child_mgd
 
-wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
-if (is.na(wd_cumulative_mgd)) {
+if ("wd_cumulative_mgd" %in% cols) {
+  wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
+  if (is.na(wd_cumulative_mgd)) {
+    wd_cumulative_mgd = 0.0
+  }
+} else {
   wd_cumulative_mgd = 0.0
 }
+
 ps_mgd <- mean(as.numeric(dat$ps_mgd) )
 if (is.na(ps_mgd)) {
   ps_mgd = 0.0
 }
-ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
-if (is.na(ps_cumulative_mgd)) {
+if ("ps_cumulative_mgd" %in% cols) {
+  ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
+  if (is.na(ps_cumulative_mgd)) {
+    ps_cumulative_mgd = 0.0
+  }
+} else {
   ps_cumulative_mgd = 0.0
 }
+
 ps_nextdown_mgd <- mean(as.numeric(dat$ps_nextdown_mgd) )
 if (is.na(ps_nextdown_mgd)) {
   ps_nextdown_mgd = 0.0
