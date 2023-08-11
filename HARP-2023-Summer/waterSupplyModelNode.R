@@ -112,18 +112,30 @@ if (is.na(wd_imp_child_mgd)) {
 # combine these two for reporting
 wd_mgd <- wd_mgd + wd_imp_child_mgd
 
-wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
-if (is.na(wd_cumulative_mgd)) {
+if ("wd_cumulative_mgd" %in% cols) {
+  wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
+  if (is.na(wd_cumulative_mgd)) {
+    wd_cumulative_mgd = 0.0
+  }
+} else {
   wd_cumulative_mgd = 0.0
+  dat$wd_cumulative_mgd <- wd_cumulative_mgd
 }
+
 ps_mgd <- mean(as.numeric(dat$ps_mgd) )
 if (is.na(ps_mgd)) {
   ps_mgd = 0.0
 }
-ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
-if (is.na(ps_cumulative_mgd)) {
+if ("ps_cumulative_mgd" %in% cols) {
+  ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
+  if (is.na(ps_cumulative_mgd)) {
+    ps_cumulative_mgd = 0.0
+  }
+} else {
   ps_cumulative_mgd = 0.0
+  dat$ps_cumulative_mgd <- ps_cumulative_mgd
 }
+
 ps_nextdown_mgd <- mean(as.numeric(dat$ps_nextdown_mgd) )
 if (is.na(ps_nextdown_mgd)) {
   ps_nextdown_mgd = 0.0
@@ -732,6 +744,9 @@ furl <- paste(
   sep = '/'
 )
 
+#Can't have negative values plotted in a FDC, replace neg Qbaseline w/ 0 
+datpd_pos <- datpd
+datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
@@ -739,7 +754,7 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(datpd[names(datpd)== base_var])),
                  as.numeric(unlist(datpd[names(datpd)== comp_var]))))
 fdc_plot <- hydroTSM::fdc(
-  cbind(datpd[names(datpd)== base_var], datpd[names(datpd)== comp_var]),
+  cbind(datpd_pos[names(datpd_pos)== base_var], datpd_pos[names(datpd_pos)== comp_var]),
   # yat = c(0.10,1,5,10,25,100,400),
   # yat = c(round(min(datpd),0),500,1000,5000,10000),
   # yat = seq(round(min(datpd),0),round(max(datpd),0), by = 500),

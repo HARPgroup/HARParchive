@@ -154,10 +154,10 @@ for (i in 1:nrow(all_imp_data)) {
 #WA = Qdem - 0.9*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
 
 df_metrics <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c(runlabel, runlabel, runlabel, runlabel),
-  'metric' = c('l90_Qout', 'l30_Qout', 'wd_cumulative_mgd','ps_cumulative_mgd'),
-  'runlabel' = c('l90_Qout', 'l30_Qout', 'wd_cumulative_mgd', 'ps_cumulative_mgd')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0','vahydro-1.0','vahydro-1.0'),
+  'runid' = c(runlabel, runlabel, runlabel, runlabel, runlabel, runlabel),
+  'metric' = c('l90_Qout', 'l30_Qout', 'l90_year', 'l30_year', 'wd_cumulative_mgd','ps_cumulative_mgd'),
+  'runlabel' = c('l90_Qout', 'l30_Qout', 'l90_year', 'l30_year','wd_cumulative_mgd', 'ps_cumulative_mgd')
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -165,27 +165,32 @@ metric_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
-data <- sqldf('SELECT a.*, b.Smin_L30_approx_perday, b.Smin_L90_approx_perday
+metric_data <- sqldf('SELECT a.*, b.Smin_L30_approx_perday, b.Smin_L90_approx_perday
                    FROM metric_data as a
                    LEFT OUTER JOIN all_imp_data as b
                    ON (a.riverseg = b.riverseg)')
 
 #replace NA storage values with 0
-data[is.na(data)] <- 0
+metric_data[is.na(metric_data)] <- 0
 
-names(data)[names(data) == 'Smin_L30_approx_perday'] <- 'SminL30_afd' #storage in units of afd
-names(data)[names(data) == 'Smin_L90_approx_perday'] <- 'SminL90_afd'
+names(metric_data)[names(metric_data) == 'Smin_L30_approx_perday'] <- 'SminL30afd_local' #storage in units of afd
+names(metric_data)[names(metric_data) == 'Smin_L90_approx_perday'] <- 'SminL90afd_local'
+
+#We want to join impoundment data and riverseg data before using fn_extract_basin
 
 #Linking riversegs with upstream impoundments 
-for (i in 1:nrow(data)) {
-  ups_imp <- fn_extract_basin(all_imp_data, data$riverseg[i]) #find if any upstream segments have an impoundment within
+for (i in 1:nrow(metric_data)) {
+  ups_imp <- fn_extract_basin(data, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
   if (nrow(ups_imp) > 0) {
     ups_impsegs <- data.frame(rivseg = ups_imp$riverseg)
     ups_df <- sqldf("select a.*
                     from all_imp_data as a
                     where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
-    data$SminL30_afd[i] <- sum(ups_df$Smin_L30_approx_perday) #sum storage available upstream (S in afd)
-    data$SminL90_afd[i] <- sum(ups_df$Smin_L90_approx_perday)
+    data$SminL30afd_upstream[i] <- sum(ups_df$Smin_L30_approx_perday) #sum storage available upstream (S in afd)
+    data$SminL90afd_upstream[i] <- sum(ups_df$Smin_L90_approx_perday)
+    
+    #We want to designate whether storage is local, meaning within the same riverseg, or upstream 
+    
   }
 }
 
@@ -207,10 +212,10 @@ data$pct_WA90 = (data$WA_L90_mgd / data$l90_Qout_mgd)*100
 
 #Pulling in Smin metrics exported so far (only a few)
 df_storage <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_11', 'runid_11'),
-  'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c('SminL30mg_11', 'SminL90mg_11')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
+  'metric' = c('Smin_L30_mg', 'Smin_L90_mg','Smin_L30_mg', 'Smin_L90_mg'),
+  'runlabel' = c('SminL30mg_11', 'SminL90mg_11','SminL30mg_13', 'SminL90mg_13')
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -218,3 +223,48 @@ storage_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
+
+#For comparing L30 & L90 before and after batch re-calculation when Smin is exported 
+
+#Exporting original values 
+storage_byseg <- all_imp_data[grep("vahydrosw_wshed", all_imp_data$hydrocode),]
+
+storage_byseg <- sqldf("select a.*, b.l90_Qout, b.l30_Qout, b.l90_year, b.l30_year
+                        from storage_byseg as a
+                        left outer join metric_data as b 
+                        on (a.riverseg = b.riverseg)")
+
+names(storage_byseg)[names(storage_byseg) == 'l30_Qout'] <- 'l30_Qout_og'
+names(storage_byseg)[names(storage_byseg) == 'l90_Qout'] <- 'l90_Qout_og'
+names(storage_byseg)[names(storage_byseg) == 'l30_year'] <- 'l30_year_og'
+names(storage_byseg)[names(storage_byseg) == 'l90_year'] <- 'l90_year_og'
+
+storage_byseg <- sqldf('select * 
+                        from storage_byseg
+                        where hydrocode 
+                        not in (select hydrocode from storage_data)')
+
+lowflows_impsegs <- data.frame(pid = storage_byseg$pid,
+                               propname = storage_byseg$propname,
+                               hydrocode = storage_byseg$hydrocode,
+                               riverseg = storage_byseg$riverseg,
+                               l30_Qout_og = storage_byseg$l30_Qout_og,
+                               l90_Qout_og = storage_byseg$l90_Qout_og,
+                               l30_year_og = storage_byseg$l30_year_og,
+                               l90_year_og = storage_byseg$l90_year_og)
+
+
+#join new metric and year values to original dataframe here 
+storage_byseg <- sqldf("select a.*, b.l90_Qout, b.l30_Qout, b.l90_year, b.l30_year
+                        from storage_byseg as a
+                        left outer join metric_data as b 
+                        on (a.riverseg = b.riverseg)")
+
+names(storage_byseg)[names(storage_byseg) == 'l30_Qout'] <- 'l30_Qout_new'
+names(storage_byseg)[names(storage_byseg) == 'l90_Qout'] <- 'l90_Qout_new'
+names(storage_byseg)[names(storage_byseg) == 'l30_year'] <- 'l30_year_new'
+names(storage_byseg)[names(storage_byseg) == 'l90_year'] <- 'l90_year_new'
+
+
+
+write.table(lowflows_impsegs,file = paste0(export_path,'lowflows_impsegs.csv'), sep = ",", row.names = FALSE) #save csv
