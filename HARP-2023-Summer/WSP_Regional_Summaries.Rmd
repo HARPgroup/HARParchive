@@ -9,11 +9,11 @@ output: pdf_document #overridden by output_format in render command
 #Can edit here or in a render command 
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
-  facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
+  facils_file: "C:/HARP/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
   facils_file_map_bubble_column: ["fiveyr_avg_mgy"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
   
-  rsegs_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
+  rsegs_file: "C:/HARP/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
@@ -26,9 +26,9 @@ params:
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
   # asthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
@@ -286,23 +286,23 @@ if (type == "source") {
 
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
-mapfilename <- character() #empty character var, not a list
-for (i in 1:length(facils_file_map_bubble_column)) {
-  mapfilename[i] <- paste(export_path, map_name, "_", facils_file_map_bubble_column[i], ".png", sep="")
-  mapf <- get(paste0('map',i))
-  ggsave(
-    filename = mapfilename[i],
-    plot = mapf,
-    width = 25,
-    height = 20)
- }
+# mapfilename <- character() #empty character var, not a list
+# for (i in 1:length(facils_file_map_bubble_column)) {
+#   mapfilename[i] <- paste(export_path, map_name, "_", facils_file_map_bubble_column[i], ".png", sep="")
+#   mapf <- get(paste0('map',i))
+#   ggsave(
+#     filename = mapfilename[i],
+#     plot = mapf,
+#     width = 25,
+#     height = 20)
+#  }
 ```
 ```{r Viewing Map(s) 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
-if (mapMessage == TRUE) {
-  message("The metric requested does not exist for this map.")
-  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
-}
+# knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+# if (mapMessage == TRUE) {
+#   message("The metric requested does not exist for this map.")
+#   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+# }
 ```
 ```{r Continued..(table1), echo=FALSE, message=FALSE, warning=FALSE}
 names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -373,7 +373,8 @@ names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 #write.csv(table, paste0(export_path,"44_table.csv"))
 
-ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left") #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left", map_type,metric = rivseg_metric[i], rivseg, title="default" ) #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+
 
 ```
 
@@ -438,7 +439,7 @@ for (i in 1:length(rivseg_metric)){
   ##Mapping function
   suppressWarnings(suppressMessages(
     fn_mapgen2(mapnum = 2,type, map_type, styles[[map_style]], metric = rivseg_metric[i], rivseg, bbox, rsegs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -446,19 +447,19 @@ for (i in 1:length(rivseg_metric)){
 }
 
 ## Save rivseg map
-rivmapfilename <- character() #empty character var, not a list
-for (i in 1:length(rivseg_metric)) {
-  rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
-  mapf <- get(paste0('map_rivseg',i))
-  ggsave(
-    filename = rivmapfilename[i],
-    plot = mapf,
-    width = 25,
-    height = 20)
-}
+# rivmapfilename <- character() #empty character var, not a list
+# for (i in 1:length(rivseg_metric)) {
+#   rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
+#   mapf <- get(paste0('map_rivseg',i))
+#   ggsave(
+#     filename = rivmapfilename[i],
+#     plot = mapf,
+#     width = 25,
+#     height = 20)
+# }
 ```
 ```{r Displaying Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
-knitr::include_graphics(rivmapfilename)
+# knitr::include_graphics(rivmapfilename)
 ```
 ```{r Continued..(table2), echo=FALSE, message=FALSE, warning=FALSE}
 #create metric type column
@@ -515,9 +516,21 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
       tablemessage2 = FALSE
     }
   }
-    
   
-  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left") #Flextable function
+  title1 <- paste0(rivseg_metric[k]) #define title here for mapping so each map has diff metric title, pass into function
+  
+  if (rivseg_metric[k]=="l30_Qout"){
+      title <- gsub("l30_Qout", "Lowest 30 Day Flow", title1)
+  } else if (rivseg_metric[k]=="l90_Qout"){
+          title <- gsub("l90_Qout", "Lowest 90 Day Flow", title1)
+  } else if (rivseg_metric[k]=="7q10"){
+      title <- gsub("7q10", "Lowest 7 Day Flow", title1)
+  } else {
+    title <- title1
+  }
+  
+  
+  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left", map_type,  metric = rivseg_metric[k], rivseg, title=title) #Flextable function
   
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
