@@ -43,7 +43,7 @@ sqldf_sf <- function(statemt, geomback="NA"){
   #geomback is the character name of the data.frame you are filtering, where, if applicable, the sf geometry column will need to be added back from
   dfs <- as.environment(as.list(.GlobalEnv, all.names=TRUE)) #make a copy of the global environment
   for(i in names(dfs)){
-    if(class(dfs[[i]])=="sf"){ #drop the geometry on any sf objects so they can go through SQLDF
+    if("sf" %in% class(dfs[[i]])){ #drop the geometry on any sf objects so they can go through SQLDF
       dfs[[i]] <- sf::st_drop_geometry( dfs[[i]] )
     }
   }
@@ -62,6 +62,7 @@ sqldf_sf <- function(statemt, geomback="NA"){
 # the following will no longer needed, since the input dataframe will either be facility or MP-level data
 #determining which type/level of map is being created (either 'source' or 'facility')
 type <- "facility"
+#type <- "source"
 
 ## Pull Data (Cleanup)
 #```{r Pull Data, echo=FALSE, message=FALSE, warning=FALSE}
@@ -358,12 +359,17 @@ facils <- sqldf_sf(statemt, geomback="facils")
 facils <- unique(facils) #remove duplicated rows 
 facils$vwp_max_mgy[is.na(facils$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why exactly NAs still exist
 # st_write(facils, paste0(export_path,"26_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(facils, paste0(export_path,rivseg,"_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-
+if(type=="facility"){
+  st_write(facils, paste0(export_path,rivseg,"_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+}
+if(type=="source"){
+  facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE)] #get rid of all those year columns
+  st_write(facils, paste0(export_path,rivseg,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+}
 rm(fac_model_data)
 #```
 
-#```{r Pull Rseg Drought Metrics, echo=FALSE, message=FALSE, warning=FALSE}
+#```{r Pull Rseg Drought Metrics, echo=FALSE, message=FALSE, warnin;g=FALSE}
 for (k in 1:length(rivseg_metric)) {
   for (j in 1:length(runid_list)) {
     for (i in 1:nrow(rsegs)) {
