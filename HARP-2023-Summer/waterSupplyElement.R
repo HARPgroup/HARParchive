@@ -78,7 +78,21 @@ if ("refill_pump_mgd" %in% cols) {
     pump_store = TRUE
   }
 }
+cols <- names(dat)
+#add unmet demand 
+if (!("unmet_demand_mgd" %in% cols)) {
+  dat$unmet_demand_mgd = as.numeric(dat$impoundment_demand) - as.numeric(dat$impoundment_demand_met_mgd)
+}
 
+#add basedemand
+if (!("base_demand_mgd" %in% cols)) {
+  dat$base_demand_mgd = 0.0
+}
+
+#add Qintake - is it different from Qin?
+if (!("Qintake" %in% cols)) {
+  dat$Qintake = dat$impoundment_Qin
+}
 # yrdat will be used for generating the heatmap with calendar years
 yrdat <- dat
 
@@ -117,11 +131,6 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'external_file', remote_url, 'logf
 
 #dat <- window(dat, start = as.Date("1984-10-01"), end = as.Date("2014-09-30"));
 #boxplot(as.numeric(dat$Qreach) ~ dat$year, ylim=c(0,amn))
-
-#check if base_demand_mgd is in dat, if not add it as a column of 0s
-if (!("base_demand_mgd" %in% cols)) {
-  dat$base_demand_mgd = 0.0
-}
 
 datdf <- as.data.frame(dat)
 modat <- sqldf("select month, avg(base_demand_mgd) as base_demand_mgd from datdf group by month")
@@ -193,11 +202,6 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet9
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet30_mgd', unmet30, ds)
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet7_mgd', unmet7, ds)
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet1_mgd', unmet1, ds)
-
-#add Qintake to dat if it doesn't exist - is it different from Qin?
-if (!("Qintake" %in% cols)) {
-  dat$Qintake = dat$impoundment_Qin
-}
 
 # Intake Flows
 iflows <- zoo(as.numeric(dat$Qintake), order.by = index(dat));
@@ -296,6 +300,7 @@ furl <- paste(
 
 ##### Define data for graph, just within that defined year, and graph it
 # Lal's code, lines 410-446 (412 commented out)
+
 if (sum(datdf$unmet_demand_mgd)==0) {
   # base it on flow since we have no unmet demand.
   dsql <- paste(
