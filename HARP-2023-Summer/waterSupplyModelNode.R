@@ -765,6 +765,8 @@ fdc_plot <- hydroTSM::fdc(
   # ylim=c(1.0, 5000),
   # ylim=c(min(datpd), max(datpd)),
   ylim=c(ymn, ymx),
+#  ylim=c(1, 100), #for an empty fdc when Qout & Qbaseline = 0 
+#  xlim=c(1,100), #for an empty fdc when Qout & Qbaseline = 0 
   cex.main=1.75,
   cex.axis=1.50,
   leg.cex=2,
