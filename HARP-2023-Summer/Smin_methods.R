@@ -14,6 +14,7 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #load Smin_CPL function, approx method
+options(scipen = 999)
 
 #get all impoundment features 
 df_imp <- data.frame(
@@ -31,6 +32,8 @@ all_imp_data <- om_vahydro_metric_grid(
 runid <- 400
 runlabel <- paste0('runid_', runid)
 
+all_imp_data$outside_pd30 <- NA
+all_imp_data$outside_pd90 <- NA
 
 for (i in 1:nrow(all_imp_data)) {
   
@@ -65,7 +68,7 @@ for (i in 1:nrow(all_imp_data)) {
   
   #find l30 and l90 years based on Qin
   flows <- zoo(dat$Qin, order.by = index(dat));
-  loflows <- group2(flows)
+  loflows <- group2(flows, year = 'water') #gives an error when using calendar year
   
   l90 <- loflows["90 Day Min"];
   ndx = which.min(as.numeric(l90[,"90 Day Min"]));
@@ -110,10 +113,16 @@ for (i in 1:nrow(all_imp_data)) {
   l30yr_df <- as.data.frame(l30yr_flows)
   l90yr_df <- as.data.frame(l90yr_flows)
   
+  yearMinRow30 <- which.min(l30yr_df$l30yr_flows)
+  yearMinRow90 <- which.min(l90yr_df$l90yr_flows)
+  
   l30yr_df <- l30yr_df %>% mutate(rollmean_30 = rollmean(l30yr_flows, k=30, fill=NA, align='left' ))
   l90yr_df <- l90yr_df %>% mutate(rollmean_90 = rollmean(l90yr_flows, k=90, fill=NA, align='left'))
   
   #start dates for low flow periods
+  rownum_start90 <- which.min(l90yr_df$rollmean_90) 
+  rownum_start30 <- which.min(l30yr_df$rollmean_30)
+  
   l30pd_start <- as.Date(row.names(l30yr_df[which.min(l30yr_df$rollmean_30),]))
   l90pd_start <- as.Date(row.names(l90yr_df[which.min(l90yr_df$rollmean_90),]))
   
@@ -145,7 +154,42 @@ for (i in 1:nrow(all_imp_data)) {
   all_imp_data$Smin_L90_exact_perday[i] <- Smin_L90_nearexact / dayno_90
   all_imp_data$Smin_L30_exact_perday[i] <- Smin_L30_nearexact / dayno_30
   
+  #Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
+  all_imp_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
+  all_imp_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
+  
+  #If not, how far outisde the low flow period?
+  if (all_imp_data$min_in_pd30[i] == FALSE) {
+    not_before <- rownum_start30 < yearMinRow30
+    not_after <- rownum_end30 > yearMinRow30
+    if (not_before == FALSE) {
+      all_imp_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
+    } else if (not_after == FALSE) {
+      all_imp_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
+    }
+  }
+  if (all_imp_data$min_in_pd90[i] == FALSE) {
+    not_before <- rownum_start90 < yearMinRow90
+    not_after <- rownum_end90 > yearMinRow90
+    if (not_before == FALSE) {
+      all_imp_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
+    } else if (not_after == FALSE) {
+      all_imp_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90) 
+    }
+  }
+  
 }
+
+approx_vs_nearexact <- data.frame(propname = all_imp_data$propname,
+                       riverseg = all_imp_data$riverseg,
+                       Smin_L90_approx_perday = all_imp_data$Smin_L90_approx_perday,
+                       Smin_L30_approx_perday = all_imp_data$Smin_L30_approx_perday,
+                       Smin_L90_nearexact_perday = all_imp_data$Smin_L90_nearexact_perday,
+                       Smin_L30_nearexact_perday = all_imp_data$Smin_L30_nearexact_perday,
+                       min_in_pd30 = all_imp_data$min_in_pd30,
+                       min_in_pd90 = all_imp_data$min_in_pd90,
+                       outside_pd30 = all_imp_data$outside_pd30,
+                       outside_pd90 = all_imp_data$outside_pd90)
 
 ##Getting other variables in the WA equation 
 #For a L90 scenario:
@@ -229,32 +273,9 @@ storage_data <- om_vahydro_metric_grid(
 #Exporting original values 
 storage_byseg <- all_imp_data[grep("vahydrosw_wshed", all_imp_data$hydrocode),]
 
-storage_byseg <- sqldf("select a.*, b.l90_Qout, b.l30_Qout, b.l90_year, b.l30_year
-                        from storage_byseg as a
-                        left outer join metric_data as b 
-                        on (a.riverseg = b.riverseg)")
-
-names(storage_byseg)[names(storage_byseg) == 'l30_Qout'] <- 'l30_Qout_og'
-names(storage_byseg)[names(storage_byseg) == 'l90_Qout'] <- 'l90_Qout_og'
-names(storage_byseg)[names(storage_byseg) == 'l30_year'] <- 'l30_year_og'
-names(storage_byseg)[names(storage_byseg) == 'l90_year'] <- 'l90_year_og'
-
-storage_byseg <- sqldf('select * 
-                        from storage_byseg
-                        where hydrocode 
-                        not in (select hydrocode from storage_data)')
-
-lowflows_impsegs <- data.frame(pid = storage_byseg$pid,
-                               propname = storage_byseg$propname,
-                               hydrocode = storage_byseg$hydrocode,
-                               riverseg = storage_byseg$riverseg,
-                               l30_Qout_og = storage_byseg$l30_Qout_og,
-                               l90_Qout_og = storage_byseg$l90_Qout_og,
-                               l30_year_og = storage_byseg$l30_year_og,
-                               l90_year_og = storage_byseg$l90_year_og)
+storage_byseg_og <- fread(paste0(export_path,'lowflows_impsegs.csv'))
 
 
-#join new metric and year values to original dataframe here 
 storage_byseg <- sqldf("select a.*, b.l90_Qout, b.l30_Qout, b.l90_year, b.l30_year
                         from storage_byseg as a
                         left outer join metric_data as b 
@@ -265,6 +286,14 @@ names(storage_byseg)[names(storage_byseg) == 'l90_Qout'] <- 'l90_Qout_new'
 names(storage_byseg)[names(storage_byseg) == 'l30_year'] <- 'l30_year_new'
 names(storage_byseg)[names(storage_byseg) == 'l90_year'] <- 'l90_year_new'
 
+#join sqldf
+storage_joined <- sqldf('select a.*, b.l30_Qout_new, b.l90_Qout_new, b.l30_year_new, b.l90_year_new
+                        from storage_byseg_og as a
+                        outer left join storage_byseg as b
+                        on (a.pid = b.pid)')
 
 
-write.table(lowflows_impsegs,file = paste0(export_path,'lowflows_impsegs.csv'), sep = ",", row.names = FALSE) #save csv
+write.table(storage_joined,file = paste0(export_path,'lowflows_impsegs.csv'), sep = ",", row.names = FALSE) #save csv
+
+
+
