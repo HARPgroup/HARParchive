@@ -142,6 +142,8 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # Tidal riversegs
   rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE))
   
+  region_OI <- regions[regions$region==region,]
+  
   # Merging Borders into 1 df
   borders <- data.frame( counties[,"name"] , bundle= rep("county", nrow(counties)) )
   names(borders) <- c("name", "geometry", "bundle")
