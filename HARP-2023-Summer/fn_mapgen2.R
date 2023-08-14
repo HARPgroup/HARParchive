@@ -42,7 +42,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # mp_layer = mp_layer
   # metric_unit = metric_unit
   # title = "default"
-  # #
+  #
   
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
