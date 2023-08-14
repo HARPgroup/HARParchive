@@ -11,26 +11,27 @@ output: pdf_document #overridden by output_format in render command
 params: 
 
   #facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
-  facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_mp_sf.csv"
-  facils_file_map_bubble_column: ["fiveyr_avg_mgy"]
+  facils_file: "C:/HARP/Exports/JL6_7320_7150_facils_sf3.csv"
+  facils_file_map_bubble_column: ["runid_11_wd_mgd"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
+  rsegs_file: "C:/HARP/Exports/JL6_7320_7150_rsegs3_sf.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
   runid_list: [ "runid_11", "runid_13" ]
   
   # specify the type of map by supplying either a rivseg, locality, or region
-  rivseg: ["JU4_7330_7000"]
-  locality: ["NA"]
-  region: ["NA"]    
-  map_type: ["basin"] #one of: basin, locality, or region 
+  rivseg: ["JL6_7320_7150"]
+  locality: ["Fairfax"]
+  region: ["UpperJames_1"]    
+  map_type: ["locality"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
+  regions_file : "C:/HARP/Exports/regions_sf.csv"
   # asthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
@@ -90,6 +91,7 @@ rsegs <- st_read(rsegs_file)
 counties <- st_read(counties_file)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
 roads <- st_read(roads_file)
+regions <- st_read(regions_file)
 
 st_crs(facils) <- crs_default
 st_crs(rsegs) <- crs_default
@@ -201,11 +203,11 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
     mapMessage <- TRUE #for returning message to user if map is empty
   } else { mapMessage <- FALSE  }
   #Ordering & numbering data by the metric to be mapped 
-  facils <- sqldf_sf(paste0( #ordering the data using sqldf 
-  "SELECT facils.*  
-  FROM facils
-  ORDER BY", ' ', facils_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
-  "facils")
+   facils <- sqldf_sf(paste0( #ordering the data using sqldf 
+   "SELECT facils.*  
+   FROM facils
+   ORDER BY", ' ', facils_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
+   "facils")
   facils$NUM <- seq(1, nrow(facils))
   #st_write(facils, paste0(export_path,"34_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
  if (i==1) { #data for table will be sorted by the first of facils_file_map_bubble_column
@@ -437,6 +439,7 @@ for (i in 1:length(rivseg_metric)){
     left outer join rivseg_classes as b 
     on a.riverseg = b.riverseg " , "rsegs")
   # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+  
 
   ##Mapping function
   suppressWarnings(suppressMessages(

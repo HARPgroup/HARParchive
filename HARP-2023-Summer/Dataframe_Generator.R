@@ -19,12 +19,13 @@ runid_list <- c("runid_11","runid_13")
 model_version <- c("vahydro-1.0")
 metric_mod <- c("wd_mgd")
 metric_feat <- c("wsp2020_2040_mgy")
-rivseg <- "JU4_7330_7000"
+rivseg <- "JL6_7320_7150"
 rivseg_metric <- c("l30_Qout","7q10")
-locality <- "NA"
-region <- "NA"   
-map_type <- "basin"
-limit <- "basins"
+locality <- "Fairfax"
+region <- "UpperJames_1"   
+map_type <- "region"
+limit <- "locality"
+type <- "facility"
 ################################################################
 ################################################################
 
@@ -153,7 +154,7 @@ for(i in 1:length(regions_split)){ #merge counties into one polygon for each reg
 }
 regions <- st_as_sf(data.frame(region=names(regions_split),geo=regions,row.names=NULL), crs=crs_default)
 # write.csv(regions, paste0(export_path,"12_regions.csv"))
-# st_write(regions, paste0(export_path,"12_regions_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(regions_split)
 #```
 
@@ -202,11 +203,11 @@ if(type == "facility"){
 #connect facilities to the watersheds they are in:
 rsegs$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs$hydrocode) #prereq. for fn_extract_basin() & desired for facils/table riverseg column
 rsegs <- rsegs[ rsegs[,geoCol(rsegs)]!="" & !is.na(rsegs[,geoCol(rsegs)]) ,] #finds geom column & omits rsegs with blank or NA geometry
-rsegs <- st_as_sf(rsegs, wkt=geoCol(rsegs), crs=crs_default) #convert to sf
+rsegs <- sf::st_as_sf(rsegs, wkt=geoCol(rsegs), crs=crs_default) #convert to sf
 # st_write(rsegs, paste0(export_path,"17_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
-sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_join, st_filter) give errors without this
-facils <- st_join(facils, rsegs[ ,c("riverseg","hydroid",geoCol(rsegs)) ]) #pairs riverseg column from rsegs w/ facils based on geometry
+sf::sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_join, st_filter) give errors without this
+facils <- sf::st_join(facils, rsegs[ ,c("riverseg","hydroid",geoCol(rsegs)) ]) #pairs riverseg column from rsegs w/ facils based on geometry
 # st_write(facils, paste0(export_path,"18_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 #we add an riverseg column via goemetry in both source & facility cases b/c even when facilities come in with a riverseg column, many are blank
@@ -360,7 +361,7 @@ facils <- unique(facils) #remove duplicated rows
 facils$vwp_max_mgy[is.na(facils$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why exactly NAs still exist
 # st_write(facils, paste0(export_path,"26_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 if(type=="facility"){
-  st_write(facils, paste0(export_path,rivseg,"_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(facils, paste0(export_path,rivseg,"_facils_sf2.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(type=="source"){
   facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE)] #get rid of all those year columns
@@ -428,7 +429,7 @@ for (k in 1:length(rivseg_metric)){
   rsegs <- sqldf_sf(statemt, geomback="rsegs")
 }
 # st_write(rsegs, paste0(export_path,"28_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(rsegs, paste0(export_path,rivseg,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,rivseg,"_rsegs2_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(colname1)
 rm(colname2)
 #```
