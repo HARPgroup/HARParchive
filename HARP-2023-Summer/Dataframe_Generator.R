@@ -19,12 +19,14 @@ runid_list <- c("runid_11","runid_13")
 model_version <- c("vahydro-1.0")
 metric_mod <- c("wd_mgd")
 metric_feat <- c("wsp2020_2040_mgy")
-rivseg <- "JU4_7330_7000"
+rivseg <- "PU6_3730_3750"
 rivseg_metric <- c("l30_Qout","7q10")
-locality <- "NA"
+locality <- "Fauquier"
 region <- "NA"   
-map_type <- "basin"
+map_type <- "locality"
 limit <- "basins"
+#type <- "facility"
+type <- "source"
 ################################################################
 ################################################################
 
@@ -61,7 +63,7 @@ sqldf_sf <- function(statemt, geomback="NA"){
 ##############################################################################
 # the following will no longer needed, since the input dataframe will either be facility or MP-level data
 #determining which type/level of map is being created (either 'source' or 'facility')
-type <- "facility"
+#type <- "facility"
 #type <- "source"
 
 ## Pull Data (Cleanup)
@@ -154,6 +156,7 @@ for(i in 1:length(regions_split)){ #merge counties into one polygon for each reg
 regions <- st_as_sf(data.frame(region=names(regions_split),geo=regions,row.names=NULL), crs=crs_default)
 # write.csv(regions, paste0(export_path,"12_regions.csv"))
 # st_write(regions, paste0(export_path,"12_regions_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+ st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(regions_split)
 #```
 
@@ -363,7 +366,7 @@ if(type=="facility"){
   st_write(facils, paste0(export_path,rivseg,"_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(type=="source"){
-  facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE)] #get rid of all those year columns
+  facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE, invert=TRUE)] #get rid of all those year columns
   st_write(facils, paste0(export_path,rivseg,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 rm(fac_model_data)

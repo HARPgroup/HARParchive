@@ -11,23 +11,24 @@ output: pdf_document #overridden by output_format in render command
 params: 
 
   #facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
-  facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_mp_sf.csv"
+  facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/PL1_5060_0000_facils_sf.csv"
   facils_file_map_bubble_column: ["fiveyr_avg_mgy"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_rsegs_sf.csv"
+  rsegs_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/PL1_5060_0000_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
   runid_list: [ "runid_11", "runid_13" ]
   
   # specify the type of map by supplying either a rivseg, locality, or region
-  rivseg: ["JU4_7330_7000"]
+  rivseg: ["KU0_8980_0000"]
   locality: ["NA"]
   region: ["NA"]    
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
+  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
   counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
   cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
   roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
@@ -88,6 +89,7 @@ type <- "source"
 facils <- st_read(facils_file)
 rsegs <- st_read(rsegs_file)
 counties <- st_read(counties_file)
+regions <- st_read(regions_file)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
 roads <- st_read(roads_file)
 
@@ -101,7 +103,6 @@ st_crs(roads) <- crs_default
 # crs(counties)
 # crs(roads)
 ```
-
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
 if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired

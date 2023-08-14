@@ -113,8 +113,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     }  else if (map_type == "region") {
       title <- paste0(region, " Region, ", metric)
     } 
-  }
-  else {
+  } else {
     if (map_type == "basin") {
       title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, title, sep=" ") )
     } else if (map_type == "locality") {
@@ -251,17 +250,17 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
                          color=as.factor(colcode), 
-                         fill=as.factor(fillcode)
+                         fill=fillcode
                      ), 
                      show.legend=NA,
                      size=textsize[1],
                      label.r=0.6, label.size=0.12, 
-                     max.overlaps=2
+                     max.overlaps=4
     ) +
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
-                        labels=c("Interstate","State Route", "US Hwy"), name="") + 
+                        labels=c("Interstate","State Route", "US Hwy"), name="Roads") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), 
-                      labels=c("Interstate","State Route", "US Hwy"), name="" ) +
+                      labels=c("Interstate","State Route", "US Hwy"), name="Roads") +
     
     # Rivseg Tidal Labels- not fully functional
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
@@ -269,7 +268,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     # Basin Labels (by riverseg ID)
     geom_text(data = rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE) +
     # Text Labels
-    # new_scale("size") + new_scale("color") +
+    new_scale("size") + new_scale("color") +
     geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
@@ -289,23 +288,28 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   if (type == "source") {
     map <- map +
       # Plotting using bins in a single layer:
-      new_scale("size") + new_scale("color") +
+      new_scale("size") + new_scale("color") + 
       
       geom_point(data = mp_layer_plot, aes(x = lng, y = lat, 
-                                           color = 'Source Type', size = bin), 
+                                           color = Source.Type, size = bin),
                  shape = 19) +
       
-      scale_size_binned(range = c(2,20), 
-                        breaks = breaks, 
+      scale_size_binned(range = c(2,20),
+                        breaks = breaks,
                         labels = labs,
                         limits = lims,
-                        name = legend_title[1]) +
+                        name = legend_title[1],
+                        guide= guide_legend(override.aes=list(color = colors_metric["Groundwater",],
+                                                              fill = colors_metric["Surface Water",],
+                                                              stroke = seq(3,7,length.out=length(breaks)),
+                                                              shape=21 ))
+                        ) +
       
       scale_colour_manual(values= colors_metric[c("Surface Water", "Groundwater"),] ,
                           breaks= c("Surface Water", "Groundwater"),
                           labels= c("Surface Water", "Groundwater"),
                           name= "Source Type",
-                          #guide= guide_legend(override.aes=list(label="", size =5))
+                          guide= guide_legend(override.aes=list(size=9))
       )            
   }  else if (type == "facility") { ## Plotting facilities 
     map <- map + 
