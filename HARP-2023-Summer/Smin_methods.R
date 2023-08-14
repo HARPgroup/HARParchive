@@ -14,6 +14,7 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #load Smin_CPL function, approx method
+options(scipen = 999)
 
 #get all impoundment features 
 df_imp <- data.frame(
@@ -31,8 +32,8 @@ all_imp_data <- om_vahydro_metric_grid(
 runid <- 400
 runlabel <- paste0('runid_', runid)
 
-all_imp_data$min_before_pd <- NA
-all_imp_data$min_after_pd <- NA
+all_imp_data$outside_pd30 <- NA
+all_imp_data$outside_pd90 <- NA
 
 for (i in 1:nrow(all_imp_data)) {
   
@@ -162,22 +163,33 @@ for (i in 1:nrow(all_imp_data)) {
     not_before <- rownum_start30 < yearMinRow30
     not_after <- rownum_end30 > yearMinRow30
     if (not_before == FALSE) {
-      all_imp_data$min_before_pd[i] <- as.numeric(rownum_start30 - yearMinRow30)
+      all_imp_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
     } else if (not_after == FALSE) {
-      all_imp_data$min_after_pd[i] <- as.numeric(yearMinRow30 - rownum_end30)
+      all_imp_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
     }
   }
   if (all_imp_data$min_in_pd90[i] == FALSE) {
     not_before <- rownum_start90 < yearMinRow90
     not_after <- rownum_end90 > yearMinRow90
     if (not_before == FALSE) {
-      all_imp_data$min_before_pd[i] <- as.numeric(rownum_start90 - yearMinRow90)
+      all_imp_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
     } else if (not_after == FALSE) {
-      all_imp_data$min_after_pd[i] <- as.numeric(yearMinRow90 - rownum_end90) 
+      all_imp_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90) 
     }
   }
   
 }
+
+approx_vs_nearexact <- data.frame(propname = all_imp_data$propname,
+                       riverseg = all_imp_data$riverseg,
+                       Smin_L90_approx_perday = all_imp_data$Smin_L90_approx_perday,
+                       Smin_L30_approx_perday = all_imp_data$Smin_L30_approx_perday,
+                       Smin_L90_nearexact_perday = all_imp_data$Smin_L90_nearexact_perday,
+                       Smin_L30_nearexact_perday = all_imp_data$Smin_L30_nearexact_perday,
+                       min_in_pd30 = all_imp_data$min_in_pd30,
+                       min_in_pd90 = all_imp_data$min_in_pd90,
+                       outside_pd30 = all_imp_data$outside_pd30,
+                       outside_pd90 = all_imp_data$outside_pd90)
 
 ##Getting other variables in the WA equation 
 #For a L90 scenario:
