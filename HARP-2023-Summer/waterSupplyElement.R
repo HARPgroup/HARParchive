@@ -196,7 +196,7 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet1
 
 #add Qintake to dat if it doesn't exist - is it different from Qin?
 if (!("Qintake" %in% cols)) {
-  dat$Qintake = 0.0
+  dat$Qintake = dat$impoundment_Qin
 }
 
 # Intake Flows
