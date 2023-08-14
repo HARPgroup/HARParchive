@@ -194,6 +194,11 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet3
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet7_mgd', unmet7, ds)
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet1_mgd', unmet1, ds)
 
+#add Qintake to dat if it doesn't exist - is it different from Qin?
+if (!("Qintake" %in% cols)) {
+  dat$Qintake = 0.0
+}
+
 # Intake Flows
 iflows <- zoo(as.numeric(dat$Qintake), order.by = index(dat));
 uiflows <- group2(iflows, 'calendar')
