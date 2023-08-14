@@ -118,6 +118,11 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'external_file', remote_url, 'logf
 #dat <- window(dat, start = as.Date("1984-10-01"), end = as.Date("2014-09-30"));
 #boxplot(as.numeric(dat$Qreach) ~ dat$year, ylim=c(0,amn))
 
+#check if base_demand_mgd is in dat, if not add it as a column of 0s
+if (!("base_demand_mgd" %in% cols)) {
+  dat$base_demand_mgd = 0.0
+}
+
 datdf <- as.data.frame(dat)
 modat <- sqldf("select month, avg(base_demand_mgd) as base_demand_mgd from datdf group by month")
 #barplot(wd_mgd ~ month, data=modat)
@@ -139,7 +144,6 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.monthl
 base_demand_mgd <- mean(as.numeric(dat$base_demand_mgd) )
 if (is.na(base_demand_mgd)) {
   base_demand_mgd = 0.0
-  dat$base_demand_mgd = 0.0
 }
 wd_mgd <- mean(as.numeric(dat$wd_mgd) )
 if (is.na(wd_mgd)) {
