@@ -20,8 +20,8 @@ ds$get_token(rest_pw)
 #Load Smin_CPL function
 source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
 
-save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
-save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
+#save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
+#save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
