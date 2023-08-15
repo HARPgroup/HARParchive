@@ -116,7 +116,7 @@ for (i in 1:nrow(storage_data)) {
   #storage_data$Smin_L90_approx_perday[i] <- storage_data$SminL90mg_11[i] / 90
   #storage_data$Smin_L30_approx_perday[i] <- storage_data$SminL30mg_11[i] / 30
   
-   storage_data$Smin_L90_approx_perday[i] <- (Smin_L90_approx / 90) / 3.069
+   storage_data$Smin_L90_approx_perday[i] <- (Smin_L90_approx / 90) / 3.069 #convert from afd to mgd
    storage_data$Smin_L30_approx_perday[i] <- (Smin_L30_approx / 30) / 3.069
 
   ##Near-exact method: Smin within the L30 and L90 periods:
@@ -289,46 +289,15 @@ for (i in 1:nrow(metric_data)) {
   }
 }
 
-# #convert cfs to mgd 
-# data$l90_Qout_mgd = data$l90_Qout / 1.547
-# data$l30_Qout_mgd = data$l30_Qout / 1.547
+#convert cfs to mgd 
+metric_data$l90_Qout_mgd = metric_data$l90_Qout / 1.547
+metric_data$l30_Qout_mgd = metric_data$l30_Qout / 1.547
 
 #solve for WA
-data$WA_L90_mgd = data$l90_Qout_mgd - 0.9*(data$l90_Qout_mgd + data$wd_cumulative_mgd - data$ps_cumulative_mgd) + storage_data$SminL90mg_11 
-data$WA_L30_mgd = data$l30_Qout_mgd - 0.9*(data$l30_Qout_mgd + data$wd_cumulative_mgd - data$ps_cumulative_mgd) + storage_data$SminL90mg_13 
+metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$Smin_L90_approx_perday 
+metric_data$WA_L30_mgd = metric_data$l30_Qout_mgd - 0.9*(metric_data$l30_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$Smin_L30_approx_perday 
 
 #WA as a % of flow 
-data$pct_WA30 = (data$WA_L30_mgd / data$l30_Qout_mgd)*100
-data$pct_WA90 = (data$WA_L90_mgd / data$l90_Qout_mgd)*100
-
-
-
-#For comparing L30 & L90 before and after batch re-calculation when Smin is exported 
-
-#Exporting original values 
-storage_byseg <- storage_data[grep("vahydrosw_wshed", storage_data$hydrocode),]
-
-storage_byseg_og <- fread(paste0(export_path,'lowflows_impsegs.csv'))
-
-
-storage_byseg <- sqldf("select a.*, b.l90_Qout, b.l30_Qout, b.l90_year, b.l30_year
-                        from storage_byseg as a
-                        left outer join metric_data as b 
-                        on (a.riverseg = b.riverseg)")
-
-names(storage_byseg)[names(storage_byseg) == 'l30_Qout'] <- 'l30_Qout_new'
-names(storage_byseg)[names(storage_byseg) == 'l90_Qout'] <- 'l90_Qout_new'
-names(storage_byseg)[names(storage_byseg) == 'l30_year'] <- 'l30_year_new'
-names(storage_byseg)[names(storage_byseg) == 'l90_year'] <- 'l90_year_new'
-
-#join sqldf
-storage_joined <- sqldf('select a.*, b.l30_Qout_new, b.l90_Qout_new, b.l30_year_new, b.l90_year_new
-                        from storage_byseg_og as a
-                        outer left join storage_byseg as b
-                        on (a.pid = b.pid)')
-
-
-write.table(storage_joined,file = paste0(export_path,'lowflows_impsegs.csv'), sep = ",", row.names = FALSE) #save csv
-
-
+metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_mgd)*100
+metric_data$pct_WA90 = (metric_data$WA_L90_mgd / metric_data$l90_Qout_mgd)*100
 
