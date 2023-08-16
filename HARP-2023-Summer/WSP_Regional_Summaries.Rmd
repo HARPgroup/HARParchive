@@ -11,11 +11,11 @@ output: pdf_document #overridden by output_format in render command
 params: 
 
   #facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
-  facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/PL1_5060_0000_facils_sf.csv"
-  facils_file_map_bubble_column: ["fiveyr_avg_mgy"]
+  facils_file: "C:/HARP/Exports/PU6_3730_3750_mp_sf.csv"
+  facils_file_map_bubble_column: ["wd_mgd"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/PL1_5060_0000_rsegs_sf.csv"
+  rsegs_file: "C:/HARP/Exports/PU6_3730_3750_rsegs2_sf.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
@@ -29,10 +29,10 @@ params:
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
-  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  regions_file: "C:/HARP/Exports/regions_sf.csv"
+  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
 
   # asthetic changes
   crs_default: 4326 #default coordinate system 
@@ -82,6 +82,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_spatial.R"),loca
 
 # the following will no longer needed, since the input dataframe will either be facility or MP-level data
 #determining which type/level of map is being created (either 'source' or 'facility')
+<<<<<<< HEAD
 
 
 if (grepl('fac', facils_file)==TRUE) {
@@ -92,6 +93,10 @@ if (grepl('mp', facils_file)==TRUE) {
   type <- "source"
 }
 
+=======
+type <- "facility"
+#type <- "source"
+>>>>>>> 1f2a30ebbbea1cd1982a8bafd2c7ecf7b2bbcf17
 ```
 
 ```{r Load Dataframes Functions, echo=FALSE, warning=FALSE, results='hide'}
@@ -263,13 +268,29 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
   rsegs <- fn_centroid_coords(rsegs)
   #st_write(rsegs, paste0(export_path,"39_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
+    title1 <- paste0(facils_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+  
+  if (facils_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
+      title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
+  } else if (facils_file_map_bubble_column[i]=="wd_mgd"){
+          title <- gsub("wd_mgd", "Withdraw (MGD)", title1)
+  } else if (facils_file_map_bubble_column[i]=="gw_demand_mgd"){
+  title <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', title1)
+  } else if (facils_file_map_bubble_column[i]=="ps_mgd"){
+  title <- gsub("ps_mgd", "Point Source (MGD)", title1)
+  } else {
+    title <- title1
+  }
+  
+   # "runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy" 
+    
 ##Mapping function
   source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen2.R"),local = TRUE) #load mapping function
 
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
   suppressWarnings(suppressMessages( 
     fn_mapgen2(mapnum = 1, type, map_type, styles[[map_style]], metric = facils_file_map_bubble_column[i], rivseg, bbox, rsegs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit, title="default") ))
+          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -319,6 +340,13 @@ if (mapMessage == TRUE) {
 }
 ```
 ```{r Continued..(table1), echo=FALSE, message=FALSE, warning=FALSE}
+#create dataframe for human readable metric names- add here any new metric names being used and their readable version
+  read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy")
+  new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
+                    'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
+                    'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY")
+  metric_names <- data.frame(read_metric_name, new_metric_name)
+
 names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 #facils$within$hydroid <- as.numeric(gsub(",", "", facils$within$hydroid, fixed = TRUE))
 #create initial table
@@ -383,11 +411,25 @@ if (nrow(novals > 0)) {
 
 # Rename columns & create flextable
 #names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+
+for (i in 1:length(facils_file_table_column)) {
+  for (x in 1:nrow(metric_names)){
+    if (facils_file_table_column[i]==metric_names$read_metric_name[x])
+    {
+      names(table)[names(table)==facils_file_table_column[i]] <- metric_names$new_metric_name[x]
+    }
+    else
+    {
+      next
+    }
+  }
+}
+
+#names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 #write.csv(table, paste0(export_path,"44_table.csv"))
 
-ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left", map_type,metric = rivseg_metric[i], rivseg, title="default" ) #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left", map_type,metric = rivseg_metric[i], rivseg, title=title ) #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 
 
 ```
@@ -478,6 +520,8 @@ knitr::include_graphics(rivmapfilename)
 ```
 ```{r Continued..(table2), echo=FALSE, message=FALSE, warning=FALSE}
 #create metric type column
+
+  
 rivTables <- list() #to store dataframes for each drought metric
 #ftable<- list()
 for (k in 1:length(rivseg_metric)){ #loop thru metrics
@@ -491,10 +535,25 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
           # rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(st_drop_geometry( rsegs[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])] ), digits= 2)
           tmp_df <- st_drop_geometry(rsegs[i,paste0(runid_list[j],'_',rivseg_metric[k])])
           tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-          rivTables[[k]][i,paste0(runid_list[j])] <- round(tmp_df, digits = 2)
+          #rivTables[[k]][i,paste0(runid_list[j])] <- round(tmp_df, digits = 2)
           
+          for (x in 1:nrow(metric_names)){
+          if (runid_list[j]==metric_names$read_metric_name[x])
+          {
+            rivTables[[k]][i,paste0(metric_names$new_metric_name[x])] <- round(tmp_df, digits = 2)
+            #names(rivTables[[k]])[names(rivTables[[k]]) == runid_list[j]] <- metric_names$new_metric_name[row]
+            #names(rivTables[[k]]) <- mgsub(names(rivTables[[k]]), pattern= runid_list[j], replacement= metric_names$new_metric_name[x])
+          }
+          else
+          {
+            next
+          }
+        }
         }
    }
+  #names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+#names(table) <- mgsub(names(table), pattern="_", replacement=" ")
+
   #write.csv(rivTables[[k]], paste0(export_path,"51_rivTables_",rivseg_metric[k],".csv"))
   #format table columns, add percent difference 
  # rivTables[[k]][,paste0('Difference')] = round( st_drop_geometry(rsegs[,paste0('diff','_',rivseg_metric[k])]) ,digits= 2)
@@ -532,6 +591,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
     }
   }
   
+  
   title1 <- paste0(rivseg_metric[k]) #define title here for mapping so each map has diff metric title, pass into function
   
   if (rivseg_metric[k]=="l30_Qout"){
@@ -546,7 +606,6 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   
   
   ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left", map_type,  metric = rivseg_metric[k], rivseg, title=title) #Flextable function
-  
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }

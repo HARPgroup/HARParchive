@@ -18,7 +18,7 @@ crs_default <- 4326
 runid_list <- c("runid_11","runid_13")
 model_version <- c("vahydro-1.0")
 metric_mod <- c("wd_mgd")
-metric_feat <- c("wsp2020_2040_mgy")
+metric_feat <- c("fiveyr_avg_mgy")
 rivseg <- "PU6_3730_3750"
 rivseg_metric <- c("l30_Qout","7q10")
 locality <- "Fauquier"
@@ -363,11 +363,11 @@ facils <- unique(facils) #remove duplicated rows
 facils$vwp_max_mgy[is.na(facils$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why exactly NAs still exist
 # st_write(facils, paste0(export_path,"26_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 if(type=="facility"){
-  st_write(facils, paste0(export_path,rivseg,"_facils_sf2.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(facils, paste0(export_path,rivseg,"_facils_sf4.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(type=="source"){
   facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(facils, paste0(export_path,rivseg,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(facils, paste0(export_path,rivseg,"_mp_sf4.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 rm(fac_model_data)
 #```
@@ -431,7 +431,7 @@ for (k in 1:length(rivseg_metric)){
   rsegs <- sqldf_sf(statemt, geomback="rsegs")
 }
 # st_write(rsegs, paste0(export_path,"28_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(rsegs, paste0(export_path,rivseg,"_rsegs2_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,rivseg,"_rsegs_sf4.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(colname1)
 rm(colname2)
 #```
