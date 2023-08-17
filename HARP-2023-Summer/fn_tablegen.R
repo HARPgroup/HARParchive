@@ -70,7 +70,7 @@ if (type == 'facility') { #facility tables need more editing then riverseg at th
  
    if (title == "default"){
     if (map_type == "basin") {
-      title <- (paste("Basins Above", rsegs$name[rsegs$riverseg==rivseg] , rivseg, ",", metric, sep=" ") )
+      title <- (paste("Basins Above" , rivseg, ",", metric, sep=" ") )
     } else if (map_type == "locality") {
       title <- paste0(locality, " Locality, ", metric)
     }  else if (map_type == "region") {
@@ -79,7 +79,7 @@ if (type == 'facility') { #facility tables need more editing then riverseg at th
   }
   else {
     if (map_type == "basin") {
-      title <- ( paste("Basins Above", rsegs$name[rsegs$riverseg==rivseg], rivseg, ",", title, sep=" ") )
+      title <- ( paste("Basins Above", rivseg, ",", title, sep=" ") )
     } else if (map_type == "locality") {
       title <- paste0(locality, " Locality, ", title)
     }  else if (map_type == "region") {
