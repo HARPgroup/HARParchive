@@ -17,19 +17,22 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),lo
 crs_default <- 4326
 runid_list <- c("runid_11","runid_13")
 model_version <- c("vahydro-1.0")
-metric_mod <- c("wd_mgd")
-metric_feat <- c("fiveyr_avg_mgy")
-rivseg <- "PU6_3730_3750"
-rivseg_metric <- c("l30_Qout","7q10")
-locality <- "Fauquier"
-region <- "NA"   
-map_type <- "locality"
-limit <- "basins"
-#type <- "facility"
-type <- "source"
-################################################################
-################################################################
 
+#rivseg <- "PU6_3730_3750"  << these are now combined into one variable 'origin' to describe what
+#locality <- "Fauquier"         area the map will be centered around, and the variable 'origin_type'
+#region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
+origin <- "JL7_7070_0001"
+origin_type <- "basin"
+featr_type <- "source"
+limit_featrs_to_origin <- "FALSE" #if TRUE -> featrs will be cutoff at the region/locality specified
+                                  #if FALSE --> all featrs in the associated basins will be plotted
+metric_mod <- c("wd_mgd")
+metric_feat <- c("wsp2020_2040_mgy")
+rivseg_metric <- c("l30_Qout","7q10")
+
+################################################################
+################################################################
+#----Functions----
 # returns the name of the geometry column in the data:
 geoCol <- function(data){
   colname <- grep("geo",colnames(data),value=TRUE)
@@ -57,14 +60,12 @@ sqldf_sf <- function(statemt, geomback="NA"){
     output <- dfs[["result"]]
   }
 }
-
-#```
 ##############################################################################
 ##############################################################################
 # the following will no longer needed, since the input dataframe will either be facility or MP-level data
-#determining which type/level of map is being created (either 'source' or 'facility')
-#type <- "facility"
-#type <- "source"
+#determining which featr_type/level of map is being created (either 'source' or 'facility')
+#featr_type <- "facility"
+#featr_type <- "source"
 
 ## Pull Data (Cleanup)
 #```{r Pull Data, echo=FALSE, message=FALSE, warning=FALSE}
@@ -76,7 +77,7 @@ facils <- list() #create empty list to store dfs
 facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv"))
 # write.csv(facils$foundatn_mp, paste0(export_path,"00_foundatn_mp.csv"))
 
-if (type=="facility") { 
+if (featr_type=="facility") { 
   #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   #create df of model run specifications for om_vahydro_metric_grid():
   df <- data.frame(runid=runid_list, model_version, metric=metric_mod) 
@@ -140,7 +141,7 @@ counties$fips <- with(counties, sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
 counties <- counties$fips[grep(51,counties$fips$dh_fips),]
 counties <- st_as_sf(counties, wkt = geoCol(counties), crs=crs_default) #convert to sf based on geometry column found by geoCol() (developer-defined fn above)
 # st_write(counties, paste0(export_path,"11_counties_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(counties, paste0(export_path,rivseg,"_counties_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 
 #----Regions----
@@ -161,7 +162,7 @@ rm(regions_split)
 #```
 
 #```{r Merging Facility Data, echo=FALSE, message=FALSE, warning=FALSE}
-if(type == "source"){
+if(featr_type == "source"){
   facils <- with(facils, 
                  foundatn_mp[foundatn_mp$Latitude!="" & foundatn_mp$Longitude!="" 
                              & !is.na(foundatn_mp$Latitude) & !is.na(foundatn_mp$Longitude) ,] #omits facilities with blank or NA geometry
@@ -169,7 +170,7 @@ if(type == "source"){
   facils <- st_as_sf(facils, coords=c("Longitude","Latitude"), crs=crs_default) #convert to sf
   # write.csv(facils, paste0(export_path,"13_facils.csv"))
 }
-if(type == "facility"){
+if(featr_type == "facility"){
   #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   facils$foundatn <- with(facils, sqldf("select foundatn_mp.*,
                     sum(fiveyr_avg_mgy) as sum
@@ -217,12 +218,12 @@ facils <- sf::st_join(facils, rsegs[ ,c("riverseg","hydroid",geoCol(rsegs)) ]) #
 
 #```{r Filter by Boundary Type, echo=FALSE, message=FALSE, warning=FALSE}
 #----Rsegs----
-if (map_type=="basin") { #finding upstream riversegs for basin maps 
-  for(i in rivseg){
-    if(i==rivseg[1]){
+if (origin_type=="basin") { #finding upstream riversegs for basin maps 
+  for(i in origin){
+    if(i==origin[1]){
       basin <- fn_extract_basin(st_drop_geometry(rsegs), i) #fn_extract_basin runs sqldf which can't handle sf geometry
     }
-    if(i!=rivseg[1]){
+    if(i!=origin[1]){
       basin <- rbind(basin, fn_extract_basin(st_drop_geometry(rsegs), i))
     }
   }
@@ -233,23 +234,21 @@ if (map_type=="basin") { #finding upstream riversegs for basin maps
   # st_write(rsegs, paste0(export_path,"20_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
   rm(basin)
-} else if (map_type=="locality") { #for locality level
-  rsegs <- st_filter(rsegs, counties[counties$name==locality, ]) #filter basins by locality (if REST is working)
-} else if (map_type=="region") { #for region level
-  region_OI <- regions[regions$region==region,] #extract region of interest for darker border around region 
-  region_sp <- as_Spatial(region_OI, cast=FALSE)
-  rsegs <- st_filter(rsegs, region_OI) #filter basins by the region given in params
+} else if (origin_type=="locality") { #for locality level
+  rsegs <- st_filter(rsegs, counties[counties$name==origin, ]) #filter basins by locality (if REST is working)
+} else if (origin_type=="region") { #for region level
+  rsegs <- st_filter(rsegs, regions[regions$region==origin,]) #filter basins by the region given in params
 }
 #----Sources/Facils----
 #Filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
-if (limit=="basins" | map_type=="basin") {
+if (limit_featrs_to_origin=="FALSE" | origin_type=="basin") {
   facils <- st_filter(facils, rsegs)
   # st_write(facils, paste0(export_path,"21_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-} else if (limit=="boundary"){
-  if(map_type=="locality"){
-    facils <- st_filter(facils, counties[counties$name==locality, ])
-  } else if (map_type=="region") {
-    facils <- st_filter(facils, region_OI)
+} else if (limit_featrs_to_origin=="TRUE"){
+  if(origin_type=="locality"){
+    facils <- st_filter(facils, counties[counties$name==origin, ])
+  } else if (origin_type=="region") {
+    facils <- st_filter(facils, regions[regions$region==origin,])
   }
 }
 #```
@@ -272,7 +271,7 @@ statemt <- paste("SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,",
                  "ORDER BY POPULATION DESC", sep=" ") 
 cities <- sqldf_sf(statemt)
 # write.csv(cities, paste0(export_path,"22_cities.csv"))
-write.csv(cities, paste0(export_path,rivseg,"_cities.csv"))
+write.csv(cities, paste0(export_path,"cities.csv"))
 
 #----Roads----
 roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
@@ -280,7 +279,7 @@ roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #prim
 roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
 names(roads) <- gsub("RTTYP", "CLASS", names(roads)) #re-name class column -> needed for fn_labelprep()
 # st_write(roads, paste0(export_path,"23_roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(roads, paste0(export_path,rivseg,"_roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 #```
 
@@ -362,12 +361,12 @@ facils <- sqldf_sf(statemt, geomback="facils")
 facils <- unique(facils) #remove duplicated rows 
 facils$vwp_max_mgy[is.na(facils$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why exactly NAs still exist
 # st_write(facils, paste0(export_path,"26_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-if(type=="facility"){
-  st_write(facils, paste0(export_path,rivseg,"_facils_sf4.csv"), layer_options = "GEOMETRY=AS_WKT")
+if(featr_type=="facility"){
+  st_write(facils, paste0(export_path,origin,"_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
-if(type=="source"){
+if(featr_type=="source"){
   facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(facils, paste0(export_path,rivseg,"_mp_sf4.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(facils, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 rm(fac_model_data)
 #```
@@ -431,7 +430,7 @@ for (k in 1:length(rivseg_metric)){
   rsegs <- sqldf_sf(statemt, geomback="rsegs")
 }
 # st_write(rsegs, paste0(export_path,"28_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(rsegs, paste0(export_path,rivseg,"_rsegs_sf4.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(colname1)
 rm(colname2)
 #```

@@ -29,12 +29,12 @@ params:
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  regions_file: "C:/HARP/Exports/regions_sf.csv"
-  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
+  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
+  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
 
-  # asthetic changes
+  # aesthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
@@ -346,7 +346,7 @@ names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exi
 table <- data.frame(
   Number= facils$NUM,
   Facility=facils$Facility,
-  HydroID = facils$hydroid)
+  HydroID = facils$Facility_hydroid)
 
 #for source type only add mp name and source type to table
 if (type=="source"){
