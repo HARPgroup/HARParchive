@@ -17,11 +17,7 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-#Load Smin_CPL function
-source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
-
-#save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
-#save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
+source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -115,11 +111,11 @@ wd_mgd <- wd_mgd + wd_imp_child_mgd
 if ("wd_cumulative_mgd" %in% cols) {
   wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
   if (is.na(wd_cumulative_mgd)) {
-    wd_cumulative_mgd = 0.0
+    wd_cumulative_mgd = wd_mgd
   }
 } else {
-  wd_cumulative_mgd = 0.0
-  dat$wd_cumulative_mgd <- wd_cumulative_mgd
+  wd_cumulative_mgd = wd_mgd
+  dat$wd_cumulative_mgd <- dat$wd_mgd
 }
 
 ps_mgd <- mean(as.numeric(dat$ps_mgd) )
@@ -129,11 +125,11 @@ if (is.na(ps_mgd)) {
 if ("ps_cumulative_mgd" %in% cols) {
   ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
   if (is.na(ps_cumulative_mgd)) {
-    ps_cumulative_mgd = 0.0
+    ps_cumulative_mgd = ps_mgd
   }
 } else {
-  ps_cumulative_mgd = 0.0
-  dat$ps_cumulative_mgd <- ps_cumulative_mgd
+  ps_cumulative_mgd = ps_mgd
+  dat$ps_cumulative_mgd <- dat$ps_mgd
 }
 
 ps_nextdown_mgd <- mean(as.numeric(dat$ps_nextdown_mgd) )
@@ -744,9 +740,14 @@ furl <- paste(
   sep = '/'
 )
 
-#Can't have negative values plotted in a FDC, replace neg Qbaseline w/ 0 
-datpd_pos <- datpd
-datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
+#FDC fails when plotting neg values, replace neg Qbaseline w/ 0 
+if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
+  datpd_pos <- datpd
+  datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
+  neg_message <- paste0('Some Qbaseline < 0, unreliable FDC')
+} else { 
+  datpd_pos <- datpd 
+}
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
@@ -776,6 +777,12 @@ dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
+
+#Message about Qbaseline < 0 ; to-do: add vahydro message export
+if (exists('neg_message')==TRUE){
+  print(neg_message)
+}
+
 ###############################################
 ###############################################
 

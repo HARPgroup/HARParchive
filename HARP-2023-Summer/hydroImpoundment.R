@@ -12,12 +12,7 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-#Load Smin_CPL function
-source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
-#source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #left for testing in R
-
-#save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
-#save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
+source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -153,7 +148,6 @@ if (imp_off==0) {
   # Find l30_year for calculation of Smin_L30
   l30 <- loflows["30 Day Min"];
   ndx = which.min(as.numeric(l30[,"30 Day Min"]));
-  l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
   l30_year = loflows[ndx,]$"year";
   
   # Prep for Smin_CPL function

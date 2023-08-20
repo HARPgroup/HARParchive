@@ -22,11 +22,7 @@ library(sqldf)
 library(ggnewscale)
 library(dplyr)
 
-#Load Smin_CPL function
-source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
-
-#save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
-#save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
+source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -79,19 +75,19 @@ if ("refill_pump_mgd" %in% cols) {
   }
 }
 cols <- names(dat)
-#add unmet demand 
-if (!("unmet_demand_mgd" %in% cols)) {
-  dat$unmet_demand_mgd = as.numeric(dat$impoundment_demand) - as.numeric(dat$impoundment_demand_met_mgd)
-}
-
-#add basedemand
+#add base demand
 if (!("base_demand_mgd" %in% cols)) {
   dat$base_demand_mgd = 0.0
 }
 
-#add Qintake - is it different from Qin?
+#add unmet demand 
+if (!("unmet_demand_mgd" %in% cols)) {
+  dat$unmet_demand_mgd = as.numeric(dat$base_demand_mgd) - as.numeric(dat$wd_mgd)
+}
+
+#add Qintake, also called Qriver or Qreach
 if (!("Qintake" %in% cols)) {
-  dat$Qintake = dat$impoundment_Qin
+  dat$Qintake = dat$Qriver
 }
 # yrdat will be used for generating the heatmap with calendar years
 yrdat <- dat
@@ -231,7 +227,6 @@ l90_year = loflows[ndx,]$"year";
 # Find l30_year for Smin_L30
 l30 <- loflows["30 Day Min"];
 ndx = which.min(as.numeric(l30[,"30 Day Min"]));
-l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
 l30_year = loflows[ndx,]$"year";
 
 
