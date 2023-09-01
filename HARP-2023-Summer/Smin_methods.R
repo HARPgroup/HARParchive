@@ -288,7 +288,7 @@ metric_data[is.na(metric_data)] <- 0 #replace NA storage values with 0
 
 #solve for WA
 metric_data$WA_L30_mgd = metric_data$l30_Qout_mgd - 0.9*(metric_data$l30_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL30_total 
-metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL30_total 
+metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL90_total 
 
 #WA as a % of flow 
 metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_mgd)*100
