@@ -175,10 +175,6 @@ for (i in 1:nrow(storage_data)) {
   storage_data$Smin_L90_nearexact_perday[i] <- (Smin_L90_nearexact / 90) / 3.069 #convert afd to mgd
   storage_data$Smin_L30_nearexact_perday[i] <- (Smin_L30_nearexact / 30) / 3.069
   
-  #convert afd to mgd 
-# storage_data$Smin_L30_nearexact_perday = storage_data$Smin_L30_nearexact_perday / 3.069
-# storage_data$Smin_L90_nearexact_perday = storage_data$Smin_L90_nearexact_perday / 3.069
-  
   ##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
   dayno_90 <- which.min(l90pd_df$Storage)
   dayno_30 <- which.min(l30pd_df$Storage)
@@ -186,9 +182,7 @@ for (i in 1:nrow(storage_data)) {
   storage_data$Smin_L90_exact_perday[i] <- Smin_L90_nearexact / dayno_90
   storage_data$Smin_L30_exact_perday[i] <- Smin_L30_nearexact / dayno_30
   
-  #Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
-  
-  ## workaround for when a min value is repeated, ex. 100s across all storage vals 
+  #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
   minstorage30yr <- min(l30yr_data$Storage)
   minstorage90yr <- min(l90yr_data$Storage)
   
@@ -198,7 +192,7 @@ for (i in 1:nrow(storage_data)) {
   yearMinRow30 <- which.min(l30yr_data$Storage) 
   yearMinRow90 <- which.min(l90yr_data$Storage)
 
-  if (n_mins30 > 1) {
+  if (n_mins30 > 1) {  # workaround for when a min value is repeated, ex. 100s across all storage vals 
     storage_data$min_in_pd30[i] <- TRUE
   } else {
     storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
@@ -243,10 +237,10 @@ approx_vs_nearexact <- data.frame(propname = storage_data$propname,
                        outside_pd30 = storage_data$outside_pd30)
 
 ##Getting other variables in the WA equation 
-#For a L90 scenario:
-#Qdem = l90_Qout(cfs)
-#Qbase = l90_Qout + wd_mgd - ps_mgd 
-#WA = Qdem - 0.9*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
+# For a L90 scenario:
+# Qdem = l90_Qout(cfs)
+# Qbase = l90_Qout + wd_mgd - ps_mgd 
+# WA = Qdem - 0.9*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
 
 df_metrics <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0','vahydro-1.0','vahydro-1.0'),
@@ -260,20 +254,20 @@ metric_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
+#convert cfs to mgd 
+metric_data$l30_Qout_mgd = metric_data$l30_Qout / 1.547
+metric_data$l90_Qout_mgd = metric_data$l90_Qout / 1.547
+
+
 metric_data <- sqldf('SELECT a.*, b.Smin_L30_approx_perday, b.Smin_L90_approx_perday
                    FROM metric_data as a
                    LEFT OUTER JOIN storage_data as b
-                   ON (a.riverseg = b.riverseg)')
-
-#replace NA storage values with 0
-metric_data[is.na(metric_data)] <- 0
-
-# names(metric_data)[names(metric_data) == 'Smin_L30_approx_perday'] <- 'SminL30afd_local' #storage in units of afd
-# names(metric_data)[names(metric_data) == 'Smin_L90_approx_perday'] <- 'SminL90afd_local'
-
-#We want to join impoundment data and riverseg data before using fn_extract_basin
+                   ON (a.riverseg = b.riverseg)') #joining rseg data to storage data
 
 #Linking riversegs with upstream impoundments 
+metric_data$SminL30_total <- NA #empty rows to distinguish upstream storage
+metric_data$SminL90_total <- NA 
+
 for (i in 1:nrow(metric_data)) {
   ups_imp <- fn_extract_basin(storage_data, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
   if (nrow(ups_imp) > 0) {
@@ -281,21 +275,20 @@ for (i in 1:nrow(metric_data)) {
     ups_df <- sqldf("select a.*
                     from storage_data as a
                     where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
-    metric_data$SminL30_upstream[i] <- sum(ups_df$Smin_L30_approx_perday) #sum storage available upstream (S in afd)
-    metric_data$SminL90_upstream[i] <- sum(ups_df$Smin_L90_approx_perday)
-    
-    #We want to designate whether storage is local, meaning within the same riverseg, or upstream 
+    metric_data$SminL30_total[i] <- sum(ups_df$Smin_L30_approx_perday) #sum storage available locally and upstream (S in afd)
+    metric_data$SminL90_total[i] <- sum(ups_df$Smin_L90_approx_perday)
     
   }
 }
 
-#convert cfs to mgd 
-metric_data$l90_Qout_mgd = metric_data$l90_Qout / 1.547
-metric_data$l30_Qout_mgd = metric_data$l30_Qout / 1.547
+colnames(metric_data)[which(names(metric_data) == "Smin_L30_approx_perday")] <- "SminL30_local"
+colnames(metric_data)[which(names(metric_data) == "Smin_L90_approx_perday")] <- "SminL90_local"
+
+metric_data[is.na(metric_data)] <- 0 #replace NA storage values with 0
 
 #solve for WA
-metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$Smin_L90_approx_perday 
-metric_data$WA_L30_mgd = metric_data$l30_Qout_mgd - 0.9*(metric_data$l30_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$Smin_L30_approx_perday 
+metric_data$WA_L30_mgd = metric_data$l30_Qout_mgd - 0.9*(metric_data$l30_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL30_total 
+metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL90_total 
 
 #WA as a % of flow 
 metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_mgd)*100
