@@ -87,7 +87,7 @@ if (grepl('fac', facils_file)==TRUE) {
 }
 
 if (grepl('mp', facils_file)==TRUE) {
-  type <- "source"
+  type <- "source"}
 # allows the usage of SQLDF with sf data frames:
 sqldf_sf <- function(statemt, geomback="NA"){
   #statement is any SQLDF string; reference the data frames per usual
@@ -229,8 +229,15 @@ nhd2 <- rbind( flow[,c("gnis_name", "class", "geometry")], wtbd[,c("gnis_name", 
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
+# Region 
 
-## Map 1:
+## Framing Text:
+Including how to use this doc per regulatory requirement.
+Include note that water is limited for your locality due to what was withdrawn upstream, and what needs to be left for downstream users.
+Ex. for Drought (reg section XXX), refer to summary document Drought section L90 maps.
+
+## State Plan 2020 demand - State Plan 2040 demand:
+### Map: 
 ```{r Remainder of the RMD, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
@@ -465,8 +472,10 @@ ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment 
 
 
 ```
+###Narrative note: 
+Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
 
-## Table 1:
+### Table:
 ```{r Viewing Table 1, echo=FALSE, out.width='100%', message=TRUE}
 if (tableMessage == TRUE) {
   message("Missing column indicates the metric requested does not exist for this table")
@@ -474,7 +483,8 @@ if (tableMessage == TRUE) {
 ft1 #display flextable
 ```
 
-## Rseg Map(s):
+## 2020/2040 Demand Scenarios Through Drought Metrics: L90 – 7Q10:
+### Map: 
 ```{r Continued..(map2), echo=FALSE, message=FALSE, warning=FALSE}
 #----Map/Table2----
 ## Need to adapt this for multiple maps
@@ -639,7 +649,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
 }
 ```
 
-## Rseg Table(s):
+### Table: 
 ```{r Viewing Rivseg Flextable, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 #result = 'asis' necessary 
 if (tablemessage2==TRUE) {
@@ -652,3 +662,30 @@ for (k in 1:length(rivseg_metric)){
 }
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
+
+### Narrative note: 
+
+Narrative summarizing highlights from maps/tables
+
+## Climate: State Plan Dry climate scenario - Climate differential scenario
+
+### Map 
+
+### Table
+
+### Narrative Note: 
+
+Narrative summarizing highlights from maps/tables
+
+## CU: Overall Change in Flow from State Plan
+
+### Map 
+
+### Table
+
+### Narrative Note: 
+
+# Locality Focus: 
+repeat above for localities
+
+# Region Appendix: 
