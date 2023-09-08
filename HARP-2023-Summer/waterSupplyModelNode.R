@@ -17,8 +17,7 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-#Load Smin_CPL function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
+source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -109,18 +108,30 @@ if (is.na(wd_imp_child_mgd)) {
 # combine these two for reporting
 wd_mgd <- wd_mgd + wd_imp_child_mgd
 
-wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
-if (is.na(wd_cumulative_mgd)) {
-  wd_cumulative_mgd = 0.0
+if ("wd_cumulative_mgd" %in% cols) {
+  wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
+  if (is.na(wd_cumulative_mgd)) {
+    wd_cumulative_mgd = wd_mgd
+  }
+} else {
+  wd_cumulative_mgd = wd_mgd
+  dat$wd_cumulative_mgd <- dat$wd_mgd
 }
+
 ps_mgd <- mean(as.numeric(dat$ps_mgd) )
 if (is.na(ps_mgd)) {
   ps_mgd = 0.0
 }
-ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
-if (is.na(ps_cumulative_mgd)) {
-  ps_cumulative_mgd = 0.0
+if ("ps_cumulative_mgd" %in% cols) {
+  ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
+  if (is.na(ps_cumulative_mgd)) {
+    ps_cumulative_mgd = ps_mgd
+  }
+} else {
+  ps_cumulative_mgd = ps_mgd
+  dat$ps_cumulative_mgd <- dat$ps_mgd
 }
+
 ps_nextdown_mgd <- mean(as.numeric(dat$ps_nextdown_mgd) )
 if (is.na(ps_nextdown_mgd)) {
   ps_nextdown_mgd = 0.0
@@ -254,37 +265,37 @@ if (is.na(unmet_demand_mgd)) {
 }
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
-# Smin_CPL metrics
-
-# Prep for Smin_CPL function
-start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
-end_date_30 <- paste0(l30_year,"-12-31")
-
-start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
-end_date_90 <- paste0(l90_year,"-12-31")
-
-# Calculate Smin_CPLs using function
-Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
-                               start_date = start_date_30, end_date = end_date_30,
-                               colname = "impoundment_Storage")
-
-Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
-                               start_date = start_date_90, end_date = end_date_90,
-                               colname = "impoundment_Storage")
-
-# Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
-Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
-Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
-
-# Set Smin metrics to 0 if impoundment is not active
-if (imp_off == 1) { 
+if (imp_off==0) {
+  # Smin_CPL metrics
+  start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
+  end_date_30 <- paste0(l30_year,"-12-31")
+  
+  start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
+  end_date_90 <- paste0(l90_year,"-12-31")
+  
+  # Calculate Smin_CPLs using function
+  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
+                                 start_date = start_date_30, end_date = end_date_30,
+                                 colname = "impoundment_Storage")
+  
+  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
+                                 start_date = start_date_90, end_date = end_date_90,
+                                 colname = "impoundment_Storage")
+  
+  # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
+  Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
+  Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
+  
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
+  
+} else if (imp_off == 1) {  # Set Smin metrics to 0 if impoundment is not active
   Smin_L30_mg <- 0
   Smin_L90_mg <- 0
+  
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 }
-
-# Post Smin metrics to vahydro
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 
 # Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
 if (syear <= 1990 && eyear >= 2000) {
@@ -729,6 +740,14 @@ furl <- paste(
   sep = '/'
 )
 
+#FDC fails when plotting neg values, replace neg Qbaseline w/ 0 
+if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
+  datpd_pos <- datpd
+  datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
+  neg_message <- paste0('Some Qbaseline < 0, unreliable FDC')
+} else { 
+  datpd_pos <- datpd 
+}
 
 png(fname, width = 700, height = 700)
 legend_text = c("Baseline Flow","Scenario Flow")
@@ -736,7 +755,7 @@ ymn <- 0
 ymx <- max(cbind(as.numeric(unlist(datpd[names(datpd)== base_var])),
                  as.numeric(unlist(datpd[names(datpd)== comp_var]))))
 fdc_plot <- hydroTSM::fdc(
-  cbind(datpd[names(datpd)== base_var], datpd[names(datpd)== comp_var]),
+  cbind(datpd_pos[names(datpd_pos)== base_var], datpd_pos[names(datpd_pos)== comp_var]),
   # yat = c(0.10,1,5,10,25,100,400),
   # yat = c(round(min(datpd),0),500,1000,5000,10000),
   # yat = seq(round(min(datpd),0),round(max(datpd),0), by = 500),
@@ -747,6 +766,8 @@ fdc_plot <- hydroTSM::fdc(
   # ylim=c(1.0, 5000),
   # ylim=c(min(datpd), max(datpd)),
   ylim=c(ymn, ymx),
+#  ylim=c(1, 100), #for an empty fdc when Qout & Qbaseline = 0 
+#  xlim=c(1,100), #for an empty fdc when Qout & Qbaseline = 0 
   cex.main=1.75,
   cex.axis=1.50,
   leg.cex=2,
@@ -756,6 +777,12 @@ dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
+
+#Message about Qbaseline < 0 ; to-do: add vahydro message export
+if (exists('neg_message')==TRUE){
+  print(neg_message)
+}
+
 ###############################################
 ###############################################
 

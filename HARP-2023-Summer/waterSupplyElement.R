@@ -22,8 +22,7 @@ library(sqldf)
 library(ggnewscale)
 library(dplyr)
 
-#Load Smin_CPL function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE)
+source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -75,7 +74,21 @@ if ("refill_pump_mgd" %in% cols) {
     pump_store = TRUE
   }
 }
+cols <- names(dat)
+#add base demand
+if (!("base_demand_mgd" %in% cols)) {
+  dat$base_demand_mgd = 0.0
+}
 
+#add unmet demand 
+if (!("unmet_demand_mgd" %in% cols)) {
+  dat$unmet_demand_mgd = as.numeric(dat$base_demand_mgd) - as.numeric(dat$wd_mgd)
+}
+
+#add Qintake, also called Qriver or Qreach
+if (!("Qintake" %in% cols)) {
+  dat$Qintake = dat$Qriver
+}
 # yrdat will be used for generating the heatmap with calendar years
 yrdat <- dat
 
@@ -214,49 +227,50 @@ l90_year = loflows[ndx,]$"year";
 # Find l30_year for Smin_L30
 l30 <- loflows["30 Day Min"];
 ndx = which.min(as.numeric(l30[,"30 Day Min"]));
-l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
 l30_year = loflows[ndx,]$"year";
 
-# Smin_CPL metrics
 
-# Prep for Smin_CPL function
-start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
-end_date_30 <- paste0(l30_year,"-12-31")
-
-start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
-end_date_90 <- paste0(l90_year,"-12-31")
-
-# Storage col could be a couple different names 
-if("local_impoundment_Storage" %in% cols) {
-  storagecol <- "local_impoundment_Storage"
-}
-if("impoundment_Storage" %in% cols) {
-  storagecol <- "impoundment_Storage"
-}
-
-# Calculate Smin_CPLs using function
-Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
-                               start_date = start_date_30, end_date = end_date_30,
-                               colname = storagecol)
-
-Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
-                               start_date = start_date_90, end_date = end_date_90,
-                               colname = storagecol)
-
-# Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
-Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
-Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
-
-# Set Smin metrics to 0 if impoundment is not active
-#imp_enabled used in this script instead of imp_off, and set to either TRUE or FALSE
-if (imp_enabled == FALSE) { 
+if (imp_enabled == TRUE) {
+  # Smin_CPL metrics
+  
+  # Prep for Smin_CPL function
+  start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
+  end_date_30 <- paste0(l30_year,"-12-31")
+  
+  start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
+  end_date_90 <- paste0(l90_year,"-12-31")
+  
+  # Storage col could be a couple different names 
+  if("local_impoundment_Storage" %in% cols) {
+    storagecol <- "local_impoundment_Storage"
+  }
+  if("impoundment_Storage" %in% cols) {
+    storagecol <- "impoundment_Storage"
+  }
+  
+  # Calculate Smin_CPLs using function
+  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
+                                 start_date = start_date_30, end_date = end_date_30,
+                                 colname = storagecol)
+  
+  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
+                                 start_date = start_date_90, end_date = end_date_90,
+                                 colname = storagecol)
+  
+  # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
+  Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
+  Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
+  
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
+  
+} else if (imp_enabled == FALSE) {  # Set Smin metrics to 0 if impoundment is not active
   Smin_L30_mg <- 0
   Smin_L90_mg <- 0
+  
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 }
-
-# Post Smin metrics to vahydro
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 
 ##### Define fname before graphing
 # hydroImpoundment lines 144-151
@@ -283,6 +297,7 @@ furl <- paste(
 
 ##### Define data for graph, just within that defined year, and graph it
 # Lal's code, lines 410-446 (412 commented out)
+
 if (sum(datdf$unmet_demand_mgd)==0) {
   # base it on flow since we have no unmet demand.
   dsql <- paste(
