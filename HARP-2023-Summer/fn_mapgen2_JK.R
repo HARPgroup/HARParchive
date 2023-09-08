@@ -21,28 +21,27 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
 ## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
-fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
-                       nhd, maplabs, locality, region, mp_layer, metric_unit, title) { 
+fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, rsegs, counties, roads,
+                      nhd, maplabs, locality, region, mp_layer, metric_unit, title) { 
   
-  ## set vars for testing:
-  # mapnum = 1
-  # type = type
-  # map_type = map_type
-  # style = styles[[map_style]]
-  # metric = facils_file_map_bubble_column[i] #map_by[i]
-  # rivseg = rivseg
-  # bbox = bbox
-  # rsegs = rsegs
-  # counties = counties
-  # roads = roads
-  # nhd = nhd
-  # maplabs = maplabs
-  # locality = locality
-  # region = region
-  # mp_layer = mp_layer
-  # metric_unit = metric_unit
-  # title = "default"
-  #
+  mapnum = 1
+  type = type
+  map_type = map_type
+  style = styles[[map_style]]
+  metric = map_by[i]
+  rivseg = rivseg
+  bbox = bbox
+  rsegs = rsegs
+  counties = counties
+  roads = roads
+  nhd = nhd
+  maplabs = maplabs
+  locality = locality
+  region = region
+  mp_layer = mp_layer
+  metric_unit = metric_unit
+  title = "default"
+  
   
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
@@ -63,7 +62,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   
   # join with sqldf 
   maplabs$final <- sqldf(
-    "SELECT text_aes.*, maplabs_all.label,maplabs_all.lat, maplabs_all.lng
+    "SELECT text_aes.*, maplabs_all.*  
     FROM text_aes 
     LEFT OUTER JOIN maplabs_all
       on (maplabs_all.class = text_aes.class)"
@@ -99,7 +98,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   
   st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
   
-  #labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
+  labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
   class(labelsP$bg.r) = "numeric"
   
   # Legend & Titling
@@ -107,15 +106,16 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   
   if (title == "default"){
     if (map_type == "basin") {
-      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, ",", metric, sep=" ") )
+      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, metric, sep=" ") )
     } else if (map_type == "locality") {
       title <- paste0(locality, " Locality, ", metric)
     }  else if (map_type == "region") {
       title <- paste0(region, " Region, ", metric)
     } 
-  } else {
+  }
+  else {
     if (map_type == "basin") {
-      title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, ",", title, sep=" ") )
+      title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, title, sep=" ") )
     } else if (map_type == "locality") {
       title <- paste0(locality, " Locality, ", title)
     }  else if (map_type == "region") {
@@ -142,17 +142,14 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # Tidal riversegs
   rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE))
   
-  region_OI <- regions[regions$region==region,]
-  
   # Merging Borders into 1 df
   borders <- data.frame( counties[,"name"] , bundle= rep("county", nrow(counties)) )
-  names(borders) <- c("name", "geometry", "bundle")
-  #st_geometry(rsegs) <- "geom"
-  #st_crs(rsegs) <- crs(borders)
-  borders <- rbind(borders, data.frame( rsegs[,c("name", "bundle")] )  )
+  names(borders) <- c("name", "geom", "bundle")
+  borders <- rbind(borders, rsegs[c("name","bundle")] )
   if (map_type=="region") {
-    st_geometry(region_OI) <- "geometry"
-    region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[geoCol(region_OI)] )
+    # st_geometry(region_OI) <- "geom"
+    region_OI <- data.frame(name="region", bundle="region", geom=region_OI[geoCol(region_OI)] )
+    names(region_OI) <- c("name", "geom", "bundle")
     borders <- rbind(borders, region_OI)
   }
   borders <- st_as_sf(borders)
@@ -236,33 +233,30 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
                       name= "Borders")  
   }
   map <- map + 
-    new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
+    new_scale("color") + new_scale("fill") +
     # Road Lines
     geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
     # City Points
-    new_scale("color") + new_scale("size") +
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
                aes(x=lng, y=lat), color= colors_sf["citypts",], size=2) +
     # Facility Labels Placeholder (to have other labels repel)
     geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
     # Road Labels
-    new_scale("color") + new_scale("fill") +
-    
     geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ],
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
                          color=as.factor(colcode), 
-                         fill=fillcode
+                         fill=as.factor(fillcode)
                      ), 
                      show.legend=NA,
                      size=textsize[1],
                      label.r=0.6, label.size=0.12, 
-                     max.overlaps=4
+                     max.overlaps=2
     ) +
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
-                        labels=c("Interstate","State Route", "US Hwy"), name="Roads") + 
+                        labels=c("Interstate","State Route", "US Hwy"), name="") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), 
-                      labels=c("Interstate","State Route", "US Hwy"), name="Roads") +
+                      labels=c("Interstate","State Route", "US Hwy"), name="" ) +
     
     # Rivseg Tidal Labels- not fully functional
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
@@ -290,28 +284,23 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   if (type == "source") {
     map <- map +
       # Plotting using bins in a single layer:
-      new_scale("size") + new_scale("color") + 
+      new_scale("size") + new_scale("color") +
       
       geom_point(data = mp_layer_plot, aes(x = lng, y = lat, 
-                                           color = Source.Type, size = bin),
+                                           color = 'Source Type', size = bin), 
                  shape = 19) +
       
-      scale_size_binned(range = c(2,20),
-                        breaks = breaks,
+      scale_size_binned(range = c(2,20), 
+                        breaks = breaks, 
                         labels = labs,
                         limits = lims,
-                        name = legend_title[1],
-                        guide= guide_legend(override.aes=list(color = colors_metric["Groundwater",],
-                                                              fill = colors_metric["Surface Water",],
-                                                              stroke = seq(3,7,length.out=length(breaks)),
-                                                              shape=21 ))
-                        ) +
+                        name = legend_title[1]) +
       
       scale_colour_manual(values= colors_metric[c("Surface Water", "Groundwater"),] ,
                           breaks= c("Surface Water", "Groundwater"),
                           labels= c("Surface Water", "Groundwater"),
                           name= "Source Type",
-                          guide= guide_legend(override.aes=list(size=9))
+                          #guide= guide_legend(override.aes=list(label="", size =5))
       )            
   }  else if (type == "facility") { ## Plotting facilities 
     map <- map + 

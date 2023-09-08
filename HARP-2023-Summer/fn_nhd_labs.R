@@ -1,6 +1,10 @@
 #NHD data labeling prep -- originally part of fn_labelprep.R
 # for current specific use:
 # data = nhd
+
+# JK 8.8.23: Need to load the config file for this to run
+# Will need to explicitly pass in params such as nhd_rivname_pattern
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
 fn_nhd_labs <- function(data) {
 
   for(d in 1:length(data)){
@@ -12,7 +16,7 @@ fn_nhd_labs <- function(data) {
     ## no duplicate names; prioritize higher order names and then the longest segment of each duplicate
     flow <- flow[order(-flow$StreamOrde, flow$gnis_name, -flow$LENGTHKM) & !duplicated(flow$gnis_name),]
     ## shorten long names
-    flow$gnis_name <- mgsub(flow$gnis_name, 
+    flow$gnis_name <- mgsub(flow$gnis_name,
                             nhd_rivname_pattern, #pattern
                             nhd_rivname_replacements) #replacement
     flow$StreamOrde <- mgsub(flow$StreamOrde, nhd_streamorders, nhd_streamclasses)
