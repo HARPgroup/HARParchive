@@ -744,9 +744,10 @@ furl <- paste(
 if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
   datpd_pos <- datpd
   datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
-  neg_message <- paste0('Some Qbaseline < 0, unreliable FDC')
+  exp_message <- TRUE
 } else { 
-  datpd_pos <- datpd 
+  datpd_pos <- datpd
+  exp_message <- FALSE
 }
 
 png(fname, width = 700, height = 700)
@@ -778,9 +779,9 @@ dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
 
-#Message about Qbaseline < 0 ; to-do: add vahydro message export
-if (exists('neg_message')==TRUE){
-  print(neg_message)
+#Send vahydro message about Qbaseline < 0 
+if (exp_message == TRUE){
+ ## vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'remaining_days_p50', remaining_days_p50, ds)
 }
 
 ###############################################
