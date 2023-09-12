@@ -15,12 +15,15 @@ library(rmarkdown)
 
 # Address of "DEQ_Model_vs_USGS_Comparison" folder
 # Include "DEQ_Model_vs_USGS_Comparison" in address!
-container.master <- "C:\\Users\\Daniel\\Documents\\HARP\\GitHub\\hydro-tools\\HARP-2018\\DEQ_Model_vs_USGS_Comparison"
+##container.master <- "C:\\Users\\Daniel\\Documents\\HARP\\GitHub\\hydro-tools\\HARP-2018\\DEQ_Model_vs_USGS_Comparison"
+##container.master <- "C:/aa_HARP/aa_GitHub/HARParchive/HARP-2018-2019/DEQ_Model_vs_USGS_Comparison"
+container.master <- "C:\\aa_HARP\\aa_GitHub\\HARParchive\\HARP-2018-2019\\DEQ_Model_vs_USGS_Comparison"
+
 
 # USGS Gage number
 # If "all" is inputted as siteNo.master, analysis will be run for ALL gages
 # stored in the Gage.To.Segment.csv file.
-siteNo.master <- "all"
+siteNo.master <- "02077500"
 
 # Should new or original data be used?
 new.or.original.master <- "new"

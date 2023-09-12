@@ -10,9 +10,10 @@ output:
 # Address of "DEQ_Model_vs_USGS_Comparison" folder
 # Include "DEQ_Model_vs_USGS_Comparison" in address!
 container <- "C:\\Users\\Daniel\\Documents\\HARP\\GitHub\\hydro-tools\\HARP-2018\\DEQ_Model_vs_USGS_Comparison"
+container <- "C:\\aa_HARP\\aa_GitHub\\HARParchive\\HARP-2018-2019\\DEQ_Model_vs_USGS_Comparison"
 
 # USGS Gage number
-siteNo <- "03531500"
+siteNo <- "02077500"
 # CARRYOVER IF MASTER IS BEING RUN ----------------------------------------
 if (exists("container.master") == TRUE) {
   container <- container.master
@@ -38,13 +39,18 @@ new.or.original <- "original"
 
 site <- "http://deq2.bse.vt.edu/d.bet"    #Specify the site of interest, either d.bet OR d.dh
 
-basepath='C:\\Users\\Daniel\\Documents\\HARP\\GitHub\\hydro-tools';
+##basepath='C:\\Users\\Daniel\\Documents\\HARP\\GitHub\\hydro-tools';
+basepath='/var/www/R'
 
 source(paste(basepath,'config.local.private',sep='/'));
 source(paste(hydro_tools,"VAHydro-2.0/rest_functions.R", sep = "/")); 
-source(paste(hydro_tools, "HARP-2018/DEQ_Model_vs_USGS_Comparison/code/fn_gage+seg_mapper.R", sep = "/"));
+##source(paste(hydro_tools, "HARP-2018/DEQ_Model_vs_USGS_Comparison/code/fn_gage+seg_mapper.R", sep = "/"));
+source(paste(github_location,"/HARParchive/HARP-2018-2019/DEQ_Model_vs_USGS_Comparison/code/fn_gage+seg_mapper.R", sep = "/"));
+
 #retrieve rest token
-source(paste(hydro_tools,"auth.private", sep = "/"));#load rest username and password, contained in auth.private file
+##source(paste(hydro_tools,"auth.private", sep = "/"));#load rest username and password, contained in auth.private file
+source('/var/www/R/config.R') 
+
 token <- rest_token(site, token, rest_uname, rest_pw);
 options(timeout=120); # set timeout to twice default level to avoid abort due to high traffic
 
@@ -81,7 +87,13 @@ if (new.or.original == "new") {
 description <- read_file(paste0(container, "\\gage_descriptions\\", siteNo, ".txt"))
 
 # TEXT ------
-data <- read.csv(paste0(container, container.cont, "\\derived_data\\trimmed+area-adjusted_data\\",siteNo,"_vs_",RivSeg, " - Derived Data.csv"))
+##data <- read.csv(paste0(container, container.cont, "\\derived_data\\trimmed+area-adjusted_data\\",siteNo,"_vs_",RivSeg, " - Derived Data.csv"))
+
+### megan's insert! ###
+if (new.or.original == "original"){
+  data <- read.csv(paste0(container, container.cont, "\\raw_data\\merged_data\\",siteNo,"_vs_",RivSeg, " - Raw Data.csv"))
+}
+####
 
 # GIS ------
 # Generating gage location maps
