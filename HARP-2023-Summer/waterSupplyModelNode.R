@@ -745,10 +745,10 @@ furl <- paste(
 if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
   datpd_pos <- datpd
   datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
-  exp_message <- TRUE
+  subtitle <- 'Unreliable FDC caused by Qbaseline < 0'
 } else { 
   datpd_pos <- datpd
-  exp_message <- FALSE
+  subtitle <- ''
 }
 
 png(fname, width = 700, height = 700)
@@ -764,6 +764,7 @@ fdc_plot <- hydroTSM::fdc(
   yat = c(1, 5, 10, 50, 100, seq(0,round(ymx,0), by = 500)),
   leg.txt = legend_text,
   main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
+  sub=subtitle, #new, can sub = ' ' be used here to set a subtitle if Qbaseline < 0 ??
   ylab = "Flow (cfs)",
   # ylim=c(1.0, 5000),
   # ylim=c(min(datpd), max(datpd)),
@@ -780,10 +781,6 @@ dev.off()
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
 
-#Send vahydro message about Qbaseline < 0 
-if (exp_message == TRUE){
- ## vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'remaining_days_p50', remaining_days_p50, ds)
-}
 
 ###############################################
 ###############################################
