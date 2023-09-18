@@ -17,8 +17,8 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-source(paste0(github_location, "/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
-#source('https://github.com/HARPgroup/om/tree/master/R/summarize/fn_get_pd_min.R')
+source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/fn_get_pd_min.R") #for testing 
+#source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R')
 
 #Temporary:
 save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
