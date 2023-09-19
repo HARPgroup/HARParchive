@@ -1,11 +1,12 @@
 #Function to calculate a minimum value in timeseries data over a period of time 
 library(zoo)
-library(stats)
+library(stats) #for window
+library(sqldf)
 
 #ts_data : timeseries data, either a data frame or zoo
+#start/end_date : dates to trim ts_data by
 #colname : column name of interest in ts_data 
-#start/end_date : dates to trim ts_data by 
-
+ 
 fn_get_pd_min <- function(ts_data, start_date, end_date, colname) {
 
   #format dates provided
