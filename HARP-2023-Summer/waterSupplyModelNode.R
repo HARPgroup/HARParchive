@@ -749,7 +749,7 @@ furl <- paste(
 if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
   datpd_pos <- datpd
   datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
-  subtitle <- '*Unreliable FDC caused by Qbaseline < 0'
+  subtitle <- '*Unreliable FDC caused by Baseline Flow < 0'
 } else { 
   datpd_pos <- datpd
   subtitle <- ''
@@ -779,7 +779,7 @@ fdc_plot <- hydroTSM::fdc(
   leg.cex=2,
   cex.sub = 1.2
 )
-title(sub = subtitle, adj = 0.8, line = 0.8)
+title(sub = subtitle, adj = 0.85, line = 0.8)
 dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
