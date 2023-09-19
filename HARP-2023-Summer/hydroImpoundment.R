@@ -159,12 +159,10 @@ if (imp_off==0) {
   end_date_90 <- paste0(l90_year,"-12-31")
   
   # Calculate Smin_CPLs using function
-  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
-                            start_date = start_date_30, end_date = end_date_30,
+  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_30, end_date = end_date_30,
                             colname = "Storage")
   
-  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
-                            start_date = start_date_90, end_date = end_date_90,
+  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_90, end_date = end_date_90,
                             colname = "Storage")
   
   # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet

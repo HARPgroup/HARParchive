@@ -108,10 +108,8 @@ for (i in 1:nrow(storage_data)) {
   )
   
    ##Approximate method: Smin within low-flow years:
-   Smin_L90_approx <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90, 
-                                    start_date = l90_start, end_date = l90_end, colname = "Storage")
-   Smin_L30_approx <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30, 
-                                    start_date = l30_start, end_date = l30_end, colname = "Storage")
+   Smin_L90_approx <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
+   Smin_L30_approx <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
   
   #storage_data$Smin_L90_approx_perday[i] <- storage_data$SminL90mg_11[i] / 90
   #storage_data$Smin_L30_approx_perday[i] <- storage_data$SminL30mg_11[i] / 30
