@@ -17,8 +17,12 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-source(paste0("~/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #Load Smin function
-#source('https://github.com/HARPgroup/om/tree/master/R/summarize/fn_get_pd_min.R')
+source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/fn_get_pd_min.R") #for testing 
+#source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R')
+
+#Temporary:
+save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
+save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -275,12 +279,10 @@ if (imp_off==0) {
   end_date_90 <- paste0(l90_year,"-12-31")
   
   # Calculate Smin_CPLs using function
-  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 30,
-                                 start_date = start_date_30, end_date = end_date_30,
+  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_30, end_date = end_date_30,
                                  colname = "impoundment_Storage")
   
-  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, critical_pd_length = 90,
-                                 start_date = start_date_90, end_date = end_date_90,
+  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_90, end_date = end_date_90,
                                  colname = "impoundment_Storage")
   
   # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
@@ -745,10 +747,10 @@ furl <- paste(
 if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
   datpd_pos <- datpd
   datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
-  exp_message <- TRUE
+  subtitle <- '*Unreliable FDC caused by Baseline Flow < 0'
 } else { 
   datpd_pos <- datpd
-  exp_message <- FALSE
+  subtitle <- ''
 }
 
 png(fname, width = 700, height = 700)
@@ -775,15 +777,12 @@ fdc_plot <- hydroTSM::fdc(
   leg.cex=2,
   cex.sub = 1.2
 )
+title(sub = subtitle, adj = 0.85, line = 0.8)
 dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
 vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.fdc', 0.0, ds)
 
-#Send vahydro message about Qbaseline < 0 
-if (exp_message == TRUE){
- ## vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'remaining_days_p50', remaining_days_p50, ds)
-}
 
 ###############################################
 ###############################################
