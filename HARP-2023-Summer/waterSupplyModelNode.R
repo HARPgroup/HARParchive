@@ -768,7 +768,7 @@ fdc_plot <- hydroTSM::fdc(
   yat = c(1, 5, 10, 50, 100, seq(0,round(ymx,0), by = 500)),
   leg.txt = legend_text,
   main=paste("Flow Duration Curve","\n","(Model Flow Period ",sdate," to ",edate,")",sep=""),
-  sub=subtitle, #new, can sub = ' ' be used here to set a subtitle if Qbaseline < 0 ??
+  title(sub = subtitle, adj = 0.25, line = 0.2),
   ylab = "Flow (cfs)",
   # ylim=c(1.0, 5000),
   # ylim=c(min(datpd), max(datpd)),
