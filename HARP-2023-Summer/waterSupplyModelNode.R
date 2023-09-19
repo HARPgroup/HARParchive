@@ -779,7 +779,7 @@ fdc_plot <- hydroTSM::fdc(
   leg.cex=2,
   cex.sub = 1.2
 )
-title(sub = subtitle, adj = 0.1, line = 0.8)
+title(sub = subtitle, adj = 0.8, line = 0.8)
 dev.off()
 
 print(paste("Saved file: ", fname, "with URL", furl))
