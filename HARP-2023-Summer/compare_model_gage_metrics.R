@@ -6,19 +6,52 @@ ds$get_token(rest_pw)
 
 options(scipen = 999) #disable scientific notation
 
-#runid_list <- c("runid_11","runid_11")
-#model_version <- c("vahydro-1.0","usgs-1.0")
-#metric_mod <- c("l90_Qout","90 Day Min Low Flow")
-#metric_mod <- c("7q10")
-#runlabel <- c("Model_7q10","Gage_7q10")
-#df <- data.frame(runid=runid_list, model_version, metric=metric_mod, runlabel) 
+runid_list <- c("runid_11","runid_13")
+model_versions <- c("vahydro-1.0","usgs-1.0")
+metrics <- c("7q10","l30_Qout","l90_Qout")
 
+mv_names <- gsub("-|[.]", "", model_versions)
+for(r in 1:length(runid_list)){
+  for(i in 1:length(metrics)){ #generate runlabels for Model/Gage per each metric
+    for(v in 1:length(model_versions)){
+      if(v==1 & i==1 & r==1){
+        if(length(grep('usgs', model_versions[v], invert=TRUE, ignore.case=TRUE)) == 1){ #model data
+          runlabel <- paste0("Model_",metrics[i],"_",runid_list[r],"_", mv_names[v])
+        }
+        if(length(grep('usgs', model_versions[v], ignore.case=TRUE)) == 1){ #gage data
+          runlabel <- paste0("Gage_",metrics[i],"_",runid_list[r],"_", mv_names[v])
+        }
+      }
+      else{
+        if(length(grep('usgs', model_versions[v], invert=TRUE, ignore.case=TRUE)) == 1){ #model data
+          runlabel <- c(runlabel, paste0("Model_",metrics[i],"_",runid_list[r],"_", mv_names[v]))
+        }
+        if(length(grep('usgs', model_versions[v], ignore.case=TRUE)) == 1){ #gage data
+          runlabel <- c(runlabel, paste0("Gage_",metrics[i],"_",runid_list[r],"_", mv_names[v]))
+        }
+      }
+    }
+    if(i==1){
+      metric <- rep(metrics[i], length(model_versions))
+    }else{
+      metric <- c(metric, (rep(metrics[i], length(model_versions))) )
+    }
+  }
+  if(r==1){
+    rep_runid <- length(runlabel)
+    runid <- rep(runid_list[r], rep_runid)
+  }else{
+    runid <- c(runid, rep(runid_list[r], rep_runid) )
+  }
+}
+
+#create df to pass into om_vahydro_metric_grid() ; this is robust for the future if more than 1 runid
 df <- data.frame(
-  'model_version' = c('vahydro-1.0', 'usgs-1.0', 'vahydro-1.0', 'usgs-1.0', 'vahydro-1.0', 'usgs-1.0'),
-  'runid' = c('runid_11', 'runid_11', 'runid_11', 'runid_11', 'runid_11', 'runid_11'),
-  'metric' = c('7q10','7q10', 'l30_Qout', 'l30_Qout', 'l90_Qout', 'l90_Qout'),
-  'runlabel' = c('Model_7q10','Gage_7q10', 'Model_L30','Gage_L30', 'Model_L90','Gage_L90')
-)
+  'model_version' = rep(model_versions, length(metrics)),
+  'runid' = runid,
+  'metric' = metric,
+  'runlabel' = runlabel
+) 
 
 #pull metrics 
 metric_data <- om_vahydro_metric_grid(
