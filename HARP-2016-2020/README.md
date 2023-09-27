@@ -1,0 +1,2 @@
+See elfgen repo (live CRAN repo): https://github.com/HARPgroup/elfgen
+See r-dh-ecohydro repo (outdated dev repo): https://github.com/HARPgroup/r-dh-ecohydro

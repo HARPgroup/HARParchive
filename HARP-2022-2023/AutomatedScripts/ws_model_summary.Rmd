@@ -1,0 +1,964 @@
+---
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+author: ""
+title: "`r params$doc_title`"
+output: 
+  officedown::rdocx_document:
+    mapstyles:
+      Normal: ['First Paragraph']
+    page_margins:
+      bottom: 0.5
+      top: 0.5
+      right: 1
+      left: 0.5
+      header: 0.0
+      footer: 0.0
+params: 
+  doc_title: "Comparison of Two VaHydro Models"
+  rseg.file.path: [ "/media/model/p6/out/river/hsp2_2022/hydr/JA4_7280_7340_hydrd_wy.csv", "/media/model/p6/out/river/subsheds/hydr/JA4_7280_7340_hydrd_wy.csv" ]
+  rseg.hydrocode: [ "JA4_7280_7340","vahydrosw_wshed_JA4_7280_7340" ]
+  rseg.ftype: [ "cbp60","vahydro" ]
+  rseg.model.version: [ "cbp-6.0","cbp-6.1" ]
+  runid.list: [ "hsp2_2022","subsheds" ]
+  ftable.submod:  [ "p6", "p6"] #either p6 or p532, p6 will have /vadeq added automatically
+  ftable.id: [ "vahydro_2022", "vahydro_2022"] #after /river/ and before /ftables in path
+  seg: ["JA4_7280_7340", "JA4_7280_7340"] #needed to pull LEN from ftable HYDR file?
+  rseg.metric.list: [ "Qout","l90_Qout","l30_Qout","l07_Qout","l01_Qout","consumptive_use_frac","wd_cumulative_mgd","ps_cumulative_mgd","wd_mgd","ps_mgd" ]
+  #rseg.hydrocode: [ "JL1_7202_7200", "vahydrosw_wshed_JL1_7202_7200" ] #Black Creek Reservoir
+  #rseg.ftype: [ "vahydro", "vahydro"]
+  #rseg.model.version: [ "cbp-6.1", "cbp-6.1"]
+  #runid.list: ["subsheds", "p6ss"]
+---
+
+```{r setup, include=FALSE}
+#https://cran.r-project.org/web/packages/officedown/officedown.pdf
+#https://ardata-fr.github.io/officeverse/officedown-for-word.html#insert-sections
+knitr::opts_chunk$set(echo = TRUE, fig.cap = TRUE)
+library(officedown)
+library(officer)
+library(flextable)
+library(hydrotools)
+library(rjson)
+library(cowplot)
+library(gridExtra)
+library(grid)
+library(png)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+
+site <- 'http://deq1.bse.vt.edu/d.dh'
+esite <- 'http://deq1.bse.vt.edu:81'
+json_obj_url <- paste(site, "node/62", sep ="/")
+
+ds <- RomDataSource$new("http://deq1.bse.vt.edu/d.dh", rest_uname)
+ds$get_token(rest_pw)
+# Load functions used during development
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/fn_get_prop.R")
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/rest_functions.R")
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/VAHydro-2.0/find_name.R")
+
+fp <- fp_par(
+  text.align = "center", 
+  padding.bottom = 20, padding.top = 120, 
+  border.bottom = fp_border())
+
+ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
+
+```
+
+# Table of contents
+```{r, echo = FALSE}
+block_toc()
+```
+
+```{r UserInputs, include=FALSE}
+rseg.filepath <- params$rseg.file.path
+rseg.hydrocode <- params$rseg.hydrocode
+rseg.ftype <- params$rseg.ftype
+rseg.model.version <- params$rseg.model.version
+runid.list <- params$runid.list
+rseg.metric.list <- params$rseg.metric.list
+
+rlist <- gsub('runid_', '', runid.list)
+
+# r <- 1
+for (r in 1:length(rseg.model.version)){
+  
+  # get rseg feature
+  rseg.hydrocode.r <- rseg.hydrocode[r]
+  rseg.ftype.r <- rseg.ftype[r]
+  rseg_feature <- RomFeature$new(
+    ds,
+    list(hydrocode = rseg.hydrocode.r, ftype = rseg.ftype.r),
+    TRUE
+  )
+  rseg.hydroid.r <- rseg_feature$hydroid
+  
+  # get rseg model
+  rseg.model.version.r <- rseg.model.version[r]
+  print(paste("searching", rseg.model.version.r,"model for river segment hydroid", rseg.hydroid.r))
+  rseg.model.r <- RomProperty$new(
+    ds,
+    list(entity_type='dh_feature', featureid = rseg.hydroid.r, propcode=rseg.model.version.r),
+    TRUE
+  )
+  
+  if (exists("json_obj_url")) {
+  rseg_obj_url.r <- paste(json_obj_url, rseg.model.r$pid, sep="/")
+  rseg_model_info.r <- ds$auth_read(rseg_obj_url.r, "text/json", "")
+  rseg_model_info.r <- fromJSON(rseg_model_info.r)
+  } else {
+  message("Error: json_obj_url is undefined.  Can not retrieve model and scenario information. (Hint: Use config.R
+          to set json_obj_url) ")
+  rseg_model_info.r <- list()
+  }
+  
+  # stash the model run data into a combined list
+  if (r == 1){
+    dat <- rseg_model_info.r
+  } else {
+    dat <- cbind(dat,rseg_model_info.r)
+  }
+  
+  # retrieve metrics for a run
+  runid.r <- runid.list[r]
+  rseg_table.r <- om_model_table(model_info = rseg_model_info.r,
+                             runid.list = runid.r,
+                             metric.list = rseg.metric.list,
+                             include.elfgen = TRUE,
+                             site = site,
+                             site_base = omsite
+                             )
+
+  # join results from multiple runs to a single dataframe & create captioning for later
+  if (r == 1){
+    rseg_metrics.df <- rseg_table.r
+  } else {
+    rseg_metrics.df <- cbind(rseg_metrics.df,rseg_table.r)
+  }
+
+}
+
+```
+
+The models compared in this document are:
+``` {r modelinfo, echo = FALSE, tab.cap = 'Properties of each model compared in this document.', tab.id="modelinfo", warning = FALSE}
+for (r in 1:length(rseg.model.version)){
+  ftext.model.r <- paste(dat[[r]][[3]])
+  ftext.hcode.r <- paste(rseg.hydrocode[r])
+  ftext.ftype.r <- paste(rseg.ftype[r])
+  ftext.version.r <- paste(rseg.model.version[r])
+  ftext.id.r <- paste(runid.list[r])
+  
+  if (r == 1){
+    model.num <- paste("Model", r)
+    ftext.model <- ftext.model.r 
+    ftext.hcode <- ftext.hcode.r 
+    ftext.ftype <- ftext.ftype.r 
+    ftext.version <- ftext.version.r 
+    ftext.id <- ftext.id.r
+    title_param <- paste(ftext.model.r)
+  } else {
+    model.num <- cbind(model.num, paste("Model", r))
+    ftext.model <- cbind(ftext.model, ftext.model.r)
+    ftext.hcode <- cbind(ftext.hcode, ftext.hcode.r)
+    ftext.ftype <- cbind(ftext.ftype, ftext.ftype.r)
+    ftext.version <- cbind(ftext.version, ftext.version.r)
+    ftext.id <- cbind(ftext.id, ftext.id.r)
+    
+    model.comparison <- rbind(ftext.model,ftext.hcode, ftext.ftype,
+                              ftext.version, ftext.id)
+    colnames(model.comparison) <- c(model.num)
+    rownames(model.comparison) <- c("Model", "Hydrocode", "Ftype", "Model Version", 
+                                    "Run ID")
+    title_param <- paste(title_param, "vs", paste(ftext.model.r))
+  }
+}
+
+model.info <- model.comparison %>% as.data.frame() %>% add_rownames() %>% qflextable()
+
+# Set column widths
+model.info <- width(model.info, j = 2:(length(model.comparison[1,])+1), width = 1.9)
+model.info <- width(model.info, j = 1, width = 1)
+
+# Set theme
+model.info <- theme_box(model.info)
+
+# Set background color of select rows --------------------------------------------------------------
+model.info <- bg(model.info, bg = "#EFEFEF", part = "header")
+model.info <- set_header_labels(model.info, rowname = "Properties")
+fontsize(model.info, size = 9)
+
+```
+
+```{r LoadStatsTable, include=FALSE}
+rseg_table <- rseg_metrics.df
+rseg_table <- cbind(rownames(rseg_table),rseg_table)
+names(rseg_table)[names(rseg_table) == 'rownames(rseg_table)'] <- 'Desc'
+rseg_table_raw <- rseg_table
+
+rseg_table_sql <- paste('SELECT
+                  CASE
+                    WHEN "Desc" = "model" THEN "River Segment Model Statistics:"
+                    WHEN "Desc" = "Qout" THEN "Mean Flow Out (cfs)"
+                    WHEN "Desc" = "Qbaseline" THEN "Baseline Flow (cfs)"
+                    WHEN "Desc" = "remaining_days_p0" THEN "Minimum Days of Storage Remaining"
+                    WHEN "Desc" = "l01_Qout" THEN "1 Day Low Flow (cfs)"
+                    WHEN "Desc" = "l07_Qout" THEN "7 Day Low Flow (cfs)"
+                    WHEN "Desc" = "l30_Qout" THEN "30 Day Low Flow (cfs)"
+                    WHEN "Desc" = "l90_Qout" THEN "90 Day Low Flow (cfs)"
+                    WHEN "Desc" = "consumptive_use_frac" THEN "Consumptive Use Fraction (1.0-Qout/Qbaseline)"
+                    WHEN "Desc" = "wd_cumulative_mgd" THEN "Cumulative Withdrawal Flow Out (mgd)"
+                    WHEN "Desc" = "ps_cumulative_mgd" THEN "Cumulative Point Source Flow In (mgd)"
+                    WHEN "Desc" = "wd_mgd" THEN "Withdrawal Flow Out (mgd)"
+                    WHEN "Desc" = "ps_mgd" THEN "Point Source Flow In (mgd)"
+                    ELSE Desc
+                  END AS Description, *
+                 FROM rseg_table_raw
+                 WHERE Desc NOT IN ("riverseg","run_date","starttime","endtime","richness_change_abs","richness_change_pct","runid")
+                 ',sep='')
+rseg_table <- sqldf(rseg_table_sql)
+rseg_table <- rseg_table[,-2]
+#-------------------------------------------------------------------------------
+statsdf <- rbind(rseg_table)
+```
+
+\newpage
+# Flow Modeling
+
+``` {r output1, echo = FALSE, }
+knitr::opts_chunk$set(fig.width=7.5, fig.height=5)
+```
+
+## Flow Duration Curve
+```{r FDCRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Flow duration curves from VAHydro:", title_param), fig.id = "fdc", fig.cap.style = "Image Caption", out.width = '100%'}
+
+fdc = list()
+for (r in 1:length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- dat[[r]][[runid.r]]
+  path.fdc.r <- rseg.runid.r[['fig.fdc']][['code']]
+  
+  fdc[[r]] <- rasterGrob(readPNG(getURLContent(path.fdc.r)))
+}
+do.call("grid.arrange", c(fdc,  ncol = 2, nrow = length(rseg.model.version)-1))
+```
+
+## Mean Flow, Withdrawals and Point Sources
+```{r AllFlowsRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("Discharge, point sources, and withdrawals from VAHydro:", title_param), fig.id = "all_flows", fig.cap.style = "Image Caption", out.width = '100%'}
+
+all.flows = list()
+for (r in 1:length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- dat[[r]][[runid.r]]
+  path.flows.all.r <- rseg.runid.r[['fig.flows.all']][['code']]
+  
+  all.flows[[r]] <- rasterGrob(readPNG(getURLContent(path.flows.all.r)))
+}
+do.call("grid.arrange", c(all.flows,  ncol = 2, nrow = length(rseg.model.version)-1))
+```
+
+## Dry Period Hydrograph
+```{r DryRetrieve, eval=FALSE, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The dry periods from VAHydro:", title_param), fig.id = "dry_periods", fig.cap.style = "Image Caption", out.width = '100%'}
+
+hydrograph = list()
+for (r in 1:length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- dat[[r]][[runid.r]]
+  path.hydrograph.dry.r <- rseg.runid.r[['fig.hydrograph_dry']][['code']]
+
+  hydrograph[[r]] <- rasterGrob(readPNG(getURLContent(path.hydrograph.dry.r)))
+}
+do.call("grid.arrange", c(hydrograph,  ncol = 2, nrow = length(rseg.model.version)-1))
+```
+
+## 90-day Low Flows over a 2 year Period
+```{r L902YRetrieve, echo = FALSE, message = FALSE, results = "asis", fig.cap=paste("The 2 year, 90-day low flows from VAHydro:", title_param), fig.id = "2yr_l90", fig.cap.style = "Image Caption", out.width = '100%'}
+
+l90.2yr = list()
+for (r in 1:length(rseg.model.version)) {
+  runid.r <- runid.list[r]
+  rseg.runid.r <- dat[[r]][[runid.r]]
+  path.l90.2yr.r <- rseg.runid.r[['fig.l90_flows.2yr']][['code']]
+  
+  l90.2yr[[r]] <- rasterGrob(readPNG(getURLContent(path.l90.2yr.r)))
+}
+do.call("grid.arrange", c(l90.2yr,  ncol = 2, nrow = length(rseg.model.version)-1))
+```
+
+## FTABLE Visual
+
+``` {r output2, echo = FALSE, }
+knitr::opts_chunk$set(fig.width=7, fig.height=4)
+```
+
+```{r ftable_data, include=FALSE}
+#getting ftables:
+for (r in 1:length(rseg.model.version)) {
+  submod.r <- params$ftable.submod[r]
+  id.r <- params$ftable.id[r]
+  rseg.r <- params$seg[r]
+  if (submod.r == 'p6') {
+    submod.r <- paste0('p6/vadeq')
+  }
+  path.HYDR <- paste(esite, submod.r, 'input/param/river', id.r, 'HYDR.csv', sep = '/' )
+  lendf <- fread(path.HYDR)
+  rownum <- which(lendf == rseg.r)
+  length = as.numeric(lendf[rownum, 3])*5280 #convert miles to ft
+  #assign(paste0('length.',r),length*5280) 
+ 
+  path.ftable<- paste0(esite, '/', submod.r, '/input/param/river/', id.r, '/ftables/', rseg.r, '.ftable' )
+  ftable_raw <- read.csv(path.ftable, sep='', header=FALSE)
+  #remove flow-thru col if it exists (for old models):
+  if (ncol(ftable_raw)>4) {
+  ftable_raw <- ftable_raw[,1:4]
+  }
+  colnames(ftable_raw) <- c('depth','area','vol','disch') #renaming columns
+  #remove the row w/ matrix dimensions of the data (typically it's: [19,4] )
+  dimensions_data <- as.numeric(rownames(ftable_raw[grep('ROWS', ftable_raw[, 1]),])) + 1 #add 1 because dimensions are 1 row below "ROWS COLS ***" comment/header row
+  ftable_raw <- ftable_raw[-dimensions_data,]
+  rownames(ftable_raw) <- seq(1, length(ftable_raw$depth)) #fix row numbers; otherwise we lose data in the for-loop
+  ftable.r <- data.frame(matrix(nrow=0, ncol=4)) #create empty data frame to add rows we're keeping (otherwise row numbers get scrambled in the for-loop)
+  colnames(ftable.r) <- c('depth','area','vol','disch')
+  for (i in 1:length(ftable_raw$depth)) {
+    if (!is.na(as.numeric(ftable_raw$depth[i]))) {  #only keep numeric data
+    row_i <- as.numeric(rownames(ftable_raw[i,]))
+    ftable.r <- rbind(ftable.r, as.numeric(ftable_raw[row_i,]))
+    colnames(ftable.r) <- c('depth','area','vol','disch') }
+    }
+  rownames(ftable.r) <- seq(1, length(ftable.r$depth)) #fix row numbers for clarity
+  
+  #generate 3D coordinates:
+  ftable.r$x <- ftable.r$area * 43560 / length / 2 #divide by 2 to get 1/2 the surface width (middle of plot is x=0 -> sw is -x to x)
+  #multiply by 43560 to go acres --> sqft
+  
+  #save ftables together in a list
+  if(r==1){
+    ftables <- list(ftable.r)
+  } else {
+    ftables <- append(ftables, list(ftable.r))
+  }
+  
+  x <- c(ftable.r$x[-1],-ftable.r$x[-1]) #make sure there aren't 2 rows where x=0
+  y <- seq(0, length, length.out = length(x))
+  z.r <- c(ftable.r$depth[-1], ftable.r$depth[-1])
+  
+  pair <- cbind(x, z.r)
+  pair <- pair[order(x), ] #ascending order
+  x <- pair[, 1]
+  z.r <- pair[, -1]
+  for (i in 1:(length(x) - 1)) {
+    z.r <- cbind(z.r, pair[, -1])
+  }
+  colnames(z.r) <- y #to conceptualize data
+  rownames(z.r) <- x
+  
+  if(r==1){
+    z <- list(z.r)
+  } else {
+    z <- append(z, list(z.r))
+  }
+  
+}
+```
+
+```{r, eval=FALSE, echo=FALSE}
+#generate data to visualize a flow metric
+for (r in 1:length(rseg.model.version)) {
+  #l90's from each year, averaged to one value:
+  l90_avg.r <- mean(as.numeric(l90.data[,r+1])) #1st column is year; the rest are the models
+  disch.r <- ftables[r][[1]][,4]
+  target.r <- which(abs(disch.r - l90_avg.r) == min(abs(disch.r - l90_avg.r)))
+}
+
+fit <- lm(log(ftable.r$disch[-1]) ~ ftable.r$depth[-1])
+depths <- seq(0, max(ftable.r$depth), length.out=18)
+
+disch <- exp(predict(fit, list(depths)))
+predicted.disch <- predict(fit,data.frame(x=depths),interval='confidence',level=0.99)
+
+int <- fit[["coefficients"]][["(Intercept)"]]
+x.coeff <- fit[["coefficients"]][["ftable.r$depth[-1]"]]
+disch <- exp(int) * exp(x.coeff)^depths
+  
+plot(ftable.r$depth, ftable.r$disch)
+#plot(depths, predicted.disch[,1])
+lines(depths, disch, lwd=2, col='red')
+```
+
+```{r, ftable_plots, echo=FALSE, warning=FALSE}
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = 10,phi = 15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 5,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9,xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section")
+    #, sub = paste("Bankfull Depth is approx.", ftable$depth[10], "ft")
+  )
+}
+```
+
+```{r, extra_ftable_plots, eval=FALSE, echo=FALSE, warning=FALSE}
+#plot channel: -- needs to be done for each model
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = 5,phi = 15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 8,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9, xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section"),
+    #model.comparison[1,i]
+    #sub = paste("Water is shown in channel at a depth of",ftable$depth[15],
+    #  "ft \n Bankfull is approx.",ftable$depth[10],"ft")
+    ) #-> channel
+  #for (i in 1:15) {
+   # lines (trans3d(x = c(-ftable$x[i], ftable$x[i]),
+    #               y = seq(0, length, by = 10), z = ftable$depth[i],
+    #              pmat = channel),
+    #      col = "#33CCFF4F",
+    #      pch = 16
+    #      ) #bankfull
+  #}
+}
+#note: adding "_F" to the end of a color gives it transparency. 1 is more transparent; 9 is more opaque
+
+for (r in 1:length(rseg.model.version)) {
+  persp(as.numeric(rownames(z[r][[1]])),as.numeric(colnames(z[r][[1]])),z[r][[1]],
+    theta = -5,phi = -15,expand = .2,col = "#0099CC",axes = TRUE,
+    nticks = 8,ticktype = "detailed",scale = TRUE,shade = 0.65,
+    border = "003300",d = 0.6,r = 9,xlab = "Width (ft)",
+    ylab = "Channel Length (ft)",zlab = "Depth (ft)",
+    main = paste(model.comparison[1, r], "Cross-section")
+    #,sub = paste("Bankfull Depth is approx.", ftable$depth[10], "ft")
+  )
+}
+```
+
+\newpage
+# Time Series Analysis
+
+```{r MatchingData, echo = FALSE}
+# retrieving and matching the data
+
+for (r in 1:length(rseg.model.version)) {
+  split <- strsplit(params$rseg.file.path[r], split = "/")
+  path_list_m2 <- as.list(split[[1]][-c(1,2,3)])
+  path_string_m2 <- paste(path_list_m2, collapse = "/")
+  save_url <- paste0(esite, '/', path_string_m2)
+  rseg.data.r <- fread(save_url)
+  assign(paste0('rseg.data.',r),rseg.data.r)
+  rseg.cols.r <- names(rseg.data.r)
+
+   if (r == 1){
+      data.match <- rseg.data.r$date
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    } else {
+      data.match <- match(data.match, rseg.data.r$date)
+      sdate <- as.Date(min(data.match))
+      edate <- as.Date(max(data.match))
+    }
+}
+
+for (r in 1:length(rseg.model.version)) {
+  rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = rseg.data.r$index)
+  rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
+  mode(rseg.flow.r) <- 'numeric'
+
+  assign(paste0('rseg.flow.',r),rseg.flow.r)
+}
+
+# generate low flow data
+for (r in 1:length(rseg.model.version)) {
+  rseg.lowflow.r <- IHA::group2(rseg.flow.r)
+  assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
+}
+```
+
+``` {r output3, echo = FALSE, }
+knitr::opts_chunk$set(fig.width=5, fig.height=3)
+```
+
+## 90-Day Low Flow Comparison
+```{r 90day, echo = FALSE, fig.cap=paste("The 90-day low flows:", title_param), fig.id = "90day", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l90.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["90 Day Min"])
+    colnames(l90.data) <- c("Year", paste0(dat[[r]][[3]]))
+  } else {
+    l90.data <- cbind(l90.data, rseg.lowflow.r["90 Day Min"])
+    colnames(l90.data)[[r+1]] <- paste0(dat[[r]][[3]])
+    ymax.l90 <- max(l90.data[-1])
+  }
+}
+
+values.l90 <- tidyr::pivot_longer(l90.data, -Year, names_to="Model", values_to="Flow")
+l90.plot <- ggplot(values.l90, aes(y=Flow, x=Year, fill = Model)) + 
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
+    theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
+    scale_fill_brewer()
+l90.plot
+```
+
+## 30-Day Low Flow Comparison
+```{r 30day, echo = FALSE, fig.cap=paste("The 30-day low flows:", title_param), fig.id = "30day", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l30.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["30 Day Min"])
+    colname.l30 <- paste0(dat[[r]][[3]])
+  } else {
+    l30.data <- cbind(l30.data, rseg.lowflow.r["30 Day Min"])
+    colnames(l30.data) <- c("Year", colname.l30, paste0(dat[[r]][[3]]))
+    ymax.l30 <- max(l30.data[-1])
+  }
+}
+
+values.l30 <- tidyr::pivot_longer(l30.data, -Year, names_to="Model", values_to="Flow")
+l30.plot <- ggplot(values.l30, aes(y=Flow, x=Year, fill = Model)) + 
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
+    theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
+    scale_fill_brewer()
+l30.plot
+```
+
+## 7-Day Low Flow Comparison
+```{r 7day, echo = FALSE, fig.cap=paste("The 7-day low flows:", title_param), fig.id = "7day", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l7.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["7 Day Min"])
+    colname.l7 <- paste0(dat[[r]][[3]])
+  } else {
+    l7.data <- cbind(l7.data, rseg.lowflow.r["7 Day Min"])
+    colnames(l7.data) <- c("Year", colname.l7, paste0(dat[[r]][[3]]))
+    ymax.l7 <- max(l7.data[-1])
+  }
+}
+
+values.l7 <- tidyr::pivot_longer(l7.data, -Year, names_to="Model", values_to="Flow")
+l7.plot <- ggplot(values.l7, aes(y=Flow, x=Year, fill = Model)) + 
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
+    theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
+    scale_fill_brewer()
+l7.plot
+```
+
+## 1-Day Low Flow Comparison
+```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
+for (r in 1:length(rseg.model.version)) {
+  if (r == 1) {
+    l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["1 Day Min"])
+    colname.l1 <- paste0(dat[[r]][[3]])
+  } else {
+    l1.data <- cbind(l1.data, rseg.lowflow.r["1 Day Min"])
+    colnames(l1.data) <- c("Year", colname.l1, paste0(dat[[r]][[3]]))
+    ymax.l1 <- max(l1.data[-1])
+  }
+}
+
+values.l1 <- tidyr::pivot_longer(l1.data, -Year, names_to="Model", values_to="Flow")
+l1.plot <- ggplot(values.l1, aes(y=Flow, x=Year, fill = Model)) + 
+    geom_bar(position="dodge", stat="identity", color="darkgrey") +
+    theme_light() +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm")) +
+    ylab("Flow (cfs)") +
+    scale_fill_brewer()
+l1.plot
+```
+
+## Model Performance Scatterplots
+``` {r output4, echo = FALSE, }
+knitr::opts_chunk$set(fig.width=5, fig.height=5)
+```
+
+``` {r scatter.2models, echo = FALSE, eval=FALSE, fig.cap=paste("The low flow scenarios and differences between:", title_param), fig.id = "scatter1", fig.cap.style = "Image Caption"}
+
+if (length(rseg.model.version) > 2) {
+
+  l90.scatter <- ggplot(l90.data, aes(x = get(names(l90.data)[2]), y = get(names(l90.data)[3]), 
+                                    color = "Model 2")) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method=lm) +
+  theme_light() +
+  theme(axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9),
+        legend.position = "none") +
+  ylab(colnames(l90.data[2])) +
+  xlab(colnames(l90.data[3])) +
+  geom_abline(intercept = 0, slope = 1, col = 'lightgray')
+
+  # L90 Error Scatterplot
+  l90_diff <- unlist(l90.data[2] - l90.data[3]) # has to unlist in order to plot with ggplot!
+  l90_diff_pct <- 100.0 * (l90_diff) / l90.data[3]
+  
+  l90.diff <- ggplot(l90.data, aes(x = get(names(l90.data)[1]), y = l90_diff,
+                                   color = "Model 2")) +
+    geom_point() +
+    geom_smooth(formula = y ~ x, method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9),
+          legend.position = "none") +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+  
+  l30.scatter <- ggplot(l30.data, aes(x = get(names(l30.data)[2]), y = get(names(l30.data)[3]), 
+                                    color = "Model 2")) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method=lm) +
+  theme_light() +
+  theme(axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9),
+        legend.position = "none") +
+  ylab(colnames(l30.data[2])) +
+  xlab(colnames(l30.data[3])) +
+  geom_abline(intercept = 0, slope = 1, col = 'lightgray')
+  
+  # l30 Error Scatterplot
+  l30_diff <- unlist(l30.data[2] - l30.data[3]) # has to unlist in order to plot with ggplot!
+  l30_diff_pct <- 100.0 * (l30_diff) / l30.data[3]
+  
+  l30.diff <- ggplot(l30.data, aes(x = get(names(l30.data)[1]), y = l30_diff,
+                                   color = "Model 2")) +
+    geom_point() +
+    geom_smooth(formula = y ~ x, method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9),
+          legend.position = "none") +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+  
+  l7.scatter <- ggplot(l7.data, aes(x = get(names(l7.data)[2]), y = get(names(l7.data)[3]), 
+                                    color = "Model 2")) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method=lm) +
+  theme_light() +
+  theme(axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9),
+        legend.position = "none") +
+  ylab(colnames(l7.data[2])) +
+  xlab(colnames(l7.data[3])) +
+  geom_abline(intercept = 0, slope = 1, col = 'lightgray')
+  
+  # l7 Error Scatterplot
+  l7_diff <- unlist(l7.data[2] - l7.data[3]) # has to unlist in order to plot with ggplot!
+  l7_diff_pct <- 100.0 * (l7_diff) / l7.data[3]
+  
+  l7.diff <- ggplot(l7.data, aes(x = get(names(l7.data)[1]), y = l7_diff,
+                                   color = "Model 2")) +
+    geom_point() +
+    geom_smooth(formula = y ~ x, method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9),
+          legend.position = "none") +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+
+  l1.scatter <- ggplot(l1.data, aes(x = get(names(l1.data)[2]), y = get(names(l1.data)[3]), 
+                                    color = "Model 2")) +
+  geom_point() +
+  geom_smooth(formula = y ~ x, method=lm) +
+  theme_light() +
+  theme(axis.title.x = element_text(size = 9),
+        axis.title.y = element_text(size = 9),
+        legend.position = "none") +
+  ylab(colnames(l1.data[2])) +
+  xlab(colnames(l1.data[3])) +
+  geom_abline(intercept = 0, slope = 1, col = 'lightgray')
+  
+  # l1 Error Scatterplot
+  l1_diff <- unlist(l1.data[2] - l1.data[3]) # has to unlist in order to plot with ggplot!
+  l1_diff_pct <- 100.0 * (l1_diff) / l1.data[3]
+  
+  l1.diff <- ggplot(l1.data, aes(x = get(names(l1.data)[1]), y = l1_diff,
+                                   color = "Model 2")) +
+    geom_point() +
+    geom_smooth(formula = y ~ x, method=lm) +
+    theme_light() +
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9),
+          legend.position = "none") +
+    ylab(paste("Difference: Model 1 - Model 2")) +
+    xlab(paste("Year"))
+}
+
+if (length(rseg.model.version) == 3) {
+  legend_colors <- c("Model 2" = "blue", "Model 3" = "red") 
+  
+  l90.scatter <- l90.scatter +
+    geom_point(l90.data, mapping = aes(x = get(names(l90.data)[2]), y = get(names(l90.data)[4]), 
+                                      color = "Model 3")) + 
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model 2 and 3")) +
+    xlab(paste("Model 1")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  
+  l90_diff.2 <- unlist(l90.data[2] - l90.data[4])
+  l90_diff_pct.2 <- 100.0 * (l90_diff.2) / l90.data[4]
+
+  l90.diff <- l90.diff +
+    geom_point(l90.data, mapping = aes(x =get(names(l90.data)[1]), y = l90_diff.2, 
+                                      color = "Model 3")) +
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model Difference")) +
+    xlab(paste("Year")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  # l30
+  
+  l30.scatter <- l30.scatter +
+    geom_point(l30.data, mapping = aes(x = get(names(l30.data)[2]), y = get(names(l30.data)[4]), 
+                                      color = "Model 3")) + 
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model 2 and 3")) +
+    xlab(paste("Model 1")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  
+  l30_diff.2 <- unlist(l30.data[2] - l30.data[4])
+  l30_diff_pct.2 <- 100.0 * (l30_diff.2) / l30.data[4]
+
+  l30.diff <- l30.diff +
+    geom_point(l30.data, mapping = aes(x =get(names(l30.data)[1]), y = l30_diff.2, 
+                                      color = "Model 3")) +
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model Difference")) +
+    xlab(paste("Year")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  # l7
+  l7.scatter <- l7.scatter +
+    geom_point(l7.data, mapping = aes(x = get(names(l7.data)[2]), y = get(names(l7.data)[4]), 
+                                      color = "Model 3")) + 
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model 2 and 3")) +
+    xlab(paste("Model 1")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  
+  l7_diff.2 <- unlist(l7.data[2] - l7.data[4])
+  l7_diff_pct.2 <- 100.0 * (l7_diff.2) / l7.data[4]
+
+  l7.diff <- l7.diff +
+    geom_point(l7.data, mapping = aes(x =get(names(l7.data)[1]), y = l7_diff.2, 
+                                      color = "Model 3")) +
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model Difference")) +
+    xlab(paste("Year")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  # l1
+  l1.scatter <- l1.scatter +
+    geom_point(l1.data, mapping = aes(x = get(names(l1.data)[2]), y = get(names(l1.data)[4]), 
+                                      color = "Model 3")) + 
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model 2 and 3")) +
+    xlab(paste("Model 1")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  
+  l1_diff.2 <- unlist(l1.data[2] - l1.data[4])
+  l1_diff_pct.2 <- 100.0 * (l1_diff.2) / l1.data[4]
+
+  l1.diff <- l1.diff +
+    geom_point(l1.data, mapping = aes(x =get(names(l1.data)[1]), y = l1_diff.2, 
+                                      color = "Model 3")) +
+    geom_smooth(formula = y ~ x, method=lm) +
+    ylab(paste("Model Difference")) +
+    xlab(paste("Year")) +
+    labs(color = "Model 1 vs:") + 
+    scale_color_manual(values = legend_colors) +
+    theme(legend.title = element_text(size=10),
+          legend.text = element_text(size=10),
+          legend.position = "top",
+          legend.key.size = unit(0.25,"cm"))
+  
+}
+
+plots <- align_plots(l90.scatter, l1.scatter, align = 'v', axis = 'l')
+plot_row1 <- plot_grid(plots[[1]], l90.diff , 
+                        labels = c("90 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+plot_row2 <- plot_grid(l30.scatter, l30.diff, 
+                        labels = c("30 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+plot_row3 <- plot_grid(l7.scatter, l7.diff, 
+                        labels = c("7 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+plot_row4 <- plot_grid(plots[[2]], l1.diff, 
+                        labels = c("1 Day Low Flow" ," "), label_size = 10,
+                        rel_widths = c(0.5, 0.5))
+  
+plot_grid(plot_row1, plot_row2, plot_row3, plot_row4, ncol = 1)
+
+```
+
+## Model %-Difference
+
+``` {r percent, echo = FALSE, eval = FALSE, fig.cap=paste("The percent difference between the models:", title_param), fig.id = "percent", fig.cap.style = "Image Caption"}
+# differences calculated in previous chunk, except the mean:
+
+for (r in 1:length(rseg.model.version)) {
+    runid.r <- runid.list[r]
+    rseg.runid.r <- dat[[r]][[runid.r]]
+    mean.data.r <- as.numeric(rseg.runid.r[['Qout']][['value']])
+    
+    if (r == 1) {
+      mean <- mean.data.r
+    } else {
+      mean_diff <- unlist(mean - mean.data.r)
+      mean_diff_pct.r <- 100.0 * (mean_diff) / mean.data.r
+      assign(paste0('mean_diff_pct.',r), mean_diff_pct.r)
+    }
+}
+
+fun_median <- function(x){
+  return(data.frame(y=median(x),label=median(x,na.rm=T)))}
+
+# setting up the comparison
+if (length(rseg.model.version) == 2) {
+  perc.diff.data <- rbind(mean_diff_pct.2, l90_diff_pct, l30_diff_pct, l7_diff_pct, l1_diff_pct)
+  colnames(perc.diff.data) <- c("Mean", "l90", "l30", "l7", "l1")
+}
+
+if (length(rseg.model.version) == 3) {
+  perc.diff.data.2 <- cbind(mean_diff_pct.3, l90_diff_pct.2, l30_diff_pct.2, l7_diff_pct.2, l1_diff_pct.2)
+  colnames(perc.diff.data.2) <- c("Mean", "l90", "l30", "l7", "l1") 
+}
+
+if (length(rseg.model.version) == 2) {
+  perc.diff.fig <- ggplot(stack(perc.diff.data), aes(x = ind, y = values)) +
+    geom_boxplot(outlier.colour="blue", outlier.shape=8,
+                  outlier.size=3) +
+    stat_boxplot(geom ='errorbar') +
+    theme_light() +
+    ylab(paste("% Difference")) +
+    xlab(paste("Flow Metric")) +
+    stat_summary(fun.data = fun_median, geom="text", vjust=-0.7, 
+                 aes(label=round(..y.., digits = 5)))
+  
+  perc.diff.fig
+}
+
+if (length(rseg.model.version) == 3) {
+  
+  binded <- cbind(perc.diff.data, perc.diff.data.2)[order(c(seq_along(perc.diff.data), seq_along(perc.diff.data.2)))]
+  box.data <- stack(binded)
+  mean <- rep("Mean", times = nrow(binded)*2)
+  l90 <- rep("l90", times = nrow(binded)*2)
+  l30 <- rep("l30", times = nrow(binded)*2)
+  l7 <- rep("l7", times = nrow(binded)*2)
+  l1 <- rep("l1", times = nrow(binded)*2)
+  box.data[3] <- rep(c(mean,l90,l30,l7,l1), times = 1)
+  
+  perc.diff.fig <- ggplot() +
+    geom_boxplot(box.data, mapping = aes(x = ind, y = values, fill = V3), position = "dodge") +
+    geom_boxplot(outlier.colour="red", outlier.shape=8,
+                  outlier.size=3) +
+    stat_boxplot(geom ='errorbar') +
+    scale_x_discrete(name = "Models Compared",
+                     labels = rep(c("1v2","1v3"),5)) +
+    scale_y_continuous(name = "% Difference") +
+    scale_fill_brewer() + 
+    labs(fill="Flow Metric") +
+    theme_light()
+
+  perc.diff.fig
+}
+
+```
+
+```{r, echo = FALSE}
+#Finding % diff for important metrics 
+#Basing difference on first model supplied, which can be assigned the 2020 demand scenario using a vahydro-1.0 model and runid_11
+metric_table <- rseg_table[-1,] #removing first row which does not have numeric data
+for (r in 2:length(rseg.model.version)) { 
+  metric_table$diff <- as.numeric(metric_table[,r+1]) - as.numeric(metric_table[,2]) #simple difference
+  metric_table$pct_diff <- round((as.numeric(metric_table$diff) / as.numeric(metric_table[,2])), digits = 4)*100 #conv to % diff
+  metric_table <- subset(metric_table, select = -c(diff)) #removing dfifference col used to calc % diff 
+  metric_table[is.na(metric_table)] <- 0 #changing any NA values to 0
+  pct_list <- metric_table$pct_diff #create vector to add element 
+  pct_list <- c('--', pct_list) #add blank element to beginning of differences as placeholder in df 
+  statsdf[,ncol(statsdf)+1] <- pct_list #adding column to statsdf 
+  colnames(statsdf)[r+length(rseg.model.version)] <- paste0('% diff ', colnames(metric_table)[r+1]) #adding unique column name for each % diff
+}
+```
+
+
+
+\newpage 
+<!---BLOCK_LANDSCAPE_START--->
+# Metrics Summary
+\n
+```{r StatsTable, echo=FALSE}
+ft <- qflextable(statsdf)
+
+# Set column widths
+ft <- width(ft, j = 2:(length(rseg.model.version)+1), width = 1.9)
+ft <- width(ft, j = 1, width = 2.5)
+#ft <- width(ft, j = (length(rseg.model.version)+1):(statsdf[1,]), width = 1.0)
+
+# Set theme
+ft <- theme_box(ft)
+
+# Set background color of select rows --------------------------------------------------------------
+ft <- bg(ft, bg = "#EFEFEF", part = "header")
+ft <- bg(ft, i = ~ Description == "River Segment Model Statistics:", bg = "#EFEFEF", part = "body")
+fontsize(ft, size = 9)
+```
+<!---BLOCK_LANDSCAPE_STOP--->
+
+
