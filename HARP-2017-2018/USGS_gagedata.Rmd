@@ -1,0 +1,144 @@
+---
+title: "USGS_gagedata"
+author: "HARP"
+date: "April 19, 2019"
+output: pdf
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+This tutorial is meant to step you through accessing data from the USGS dataretrieval package. We'll also navigate through the Chesapeake Bay Program pages to find GIS data. 
+
+Objective: Choose one or two USGS gages from different watersheds within the Chesapeake Bay. Pull data using the dataretrieval package, and learn how to plot it against model data.   
+
+### Part 1: Set up R workspace
+First let's set up a folder somewhere on your computer for this task. For your time with HARP, it will be really helpful to have a HARP folder somewhere -- like your C drive or just on the Desktop. Anywhere that's easy to access really. For this tutorial we'll call the folder "case_study" and store it in an R Scripts sub-folder.
+
+So before running the following code chunk you should have an existing path that looks something like this: 
+"C:\\\\Users\\\\Username\\\\Desktop\\\\HARP\\\\R_Scripts"
+
+
+Start a new script, and run the following lines. This will create a folder and set it as your workspace. It's good practice to always set your workspace, especially when you are generating plots or csv files (it makes it easier to locate them)
+```{r, echo=TRUE, eval=FALSE}
+dir.create("C:\\Users\\Username\\Desktop\\HARP\\R_Scripts\\case_study", showWarnings = FALSE)
+# create a folder named case study. showWarnings=FALSE means if you run this line after already creating the folder you won't get an error
+setwd("C:\\Users\\Username\\Desktop\\HARP\\R_Scripts\\case_study")
+
+```
+```{r, echo=FALSE}
+dir.create("C:\\Users\\Kelsey\\Desktop\\HARP\\R scripts\\example", showWarnings = FALSE)
+setwd("C:\\Users\\Kelsey\\Desktop\\HARP\\R scripts\\example")
+```
+
+
+### Part 2: Access Chesapeake Bay shapefiles
+Now we need to download shapefiles from phase 5.3.2 of the Chesapeake Bay Watershed Model. This is the primary model that we've handled on a daily basis. The Cheasapeake Bay Program has many other models besides the watershed model. For more details on the other models see
+<http://ches.communitymodeling.org/models.php>
+
+* Navigate to the Phase 5 watershed link, and then look for "Watershed Delineation & GIS Data" on the right-hand toolbar. Here you'll find all the GIS information for different data types, such as river segments, calibration stations, and delineated reaches. Download the calibration stations zip files, and extract it to the case study folder. You may also download the reaches file to get a visual on flow paths, but this is optional.  
+
+* We won't download the river segments shapefile from here because we have more detailed version stored on the drive, but this was just to show you where it originated.
+
+* In the Southern Rivers drive, navigate to the data folder, right click on the P5_3_2_RiverSegs folder, download it, and extract it to the case study folder. <br>
+*Note: you must download the entire folder or else you'll get an error when you try to open in GIS* 
+
+* You can now open these shapefiles in GIS. Coordinate systems are not assigned, but as seen on the website under the Calibration Stations heading, "All layers are in the following projection: UTM Zone 18 Nad83 Meters." Pick a gage or two that you would like to analyze, and determine which river segment drains into it. <br> 
+
+* It may be helpful to change the display category to watershed. If you want, you could also download a shapefile to outline the state of VA to get a better context of where you are working / looking at gages. It's also *VERY* helpful to display the gage number (STAID) and river segment (RiverSeg) on the map when performing a spatial analysis.
+
+* Note on river segments: There is a method to the number format. <br>
+Locate river segment JA4_7280_7340 on the map. <br>
+The first letter represents the major basin (James) <br>
+The second letter represents the minor basin (Appomattox) <br>
+The middle four digits specifiy the upstream segment (7280) <br>
+The last four digits specify the downstream segment (7340) <br>
+
+
+Verify this on the map to help you understand: See if you can determine the river segment that is 3 segments downstream of this one. <br>
+Did you get JA5_7480_0001? Sweet! You're doing awesome! 
+
+
+For example, I'm going to pull data from gage 02040000, which is downstream of segment JA4_7280_7340. 
+   
+
+
+### Part 3: Access model data
+Before we move on, let's make sure that we already have a csv file for the river segment you chose to analyze (i.e. that the model has already been run for the segment that you chose). We're going to navigate to the model output webpage, which is where data is stored after being run through the Chesapeake Bay model. <br>
+<http://deq2.bse.vt.edu/p532c-sova/wdm/river/p532cal_062211/stream/>
+<br> <br>
+Look for your segment .csv file. Continuing with the JA4 segment, it is listed on the site as "JA4_7280_7340_0111.csv". We can do two different things to access this data now: 
+1) download the csv and read it from a locally stored source **OR**
+2) read the csv directly from the website (don't you feel cool now?)
+
+Let's do option 2:
+```{r, echo=TRUE}
+#specify the csv name:
+rivseg <- "JA4_7280_7340"
+file <- paste0(rivseg, "_0111.csv")
+
+filepath <- "http://deq2.bse.vt.edu/p532c-sova/wdm/river/p532cal_062211/stream/"
+
+filepath_consolidated <- paste0(filepath, file)
+model_data <- read.csv(filepath_consolidated)
+colnames(model_data) <- c("year","month","day","hour","ovol")
+
+```
+
+That's a lot of data -- why?? The model gives you hourly discharge. We need to convert it daily mean to be able to compare it to gage data. Inspect the `model_data` dataframe to see how the data is formatted: year, month, day, hour, flow.   
+
+
+```{r}
+model_hourly <- model_data[]
+model_hourly$year <- trimws(model_hourly$year, which = "both") #remove spaces in front of and behind year
+
+model_hourly$date <- as.Date(paste0(model_hourly$year,"-",model_hourly$month,"-",model_hourly$day)) #create a date column
+model_daily <- aggregate(model_hourly$ovol, list(model_hourly$date), FUN = sum)
+# summarize the daily value (sum of all 24 hours)
+colnames(model_daily) <- c("Date", "Flow")
+
+#We aren't done yet: 
+# Model data is in acre-feet
+# USGS gage data is in cfs
+# The conversion factor from acre-feet to cfs is 0.504167
+
+model_daily$Flow <- model_daily$Flow * 0.504167
+```
+
+We now have daily model data that we'll be able to compare to USGS data. Next let's load USGS data. <br> <br>
+
+
+### Part 4: Access gage data
+Recall your selected a gage-- it's time to pull the data for it. Let's get back into R.  
+```{r, echo=TRUE, eval=TRUE, warning=FALSE}
+library(dataRetrieval)
+gage_id <- '02040000'
+startDate <- '1984-01-01'
+endDate <- '2005-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_flow <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+#don't forget to rename the columns to make your life easier:
+colnames(USGS_flow) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+```
+
+
+### Part 5: Plot gage vs model data
+
+See if you can generate this plot on your own: 
+```{r, echo=FALSE}
+plot(USGS_flow$Date, USGS_flow$Flow, type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+lines(model_daily$Date, model_daily$Flow, type="l", col="red")
+legend("topright", legend=c("USGS", "Model"), col=c("blue", "red"), lwd=1)
+```
+
+Got it? If not, here's some help: 
+```{r, echo=TRUE, eval=FALSE}
+plot(USGS_flow$Date, USGS_flow$Flow, type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+lines(model_daily$Date, model_daily$Flow, type="l", col="red")
+legend("topright", legend=c("USGS", "Model"), col=c("blue", "red"), lwd=1)
+```
+Now see if you can generate the same plot using ggplot! 

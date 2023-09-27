@@ -1,0 +1,809 @@
+---
+title: "An Analysis on the Effects of the Roanoke Rapids Dam using the IHA Metrics"
+author: "Glenn Campagna, Nicole Darling, Julia Bruneau, and Megan Pritchard"
+date: "6/13/2022"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+geometry: left=2cm, right=3cm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Scope: A dam was constructed on the Roanoke River at Roanoke Rapids, NC in the early 1950s. The effects of dam and reservoir construction were analyzed using Indicators of Hydrologic Alterations (IHA) parameters/metrics. 
+
+# The IHA Flow Metrics
+
+IHA metrics are used to describe the magnitude of monthly flows, magnitude and duration of annual extreme flows, timing of annual extreme flows, frequency of high and low pulses, and rate and frequency of flow changes (Chalise, 2021).
+
+Flow metrics are the standards of measurement for streamflow in hydrology. Put simply, there are five categories:
+~ 1. **Magnitude** - Magnitude of monthly water conditions; the mean or median value for each calendar month.
+~ 2. **Duration** - Magnitude and duration of annual extreme water conditions; these are your annual min/max and 1,3,7,30, or 90-day means. Also includes number of zero flow days and base flow index. 
+~ 3. **Timing** - Timing of annual extreme water conditions; Julian data of each annual 1-day min/max.
+~ 4. **Frequency** - Frequency and duration of high and low pulses; number per water year and mean or median duration (in days) of high/low pulses. 
+~ 5. **Rate** - Rate and frequency of water condition changes. Rise & fall rates: mean and median of all positive/negative differences between consecutive daily values. Number of hydrologic reversals. "
+
+
+# Roanoke Rapids Dam
+
+Roanoke Rapids Dam is located on the Roanoke River and is owned by Dominion Power Company. The dam holds back Roanoke Rapids lake, a 4,600-acre reservoir, and contains a 95-MW hydropower generation facility that powers nearly 24,000 homes (Dominion Energy). Construction of the dam was completed in 1955 and it is currently classified as “high hazard potential” under Federal Energy Regulatory Commission (FERC) guidelines "by virtue of potential loss of life and extensive property damage downstream should a failure occur" (Cima and Reinicker, 2015).
+
+<br>
+
+```{r echo=FALSE, out.width="90%"} 
+knitr::include_graphics("RRdam_image.jpeg") #loading an image of the Roanoke Rapids dam
+#using this method, the image must be located in the working directory of whoever is knitting and the correct name must be used in the knitr line above 
+```
+
+<br>
+
+<br>
+
+## Retrieving data from the USGS
+
+```{r, include=FALSE}
+#include=FALSE causes nothing from the entire chunk to be shown in the output/knit file 
+library(zoo)
+library(IHA) 
+library(dataRetrieval)
+library(PearsonDS)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(knitr)
+```
+
+Note: The following process for data retrieval was used in each of the parameter analyses, with variations in the variable names for the pre and post dam data. 
+
+```{r}
+#retrieve flow data for Roanoke Rapids pre and post-dam for 15 calendar year periods not including each 5 year period before and after dam construction
+siteNumber <- '02080500'
+startDate_pre <- '1935-01-01'
+endDate_pre <- '1950-12-31'
+startDate_post <- '1960-01-01'
+endDate_post <- '1975-12-31'
+pCode <- '00060' #the code for discharge in cfs
+sCode <- '00003' #the code for daily mean data
+RRflow_pre <- readNWISdv(siteNumber, pCode, startDate_pre, endDate_pre, sCode)
+RRflow_post <- readNWISdv(siteNumber, pCode, startDate_post, endDate_post, sCode)
+#previewing the flow data for pre and post-dam
+head(RRflow_pre)
+head(RRflow_post)
+```
+
+Plotting streamflow on the Roanoke River before and after dam construction:
+
+``` {r, echo = TRUE, fig.cap = "Figure 1. The Roanoke River Flow (cfs) 15 years pre and post dam construction."}
+#rename the columns for both tables
+colnames(RRflow_pre) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+colnames(RRflow_post) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+# Pre and post dam flow data from the USGS plotted
+plot(1:5844, RRflow_pre$Flow, xlab='Date', ylab='Flow (cfs)',type = 'l', col = 'blue', ylim = c(0, 250000))
+lines(RRflow_post$Flow, xlab='Date', ylab='Flow (cfs)',type = 'l', col = 'red', ylim = c(0, 250000))
+title(main = "The Roanoke River Flow Pre and Post Dam")
+legend(x= 4500 ,y= 230000 ,legend=c("Pre dam","Post dam"), col=c('blue','red'), bty='n',lty=1)
+```
+
+<br>
+
+# PARAMETER 1: MAGNITUDE OF MONTHLY WATER CONDITIONS
+
+- The magnitude of flow for each calendar month is represented by either the mean or median discharge over any given month 
+-  Monthly magnitudes are computed by the “group1” function in the IHA package which produces a 12-column table, one for each month, and rows for each year of record in the data series used 
+- Mean and median are both measures of central tendency and are specified in the function. Large differences between the two indicate outliers
+- Both mean and median representations of magnitude are explored in this analysis for comparison 
+
+
+
+```{r}
+#making the flow data objects into zoo objects for use in IHA package 
+RRpre_z <- zoo(RRflow_pre$Flow, order.by=RRflow_pre$Date)
+RRpost_z <- zoo(RRflow_post$Flow, order.by=RRflow_post$Date)
+#using group1() IHA function for monthly magnitude (both mean and median)
+Monthly_pre_mean <- as.data.frame(group1(RRpre_z, year = 'calendar', FUN = mean)) #calendar year was chosen here in order to avoid having null values for any months since we retrieved the data according to calendar years not water years 
+Monthly_post_mean <- as.data.frame(group1(RRpost_z, year = 'calendar', FUN = mean))
+Monthly_pre_med <- as.data.frame(group1(RRpre_z, year = 'calendar', FUN = median))
+Monthly_post_med <- as.data.frame(group1(RRpost_z, year = 'calendar', FUN = median))
+head(Monthly_pre_mean) #previewing one of the resulting tables for monthly magnitude 
+```
+
+<br>
+
+Plotting monthly magnitudes (mean) as box plots:
+
+```{r, fig.cap = "Figure 2. Boxplots showing the values for monthly magnitude (mean) pre and post-dam."}
+par(mfrow=c(1,2)) #creates 2 windows side-by-side for the plots to be shown
+boxplot(Monthly_pre_mean, ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'Monthly mean pre-dam')
+boxplot(Monthly_post_mean, ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'Monthly mean post-dam')
+```
+
+<br>
+
+Creating tables using median instead of mean to represent magnitude:
+
+```{r}
+#using the group1() IHA function again for monthly magnitude
+Monthly_pre_med <- as.data.frame(group1(RRpre_z, year = 'calendar', FUN = median))
+Monthly_post_med <- as.data.frame(group1(RRpost_z, year = 'calendar', FUN = median))
+```
+
+Plotting monthly magnitudes (median) as box plots:
+
+```{r, fig.cap = "Figure 3. Boxplots showing the values for monthly magnitude (median) pre and post-dam."}
+par(mfrow=c(1,2))
+boxplot(Monthly_pre_med,  ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'Monthly median pre-dam')
+boxplot(Monthly_post_med, ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'Monthly median post-dam')
+```
+
+<br>
+
+Plotting the changes in the monthly magnitude (mean) for the month of January:
+
+```{r, fig.cap="Figure 4. Change in monthly magnitude (mean) for January caused by dam construction."}
+#creating vectors containing years under analysis for plot labeling purposes
+years1 <- as.vector(c('1935', '1936', '1937', '1938', '1939', '1940', '1941', '1942', '1943', '1944', '1945', '1946', '1947', '1948', '1949', '1950'))
+years2 <- as.vector(c('1960', '1961', '1962', '1963', '1964', '1965', '1966', '1967', '1968', '1969', '1970', '1971', '1972', '1973', '1974', '1975'))
+#plotting change in monthly magnitude (mean) for January before and after dam construction 
+par(mfrow=c(1,2))
+plot(Monthly_pre_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'January mean flows pre-dam', type = 'l', col = 'red', axes = FALSE)
+axis(1, 0:15, labels = years1)
+axis(2)
+plot(Monthly_post_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'January mean flows post-dam', type = 'l', col = 'blue', axes = FALSE)
+axis(1, 0:15, labels = years2)
+axis(2)
+```
+
+<br>
+
+Plotting the changes in the monthly magnitude (median) for the month of January:
+
+```{r, fig.cap="Figure 5. Change in monthly magnitude (median) for January caused by dam construction."}
+par(mfrow=c(1,2))
+plot(Monthly_pre_med$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'January median flows pre-dam', type = 'l', col = 'red', axes = FALSE)
+axis(1, 0:15, labels = years1)
+axis(2)
+plot(Monthly_post_med$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(1000,40000), main = 'January median flows post-dam', type = 'l', col = 'blue', axes = FALSE)
+axis(1, 0:15, labels = years2)
+axis(2)
+```
+
+<br>
+
+Examining how the dam influenced the magnitude of January flows, which is usually a month of higher flows compared to the rest of the year:
+
+```{r, fig.cap="Figure 6. Changes in monthly magnitude for January caused by dam construction."}
+par(mfrow=c(1,2))
+plot(Monthly_pre_mean$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(0,40000), main = 'January mean flows', type = 'l', col = 'red')
+lines(Monthly_post_mean$January, type = 'l', col = 'blue')
+legend("topright", legend=c("Pre-dam", "Post-dam"), col= c("red", "blue"), lwd=1)
+plot(Monthly_pre_med$January, xlab = 'Year', ylab = 'Monthly magnitude (cfs)', ylim = c(0,40000), main = 'January median flows', type = 'l', col = 'red')
+lines(Monthly_post_med$January, type = 'l', col = 'blue')
+legend("topright", legend=c("Pre-dam", "Post-dam"), col= c("red", "blue"), lwd=1)
+```
+
+<br>
+
+Now, examining how the dam influenced the magnitude of August flows, which is usually a month of lower flows compared to the rest of the year:
+
+```{r, fig.cap="Figure 7. Changes in monthly magnitude for August caused by dam construction."}
+par(mfrow=c(1,2))
+plot(Monthly_pre_mean$August, xlab = 'Year', ylab = 'Flow (cfs)', ylim = c(0,40000), main = 'August mean flows', type = 'l', col = 'red')
+lines(Monthly_post_mean$August, type = 'l', col = 'blue')
+legend("topright", legend=c("Pre-dam", "Post-dam"), col= c("red", "blue"), lwd=1)
+plot(Monthly_pre_med$August, xlab = 'Year', ylab = 'Flow (cfs)', ylim = c(0,40000), main = 'August median flows', type = 'l', col = 'red')
+lines(Monthly_post_med$August, type = 'l', col = 'blue')
+legend("topright", legend=c("Pre-dam", "Post-dam"), col= c("red", "blue"), lwd=1)
+```
+
+<br>
+
+These graphs for August show a similar change in monthly magnitude to that of January: the range of magnitudes was decreased and the peaks were shaved off.
+
+
+## Conclusions on Parameter 1:
+
+- The construction of the dam and reservoir contributed to more consistent monthly magnitudes and less significant changes in average monthly flows 
+- The observed change in monthly magnitude appeared to be more significant in low-flow months, such as August
+- The monthly magnitude as an average was stabilized by dam construction. 
+- The change in monthly magnitude caused by the dam appears greater when mean is used to represent magnitude. 
+
+<br>
+
+
+# PARAMETER 2: MAGNITUDE AND DURATION OF ANNUAL EXTREME CONDITIONS
+
+``` {r , echo = FALSE}
+# Accessing the specific data for our station
+
+# Pre dam time period
+
+gage_id <- '02080500'
+startDate <- '1935-01-01'
+endDate <- '1950-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_pre <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+# Post dam time period
+
+gage_id <- '02080500'
+startDate <- '1960-01-01'
+endDate <- '1975-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_post <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+# Column names
+
+colnames(USGS_pre) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+colnames(USGS_post) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+
+```
+
+- The function "group2" results in a table with 13 variables: Year, 1 Day Min/Max, 3 Day Min/Max, 7 Day Min/Max, 30 Day Min/Max, 90 Day Min/Max, Zero Flow Days, and Base index.
+- The minimum and maximum values reflect the average extreme flow conditions over the course of the specific duration. They are taken from moving averages for every possible period that is completely within the water year
+- Zero Flow Days can mostly be ignored in data analysis in our case, since there are no days when the Roanoke River dried completely.
+- The Base Flow Index (BFI) represents the measure of the proportion of the river that derives from 
+stored sources, like groundwater. A higher BFI signifies a more sustained flow during dry weather (NRFA, 2022).
+
+```{r , echo = TRUE}
+# Isolating the average min and max flow for each year as a 1, 3, 7, 30, and 90 day average, as well as the baseindex
+
+pre_zoo <- zoo(USGS_pre$Flow, order.by=USGS_pre$Date) # Grouping the data in the order of the dates
+pre_g2 <- group2(pre_zoo)
+
+post_zoo <- zoo(USGS_post$Flow, order.by=USGS_post$Date)
+post_g2 <- group2(post_zoo) # Using the group2 function which is part of the IHA package
+
+head(pre_g2)
+
+head(post_g2)
+
+```
+
+Analysis of the minimum 1, 3, 7, 30, and 90 day average flow pre and post dam construction in 1935-1950 and 1960-1975:
+
+``` {r, echo = TRUE, fig.cap="Figure 8. The average 1, 3, 7, 30, and 90 day minimum flow pre dam construction."}
+
+pre_g2_min <- select(pre_g2, 2,4,6,8,10)
+post_g2_min <- select(post_g2, 2,4,6,8,10)
+
+#The average minimum flow pre and post dam in the different periods as box plots.
+
+boxplot(pre_g2_min, pre_g2_min, ylab = 'Flow (cfs)', col = 'blue', ylim = c(0,8000))
+title(main = "Min Flow Pre Dam")
+```
+ 
+
+```{r, fig.cap="Figure 9. The average 1, 3, 7, 30, and 90 day minimum flow post dam construction."}
+boxplot(post_g2_min, post_g2_min, ylab = 'Flow (cfs)', col = 'red', ylim = c(0,8000))
+title(main = "Min Flow Post Dam")
+```
+
+
+``` {r, echo = TRUE, fig.cap="Figure 10. The average 1, 3, 7, 30, and 90 day minimum flow pre dam construction."}
+#The minimum average flow pre and post dam in the different periods as line plots.
+
+plot(1935:1951, pre_g2_min$`1 Day Min`, type = 'l', ylab = 'Flow (cfs)', xlab = 'Year', col = 'blue', ylim = c(0, 9500))
+lines(1935:1951, pre_g2_min$`3 Day Min`, col = 'red', type = 'l')
+lines(1935:1951, pre_g2_min$`7 Day Min`, col = 'green', type = 'l')
+lines(1935:1951, pre_g2_min$`30 Day Min`, col = 'black', type = 'l')
+lines(1935:1951, pre_g2_min$`90 Day Min`, col = 'purple', type = 'l')
+title(main = 'Min Flow Pre Dam')
+legend(x= 1935 ,y= 9500 ,legend=c("1 Day","3 Day", "7 Day", "30 Day", "90 Day"), col=c('blue','red', 'green', 'black', 'purple'), bty='n',lty=1, xjust = 0.25, yjust=0.85)
+```
+
+
+```{r, fig.cap="Figure 11. The average 1, 3, 7, 30, and 90 day minimum flow post dam construction."}
+plot(1960:1976, post_g2_min$`1 Day Min`, type = 'l', ylab = 'Flow (cfs)', xlab = 'Year', col = 'blue', ylim = c(0, 9500))
+lines(1960:1976, post_g2_min$`3 Day Min`, col = 'red', type = 'l')
+lines(1960:1976, post_g2_min$`7 Day Min`, col = 'green', type = 'l')
+lines(1960:1976, post_g2_min$`30 Day Min`, col = 'black', type = 'l')
+lines(1960:1976, post_g2_min$`90 Day Min`, col = 'purple', type = 'l')
+title(main = 'Min Flow Post Dam')
+legend(x= 1960 ,y= 9500 ,legend=c("1 Day","3 Day", "7 Day", "30 Day", "90 Day"), col=c('blue','red', 'green', 'black', 'purple'), bty='n',lty=1, xjust = 0.25, yjust=0.85)
+```
+
+<br>
+
+Analysis of the maximum 1, 3, 7, 30, and 90 day average flow pre and post dam construction in 1935-1950 and 1960-1975.
+
+``` {r, echo = TRUE, fig.cap="Figure 12. The average 1, 3, 7, 30, and 90 day maximum flow pre dam construction."}
+# Selecting the columns with the maximum flow values.
+
+pre_g2_max <- select(pre_g2, 3,5,7,9,11) 
+post_g2_max <- select(post_g2, 3,5,7,9,11)
+
+boxplot(pre_g2_max, pre_g2_max, ylab = 'Flow (cfs)', col = 'blue', ylim = c(5000,250000))
+title(main = "Max Flow Pre Dam")
+```
+
+
+```{r, fig.cap="Figure 13. The average 1, 3, 7, 30, and 90 day maximum flow post dam construction."}
+boxplot(post_g2_max, post_g2_max, ylab = 'Flow (cfs)', col = 'red', ylim = c(5000,250000))
+title(main = "Max Flow Post Dam")
+```
+
+
+```{r, echo = TRUE, fig.cap="Figure 14. The average 1, 3, 7, 30, and 90 day maximum flow pre dam construction."}
+#The maximum average flow pre and post dam in the different periods as line plots.
+
+plot(1935:1951, pre_g2_max$`1 Day Max`, type = 'l', ylab = 'Flow (cfs)', xlab = 'Year', col = 'blue', ylim = c(0, 250000))
+lines(1935:1951, pre_g2_max$`3 Day Max`, col = 'red', type = 'l')
+lines(1935:1951, pre_g2_max$`7 Day Max`, col = 'green', type = 'l')
+lines(1935:1951, pre_g2_max$`30 Day Max`, col = 'black', type = 'l')
+lines(1935:1951, pre_g2_max$`90 Day Max`, col = 'purple', type = 'l')
+title(main = 'Max Flow Pre Dam')
+legend(x= 1948 ,y= 250000 ,legend=c("1 Day","3 Day", "7 Day", "30 Day", "90 Day"), col=c('blue','red', 'green', 'black', 'purple'), bty='n',lty=1)
+```
+
+
+```{r, fig.cap="Figure 15. The average 1, 3, 7, 30, and 90 day maximum flow post dam construction."}
+plot(1960:1976, post_g2_max$`1 Day Max`, type = 'l', ylab = 'Flow (cfs)', xlab = 'Year', col = 'blue', ylim = c(0, 250000))
+lines(1960:1976, post_g2_max$`3 Day Max`, col = 'red', type = 'l')
+lines(1960:1976, post_g2_max$`7 Day Max`, col = 'green', type = 'l')
+lines(1960:1976, post_g2_max$`30 Day Max`, col = 'black', type = 'l')
+lines(1960:1976, post_g2_max$`90 Day Max`, col = 'purple', type = 'l')
+title(main ='Max Flow Post Dam')
+legend(x= 1973 ,y= 250000 ,legend=c("1 Day","3 Day", "7 Day", "30 Day", "90 Day"), col=c('blue','red', 'green', 'black', 'purple'), bty='n',lty=1) 
+```
+
+The base flow index pre and post dam construction in 1935-1950 and 1960-1975.
+
+```{r, echo = TRUE, fig.cap="Figure (16*). The base flow index pre dam construction."}
+par(mfrow=c(1,2))
+
+boxplot(pre_g2[13], pre_g2, ylab = 'Flow (cfs)', col = 'blue')
+title(main = "Base Index Pre Dam")
+```
+
+
+```{r, fig.cap="Figure (17*). The base flow index post dam construction."}
+boxplot(post_g2[13], post_g2, ylab = 'Flow (cfs)', col = 'red')
+title(main = "Base Index Post Dam")
+```
+
+<br>
+
+## Conclusion on Parameter 2:
+
+Post dam:
+- The average minimum flow events vary less over longer periods of time
+- The average maximum flow events become substantially more stable
+- The effects of extreme short term weather events are mitigated
+- The base flow becomes more stable
+
+The effects these changes in the flow have on the environment are, for example (IHA, 2009):
+
+- Competition between native and invasive organisms
+- Disturbances in the structures of aquatic ecosystems
+- Changes in the river channel morphology
+- Changes in the volume of nutrient exchange
+
+<br>
+
+
+
+# PARAMETER 3: TIMING OF ANNUAL EXTREME WATER CONDITIONS
+
+- The Julian date of each annual 1-day maximum or minimum flow 
+- Julian date here is considered the number day of each year from 1-365. January 1st is day 1 and December 31st is day 365. 
+- This parameter provides a look at what time of year the extremes may be occurring.
+
+```{r,"Load Dataaa", echo = FALSE}
+# pre dam
+siteNo<-"02080500"
+pCode<-'00060'
+stat<-'00003'
+start.date<-'1935-01-01'  #start date is 25 years before dam construction
+end.date<-'1950-12-31'
+USGS.pre<-readNWISdv(siteNo,pCode,start.date,end.date)
+
+#reorder column names for clarity
+names(USGS.pre)
+names(USGS.pre) <- c('Agency', 'Site', 'Date', 'Flow', 'QC')
+
+# post dam
+siteNo<-"02080500"
+pCode<-'00060'
+stat<-'00003'
+start.date<-'1960-01-01'  
+end.date<-'1975-12-31' #start date is 25 years after construction
+USGS.post<-readNWISdv(siteNo,pCode,start.date,end.date)
+
+#reorder column names for clarity
+names(USGS.post)
+names(USGS.post) <- c('Agency', 'Site', 'Date', 'Flow', 'QC')
+```
+
+```{r, echo=TRUE, "Julian Dates"}
+#use IHA group3 function to find the extreme dates
+pre.zoo <- zoo(USGS.pre$Flow, order.by=USGS.pre$Date) #group by dates
+pre.Jdates <- group3(pre.zoo, 'calendar', mimic.tnc = F)
+
+post.zoo <- zoo(USGS.post$Flow, order.by=USGS.post$Date)
+post.Jdates <- group3(post.zoo,'calendar', mimic.tnc = F)
+
+pre.Jdates
+post.Jdates
+```
+
+```{r,echo=FALSE, "Plot Max's", fig.cap="Figure 18. The dates of annual maximums over 15 years pre vs post dam."}
+pre.Jdates<- data.frame(pre.Jdates)
+post.Jdates<- data.frame(post.Jdates)
+
+plot(1:16, pre.Jdates$Max, type="l", ylab = 'Julian Day of Max', col = 'blue', xlab = 'Year', ylim=c(1,365))
+lines(post.Jdates$Max, type='l', col='red')
+title(main = "Pre vs Post Dam Dates of Max Flow")
+legend(x= 5 ,y= 370 ,legend=c("Pre-Dam","Post-Dam"), col=c('blue','red'), bty='n',lty=1)
+```
+
+```{r, echo=FALSE, "plot mins", fig.cap="Figure 19. The dates of annual minimums over 15 years pre vs post dam."}
+plot(1:16, pre.Jdates$Min, type="l", ylab = 'Julian Day of Min', col = 'blue', xlab = 'Year', ylim=c(1,365))
+lines(post.Jdates$Min, type='l', col='red')
+title(main = "Pre vs Post Dam Dates of Min Flow")
+legend(x= 8 ,y= 100 ,legend=c("Pre-Dam","Post-Dam"), col=c('blue','red'), bty='n',lty=1)
+```
+
+```{r, echo=FALSE, "Plot Min vs Max Pre", fig.cap="Figure 20. Pre Dam annual dates of minimum vs maximum flow rates."}
+plot(1:16, pre.Jdates$Max, type="l", ylab = 'Julian Day', col = 'purple', xlab = 'Year', ylim=c(1,365))
+lines(pre.Jdates$Min, type='l', col='darkgreen')
+title(main = "Pre Dam Min vs Max Flow Dates")
+legend(x= 2.5 ,y= 100 ,legend=c("Max","Min"), col=c('purple','darkgreen'), bty='n',lty=1)
+```
+
+```{r,echo=FALSE, "Plot Min vs Max Post", fig.cap="Figure 21. Post Dam annual dates of minimum vs maximum flow rates."}
+plot(1:16, post.Jdates$Max, type="l", ylab = 'Julian Day', col = 'purple', xlab = 'Year', ylim=c(1,365))
+lines(post.Jdates$Min, type='l', col='darkgreen')
+title(main = "Post Dam Min vs Max Flow Dates")
+legend(x= 7.5 ,y= 100 ,legend=c("Max","Min"), col=c('purple','darkgreen'), bty='n',lty=1)
+```
+
+<br>
+
+## Conclusion on Parameter 3:
+
+- Dates of the minimum flows post-dam all appear to occur at the very ends or beginnings of the years. This would mean that the *minimum* flows were occurring in the winter months, which is peculiar. (see figure 19)
+
+<br>
+
+# PARAMETER 4: FREQUENCY AND DURATION OF HIGH AND LOW PULSES
+
+- The function “group4” creates a table showing the number of low and high pulses within in each water year and the average duration each pulse lasted (days)
+- A pulse is the daily mean streamflow above or below certain thresholds. A high pulse is considered a daily streamflow above the 75th percentile, while a low pulse is considered a daily streamflow below the 25th percentile. 
+- The pulse thresholds are found using the shortened water years only. If a period of days in a pulse impacts two water years, they are only counted in the first water year. 
+- The length of pulses is the mean number of days the pulses lasted in that year.
+
+```{r, "Pre-Dam", echo = FALSE}
+library(dataRetrieval)
+gage_id <- '02080500'
+startDate <- '1935-01-01'
+endDate <- '1950-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_pre <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+#rename columns
+colnames(USGS_pre) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+```
+
+```{r, "Post-Dam", echo = FALSE}
+library(dataRetrieval)
+gage_id <- '02080500'
+startDate <- '1960-01-01'
+endDate <- '1975-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_post <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+#rename columns
+colnames(USGS_post) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+```
+
+
+
+```{r, echo = FALSE}
+#install.packages('plyr')
+#install.packages('caTools')
+#install.packages('RColorBrewer')
+#install.packages('IHA', repos='http://R-Forge.R-project.org')
+
+```
+
+```{r}
+#table of pre-dam pulses
+library(IHA)
+pre<-zoo(USGS_pre$Flow,order.by=USGS_pre$Date)
+x<-group4(pre,year="water")
+x
+
+#table of post-dam pulses
+post<-zoo(USGS_post$Flow,order.by=USGS_post$Date)
+y<-group4(post,year="water")
+y
+```
+
+## Calculating the sum of low and high pulses pre dam
+```{r}
+#pre low pulse count 
+column_pre1<-x[ ,1]
+sum(column_pre1)
+
+#pre high pulse count
+column_pre2<-x[,3]
+sum(column_pre2)
+```
+
+## Calculating the sum of low and high pulses post dam
+```{r}
+#post low pulse count
+column_post1<-y[,1]
+sum(column_post1)
+
+#post high pulse count
+column_post2<-y[,3]
+sum(column_post2)
+
+```
+
+## Average days low and high pulses lasted pre dam
+```{r}
+#pre low pulse days avg
+column_pre3<-x[,2]
+mean(column_pre3)
+
+#pre high pulse days avg
+column_pre4<-x[,4]
+mean(column_pre4)
+
+```
+
+## Average days low and high pulses lasted post dam
+```{r}
+#post low pulse days avg
+column_post3<-y[,2]
+mean(column_post3)
+
+#pre high pulse days avg
+column_post4<-y[,4]
+mean(column_post4)
+
+```
+
+## Calculating the percentiles
+```{r}
+#install.packages('fasstr')
+library(fasstr)
+
+#percentiles for pre dam
+quantile(USGS_pre$Flow, probs=0.25)
+quantile(USGS_pre$Flow, probs=0.75)
+
+#percentiles for post dam
+quantile(USGS_post$Flow, probs=0.25)
+quantile(USGS_post$Flow, probs=0.75)
+
+```
+
+## Plot of streamflow showing the percentiles over 15 years
+```{r, fig.cap="Figure 22. The streamflow pre and post dam including the 25th and 75th percentiles."}
+par(mfrow=c(1,2))
+
+plot(USGS_pre$Date, USGS_pre$Flow, ylim=c(0,125000), main='Flow vs. Time Pre-dam',type="l", col="blue", xlab="Date", ylab="Flow [cfs]")
+
+legend("topright", legend= c("Flow [cfs]","25th percentile", "75th percentile"),col=c('blue','red','green'), cex=1.00, bty='n', lty=1, x.intersp = 0.5, y.intersp = 0.75)
+
+abline(a=NULL,b=NULL,h=4010,v=NULL,col="red")
+abline(a=NULL,b=NULL,h=9875,v=NULL,col="green")
+
+plot(USGS_post$Date, USGS_post$Flow, ylim=c(0,125000), main='Flow vs. Time Post-dam',type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+legend("topright", legend= c("Flow [cfs]","25th percentile", "75th percentile"),col=c('blue','red','green'), cex=1.00, bty='n', lty=1, x.intersp = 0.5, y.intersp = 0.75)
+
+abline(a=NULL,b=NULL,h=2717.5,v=NULL,col="red")
+abline(a=NULL,b=NULL,h=10300,v=NULL,col="green")
+
+```
+
+<br>
+
+```{r, echo = FALSE}
+gage_id <- '02080500'
+startDate <- '1942-01-01'
+endDate <- '1944-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_pre2 <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+colnames(USGS_pre2) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+
+gage_id <- '02080500'
+startDate <- '1967-01-01'
+endDate <- '1969-12-31'
+pCode <- '00060' #00060 is discharge in cfs 
+statCd <- '00003' #00003 is daily mean data
+USGS_post2 <- readNWISdv(gage_id, pCode, startDate, endDate, statCd)
+
+colnames(USGS_post2) <- c('Agency', 'Site No', 'Date', 'Flow', 'Code')
+
+```
+
+## Plot of streamflow showing the percentiles over 3 years
+
+```{r, fig.cap="Figure 23. The streamflow pre and post dam over 3 years including the 25th and 75th percentile"}
+par(mfrow=c(1,2))
+
+plot(USGS_pre2$Date, USGS_pre2$Flow, ylim=c(0,125000), main='Flow vs. Time Pre-dam',type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+legend("topright", legend= c("Flow [cfs]","25th percentile", "75th percentile"),col=c('blue','red','green'), cex=1.0, bty='n', lty=1, x.intersp = 0.5, y.intersp = 0.75)
+
+abline(a=NULL,b=NULL,h=2717.5,v=NULL,col="red")
+abline(a=NULL,b=NULL,h=10300,v=NULL,col="green")
+
+plot(USGS_post2$Date, USGS_post2$Flow, ylim=c(0,125000), main='Flow vs. Time Post-dam',type="l", col="blue", xlab="Date", 
+     ylab="Flow [cfs]")
+legend("topright", legend= c("Flow [cfs]","25th percentile", "75th percentile"),col=c('blue','red','green'), cex=1.0, bty='n', lty=1, x.intersp = 0.5, y.intersp = 0.75)
+
+abline(a=NULL,b=NULL,h=2717.5,v=NULL,col="red")
+abline(a=NULL,b=NULL,h=10300,v=NULL,col="green")
+```
+
+<br>
+
+## Bargraphs of low pulses pre and post dam
+```{r, fig.cap="Figure 24. Number of low pulses per year pre and post dam."}
+dates<-c(1935,1936,1937,1938,1939,1940,1941,1942,1943,1944,1945,1946,1947,1948,1949,1950,1951)
+
+par(mfrow=c(1,2))
+
+barplot(column_pre1,dates,ylim=c(0,50),main='Low pulse pre-dam vs. Time', col="blue", xlab="Date", ylab="Low Pulse")
+
+dates2<-c(1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976)
+
+
+barplot(column_post1,dates2,main='Low pulse post-dam vs. Time', col="blue", xlab="Date", ylab="Low Pulse")
+
+```
+
+<br>
+
+## Bargraphs of high pulses pre and post dam
+```{r, fig.cap="Figure 25. Number of high pulses per year pre and post dam."}
+par(mfrow=c(1,2))
+
+barplot(column_pre2,dates,ylim=c(0,50),main='High pulse pre-dam vs. Time',type="l", col="blue", xlab="Date", ylab="High Pulse")
+
+
+barplot(column_post2,dates2,ylim=c(0,50),main='High pulse post-dam vs. Time',type="l", col="blue", xlab="Date", ylab="High Pulse")
+
+```
+
+<br>
+
+## Conclusions on Parameter 4:
+
+Low Pulses:
+- There were a lot more low pulses post dam than pre dam. This means the mean streamflow post-dam went below the 25th percentile a lot more often than the streamflow pre-dam. 
+- We can also conclude the low pulses lasted longer pre dam than post dam. The average amount of days the low pulse lasted pre-dam was 5.32 days where the average amount of days the low pulse lasted post-dam was 1.82.
+
+High Pulses:
+- High pulses did not differ dramatically. High pulses stayed consistent pre-dam. 
+- Post dam it dropped in 1966, could be due to drought which lasted from 1962-1971. The peak in 1972 was due to a large flood on June 21-24 (USGS 2022). 
+
+The effects these changes in the flow have on the environment are, for example (IHA, 2009):
+
+- Frequency and magnitude of soil
+moisture stress for plants
+- Frequency and duration of anaerobic
+stress for plants
+- Availability of floodplain habitats for
+aquatic organisms
+- Nutrient and organic matter
+exchanges between river and
+floodplain
+
+<br>
+
+
+
+
+# PARAMETER 5: RATE AND FREQUENCY OF WATER CONDITION CHANGES
+
+- Rate and frequency of water condition changes: how drastically and how often flow rates rise or fall. 
+- Rise Rates: Mean or Median of all positive differences between consecutive daily values. 
+- Fall Rates: Mean or Median of all negative differences between consecutive daily values.
+- Hydrologic Reversal: When the flow rate changes from falling to rising and vice versa.
+
+```{r, "Load Data", echo = FALSE}
+#load pre-dam data
+siteNo<-"02080500"
+pCode<-'00060'
+stat<-'00003'
+start.date<-'1935-01-01'  #start date is 25 years before dam construction
+end.date<-'1950-12-31'
+USGS.pre<-readNWISdv(siteNo,pCode,start.date,end.date)
+
+#post-dam data
+siteNo<-"02080500"
+pCode<-'00060'
+stat<-'00003'
+start.date<-'1960-01-01'  
+end.date<-'1975-12-31' #start date is 25 years after construction
+USGS.post<-readNWISdv(siteNo,pCode,start.date,end.date)
+
+#column names
+names(USGS.pre) <- c('Agency', 'Site', 'Date', 'Flow', 'QC')
+names(USGS.post) <- c('Agency', 'Site', 'Date', 'Flow', 'QC')
+
+```
+
+```{r, "Finding the Rates"}
+#use IHA group5 function to find Rates
+pre.zoo <- zoo(USGS.pre$Flow, order.by=USGS.pre$Date) #group by dates
+pre.rates <- group5(pre.zoo)
+
+post.zoo <- zoo(USGS.post$Flow, order.by=USGS.post$Date)
+post.rates <- group5(post.zoo)
+
+#rename col's for plot purposes
+colnames(pre.rates)<- c('RiseRate','FallRate','Reversals')
+colnames(post.rates)<- c('RiseRate','FallRate','Reversals')
+
+pre.rates
+post.rates
+```
+
+```{r, "Pre vs Post Rise Rates", fig.cap="Figure 26. The average daily consecutive rise rate pre and post dam."}
+# plotting pre vs post dam rise rates
+pre.rates<- data.frame(pre.rates) 
+post.rates<- data.frame(post.rates)
+
+plot(0:16, pre.rates$RiseRate, type="l", ylab = 'Rise Rate (cfs/day)', col = 'blue', xlab = 'Year', ylim=c(400,2200))
+lines(post.rates$RiseRate, type='l', col='red')
+title(main = "Avg (?) Daily Consecutive Rise Rate Pre vs Post Dam")
+legend(x= 5 ,y= 2000 ,legend=c("Pre-Dam","Post-Dam"), col=c('blue','red'), bty='n',lty=1)
+```
+
+<br>
+
+```{r, "Pre vs Post Dam Fall Rates", fig.cap="Figure 27. The average daily consecutive fall rates pre and post dam."}
+#pre vs post dam fall rates
+plot(0:16, pre.rates$FallRate, type="l", ylab = 'Fall Rate (cfs/day)', col = 'blue', xlab = 'Year', ylim=c(-400, -2700))
+lines(post.rates$FallRate, type='l', col='red')
+title(main = "Avg (?) Daily Consecutive Fall Rate Pre vs Post Dam")
+legend(x= 5 ,y= -2400 ,legend=c("Pre-Dam","Post-Dam"), col=c('blue','red'), bty='n',lty=1)
+```
+
+<br>
+
+```{r, "Hydrologic Reversals", fig.cap="Figure 28. The hydrologic reversals pre and post dam."}
+#pre vs post dam hydrologic reversals
+plot(0:16, pre.rates$Reversals, type="l", ylab = '# of Hydrologic Reversals', col = 'blue', xlab = 'Year', ylim=c(20, 200))
+lines(post.rates$Reversals, type='l', col='red')
+title(main = "Number of Hydrologic Reversals Pre vs Post Dam")
+legend(x= 3 ,y= 70 ,legend=c("Pre-Dam","Post-Dam"), col=c('blue','red'), bty='n',lty=1)
+```
+
+
+## Conclusions on Parameter 5:
+- Fall rates post-dam appear to be greater and more variable than pre-dam fall rates. This could be due to large-scale removal of water from the dam reservoir for agricultural or industrial use. 
+- There were more hydrologic reversals after implementing the dam. This could be because the dam allows people to change and control the stream flow of the river. 
+
+
+
+<br>
+
+# References: 
+
+- Dominion Energy. Roanoke rapids power station. Retrieved from
+https://www.dominionenergy.com/projects-and-facilities/hydroelectric-power-facilities-and-projects/roanoke-rapids-power-station 
+- Cima, J. A., Reinicker, B. R. (2015) Concrete growth at roanoke rapids dam. Hydro Review. Retrieved from https://www.hydroreview.com/world-regions/concrete-growth-at-roanoke-rapids-dam/#gref 
+- Gannett Fleming. Roanoke rapids dam. Retrieved from:  https://www.gannettfleming.com/projects/roanoke-rapids-dam/
+- Chalise, D.J., Sankarasubramanian, A., & Ruhi, A. 2021. Dams and Climate Interact to Alter River Flow Regimes Across the United States. Advancing Earth and Space Science, 9:4. https://doi.org/10.1029/2020EF001816 
+- IHA. 2009. Indicators of Hydrologic Alteration. Version 7.1. The Nature Conservancy, User's Manual. https://www.conservationgateway.org/Documents/IHAV7.pdf 
+- NRFA. Referenced on June 2022. Derived Flow Statistics. National River Flow Archive. Retrieved from: https://nrfa.ceh.ac.uk/derived-flow-statistics#:~:text=Base%20Flow%20Index&text=The%20BFI%20may%20be%20thought,during%20periods%20of%20dry%20weather 
+- Floods and droughts in Roanoke, Virginia - USGS. (n.d.). Retrieved June 10, 2022, from https://va.water.usgs.gov/floods_and_droughts_in_roanoke.pdf
