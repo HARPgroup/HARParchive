@@ -23,7 +23,7 @@ model_version <- c("vahydro-1.0")
 #region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
 origin <- "JL7_7070_0001"
 origin_type <- "basin"
-featr_type <- "source"
+featr_type <- "facility"
 limit_featrs_to_origin <- "FALSE" #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
 metric_mod <- c("wd_mgd")
@@ -73,8 +73,8 @@ sqldf_sf <- function(statemt, geomback="NA"){
 facils <- list() #create empty list to store dfs
 # note: the variable "github_location" should be in config.local and provides easy access to these resources
 
-# foundational MP(measuring pt)/sources data:
-facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_2018-2022_5ya.csv"))
+# foundational MP(measuring pt)/sources data: #This is the new foundation dataset 
+facils$foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_expanded.csv"))
 # write.csv(facils$foundatn_mp, paste0(export_path,"00_foundatn_mp.csv"))
 
 if (featr_type=="facility") { 
@@ -362,11 +362,11 @@ facils <- unique(facils) #remove duplicated rows
 facils$vwp_max_mgy[is.na(facils$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why exactly NAs still exist
 # st_write(facils, paste0(export_path,"26_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 if(featr_type=="facility"){
-  st_write(facils, paste0(export_path,origin,"_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(facils, paste0(export_path,origin,"_facils_sf1.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(featr_type=="source"){
   facils <- facils[names(facils) %in% grep("^([0-9]+).$", names(facils), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(facils, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(facils, paste0(export_path,origin,"_mp_sf1.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 rm(fac_model_data)
 #```
@@ -430,7 +430,7 @@ for (k in 1:length(rivseg_metric)){
   rsegs <- sqldf_sf(statemt, geomback="rsegs")
 }
 # st_write(rsegs, paste0(export_path,"28_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf1.csv"), layer_options = "GEOMETRY=AS_WKT")
 rm(colname1)
 rm(colname2)
 #```

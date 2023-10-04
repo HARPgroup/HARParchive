@@ -11,11 +11,12 @@ output: pdf_document #overridden by output_format in render command
 params: 
 
   #facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
-  facils_file: "C:/HARP/Exports/PU6_3730_3750_mp_sf.csv"
+  #facils_file: "C:/HARP/Exports/JL7_7070_0001_mp_sf.csv"
+  facils_file: "C:/HARP/Exports/JL7_7070_0001_facils_sf1.csv"
   facils_file_map_bubble_column: ["wd_mgd"]
   facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/HARP/Exports/PU6_3730_3750_rsegs2_sf.csv"
+  rsegs_file: "C:/HARP/Exports/JL7_7070_0001_rsegs_sf1.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   # list of runids for facil and rseg data
@@ -29,10 +30,10 @@ params:
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
-  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  regions_file: "C:/HARP/Foundational_Data/example_files/regions_sf.csv"
+  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
@@ -244,6 +245,7 @@ Ex. for Drought (reg section XXX), refer to summary document Drought section L90
 facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
+#move into configs
 wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins day and year 
 wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
@@ -327,9 +329,10 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
   source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_mapgen2.R"),local = TRUE) #load mapping function
 
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
-  suppressWarnings(suppressMessages( 
-    fn_mapgen2(mapnum = 1, type, map_type, styles[[map_style]], metric = facils_file_map_bubble_column[i], rivseg, bbox, rsegs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
+
+      suppressWarnings(suppressMessages( 
+     fn_mapgen2(mapnum = 1, type, map_type, styles[[map_style]], metric = facils_file_map_bubble_column[i], rivseg, bbox, rsegs, counties, roads, 
+           nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())

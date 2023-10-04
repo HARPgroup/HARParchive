@@ -141,21 +141,27 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   }
   # Tidal riversegs
   rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE))
+  st_crs(rivsegTidal) <- crs_default 
   
   region_OI <- regions[regions$region==region,]
   
-  # Merging Borders into 1 df
-  borders <- data.frame( counties[,"name"] , bundle= rep("county", nrow(counties)) )
+  # Merging Borders into 1 df #ERROR HERE
+  st_geometry(rsegs) <- "geometry"
+  borders <- data.frame(counties[,"name"] , bundle= rep("county", nrow(counties)) )
+  #`st_crs(rsegs) <- crs(borders)
+  sf::st_crs(rsegs) <- crs_default
   names(borders) <- c("name", "geometry", "bundle")
-  #st_geometry(rsegs) <- "geom"
-  #st_crs(rsegs) <- crs(borders)
-  borders <- rbind(borders, data.frame( rsegs[,c("name", "bundle")] )  )
+  borders <- rbind(borders, data.frame(rsegs[,c("name", "bundle")] )  )
   if (map_type=="region") {
     st_geometry(region_OI) <- "geometry"
+    #st_crs(region_OI) <- crs(borders)
     region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[geoCol(region_OI)] )
     borders <- rbind(borders, region_OI)
+    borders <- st_as_sf(borders)
+    sf::st_crs(borders) <- crs_default
   }
-  borders <- st_as_sf(borders)
+  else {borders <- st_as_sf(borders)}
+  sf::st_crs(borders) <- crs_default
   
   
   ###### GENERATE MAP #######
@@ -213,27 +219,28 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
                       breaks= c(4.5,2.5,textsize[6]),
                       labels= c("Region","County","Basin"),
                       name= "Borders")
-  }  else {
-    map <- map +
+  } else {
+    map <- map + #ERROR HERE
       new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
       geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
               aes(color= bundle,
                   lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
                   linetype= bundle )
-      ) +
+      )
+    +
       scale_linetype_manual(values= c("county"= 1,"watershed"= 2),
                             labels= c("County","Basin"),
                             name= "Borders"
-      ) +    
+      ) +
       scale_colour_manual(values= c(colors_sf[c("county","rsegs"),]) ,
                           breaks= c("county","watershed"),
                           labels= c("County","Basin"),
                           name= "Borders",
       ) +
-      scale_linewidth(range= range(c(textsize[6],4.5)), 
+      scale_linewidth(range= range(c(textsize[6],4.5)),
                       breaks= c(2.5,textsize[6]),
                       labels= c("County","Basin"),
-                      name= "Borders")  
+                      name= "Borders")
   }
   map <- map + 
     new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
@@ -347,3 +354,4 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     )
   assign('map', map, envir = globalenv()) #save the map in the global environment
 }
+
