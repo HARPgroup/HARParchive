@@ -6,11 +6,12 @@ ds$get_token(rest_pw)
 
 options(scipen = 999) #disable scientific notation
 
-runid_list <- c("runid_11","runid_13")
+#note: this should work for any future runids, model versions, and metrics AS LONG AS the gage model version name contains 'usgs'
+runid_list <- c("runid_11")
 model_versions <- c("vahydro-1.0","usgs-1.0")
 metrics <- c("7q10","l30_Qout","l90_Qout")
 
-mv_names <- gsub("-|[.]", "", model_versions)
+mv_names <- gsub("[.]", "", model_versions) #om_vahydro_metric_grid didn't handle periods in 'runlabel' well
 for(r in 1:length(runid_list)){
   for(i in 1:length(metrics)){ #generate runlabels for Model/Gage per each metric
     for(v in 1:length(model_versions)){
@@ -63,6 +64,17 @@ metric_data <- om_vahydro_metric_grid(
 )
 
 #find % difference between gage and model metrics 
+
+for(r in 1:length(runid_list)){
+  for(m in 1:length(metrics)){
+    cols <- grep(paste0(metrics[m],"_",runid_list[r]), colnames(metric_data))
+    model <- grep("model", colnames(metric_data[cols]))
+  }
+}
+
+
+
+
 metric_data$pct_diff_7q10 <- (abs(metric_data$Model_7q10 -  metric_data$Gage_7q10) / ((metric_data$Model_7q10 + metric_data$Gage_7q10)/2))*100
 metric_data$pct_diff_L30 <- (abs(metric_data$Model_L30 -  metric_data$Gage_L30) / ((metric_data$Model_L30 + metric_data$Gage_L30)/2))*100
 metric_data$pct_diff_L90 <- (abs(metric_data$Model_L90 -  metric_data$Gage_L90) / ((metric_data$Model_L90 + metric_data$Gage_L90)/2))*100

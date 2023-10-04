@@ -30,15 +30,15 @@ params:
   map_type: ["basin"] #one of: basin, locality, or region 
 
   # default files for mapping base layers
-  regions_file: "C:/HARP/Foundational_Data/example_files/regions_sf.csv"
-  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
+  regions_file: paste0(github_location,"/Foundational_Data/example_files/regions_sf.csv")
+  counties_file: paste0(github_location,"/Foundational_Data/example_files/counties_sf.csv")
+  cities_file: paste0(github_location,"/Foundational_Data/example_files/cities.csv")
+  roads_file: paste0(github_location,"/Foundational_Data/example_files/roads_sf.csv")
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
-  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for segments 
+  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -73,39 +73,18 @@ for(i in 1:length(params)){
 ```{r Load Functions, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/rivsegmaps_config.R"),local = TRUE) #load rivseg-specific mapping aesthetics
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_spatial.R"),local = TRUE)
 
-
-# the following will no longer needed, since the input dataframe will either be facility or MP-level data
 #determining which type/level of map is being created (either 'source' or 'facility')
 if (grepl('fac', facils_file)==TRUE) {
   type <- "facility"
 }
-
 if (grepl('mp', facils_file)==TRUE) {
-  type <- "source"}
-# allows the usage of SQLDF with sf data frames:
-sqldf_sf <- function(statemt, geomback="NA"){
-  #statement is any SQLDF string; reference the data frames per usual
-  #geomback is the character name of the data.frame you are filtering, where, if applicable, the sf geometry column will need to be added back from
-  dfs <- as.environment(as.list(.GlobalEnv, all.names=TRUE)) #make a copy of the global environment
-  for(i in names(dfs)){
-    if( "sf" %in% class(dfs[[i]]) ){ #drop the geometry on any sf objects so they can go through SQLDF
-      dfs[[i]] <- sf::st_drop_geometry( dfs[[i]] )
-    }
-  }
-  dfs[["result"]] <- sqldf(statemt, envir=dfs) #SQLDF the non-sf dataframes in the new environment (so that the global envir. retains the sf objects)
-  if(geomback!="NA"){
-    output <- merge(x=dfs[["result"]], y=.GlobalEnv[[geomback]], all.x=TRUE, all.y=FALSE) #match the newly filtered obs. to their geometries
-    output <- st_as_sf(output, crs=4326) #convert back to sf
-  } else {
-    output <- dfs[["result"]]
-  }
+  type <- "source"
 }
 
 # legend_titling() --> Generate user-understandable legend titles
@@ -217,7 +196,7 @@ statemt <- paste("SELECT *,
                   FROM wtbd
                   WHERE (gnis_name != ' ' AND gnis_name != 'Noname' AND gnis_name IS NOT NULL)
                  ", sep=" ")
-wtbd <- sqldf_sf(statemt, "wtbd")
+wtbd <- fn_sqldf_sf(statemt, "wtbd")
 #st_write(wtbd, paste0(export_path,"31_wtbd_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 # enseure both datasets have same crs prior to rbind()
@@ -259,7 +238,7 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
     mapMessage <- TRUE #for returning message to user if map is empty
   } else { mapMessage <- FALSE  }
   #Ordering & numbering data by the metric to be mapped 
-   facils <- sqldf_sf(paste0( #ordering the data using sqldf 
+   facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
    "SELECT facils.*  
    FROM facils
    ORDER BY", ' ', facils_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
@@ -279,14 +258,14 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
   
   mp_layer_sql <- paste('SELECT *, ',facils_file_map_bubble_column[i],' AS demand_metric
         FROM facils' , sep="") #Renaming metric of interest for generalized sorting into bins
-  mp_layer <- sqldf_sf(mp_layer_sql, "facils")
+  mp_layer <- fn_sqldf_sf(mp_layer_sql, "facils")
   #st_write(mp_layer, paste0(export_path,"35_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   bins = as.data.frame(div)
   bins$classid <- index(bins)
   names(bins) <- c("val", "bin")
   #write.csv(bins, paste0(export_path,"36_bins.csv"))
 
-  entity_classes <- sqldf_sf( #sorting the data into bins based on their range 
+  entity_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
       "select a.NUM, max(b.bin) as bin
       from mp_layer as a 
       left outer join bins as b 
@@ -294,7 +273,7 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
       group by a.NUM" , "mp_layer")
   #st_write(entity_classes, paste0(export_path,"37_entity_classes_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
-  mp_layer <- sqldf_sf( #joining the bins with the metric data 
+  mp_layer <- fn_sqldf_sf( #joining the bins with the metric data 
       "select a.*, b.bin 
       from mp_layer as a 
       left outer join entity_classes as b 
@@ -512,7 +491,7 @@ for (i in 1:length(rivseg_metric)){
   rseg_sql <- paste('SELECT *, ','percentDiff','_',rivseg_metric[i],' AS pct_diff
         FROM rsegs' , sep="") #Renaming metric of interest for generalized sorting into bins
   
-  rsegs <- sqldf_sf(rseg_sql,"rsegs")
+  rsegs <- fn_sqldf_sf(rseg_sql,"rsegs")
   #st_write(rsegs, paste0(export_path,"46_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
 
   bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
@@ -520,7 +499,7 @@ for (i in 1:length(rivseg_metric)){
   names(bins) <- c("val", "bin")
   #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
 
-  rivseg_classes <- sqldf_sf( #sorting the data into bins based on their range 
+  rivseg_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
     "select a.riverseg, min(b.bin) as bin
     from rsegs as a 
     left outer join bins as b 
@@ -528,7 +507,7 @@ for (i in 1:length(rivseg_metric)){
     group by a.riverseg" )
   #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
 
-  rsegs <- sqldf_sf( #joining the bins with the metric data 
+  rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
     "select a.*, b.bin 
     from rsegs as a 
     left outer join rivseg_classes as b 
