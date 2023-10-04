@@ -1,12 +1,13 @@
 # Add centroid coordinate columns to a data frame
+library(sf)
+#source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_process_geom.R"),local = TRUE)
+  #library(sf) is included in fn_process_geom.R
 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_process_geom.R"),local = TRUE)
-#library(sf) is included in fn_process_geom.R
-
-fn_centroid_coords <- function(data, geom_col) {
+fn_centroid_coords <- function(data, geom_col, crs=4326) {
   
   if( length(grep("sfc", lapply(data, class)))==0 ){ #EXPLAIN
-    data <- fn_process_geom(data, geom_col)
+    #data <- fn_process_geom(data, geom_col)
+    st_as_sf(data, wkt=geom_col, crs=crs)
   } 
   
   for (r in 1:nrow(data)) { #get centroid coord. for labeling
