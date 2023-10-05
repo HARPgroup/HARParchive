@@ -17,28 +17,26 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax
 ## metric is the specific name of the value/metric that bubbles will be sized with, includes runid & metric name (e.g. runid_11_wd_mgd)
-## "type" will be either basin, locality, or region
+## "featr_type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
 ## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
-fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs, counties, roads,
-                       nhd, maplabs, locality, region, mp_layer, metric_unit, title) { 
+fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
+                       nhd, maplabs, mp_layer, metric_unit, title) { 
   
   ## set vars for testing:
   # mapnum = 1
-  # type = type
-  # map_type = map_type
+  # featr_type = featr_type
+  # origin_type = origin_type
   # style = styles[[map_style]]
   # metric = facils_file_map_bubble_column[i] #map_by[i]
-  # rivseg = rivseg
+  # origin = origin
   # bbox = bbox
   # rsegs = rsegs
   # counties = counties
   # roads = roads
   # nhd = nhd
   # maplabs = maplabs
-  # locality = locality
-  # region = region
   # mp_layer = mp_layer
   # metric_unit = metric_unit
   # title = "default"
@@ -106,20 +104,20 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   # For map title:
   
   if (title == "default"){
-    if (map_type == "basin") {
-      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, ",", metric, sep=" ") )
-    } else if (map_type == "locality") {
-      title <- paste0(locality, " Locality, ", metric)
-    }  else if (map_type == "region") {
-      title <- paste0(region, " Region, ", metric)
+    if (origin_type == "basin") {
+      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, ",", metric, sep=" ") )
+    } else if (origin_type == "locality") {
+      title <- paste0(origin, " Locality, ", metric)
+    }  else if (origin_type == "region") {
+      title <- paste0(origin, " Region, ", metric)
     } 
   } else {
-    if (map_type == "basin") {
-      title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==rivseg] , rivseg, ",", title, sep=" ") )
-    } else if (map_type == "locality") {
-      title <- paste0(locality, " Locality, ", title)
-    }  else if (map_type == "region") {
-      title <- paste0(region, " Region, " ,title)
+    if (origin_type == "basin") {
+      title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, ",", title, sep=" ") )
+    } else if (origin_type == "locality") {
+      title <- paste0(origin, " Locality, ", title)
+    }  else if (origin_type == "region") {
+      title <- paste0(origin, " Region, " ,title)
     } 
   }
   
@@ -143,7 +141,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE))
   st_crs(rivsegTidal) <- crs_default 
   
-  region_OI <- regions[regions$region==region,]
+  region_OI <- regions[regions$region==origin,]
   
   # Merging Borders into 1 df #ERROR HERE
   st_geometry(rsegs) <- "geometry"
@@ -152,7 +150,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
   sf::st_crs(rsegs) <- crs_default
   names(borders) <- c("name", "geometry", "bundle")
   borders <- rbind(borders, data.frame(rsegs[,c("name", "bundle")] )  )
-  if (map_type=="region") {
+  if (origin_type=="region") {
     st_geometry(region_OI) <- "geometry"
     #st_crs(region_OI) <- crs(borders)
     region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[geoCol(region_OI)] )
@@ -198,7 +196,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) 
   # Mapping all Borders (basins, localities, regions)
-  if (map_type == "region") { 
+  if (origin_type == "region") { 
     map <- map +
       new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
       geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
@@ -294,7 +292,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
     scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE)
   
   ## Plotting sources/MPs
-  if (type == "source") {
+  if (featr_type == "source") {
     map <- map +
       # Plotting using bins in a single layer:
       new_scale("size") + new_scale("color") + 
@@ -320,7 +318,7 @@ fn_mapgen2 <- function(mapnum, type, map_type, style, metric, rivseg, bbox, segs
                           name= "Source Type",
                           guide= guide_legend(override.aes=list(size=9))
       )            
-  }  else if (type == "facility") { ## Plotting facilities 
+  }  else if (featr_type == "facility") { ## Plotting facilities 
     map <- map + 
       new_scale("size") +
       geom_point(data = mp_layer_plot, aes(x = lng, y = lat, 
