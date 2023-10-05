@@ -19,7 +19,7 @@ model_version <- c("vahydro-1.0")
 #region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
 origin <- "JL7_7070_0001"
 origin_type <- "basin"
-featr_type <- "facility"
+featr_type <- "source"
 limit_featrs_to_origin <- FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
 metric_mod <- c("wd_mgd")
@@ -29,13 +29,15 @@ rivseg_metric <- c("l30_Qout","7q10")
 base_layer_data <- FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)
                            #if TRUE -> will also re-generate map base-layer data (regions, counties, cities, roads)
 
+#note: the variables "github_location" and "export_path" should be defined in config.local
+#github_location provides easy access to functions & dataset resources ; export_path is where generated dataframes will output
+
 ############################################################### #
 
 ############################################################### #
 
 #----Pull Data----
 #---Facility Data---
-#note: the variable "github_location" should be in config.local and provides easy access to these resources
 foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_expanded.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()

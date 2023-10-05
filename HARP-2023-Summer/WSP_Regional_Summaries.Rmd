@@ -10,30 +10,24 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  #facils_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/JU4_7330_7000_facils_sf.csv"
-  #facils_file: "C:/HARP/Exports/JL7_7070_0001_mp_sf.csv"
-  facils_file: "C:/HARP/Exports/JL7_7070_0001_facils_sf1.csv"
-  facils_file_map_bubble_column: ["wd_mgd"]
-  facils_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
+  origin: ["JL7_7070_0001"] #supply either a rivseg, locality, or region name
+  origin_type: ["basin"] #basin, locality, or region
+  featr_type: ["source"] #source or facility
+  
+  featrs_file: "C:/aa_HARP/Exports/JL7_7070_0001_mp_sf.csv"
+  featrs_file_map_bubble_column: ["wd_mgd"]
+  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/HARP/Exports/JL7_7070_0001_rsegs_sf1.csv"
+  rsegs_file: "C:/aa_HARP/Exports/JL7_7070_0001_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
-  # list of runids for facil and rseg data
-  runid_list: [ "runid_11", "runid_13" ]
-  
-  # specify the type of map by supplying either a rivseg, locality, or region
+  runid_list: [ "runid_11", "runid_13" ] #list of runids used for facil and rseg data
 
-  rivseg: ["KU0_8980_0000"]
-  locality: ["NA"]
-  region: ["NA"]    
-  map_type: ["basin"] #one of: basin, locality, or region 
-
-  # default files for mapping base layers
-  regions_file: paste0(github_location,"/Foundational_Data/example_files/regions_sf.csv")
-  counties_file: paste0(github_location,"/Foundational_Data/example_files/counties_sf.csv")
-  cities_file: paste0(github_location,"/Foundational_Data/example_files/cities.csv")
-  roads_file: paste0(github_location,"/Foundational_Data/example_files/roads_sf.csv")
+  # default files for map's base-layers
+  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
+  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
@@ -79,18 +73,9 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),lo
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/rivsegmaps_config.R"),local = TRUE) #load rivseg-specific mapping aesthetics
 
-#determining which type/level of map is being created (either 'source' or 'facility')
-if (grepl('fac', facils_file)==TRUE) {
-  type <- "facility"
-}
-if (grepl('mp', facils_file)==TRUE) {
-  type <- "source"
-}
-
 # legend_titling() --> Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
 legend_titling <- function(metric, runid_list){
-  
   if (metric=="wd_mgd"){ #titles for wd_mgd
     name <- "Withdrawal"
     unit <- "(MGD)"
@@ -113,13 +98,13 @@ legend_titling <- function(metric, runid_list){
 
 ```{r Load Dataframes Functions, echo=FALSE, warning=FALSE, results='hide'}
 
-facils <- st_read(facils_file)
-rsegs <- st_read(rsegs_file)
-counties <- st_read(counties_file)
-regions <- st_read(regions_file)
+facils <- sf::st_read(featrs_file)
+rsegs <- sf::st_read(rsegs_file)
+counties <- sf::st_read(counties_file)
+regions <- sf::st_read(regions_file)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
-roads <- st_read(roads_file)
-regions <- st_read(regions_file)
+roads <- sf::st_read(roads_file)
+regions <- sf::st_read(regions_file)
 
 st_crs(facils) <- crs_default
 st_crs(rsegs) <- crs_default
@@ -228,35 +213,35 @@ facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat col
 wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins day and year 
 wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
-for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in facils_file_map_bubble_column param 
-  #legend_title <- paste0(facils_file_map_bubble_column[i])
-  legend_title <- legend_titling(facils_file_map_bubble_column[i], runid_list)
+for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
+  #legend_title <- paste0(featrs_file_map_bubble_column[i])
+  legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
   
   #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
-  if ((facils_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
-    facils[facils_file_map_bubble_column[i]] <- NA
+  if ((featrs_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
+    facils[featrs_file_map_bubble_column[i]] <- NA
     mapMessage <- TRUE #for returning message to user if map is empty
   } else { mapMessage <- FALSE  }
   #Ordering & numbering data by the metric to be mapped 
    facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
    "SELECT facils.*  
    FROM facils
-   ORDER BY", ' ', facils_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
+   ORDER BY", ' ', featrs_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
    "facils")
   facils$NUM <- seq(1, nrow(facils))
   #st_write(facils, paste0(export_path,"34_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
- if (i==1) { #data for table will be sorted by the first of facils_file_map_bubble_column
+ if (i==1) { #data for table will be sorted by the first of featrs_file_map_bubble_column
    #facils$within <- facils_within
  } 
   
-  metric_unit <- substr(facils_file_map_bubble_column[i], nchar(facils_file_map_bubble_column[i]) - 2, nchar(facils_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
+  metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
   if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
   } else if (metric_unit == "mgy") {
   div <- wd_mgy
   }
   
-  mp_layer_sql <- paste('SELECT *, ',facils_file_map_bubble_column[i],' AS demand_metric
+  mp_layer_sql <- paste('SELECT *, ',featrs_file_map_bubble_column[i],' AS demand_metric
         FROM facils' , sep="") #Renaming metric of interest for generalized sorting into bins
   mp_layer <- fn_sqldf_sf(mp_layer_sql, "facils")
   #st_write(mp_layer, paste0(export_path,"35_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -280,7 +265,7 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
       on a.NUM = b.NUM " , "mp_layer")
 
   mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
-  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- facils_file_map_bubble_column[i] #change column name back to the specific metric
+  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- featrs_file_map_bubble_column[i] #change column name back to the specific metric
   mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
   mp_layer <- fn_centroid_coords(mp_layer)
   #st_write(mp_layer, paste0(export_path,"38_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -288,15 +273,15 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
   rsegs <- fn_centroid_coords(rsegs)
   #st_write(rsegs, paste0(export_path,"39_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
-    title1 <- paste0(facils_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+    title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
   
-  if (facils_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
+  if (featrs_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
       title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
-  } else if (facils_file_map_bubble_column[i]=="wd_mgd"){
+  } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
           title <- gsub("wd_mgd", "Withdraw (MGD)", title1)
-  } else if (facils_file_map_bubble_column[i]=="gw_demand_mgd"){
+  } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
   title <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', title1)
-  } else if (facils_file_map_bubble_column[i]=="ps_mgd"){
+  } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
   title <- gsub("ps_mgd", "Point Source (MGD)", title1)
   } else {
     title <- title1
@@ -310,8 +295,8 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
 
       suppressWarnings(suppressMessages( 
-     fn_mapgen2(mapnum = 1, type, map_type, styles[[map_style]], metric = facils_file_map_bubble_column[i], rivseg, bbox, rsegs, counties, roads, 
-           nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
+     fn_mapgen2(mapnum = 1, featr_type, origin_type, styles[[map_style]], metric = featrs_file_map_bubble_column[i], origin, bbox, rsegs, counties, roads, 
+           nhd, maplabs, origin, origin, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -325,26 +310,20 @@ for (i in 1:length(facils_file_map_bubble_column)) { #execute for each metric in
   # Solution: maplabs object needs to be re-generated
 
 # Save map as png
-#name maps based on map type
-if (map_type == "basin") {
-  map_name <- rivseg
-} else if (map_type == "locality") {
-  map_name <- locality
-} else if (map_type == "region") {
-  map_name <- region
-}
+map_name <- origin
+
 #add sources or facils to name based on type 
-if (type == "source") {
+if (featr_type == "source") {
   map_name <- paste0(map_name, '_sources')
-} else if (type == "facility") {
+} else if (featr_type == "facility") {
   map_name <- paste0(map_name, '_facils')
 }
 
 # Saving map(s) as a png
 # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
 mapfilename <- character() #empty character var, not a list
-for (i in 1:length(facils_file_map_bubble_column)) {
-  mapfilename[i] <- paste(export_path, map_name, "_", facils_file_map_bubble_column[i], ".png", sep="")
+for (i in 1:length(featrs_file_map_bubble_column)) {
+  mapfilename[i] <- paste(export_path, map_name, "_", featrs_file_map_bubble_column[i], ".png", sep="")
   mapf <- get(paste0('map',i))
   ggsave(
     filename = mapfilename[i],
@@ -377,7 +356,7 @@ table <- data.frame(
   HydroID = facils$Facility_hydroid)
 
 #for source type only add mp name and source type to table
-if (type=="source"){
+if (featr_type=="source"){
   table$Source = facils$MP_Name  
   table$Source_Type = facils$Source_Type
 }
@@ -403,14 +382,14 @@ table$`Permitted Capacity` <- facils$vwp_max_mgy #add permitted capacity to tabl
 #write.csv(table, paste0(export_path,"42_table.csv"))
 
 
-for (i in 1:length(facils_file_table_column)){
+for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
-  if (facils_file_table_column[i] %in% colnames(facils)) {
+  if (featrs_file_table_column[i] %in% colnames(facils)) {
   #adding requested columns to table
     # table[,table_col[i]] <- round( st_drop_geometry(facils[,table_col[i]]), digits = 2) #round all values to 2 decimal place digits
-    tmp_df <- st_drop_geometry(facils[,facils_file_table_column[i]])
+    tmp_df <- st_drop_geometry(facils[,featrs_file_table_column[i]])
     tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-    table[,facils_file_table_column[i]] <- round(tmp_df, digits = 2)
+    table[,featrs_file_table_column[i]] <- round(tmp_df, digits = 2)
   }
 }
 
@@ -420,9 +399,9 @@ table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs,
 
 #compare requested table columns with those that actually exist 
 novals <- data.frame(metric=character())
-for (i in 1:length(facils_file_table_column)) {
-  if (!facils_file_table_column[i] %in% names(table)) {
-    novals[i,] <- facils_file_table_column[i]
+for (i in 1:length(featrs_file_table_column)) {
+  if (!featrs_file_table_column[i] %in% names(table)) {
+    novals[i,] <- featrs_file_table_column[i]
   }
 }
 #for returning message if metric table columns were missing 
@@ -433,11 +412,11 @@ if (nrow(novals > 0)) {
 # Rename columns & create flextable
 #names(table)[names(table) == 'Source_Type'] <- 'Source Type'
 
-for (i in 1:length(facils_file_table_column)) {
+for (i in 1:length(featrs_file_table_column)) {
   for (x in 1:nrow(metric_names)){
-    if (facils_file_table_column[i]==metric_names$read_metric_name[x])
+    if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
     {
-      names(table)[names(table)==facils_file_table_column[i]] <- metric_names$new_metric_name[x]
+      names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
     }
     else
     {
@@ -450,7 +429,7 @@ for (i in 1:length(facils_file_table_column)) {
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 #write.csv(table, paste0(export_path,"44_table.csv"))
 
-ft1 <- fn_tablegen(type = "facility", table = table, columns = "all", alignment = "left", map_type,metric = rivseg_metric[i], rivseg, title=title ) #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+ft1 <- fn_tablegen(featr_type = "facility", table = table, columns = "all", alignment = "left", origin_type, metric = rivseg_metric[i], origin, title=title ) #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
 
 
 ```
@@ -517,8 +496,8 @@ for (i in 1:length(rivseg_metric)){
 
   ##Mapping function
   suppressWarnings(suppressMessages(
-    fn_mapgen2(mapnum = 2,type, map_type, styles[[map_style]], metric = rivseg_metric[i], rivseg, bbox, rsegs, counties, roads, 
-          nhd, maplabs, locality, region, mp_layer, metric_unit, title=title) ))
+    fn_mapgen2(mapnum = 2,featr_type, origin_type, styles[[map_style]], metric = rivseg_metric[i], origin, bbox, rsegs, counties, roads, 
+          nhd, maplabs, origin, origin, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -625,7 +604,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   }
   
   
-  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left", map_type,  metric = rivseg_metric[k], rivseg, title=title) #Flextable function
+  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left", origin_type,  metric = rivseg_metric[k], origin, title=title) #Flextable function
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
