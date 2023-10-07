@@ -80,10 +80,16 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
+  ## TEMPORARY work-around: use get_googlemap which requires a center
+  cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
+  cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
+  basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = 12))
+  
+## Un-comment this chunk when get_stamenmap error is resolved:  
   #Generate basemap using the given boundary box 
-  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
-  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #new error as of 10/7/23, documented by others
-  basemap <- ggmap(basemap_0)
+  # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
+  # basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #new error as of 10/7/23, documented by others
+  # basemap <- ggmap(basemap_0)
   
   #For reverse-fill: darken area of map outside basins 
   rsegs_union <- st_union(rsegs)
@@ -161,7 +167,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   
   
   ###### GENERATE MAP #######
-  map <- #basemap +  
+  map <- basemap +  
     # Titles
     theme(text=element_text(size=20), title=element_text(size=40), #setting text sizes
           legend.title = element_text(size=25), axis.title.x=element_blank(), axis.title.y=element_blank()) +
@@ -199,7 +205,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
       new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
       geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
               aes(color= bundle,
-                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
+                  lwd= as.numeric(mgsub(bundle, pattern=c("county","watershed","region"), replacement=c(2.5,textsize[6],4.5))),
                   linetype= bundle )
       ) +
       scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), 
@@ -220,10 +226,9 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
       new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
       geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
               aes(color= bundle,
-                  lwd= as.numeric(mgsub(borders$bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
+                  lwd= as.numeric(mgsub(bundle, pattern=c("county","watershed"), replacement=c(2.5,textsize[6]))),
                   linetype= bundle )
-      )
-    +
+      )  +
       scale_linetype_manual(values= c("county"= 1,"watershed"= 2),
                             labels= c("County","Basin"),
                             name= "Borders"
@@ -295,7 +300,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
       new_scale("size") + new_scale("color") + 
       
       geom_point(data = mp_layer_plot, aes(x = lng, y = lat, 
-                                           color = Source.Type, size = bin),
+                                           color = Source_Type, size = bin),
                  shape = 19) +
       
       scale_size_binned(range = c(2,20),

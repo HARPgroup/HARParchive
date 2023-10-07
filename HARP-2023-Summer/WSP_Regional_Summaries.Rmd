@@ -293,8 +293,8 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
 
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
 
-#      suppressWarnings(suppressMessages( 
-  map <- fn_mapgen2(mapnum = 1, style = styles[[map_style]], 
+#  suppressWarnings(suppressMessages( 
+    map <- fn_mapgen2(mapnum = 1, style = styles[[map_style]], 
                 metric = featrs_file_map_bubble_column[i], featr_type = featr_type, 
                 origin_type = origin_type, origin = origin, 
                 bbox = bbox, segs = rsegs, 
@@ -302,7 +302,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
                 nhd = nhd, maplabs = maplabs, 
                 mp_layer = mp_layer, metric_unit = metric_unit, 
                 title = title)
-#    ))
+# ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -338,6 +338,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) {
     height = 20)
  }
 ```
+
 ```{r Viewing Map(s) 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
 if (mapMessage == TRUE) {
@@ -345,6 +346,7 @@ if (mapMessage == TRUE) {
   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
 }
 ```
+
 ```{r Continued..(table1), echo=FALSE, message=FALSE, warning=FALSE}
 #create dataframe for human readable metric names- add here any new metric names being used and their readable version
   read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
@@ -381,12 +383,10 @@ for(i in 1:nrow(table)){
 }
 #write.csv(table, paste0(export_path,"41_table.csv"))
 
-
 table$`River Segment ID`= facils$riverseg #add rivseg ID
 
 table$`Permitted Capacity` <- facils$vwp_max_mgy #add permitted capacity to table 
 #write.csv(table, paste0(export_path,"42_table.csv"))
-
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
@@ -400,8 +400,6 @@ for (i in 1:length(featrs_file_table_column)){
 }
 
 table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
-#write.csv(table, paste0(export_path,"43_table.csv"))
-
 
 #compare requested table columns with those that actually exist 
 novals <- data.frame(metric=character())
@@ -435,7 +433,10 @@ for (i in 1:length(featrs_file_table_column)) {
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 #write.csv(table, paste0(export_path,"44_table.csv"))
 
-ft1 <- fn_tablegen(featr_type = "facility", table = table, columns = "all", alignment = "left", origin_type, metric = rivseg_metric[i], origin, title=title ) #Execute flextable function, which saves the flextable as variable 'ft' for displaying later
+ft1 <- fn_tablegen(featr_type = "facility", table = table, 
+                   columns = "all", alignment = "left", 
+                   origin_type = origin_type, metric = rivseg_metric[i], 
+                   origin = origin, title = title ) #execute flextable function
 
 
 ```
@@ -501,9 +502,16 @@ for (i in 1:length(rivseg_metric)){
   
 
   ##Mapping function
-  suppressWarnings(suppressMessages(
-    fn_mapgen2(mapnum = 2,featr_type, origin_type, styles[[map_style]], metric = rivseg_metric[i], origin, bbox, rsegs, counties, roads, 
-          nhd, maplabs, origin, origin, mp_layer, metric_unit, title=title) ))
+#  suppressWarnings(suppressMessages(
+    map_rivseg <- fn_mapgen2(mapnum = 2, style = styles[[map_style]], 
+                             metric = rivseg_metric[i], featr_type = featr_type, 
+                             origin_type = origin_type, origin = origin, 
+                             bbox = bbox, segs = rsegs, 
+                             counties = counties, roads = roads, 
+                             nhd = nhd, maplabs = maplabs, 
+                             mp_layer = mp_layer, metric_unit = metric_unit, 
+                             title = title) 
+#  ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -522,13 +530,14 @@ for (i in 1:length(rivseg_metric)) {
     height = 20)
 }
 ```
+
 ```{r Displaying Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
 knitr::include_graphics(rivmapfilename)
 ```
+
 ```{r Continued..(table2), echo=FALSE, message=FALSE, warning=FALSE}
 #create metric type column
 
-  
 rivTables <- list() #to store dataframes for each drought metric
 #ftable<- list()
 for (k in 1:length(rivseg_metric)){ #loop thru metrics
@@ -610,7 +619,11 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   }
   
   
-  ft2 <- fn_tablegen(type = "riverseg", table = rivdf, columns = "all", alignment = "left", origin_type,  metric = rivseg_metric[k], origin, title=title) #Flextable function
+  ft2 <- fn_tablegen(featr_type = "riverseg", table = rivdf,
+                     columns = "all", alignment = "left", 
+                     origin_type, metric = rivseg_metric[k], 
+                     origin, title=title) #flextable function
+  
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
