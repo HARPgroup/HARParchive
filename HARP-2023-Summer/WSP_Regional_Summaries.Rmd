@@ -296,7 +296,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
 
       suppressWarnings(suppressMessages( 
      fn_mapgen2(mapnum = 1, featr_type, origin_type, styles[[map_style]], metric = featrs_file_map_bubble_column[i], origin, bbox, rsegs, counties, roads, 
-           nhd, maplabs, origin, origin, mp_layer, metric_unit, title=title) ))
+           nhd, maplabs, mp_layer, metric_unit, title=title) ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())

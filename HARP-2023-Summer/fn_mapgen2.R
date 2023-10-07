@@ -186,14 +186,14 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     scale_fill_manual(values = colors_sf["tidal",], #color set in config
                       breaks = "watershed",
                       labels = "Tidal/Unmodeled",
-                      name = NULL) + 
+                      name = NULL) 
     # Flowlines & Waterbodies
-    geom_sf(data = nhd_plot, 
+  map <- map + geom_sf(data = nhd_plot, 
             inherit.aes=FALSE, color= colors_sf["nhd",], 
             mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
             show.legend=FALSE) + 
-    scale_linewidth(range= c(0.4,2), guide = FALSE) + 
-    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
+    scale_linewidth(range= c(0.4,2), guide = FALSE) 
+  map <- map + geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
             inherit.aes=FALSE, fill= colors_sf["nhd",], size=1) 
   # Mapping all Borders (basins, localities, regions)
   if (origin_type == "region") { 
@@ -243,16 +243,15 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   map <- map + 
     new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
     # Road Lines
-    geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash") +
+    geom_sf(data = roads_plot, inherit.aes=FALSE, color= colors_sf["roads",], fill=NA, lwd=1, linetype="twodash")
     # City Points
-    new_scale("color") + new_scale("size") +
+  map <- map + new_scale("color") + new_scale("size") +
     geom_point(data = labelsP[labelsP$class=="majC"|labelsP$class=="town",], 
-               aes(x=lng, y=lat), color= colors_sf["citypts",], size=2) +
+               aes(x=lng, y=lat), color= colors_sf["citypts",], size=2)
     # Facility Labels Placeholder (to have other labels repel)
-    geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE) +
+  map <- map + geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE)
     # Road Labels
-    new_scale("color") + new_scale("fill") +
-    
+  map <- map + new_scale("color") + new_scale("fill") +
     geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ],
                      aes(x=lng, y=lat, label=label, 
                          fontface=fontface, family=fontfam,
@@ -267,15 +266,15 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     scale_colour_manual(values=textcol, breaks=c(1,2,3), 
                         labels=c("Interstate","State Route", "US Hwy"), name="Roads") + 
     scale_fill_manual(values=label_fill, breaks=c(1,2,3), 
-                      labels=c("Interstate","State Route", "US Hwy"), name="Roads") +
+                      labels=c("Interstate","State Route", "US Hwy"), name="Roads")
     
     # Rivseg Tidal Labels- not fully functional
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
     
     # Basin Labels (by riverseg ID)
-    geom_text(data = rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE) +
+    map <- map + geom_text(data = rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
     # Text Labels
-    new_scale("size") + new_scale("color") +
+    map <- map + new_scale("size") + new_scale("color") +
     geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
                     aes(x=lng, y=lat, label=label,
                         fontface=fontface, family=fontfam, angle=angle,
@@ -338,18 +337,19 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   map <- map +
     geom_text(data = mp_layer, 
               aes(lng, lat, label=NUM, fontface="bold"), 
-              color="black", size=textsize[5], check_overlap=TRUE) +
+              color="black", size=textsize[5], check_overlap=TRUE)
     
-    geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill= colors_sf["shadow",], lwd=1 ) + # Reverse Fill
+  map <- map + geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill= colors_sf["shadow",], lwd=1 ) # Reverse Fill
     
-    ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = rsegs
+  map <- map + ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = rsegs
                    dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
                    st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
-    ) +
-    ggspatial::annotation_north_arrow(which_north="true", location="tr",
+    )
+  map <- map + ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)
     )
+  
   assign('map', map, envir = globalenv()) #save the map in the global environment
 }
 
