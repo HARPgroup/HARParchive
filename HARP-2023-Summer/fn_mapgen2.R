@@ -29,10 +29,10 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   # featr_type = featr_type
   # origin_type = origin_type
   # style = styles[[map_style]]
-  # metric = facils_file_map_bubble_column[i] #map_by[i]
+  # metric = facils_file_map_bubble_column[i]
   # origin = origin
   # bbox = bbox
-  # rsegs = rsegs
+  # segs = rsegs
   # counties = counties
   # roads = roads
   # nhd = nhd
@@ -40,7 +40,6 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   # mp_layer = mp_layer
   # metric_unit = metric_unit
   # title = "default"
-  #
   
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
@@ -83,7 +82,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   
   #Generate basemap using the given boundary box 
   bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
-  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #used for reverse fill
+  basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #new error as of 10/7/23, documented by others
   basemap <- ggmap(basemap_0)
   
   #For reverse-fill: darken area of map outside basins 
@@ -157,13 +156,12 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     borders <- rbind(borders, region_OI)
     borders <- st_as_sf(borders)
     sf::st_crs(borders) <- crs_default
-  }
-  else {borders <- st_as_sf(borders)}
+  } else {borders <- st_as_sf(borders)}
   sf::st_crs(borders) <- crs_default
   
   
   ###### GENERATE MAP #######
-  map <- basemap + 
+  map <- #basemap +  
     # Titles
     theme(text=element_text(size=20), title=element_text(size=40), #setting text sizes
           legend.title = element_text(size=25), axis.title.x=element_blank(), axis.title.y=element_blank()) +
@@ -350,6 +348,6 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
                                       style= north_arrow_orienteering(text_size=35)
     )
   
-  assign('map', map, envir = globalenv()) #save the map in the global environment
+  return(map)
 }
 
