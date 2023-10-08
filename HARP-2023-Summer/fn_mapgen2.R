@@ -80,9 +80,10 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
-  ## TEMPORARY work-around: use get_googlemap which requires a center
+  ## TEMPORARY work-around: use get_googlemap which requires a center instead of bbox
   cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
   cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
+  register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
   basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = 12))
   
 ## Un-comment this chunk when get_stamenmap error is resolved:  
