@@ -293,7 +293,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
 
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
 
-#  suppressWarnings(suppressMessages( 
+  suppressWarnings(suppressMessages( 
     map <- fn_mapgen2(mapnum = 1, style = styles[[map_style]], 
                 metric = featrs_file_map_bubble_column[i], featr_type = featr_type, 
                 origin_type = origin_type, origin = origin, 
@@ -302,7 +302,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
                 nhd = nhd, maplabs = maplabs, 
                 mp_layer = mp_layer, metric_unit = metric_unit, 
                 title = title)
-# ))
+  ))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -502,7 +502,7 @@ for (i in 1:length(rivseg_metric)){
   
 
   ##Mapping function
-#  suppressWarnings(suppressMessages(
+  suppressWarnings(suppressMessages(
     map_rivseg <- fn_mapgen2(mapnum = 2, style = styles[[map_style]], 
                              metric = rivseg_metric[i], featr_type = featr_type, 
                              origin_type = origin_type, origin = origin, 
@@ -511,7 +511,7 @@ for (i in 1:length(rivseg_metric)){
                              nhd = nhd, maplabs = maplabs, 
                              mp_layer = mp_layer, metric_unit = metric_unit, 
                              title = title) 
-#  ))
+  ))
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())

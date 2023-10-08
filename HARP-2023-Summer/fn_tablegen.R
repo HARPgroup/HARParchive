@@ -35,7 +35,7 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
   
   if (title == "default"){
     if (origin_type == "basin") {
-      title <- (paste("Basins Above", rsegs$name[rsegs$riverseg==rivseg], rivseg, ",", metric, sep=" ") )
+      title <- (paste("Basins Above", rsegs$name[rsegs$riverseg==origin], origin, ",", metric, sep=" ") )
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", metric)
     }  else if (origin_type == "region") {
@@ -44,7 +44,7 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
   }
   else {
     if (origin_type == "basin") {
-      title <- ( paste("Basins Above", rsegs$name[rsegs$riverseg==rivseg] , rivseg, ",", title, sep=" ") )
+      title <- ( paste("Basins Above", rsegs$name[rsegs$riverseg==origin] , origin, ",", title, sep=" ") )
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", title)
     }  else if (origin_type == "region") {
@@ -67,7 +67,7 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
  
    if (title == "default"){
     if (origin_type == "basin") {
-      title <- (paste("Basins Above" , rivseg, ",", metric, sep=" ") )
+      title <- (paste("Basins Above" , origin, ",", metric, sep=" ") )
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", metric)
     }  else if (origin_type == "region") {
@@ -76,7 +76,7 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
   }
   else {
     if (origin_type == "basin") {
-      title <- ( paste("Basins Above", rivseg, ",", title, sep=" ") )
+      title <- ( paste("Basins Above", origin, ",", title, sep=" ") )
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", title)
     }  else if (origin_type == "region") {

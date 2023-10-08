@@ -80,12 +80,16 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
-  ## TEMPORARY work-around: use get_googlemap which requires a center instead of bbox
+  # Filter labels & flowlines 
+  fn_filter_map(labels, nhd, roads, distance)
+  
+#### TEMPORARY work-around: use get_googlemap which requires a center instead of bbox
   cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
   cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
   register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
-  basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = 12))
-  
+  basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = as.numeric(zoomval)))
+####  
+
 ## Un-comment this chunk when get_stamenmap error is resolved:  
   #Generate basemap using the given boundary box 
   # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
@@ -96,12 +100,9 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   rsegs_union <- st_union(rsegs)
   bbox_st <- st_as_sfc(st_bbox(bbox))
   nonbasin <- st_difference(bbox_st, rsegs_union) #method of erasing
-  st_crs(nonbasin) <- 4326
-  
-  # Filter labels & flowlines 
-  fn_filter_map(labels, nhd, roads, distance)
-  
-  st_crs(nhd_plot) <- 4326  #nhd_plot created in filtering function above
+  st_crs(nonbasin) <- crs_default
+
+  st_crs(nhd_plot) <- crs_default  #nhd_plot created in filtering function above
   
   #labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
   class(labelsP$bg.r) = "numeric"
