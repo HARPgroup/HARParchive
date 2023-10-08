@@ -17,8 +17,8 @@ model_version <- c("vahydro-1.0")
 #rivseg <- "PU6_3730_3750"  << these are now combined into one variable 'origin' to describe what
 #locality <- "Fauquier"         area the map will be centered around, and the variable 'origin_type'
 #region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
-origin <- "JL7_7070_0001"
-origin_type <- "basin"
+origin <- "JL7_7070_0001" 
+origin_type <- "basin" 
 featr_type <- "source"
 limit_featrs_to_origin <- FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
@@ -197,7 +197,7 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
 #---User-Input Non-Modeled Feature Metrics---
 for (i in 1:nrow(featrs)) {
   featrs[i,metric_feat] <- RomProperty$new(ds,list(
-    featureid = featrs$Facility_hydroid[[1]][i], #[[1]] b/c we want column value w/out attached geometry
+    featureid = featrs$Facility_hydroid[i], 
     propname = metric_feat),
     TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
 }
