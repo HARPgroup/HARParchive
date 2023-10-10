@@ -84,15 +84,15 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   fn_filter_map(labels, nhd, roads, distance)
   
 #### TEMPORARY work-around: use get_googlemap which requires a center instead of bbox
-  # cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
-  # cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
-  # register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
-  # basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = as.numeric(zoomval)))
+  cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
+  cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
+  register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
+  basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = as.numeric(zoomval))) # location=bbox doesnt work
 ####  
 
   #Generate basemap using the given boundary box 
-  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap()
-  basemap <- ggmap(ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10))
+  # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap()
+  # basemap <- ggmap(ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10))
   #basemap <- ggmap(basemap_0)
   
   #For reverse-fill: darken area of map outside basins 
@@ -144,10 +144,14 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     class(rsegs$bin) <- "numeric"
   }
   # Tidal riversegs
-  rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE))
+  rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
+    #can this be replaced by a sql statement^ ?
   st_crs(rivsegTidal) <- crs_default 
+  #fix tidal df
+  names(rivsegTidal)[2:(ncol(rivsegTidal)-4)] <- names(rivsegTidal)[3:(ncol(rivsegTidal)-3)]
+  rivsegTidal[ncol(rivsegTidal)-3] <- NULL
   
-  region_OI <- regions[regions$region==origin,]
+  region_OI <- regions[regions$region==origin,] #region of interest
   
   # Merging Borders into 1 df #ERROR HERE
   st_geometry(rsegs) <- "geometry"
@@ -165,6 +169,9 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     sf::st_crs(borders) <- crs_default
   } else {borders <- st_as_sf(borders)}
   sf::st_crs(borders) <- crs_default
+  
+  #fix border df -- remove extra rows at bottom 
+  borders <- borders[borders$bundle %in% c('region','county','watershed'), ]
   
   
   ###### GENERATE MAP #######

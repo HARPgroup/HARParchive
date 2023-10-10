@@ -12,7 +12,7 @@ params:
 
   origin: ["JL7_7070_0001"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["basin"] #basin, locality, or region
-  featr_type: ["source"] #source or facility
+  featr_type: ["facility"] #source or facility
   
   featrs_file: "C:/aa_HARP/Exports/JL7_7070_0001_mp_sf.csv"
   featrs_file_map_bubble_column: ["wd_mgd"]

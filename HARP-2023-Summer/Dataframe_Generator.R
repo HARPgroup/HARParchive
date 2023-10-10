@@ -19,7 +19,7 @@ model_version <- c("vahydro-1.0")
 #region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
 origin <- "JL7_7070_0001" 
 origin_type <- "basin" 
-featr_type <- "source"
+featr_type <- "facility"
 limit_featrs_to_origin <- FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
 metric_mod <- c("wd_mgd")
