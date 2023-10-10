@@ -35,6 +35,8 @@ wtbd_sm_pct_range <- c(0.25,0.6) #quantile range for classifying waterbodies as 
 wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as medium for mapping
 #large waterbodies will use max value from med_pct_range as min
 
+wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins mgd and mgy 
+wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 styles <- list()
 #----Custom Aesthetics:----

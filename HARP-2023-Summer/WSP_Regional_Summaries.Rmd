@@ -214,10 +214,6 @@ Ex. for Drought (reg section XXX), refer to summary document Drought section L90
 facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
-#move into configs
-wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins day and year 
-wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
-
 for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
   #legend_title <- paste0(featrs_file_map_bubble_column[i])
   legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
@@ -239,7 +235,8 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
    #facils$within <- facils_within
  } 
   
-  metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
+  metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
+                        nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
   if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
   } else if (metric_unit == "mgy") {

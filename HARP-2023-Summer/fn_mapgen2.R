@@ -80,21 +80,20 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   distance <- data.frame(lng = bbox[c("xmin", "xmax")], lat = bbox[c("ymin", "ymax")])
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
-  # Filter labels & flowlines 
+  #Filter labels & flowlines 
   fn_filter_map(labels, nhd, roads, distance)
   
 #### TEMPORARY work-around: use get_googlemap which requires a center instead of bbox
-  cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
-  cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
-  register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
-  basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = as.numeric(zoomval)))
+  # cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
+  # cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
+  # register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
+  # basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = as.numeric(zoomval)))
 ####  
 
-## Un-comment this chunk when get_stamenmap error is resolved:  
   #Generate basemap using the given boundary box 
-  # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap() 
-  # basemap_0 <- ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10) #new error as of 10/7/23, documented by others
-  # basemap <- ggmap(basemap_0)
+  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap()
+  basemap <- ggmap(ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10))
+  #basemap <- ggmap(basemap_0)
   
   #For reverse-fill: darken area of map outside basins 
   rsegs_union <- st_union(rsegs)
