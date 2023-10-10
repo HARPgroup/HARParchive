@@ -307,17 +307,17 @@ for (k in 1:length(rivseg_metric)){
 }
 
 #----Write Files----
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE) #append=FALSE overwrites 
 if(featr_type=="facility"){
-  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
 }
 if(featr_type=="source"){
   featrs <- featrs[names(featrs) %in% grep("^([0-9]+).$", names(featrs), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
 }
 if(base_layer_data==TRUE){
-  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT")
-  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT")
-  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-  write.csv(cities, paste0(export_path,"cities.csv"))
+  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT", append=FALSE)
+  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT", append=FALSE)
+  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
+  write.csv(cities, paste0(export_path,"cities.csv")) #add overwrite
 }

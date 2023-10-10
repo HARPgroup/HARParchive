@@ -83,13 +83,11 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   #Filter labels & flowlines 
   fn_filter_map(labels, nhd, roads, distance)
   
-#### TEMPORARY work-around: use get_googlemap which requires a center instead of bbox
-  cent_x <- (bbox_points$x[1] + bbox_points$x[2])/2
-  cent_y <- (bbox_points$y[1] + bbox_points$y[2])/2
-  register_google(key = "AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM") #use google maps API key, required for get_googlemap
-  basemap <- ggmap(get_googlemap(center = c(lon = cent_x, lat = cent_y), zoom = as.numeric(zoomval))) # location=bbox doesnt work
-####  
-
+  #### TEMPORARY work-around: use get_map to get a sattelite map
+  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap()
+  basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
+  ####  
+  
   #Generate basemap using the given boundary box 
   # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap()
   # basemap <- ggmap(ggmap::get_stamenmap(maptype="terrain-background", color="color", bbox=bbox, zoom=10))

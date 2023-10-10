@@ -14,14 +14,14 @@ params:
   origin_type: ["basin"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "C:/aa_HARP/Exports/JL7_7070_0001_mp_sf.csv"
-  featrs_file_map_bubble_column: ["wd_mgd"]
+  featrs_file: "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv"
+  featrs_file_map_bubble_column: ["runid_11_wd_mgd"]
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/Exports/JL7_7070_0001_rsegs_sf.csv"
+  rsegs_file: "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv" 
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
-  runid_list: [ "runid_11", "runid_13" ] #list of runids used for facil and rseg data
+  runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
   # default files for map's base-layers
   # regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
