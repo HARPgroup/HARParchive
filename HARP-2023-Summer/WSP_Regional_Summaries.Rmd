@@ -12,22 +12,22 @@ params:
 
   origin: ["JL7_7070_0001"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["basin"] #basin, locality, or region
-  featr_type: ["source"] #source or facility
+  featr_type: ["facility"] #source or facility
   
-  featrs_file: "C:/aa_HARP/Exports/JL7_7070_0001_mp_sf.csv"
-  featrs_file_map_bubble_column: ["wd_mgd"]
+  featrs_file: "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv"
+  featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/Exports/JL7_7070_0001_rsegs_sf.csv"
+  rsegs_file: "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv" 
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
-  runid_list: [ "runid_11", "runid_13" ] #list of runids used for facil and rseg data
+  runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
   # default files for map's base-layers
-  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
-  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  # regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
+  # counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
+  # cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
+  # roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
@@ -64,13 +64,14 @@ for(i in 1:length(params)){
 }
 ```
 
-```{r Load Functions, echo=FALSE, warning=FALSE, results='hide'}
+```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_tablegen.R"),local = TRUE) #load table function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_labelprep.R"),local = TRUE) #load labeling function
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/mapstyle_config.R"),local = TRUE) #load general mapping aesthetics 
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/rivsegmaps_config.R"),local = TRUE) #load rivseg-specific mapping aesthetics
 
 # legend_titling() --> Generate user-understandable legend titles
@@ -96,7 +97,12 @@ legend_titling <- function(metric, runid_list){
 
 ```
 
-```{r Load Dataframes Functions, echo=FALSE, warning=FALSE, results='hide'}
+```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
+regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/regions_sf.csv')
+counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/counties_sf.csv')
+cities_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/cities.csv')
+roads_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/roads_sf.csv')
+
 facils <- sf::st_read(featrs_file)
 rsegs <- sf::st_read(rsegs_file)
 counties <- sf::st_read(counties_file)
@@ -202,15 +208,11 @@ Ex. for Drought (reg section XXX), refer to summary document Drought section L90
 
 ## State Plan 2020 demand - State Plan 2040 demand:
 ### Map: 
-```{r Remainder of the RMD, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
 facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
-
-#move into configs
-wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins day and year 
-wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
 
 for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
   #legend_title <- paste0(featrs_file_map_bubble_column[i])
@@ -233,7 +235,8 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
    #facils$within <- facils_within
  } 
   
-  metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
+  metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
+                        nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
   if (metric_unit == "mgd") { #different ranges for mgd and mgy
   div <- wd_mgd
   } else if (metric_unit == "mgy") {
@@ -272,7 +275,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
   rsegs <- fn_centroid_coords(rsegs)
   #st_write(rsegs, paste0(export_path,"39_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
-    title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+  title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
   
   if (featrs_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
       title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
@@ -295,9 +298,9 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
 
   suppressWarnings(suppressMessages( 
     map <- fn_mapgen2(mapnum = 1, style = styles[[map_style]], 
-                metric = featrs_file_map_bubble_column[i], featr_type = featr_type, 
-                origin_type = origin_type, origin = origin, 
-                bbox = bbox, segs = rsegs, 
+                metric = featrs_file_map_bubble_column[i], segs = rsegs,
+                featr_type = featr_type, origin_type = origin_type, 
+                origin = origin, bbox = bbox,  
                 counties = counties, roads = roads, 
                 nhd = nhd, maplabs = maplabs, 
                 mp_layer = mp_layer, metric_unit = metric_unit, 
@@ -339,7 +342,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) {
  }
 ```
 
-```{r Viewing Map(s) 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
+```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
 knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
 if (mapMessage == TRUE) {
   message("The metric requested does not exist for this map.")
@@ -347,7 +350,7 @@ if (mapMessage == TRUE) {
 }
 ```
 
-```{r Continued..(table1), echo=FALSE, message=FALSE, warning=FALSE}
+```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
 #create dataframe for human readable metric names- add here any new metric names being used and their readable version
   read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
   new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
@@ -438,13 +441,12 @@ ft1 <- fn_tablegen(featr_type = "facility", table = table,
                    origin_type = origin_type, metric = rivseg_metric[i], 
                    origin = origin, title = title ) #execute flextable function
 
-
 ```
 ###Narrative note: 
 Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
 
 ### Table:
-```{r Viewing Table 1, echo=FALSE, out.width='100%', message=TRUE}
+```{r View Table 1, echo=FALSE, out.width='100%', message=TRUE}
 if (tableMessage == TRUE) {
   message("Missing column indicates the metric requested does not exist for this table")
 }
@@ -453,12 +455,12 @@ ft1 #display flextable
 
 ## 2020/2040 Demand Scenarios Through Drought Metrics: L90 – 7Q10:
 ### Map: 
-```{r Continued..(map2), echo=FALSE, message=FALSE, warning=FALSE}
+```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map/Table2----
 ## Need to adapt this for multiple maps
 #rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - moved to config
 
-for (i in 1:length(rivseg_metric)){
+for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within this loop 
   rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list)
   
   title1 <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
@@ -474,11 +476,22 @@ for (i in 1:length(rivseg_metric)){
   rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
   #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
   
-  rseg_sql <- paste('SELECT *, ','percentDiff','_',rivseg_metric[i],' AS pct_diff
-        FROM rsegs' , sep="") #Renaming metric of interest for generalized sorting into bins
-  
-  rsegs <- fn_sqldf_sf(rseg_sql,"rsegs")
+#### Problem with rsegs df happens here 
+  # rseg_sql <- paste('SELECT *, ','percentDiff','_',rivseg_metric[i],' AS pct_diff 
+  #       FROM rsegs' , sep="") #Renaming metric of interest for generalized sorting into bins
+  # 
+  # rsegs <- fn_sqldf_sf(rseg_sql,"rsegs")
   #st_write(rsegs, paste0(export_path,"46_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+####
+  
+  ##Work-around to problem above: change column name
+  rseg_geom <- rsegs$geometry #save geometry before dropping
+  rsegs2 <- st_drop_geometry(rsegs)
+  pct_col <- as.data.frame(rsegs2[,paste0('percentDiff_', rivseg_metric[i])]) #identify pct diff for metric of interest
+  colnames(pct_col) <- 'pct_diff'
+  rsegs <- cbind(rsegs2, pct_col)
+  rm(rsegs2)
+  ##
 
   bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
   bins$classid <- index(bins)
@@ -492,26 +505,37 @@ for (i in 1:length(rivseg_metric)){
     on (a.pct_diff <= b.val) 
     group by a.riverseg" )
   #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
-
-  rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
+  
+## sqldf error here about raw vectors  
+  # rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
+  #   "select a.*, b.bin 
+  #   from rsegs as a 
+  #   left outer join rivseg_classes as b 
+  #   on a.riverseg = b.riverseg " , "rsegs")
+  # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+  
+  rsegs <- sqldf( #joining the bins with the metric data 
     "select a.*, b.bin 
     from rsegs as a 
     left outer join rivseg_classes as b 
-    on a.riverseg = b.riverseg " , "rsegs")
-  # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+    on a.riverseg = b.riverseg " , "rsegs") 
   
+  rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new var to prevent loop error
+  st_crs(rsegs_sf) <- crs_default
 
   ##Mapping function
   suppressWarnings(suppressMessages(
     map_rivseg <- fn_mapgen2(mapnum = 2, style = styles[[map_style]], 
-                             metric = rivseg_metric[i], featr_type = featr_type, 
-                             origin_type = origin_type, origin = origin, 
-                             bbox = bbox, segs = rsegs, 
+                             metric = rivseg_metric[i], segs = rsegs_sf,
+                             featr_type = featr_type, origin_type = origin_type, 
+                             origin = origin, bbox = bbox,  
                              counties = counties, roads = roads, 
                              nhd = nhd, maplabs = maplabs, 
                              mp_layer = mp_layer, metric_unit = metric_unit, 
                              title = title) 
   ))
+  
+  rsegs$pct_diff <- NULL #remove column
   
   #assign map to environment
   assign(paste0('map_rivseg', i), map, envir = globalenv())
@@ -531,11 +555,11 @@ for (i in 1:length(rivseg_metric)) {
 }
 ```
 
-```{r Displaying Rivseg Map, out.width = '100%', out.height='100%', echo=FALSE}
+```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE}
 knitr::include_graphics(rivmapfilename)
 ```
 
-```{r Continued..(table2), echo=FALSE, message=FALSE, warning=FALSE}
+```{r Create Table 2, echo=FALSE, message=FALSE, warning=FALSE}
 #create metric type column
 
 rivTables <- list() #to store dataframes for each drought metric
@@ -630,7 +654,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
 ```
 
 ### Table: 
-```{r Viewing Rivseg Flextable, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
+```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 #result = 'asis' necessary 
 if (tablemessage2==TRUE) {
   message("A column in the table is completely NA values, 
