@@ -94,7 +94,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   #basemap <- ggmap(basemap_0)
   
   #For reverse-fill: darken area of map outside basins 
-  rsegs_union <- st_union(rsegs)
+  rsegs_union <- st_union(segs)
   bbox_st <- st_as_sfc(st_bbox(bbox))
   nonbasin <- st_difference(bbox_st, rsegs_union) #method of erasing
   st_crs(nonbasin) <- crs_default
@@ -109,7 +109,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   
   if (title == "default"){
     if (origin_type == "basin") {
-      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, ",", metric, sep=" ") )
+      title <- (paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, ",", metric, sep=" ") )
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", metric)
     }  else if (origin_type == "region") {
@@ -117,7 +117,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     } 
   } else {
     if (origin_type == "basin") {
-      title <- ( paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, ",", title, sep=" ") )
+      title <- ( paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, ",", title, sep=" ") )
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", title)
     }  else if (origin_type == "region") {
@@ -139,25 +139,26 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   mp_layer_plot <- mp_layer[!mp_layer$bin == "X" , ]
   class(mp_layer_plot$bin) <- "numeric" #make sure bin column is type numeric for sizing data points 
   if (mapnum ==2) {
-    class(rsegs$bin) <- "numeric"
+    class(segs$bin) <- "numeric"
   }
   # Tidal riversegs
-  rivsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
-    #can this be replaced by a sql statement^ ?
+  rivsegTidal <- subset(segs, riverseg %in% grep("0000", segs$riverseg, value=TRUE)) #PROBLEM w/ DF
+### replace ^ with sqldf
   st_crs(rivsegTidal) <- crs_default 
   #fix tidal df
-  names(rivsegTidal)[2:(ncol(rivsegTidal)-4)] <- names(rivsegTidal)[3:(ncol(rivsegTidal)-3)]
-  rivsegTidal[ncol(rivsegTidal)-3] <- NULL
+  names(rivsegTidal)[1:(ncol(rivsegTidal)-6)] <- names(rivsegTidal)[2:(ncol(rivsegTidal)-5)]
+  rivsegTidal[ncol(rivsegTidal)-5] <- NULL
   
   region_OI <- regions[regions$region==origin,] #region of interest
   
   # Merging Borders into 1 df #ERROR HERE
-  st_geometry(rsegs) <- "geometry"
+  #names(segs)[names(segs) == "WKT"] <- "geometry"
+  st_geometry(segs) <- "geometry"
   borders <- data.frame(counties[,"name"] , bundle= rep("county", nrow(counties)) )
   #`st_crs(rsegs) <- crs(borders)
-  sf::st_crs(rsegs) <- crs_default
+  st_crs(segs) <- crs_default
   names(borders) <- c("name", "geometry", "bundle")
-  borders <- rbind(borders, data.frame(rsegs[,c("name", "bundle")] )  )
+  borders <- rbind(borders, data.frame(segs[,c("name", "bundle")] )  )
   if (origin_type=="region") {
     st_geometry(region_OI) <- "geometry"
     #st_crs(region_OI) <- crs(borders)
@@ -181,7 +182,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   # Rivseg fill based on drought metric % difference for rivseg maps 
   if (mapnum == 2) {
     map <- map + new_scale("fill") +
-      geom_sf(data = rsegs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 ) +
+      geom_sf(data = segs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 ) +
       scale_fill_manual(values = rivmap_colors, #from config
                         breaks = rivbreaks,
                         labels = rivmap_labs,
@@ -281,7 +282,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
     #geom_text(data = rivsegTidal, aes(x=lng, y=lat, label=riverseg1),color="blue",size=textsize[5],check_overlap=TRUE)+
     
     # Basin Labels (by riverseg ID)
-    map <- map + geom_text(data = rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
+    map <- map + geom_text(data = segs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
     # Text Labels
     map <- map + new_scale("size") + new_scale("color") +
     geom_text_repel(data = labelsP[!(labelsP$class == "I" | labelsP$class == "S" | labelsP$class == "U"), ], #labels other than roads
