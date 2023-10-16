@@ -138,7 +138,7 @@ if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
                                       ),TRUE)$pid, #extent pid
                         entity_type='dh_properties'))
     bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
-    bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), .05)
+    bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
     bbox <- st_bbox(bbox)
   }
 } else { #auto bbox. should always be around the basins intersecting region of interest
@@ -486,11 +486,11 @@ for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within th
   
   ##Work-around to problem above: change column name
   rseg_geom <- rsegs$geometry #save geometry before dropping
-  rsegs2 <- st_drop_geometry(rsegs)
-  pct_col <- as.data.frame(rsegs2[,paste0('percentDiff_', rivseg_metric[i])]) #identify pct diff for metric of interest
+  rsegs_nogeom <- st_drop_geometry(rsegs)
+  pct_col <- as.data.frame(rsegs_nogeom[,paste0('percentDiff_', rivseg_metric[i])]) #identify pct diff for metric of interest
   colnames(pct_col) <- 'pct_diff'
-  rsegs <- cbind(rsegs2, pct_col)
-  rm(rsegs2)
+  rsegs <- cbind(rsegs_nogeom, pct_col)
+  rm(rsegs_nogeom)
   ##
 
   bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
@@ -520,7 +520,7 @@ for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within th
     left outer join rivseg_classes as b 
     on a.riverseg = b.riverseg " , "rsegs") 
   
-  rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new var to prevent loop error
+  rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
   st_crs(rsegs_sf) <- crs_default
 
   ##Mapping function
@@ -535,10 +535,8 @@ for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within th
                              title = title) 
   #))
   
-  rsegs$pct_diff <- NULL #remove column
-  
   #assign map to environment
-  assign(paste0('map_rivseg', i), map, envir = globalenv())
+  assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
 
 }
 
