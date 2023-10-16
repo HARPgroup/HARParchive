@@ -458,29 +458,29 @@ for (r in 1:length(rseg.model.version)) {
   rseg.data.r <- fread(save_url)
   assign(paste0('rseg.data.',r),rseg.data.r)
   rseg.cols.r <- names(rseg.data.r)
-  cols <- names(dat)
   if ("thisdate" %in% rseg.cols.r) {
     rseg.data.r$date <- rseg.data.r$thisdate
     rseg.cols.r <- names(rseg.data.r)
   }
 
    if (r == 1){
-      data.match <- rseg.data.r$date
-      sdate <- as.Date(min(data.match))
-      edate <- as.Date(max(data.match))
+      data_match <- as.data.frame(as.character(rseg.data.r$date))
+      names(data_match) <- c('date')
+      sdate <- as.Date(min(data_match$date))
+      edate <- as.Date(max(data_match$date))
     } else {
-      data.match <- match(data.match, rseg.data.r$date)
-      sdate <- as.Date(min(data.match))
-      edate <- as.Date(max(data.match))
+      ts2 <- as.data.frame(as.character(rseg.data.r$date))
+      names(ts2) <- c('date')
+      data_match <- sqldf("select a.date from data_match as a left outer join ts2 as b on (a.date = b.date) where b.date is not null")
+      sdate <- as.Date(min(data_match))
+      edate <- as.Date(max(data_match))
     }
   rseg.flow.r <- zoo(as.numeric(as.character(rseg.data.r$Qout)), order.by = as.POSIXct(rseg.data.r$date))
   rseg.flow.r <- window(rseg.flow.r, start = sdate, end = edate)
   mode(rseg.flow.r) <- 'numeric'
   rseg_flow[[r]] <- rseg.flow.r
   assign(paste0('rseg.flow.',r),rseg.flow.r)
-  rseg.lowflow.r <- IHA::group2(rseg.flow.r)
-  rseg_lowflow[[r]] <- rseg.lowflow.r
-  assign(paste0('rseg.lowflow.',r),rseg.lowflow.r)
+  rseg_lowflow[[r]] <- IHA::group2(rseg.flow.r)
 }
 ```
 
