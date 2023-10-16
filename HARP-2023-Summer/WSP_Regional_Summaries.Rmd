@@ -24,10 +24,10 @@ params:
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
   # default files for map's base-layers
-  # regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
-  # counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  # cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  # roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
+  counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
@@ -59,6 +59,11 @@ ds$get_token(rest_pw)
 
 ```{r UserInputs, echo=FALSE}
 # reading in the user inputs from params
+regions_file <- params$regions_file
+counties_file <- params$counties_file
+cities_file <- params$cities_file
+roads_file <- params$roads_file
+# this is an automated alternative -- is it secure?
 for(i in 1:length(params)){
   assign(names(params[i]), params[[i]])
 }
@@ -98,10 +103,6 @@ legend_titling <- function(metric, runid_list){
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/regions_sf.csv')
-counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/counties_sf.csv')
-cities_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/cities.csv')
-roads_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/roads_sf.csv')
 
 facils <- sf::st_read(featrs_file)
 rsegs <- sf::st_read(rsegs_file)
