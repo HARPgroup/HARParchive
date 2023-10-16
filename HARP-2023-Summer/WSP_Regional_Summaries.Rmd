@@ -296,7 +296,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
 
   # args/params have been kept separate during dev. so far, but will be consolidated & some removed once we're happy with maps 
 
-  suppressWarnings(suppressMessages( 
+  #suppressWarnings(suppressMessages( 
     map <- fn_mapgen2(mapnum = 1, style = styles[[map_style]], 
                 metric = featrs_file_map_bubble_column[i], segs = rsegs,
                 featr_type = featr_type, origin_type = origin_type, 
@@ -305,7 +305,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
                 nhd = nhd, maplabs = maplabs, 
                 mp_layer = mp_layer, metric_unit = metric_unit, 
                 title = title)
-  ))
+  #))
   
   #assign map to environment
   assign(paste0('map', i), map, envir = globalenv())
@@ -524,7 +524,7 @@ for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within th
   st_crs(rsegs_sf) <- crs_default
 
   ##Mapping function
-  suppressWarnings(suppressMessages(
+  #suppressWarnings(suppressMessages(
     map_rivseg <- fn_mapgen2(mapnum = 2, style = styles[[map_style]], 
                              metric = rivseg_metric[i], segs = rsegs_sf,
                              featr_type = featr_type, origin_type = origin_type, 
@@ -533,7 +533,7 @@ for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within th
                              nhd = nhd, maplabs = maplabs, 
                              mp_layer = mp_layer, metric_unit = metric_unit, 
                              title = title) 
-  ))
+  #))
   
   rsegs$pct_diff <- NULL #remove column
   
