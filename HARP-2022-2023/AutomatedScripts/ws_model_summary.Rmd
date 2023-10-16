@@ -576,16 +576,18 @@ l7.plot
 ```{r 1day, echo = FALSE, fig.cap=paste("The 1-day low flows:", title_param), fig.id = "1day", fig.cap.style = "Image Caption"}
 for (r in 1:length(rseg.model.version)) {
   if (r == 1) {
-    l1.data <- data.frame(rseg.lowflow.r$year, rseg.lowflow.r["1 Day Min"])
-    colname.l1 <- paste0(dat[[r]][[3]])
+    l1_data <- data.frame(rseg_lowflow[[r]]$year, rseg_lowflow[[r]]["1 Day Min"])
+    colnames(l1_data) <- c("Year", paste0(dat[[r]][[3]]))
   } else {
-    l1.data <- cbind(l1.data, rseg.lowflow.r["1 Day Min"])
-    colnames(l1.data) <- c("Year", colname.l1, paste0(dat[[r]][[3]]))
-    ymax.l1 <- max(l1.data[-1])
+    xl1_data <- data.frame(rseg_lowflow[[r]]$year, rseg_lowflow[[r]]["1 Day Min"])
+    colnames(xl1_data) <- c("Year", 'val')
+    l1_data <- sqldf("select a.*, b.val from l1_data as a left outer join xl1_data as b on a.Year = b.Year")
+    colnames(l1_data)[[r+1]] <- paste0(dat[[r]][[3]])
+    ymax.l1 <- max(l1_data[-1])
   }
 }
 
-values.l1 <- tidyr::pivot_longer(l1.data, -Year, names_to="Model", values_to="Flow")
+values.l1 <- tidyr::pivot_longer(l1_data, -Year, names_to="Model", values_to="Flow")
 l1.plot <- ggplot(values.l1, aes(y=Flow, x=Year, fill = Model)) + 
     geom_bar(position="dodge", stat="identity", color="darkgrey") +
     theme_light() +
@@ -688,7 +690,7 @@ if (length(rseg.model.version) > 2) {
     ylab(paste("Difference: Model 1 - Model 2")) +
     xlab(paste("Year"))
 
-  l1.scatter <- ggplot(l1.data, aes(x = get(names(l1.data)[2]), y = get(names(l1.data)[3]), 
+  l1.scatter <- ggplot(l1_data, aes(x = get(names(l1_data)[2]), y = get(names(l1_data)[3]), 
                                     color = "Model 2")) +
   geom_point() +
   geom_smooth(formula = y ~ x, method=lm) +
@@ -696,15 +698,15 @@ if (length(rseg.model.version) > 2) {
   theme(axis.title.x = element_text(size = 9),
         axis.title.y = element_text(size = 9),
         legend.position = "none") +
-  ylab(colnames(l1.data[2])) +
-  xlab(colnames(l1.data[3])) +
+  ylab(colnames(l1_data[2])) +
+  xlab(colnames(l1_data[3])) +
   geom_abline(intercept = 0, slope = 1, col = 'lightgray')
   
   # l1 Error Scatterplot
-  l1_diff <- unlist(l1.data[2] - l1.data[3]) # has to unlist in order to plot with ggplot!
-  l1_diff_pct <- 100.0 * (l1_diff) / l1.data[3]
+  l1_diff <- unlist(l1_data[2] - l1_data[3]) # has to unlist in order to plot with ggplot!
+  l1_diff_pct <- 100.0 * (l1_diff) / l1_data[3]
   
-  l1.diff <- ggplot(l1.data, aes(x = get(names(l1.data)[1]), y = l1_diff,
+  l1.diff <- ggplot(l1_data, aes(x = get(names(l1_data)[1]), y = l1_diff,
                                    color = "Model 2")) +
     geom_point() +
     geom_smooth(formula = y ~ x, method=lm) +
@@ -808,7 +810,7 @@ if (length(rseg.model.version) == 3) {
           legend.key.size = unit(0.25,"cm"))
   # l1
   l1.scatter <- l1.scatter +
-    geom_point(l1.data, mapping = aes(x = get(names(l1.data)[2]), y = get(names(l1.data)[4]), 
+    geom_point(l1_data, mapping = aes(x = get(names(l1_data)[2]), y = get(names(l1_data)[4]), 
                                       color = "Model 3")) + 
     geom_smooth(formula = y ~ x, method=lm) +
     ylab(paste("Model 2 and 3")) +
@@ -820,11 +822,11 @@ if (length(rseg.model.version) == 3) {
           legend.position = "top",
           legend.key.size = unit(0.25,"cm"))
   
-  l1_diff.2 <- unlist(l1.data[2] - l1.data[4])
-  l1_diff_pct.2 <- 100.0 * (l1_diff.2) / l1.data[4]
+  l1_diff.2 <- unlist(l1_data[2] - l1_data[4])
+  l1_diff_pct.2 <- 100.0 * (l1_diff.2) / l1_data[4]
 
   l1.diff <- l1.diff +
-    geom_point(l1.data, mapping = aes(x =get(names(l1.data)[1]), y = l1_diff.2, 
+    geom_point(l1_data, mapping = aes(x =get(names(l1_data)[1]), y = l1_diff.2, 
                                       color = "Model 3")) +
     geom_smooth(formula = y ~ x, method=lm) +
     ylab(paste("Model Difference")) +
