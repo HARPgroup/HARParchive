@@ -26,6 +26,7 @@ metric_mod <- c("wd_mgd")
 metric_feat <- c("wsp2020_2040_mgy")
 rivseg_metric <- c("l30_Qout","7q10")
 
+overwrite_files <- TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
 base_layer_data <- FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)
                            #if TRUE -> will also re-generate map base-layer data (regions, counties, cities, roads)
 
@@ -35,6 +36,36 @@ base_layer_data <- FALSE #if FALSE -> will only generate the origin/metric-depen
 ############################################################### #
 
 ############################################################### #
+
+#----Check if Files Already Exist----
+#rivseg file
+rseg_filepath <- paste0(export_path,origin,"_rsegs_sf.csv")
+#feature file
+if(featr_type=="facility"){
+  featr_filepath <- paste0(export_path,origin,"_featrs_sf.csv")
+}
+if(featr_type=="source"){
+  featr_filepath <- paste0(export_path,origin,"_mp_sf.csv")
+}
+if (file.exists(rseg_filepath)) {
+  print('Rseg file already exists')
+}
+if (file.exists(featr_filepath)) {
+  print('Feature file already exists')
+}
+#stop if the files exist and nothing more is wanted 
+if (file.exists(featr_filepath) & file.exists(featr_filepath) & overwrite_files==FALSE & base_layer_data==FALSE) {
+  stop('\r Riverseg & feature files already exist; quitting')
+}
+#delete the rivseg and feature files if overwriting 
+if (overwrite_files==TRUE) {
+  if (file.exists(rseg_filepath)) {
+    file.remove(rseg_filepath)
+  }
+  if (file.exists(featr_filepath)) {
+    file.remove(     Zfeatr_filepath)
+  }
+}
 
 #----Pull Data----
 #---Facility Data---
@@ -307,17 +338,17 @@ for (k in 1:length(rivseg_metric)){
 }
 
 #----Write Files----
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE) #append=FALSE overwrites 
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 if(featr_type=="facility"){
-  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
+  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(featr_type=="source"){
   featrs <- featrs[names(featrs) %in% grep("^([0-9]+).$", names(featrs), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
+  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(base_layer_data==TRUE){
-  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT", append=FALSE)
-  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT", append=FALSE)
-  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
-  write.csv(cities, paste0(export_path,"cities.csv")) #add overwrite
+  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT")
+  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT")
+  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  write.csv(cities, paste0(export_path,"cities.csv")) 
 }
