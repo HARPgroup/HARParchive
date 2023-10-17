@@ -63,7 +63,7 @@ if (overwrite_files==TRUE) {
     file.remove(rseg_filepath)
   }
   if (file.exists(featr_filepath)) {
-    file.remove(featr_filepath)
+    file.remove(     Zfeatr_filepath)
   }
 }
 

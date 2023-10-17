@@ -74,7 +74,7 @@ fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, b
   #### TEMPORARY work-around: use get_map to get a sattelite map
   #bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use bbox in get_map or get_stamenmap
   #basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
-  basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-1)))
+  basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
   basemap <- basemap +
     scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
     scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
