@@ -21,7 +21,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
 ## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
-fn_mapgen2 <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
+fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
                        nhd, maplabs, mp_layer, metric_unit, title) { 
   
   # Combine all map labels into one df:

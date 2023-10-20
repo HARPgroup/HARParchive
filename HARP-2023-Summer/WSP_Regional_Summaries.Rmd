@@ -291,7 +291,7 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
   }
 
   #suppressWarnings(suppressMessages( 
-    map <- fn_mapgen2(mapnum = 1, style = styles[[map_style]], 
+    map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
                 metric = featrs_file_map_bubble_column[i], segs = rsegs,
                 featr_type = featr_type, origin_type = origin_type, 
                 origin = origin, bbox = bbox,  
@@ -519,7 +519,7 @@ for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within th
 
   ##Mapping function
   #suppressWarnings(suppressMessages(
-    map_rivseg <- fn_mapgen2(mapnum = 2, style = styles[[map_style]], 
+    map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
                              metric = rivseg_metric[i], segs = rsegs_sf,
                              featr_type = featr_type, origin_type = origin_type, 
                              origin = origin, bbox = bbox,  
