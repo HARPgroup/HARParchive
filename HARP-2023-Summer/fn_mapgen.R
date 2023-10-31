@@ -152,7 +152,6 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   }
   # Tidal riversegs
   rivsegTidal <- subset(segs, riverseg %in% grep("0000", segs$riverseg, value=TRUE)) #PROBLEM w/ DF
-### replace ^ with sqldf
   st_crs(rivsegTidal) <- crs_default 
   #fix tidal df
   names(rivsegTidal)[1:(ncol(rivsegTidal)-6)] <- names(rivsegTidal)[2:(ncol(rivsegTidal)-5)]
@@ -182,23 +181,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   
   #Crop layers to our extent
   borders <- st_crop(borders, bbox_sf)  
-  
   roads_plot <- st_crop(roads_plot, bbox_sf) 
-  
-  labelsP_sf <- st_as_sf(labelsP, coords = c('lat','lng'))
-  st_crs(labelsP_sf) <- crs_default
-  
-  labelsP_crop <- st_join(labelsP_sf, bbox_sf, join = st_within) #does not work
-  labelsP_crop <- st_crop(labelsP_sf, bbox_sf) #does not work
-
-  
-  #create dataframe for human readable metric names- add here any new metric names being used and their readable version
-  read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
-  new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
-                       'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
-                       'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
-  metric_names <- data.frame(read_metric_name, new_metric_name)
-  
   
   ###### GENERATE MAP #######
   map <- basemap +  
@@ -325,7 +308,9 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
                     min.segment.length=0.5
     ) + 
     scale_size(range= range(textsize[2:4]), breaks= textsize[2:4]) + 
-    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE)
+    scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide=FALSE) +
+    scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
+    scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))   
   
   ## Plotting sources/MPs
   if (featr_type == "source") {
@@ -385,8 +370,8 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   map <- map + ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)
-    )
-  
+                                      )
+                                        
   return(map)
 }
 
