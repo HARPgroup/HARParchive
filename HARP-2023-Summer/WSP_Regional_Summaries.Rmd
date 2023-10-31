@@ -14,11 +14,11 @@ params:
   origin_type: ["basin"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "C:/HARP/Exports/JL7_7070_0001_featrs_sf1.csv"
+  featrs_file: "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv"
   featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/HARP/Exports/JL7_7070_0001_rsegs_sf1.csv" 
+  rsegs_file: "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv" 
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -47,8 +47,6 @@ library(nhdplusTools)
 library(png)
 library(flextable)
 library(pandoc)
-#library(ggmap)
-#register_google(key ="AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM", write = TRUE)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -118,11 +116,6 @@ st_crs(facils) <- crs_default
 st_crs(rsegs) <- crs_default
 st_crs(counties) <- crs_default
 st_crs(roads) <- crs_default
-
-# crs(rsegs)
-# crs(facils)
-# crs(counties)
-# crs(roads)
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
@@ -347,13 +340,15 @@ if (mapMessage == TRUE) {
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
+#### MOVE TO CONFIG ####
 #create dataframe for human readable metric names- add here any new metric names being used and their readable version
   read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
   new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
                     'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
   metric_names <- data.frame(read_metric_name, new_metric_name)
-
+####
+  
 names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
 #facils$within$hydroid <- as.numeric(gsub(",", "", facils$within$hydroid, fixed = TRUE))
 #create initial table
@@ -569,7 +564,6 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
           # rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(st_drop_geometry( rsegs[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])] ), digits= 2)
           tmp_df <- st_drop_geometry(rsegs[i,paste0(runid_list[j],'_',rivseg_metric[k])])
           tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-          
           #rivTables[[k]][i,paste0(runid_list[j])] <- round(tmp_df, digits = 2)
           
           for (x in 1:nrow(metric_names)){
@@ -589,33 +583,26 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   #names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
 #names(table) <- mgsub(names(table), pattern="_", replacement=" ")
 
-  #write.csv(rivTables[[k]], paste0(export_path,"51_rivTables_",rivseg_metric[k],".csv"))
   #format table columns, add percent difference 
  # rivTables[[k]][,paste0('Difference')] = round( st_drop_geometry(rsegs[,paste0('diff','_',rivseg_metric[k])]) ,digits= 2)
   # rivTables[[k]][,paste0('pct_diff')]= round( st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) , digits= 2)
-  
-  tmp_df <- st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])])
-  tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-  rivTables[[k]][,paste0('pct_diff')] <- round(pct_diff, digits = 2) #possible error here?
-  
-  
-  #write.csv(rivTables[[k]], paste0(export_path,"52_rivTables_",rivseg_metric[k],".csv"))
+  tmp_df <- as.numeric(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) #rsegs is a df not sf
+  rivTables[[k]][,paste0('pct_diff','_',rivseg_metric[k])] <- round(tmp_df, digits = 2)
   
   #order by lowest % difference from rivTables[[k]]
   rivdf <- rivTables[[k]] # for sqldf
-  rivdf <- sqldf( "SELECT rivdf.*  
-              FROM rivdf 
-              ORDER BY pct_diff ASC") #ordering by the metric of interest, descending 
+  #rivdf <- sqldf(paste('SELECT *, ','pct_diff','_',rivseg_metric[k],' AS pct_diff 
+  #       FROM rivdf' , sep="")) 
   
-  names(rivdf)[names(rivdf) == 'pct_diff'] <- '% Difference'
-  #write.csv(rivdf, paste0(export_path,"53_rivdf_",rivseg_metric[k],".csv"))
+  rivdf <- sqldf(paste0("SELECT rivdf.* FROM rivdf ORDER BY ", 'pct_diff','_',rivseg_metric[k], " ASC")) #ordering by the metric of interest, descending 
+  
+  names(rivdf)[names(rivdf) == paste0('pct_diff','_',rivseg_metric[k])] <- '% Difference'
   
   #need to put NA values @ bottom of df
   nanum <- sum(is.na(rivdf$`% Difference`))
   narows <- head(rivdf, nanum)
   goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
   rivdf <- rbind(goodrows, narows)
-  #write.csv(rivdf, paste0(export_path,"54_rivdf_",rivseg_metric[k],".csv"))
   
   nacols <- data.frame(colSums(is.na(rivdf)) == nrow(rivdf)) #dataframe of which columns are all na or not
   for (i in 1:nrow(nacols)) {
@@ -641,8 +628,8 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   
   ft2 <- fn_tablegen(featr_type = "riverseg", table = rivdf,
                      columns = "all", alignment = "left", 
-                     origin_type, metric = rivseg_metric[k], 
-                     origin, title=title) #flextable function
+                     metric = rivseg_metric[k], origin_type = origin_type,  
+                     origin = origin , title=title) #flextable function
   
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
