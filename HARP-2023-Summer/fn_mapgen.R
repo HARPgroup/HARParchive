@@ -79,12 +79,12 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   #basemap <- ggmap(basemap_0)
   
   #### TEMPORARY work-around: use get_map to get a sattelite map
-  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use bbox in get_map or get_stamenmap
-  basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
-  basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
-  basemap <- basemap +
-    scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
-    scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
+  # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use bbox in get_map or get_stamenmap
+  # basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
+  # basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
+  # basemap <- basemap +
+  #   scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
+  #   scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
   ####  
   
   ## Alternative basemap/background
@@ -181,15 +181,16 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   borders <- borders[borders$bundle %in% c('region','county','watershed'), ]
   
   #Crop layers to our extent
-  borders <- st_crop(borders, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
-                                xmax = max(bbox_points$x), ymax = max(bbox_points$y)))  
+  borders <- st_crop(borders, bbox_sf)  
   
-  roads_plot <- st_crop(roads_plot, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
-                                xmax = max(bbox_points$x), ymax = max(bbox_points$y))) 
+  roads_plot <- st_crop(roads_plot, bbox_sf) 
   
-  labcoords <- as.data.frame(lat =labelsP$lat,
-                             lng = labelsP$lng) #save coords for filtered labels df 
   labelsP_sf <- st_as_sf(labelsP, coords = c('lat','lng'))
+  st_crs(labelsP_sf) <- crs_default
+  
+  labelsP_crop <- st_join(labelsP_sf, bbox_sf, join = st_within) #does not work
+  labelsP_crop <- st_crop(labelsP_sf, bbox_sf) #does not work
+
   
   #create dataframe for human readable metric names- add here any new metric names being used and their readable version
   read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
