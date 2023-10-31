@@ -60,8 +60,15 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
   ft <- add_header_lines(ft, values= "Table 1.1") #add subtite
   ft <- add_header_lines(ft, values= title) #add title 
   ft <- fontsize(ft, i=1, size=14, part = "header") #inc size of title
+  
 } else if (featr_type == 'riverseg') {
   ft <- autofit(ft)
+  ft <- width(ft, j=1, width = 1.5)
+  ft <- width(ft, j=2, width = 1)
+  ft <- width(ft, j=4, width = 1)
+  ft <- width(ft, j=5, width = 1)
+  ft <- align(ft, align = alignment, part = "all")
+  
   #highlight when precent diff is below highlight limit(defined in config)
   ft <- flextable::bg(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
  

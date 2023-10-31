@@ -14,11 +14,11 @@ params:
   origin_type: ["basin"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv"
+  featrs_file: "C:/HARP/Exports/JL7_7070_0001_featrs_sf1.csv"
   featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv" 
+  rsegs_file: "C:/HARP/Exports/JL7_7070_0001_rsegs_sf1.csv" 
   rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -47,6 +47,8 @@ library(nhdplusTools)
 library(png)
 library(flextable)
 library(pandoc)
+#library(ggmap)
+#register_google(key ="AIzaSyBvRzhfQk7nrOUtesvnHusWaOKcBhZ9DAM", write = TRUE)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -567,6 +569,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
           # rivTables[[k]][i,paste0(runid_list_riversegs[j])] = round(st_drop_geometry( rsegs[i,paste0(runid_list_riversegs[j],'_',rivseg_metric[k])] ), digits= 2)
           tmp_df <- st_drop_geometry(rsegs[i,paste0(runid_list[j],'_',rivseg_metric[k])])
           tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
+          
           #rivTables[[k]][i,paste0(runid_list[j])] <- round(tmp_df, digits = 2)
           
           for (x in 1:nrow(metric_names)){
@@ -590,9 +593,10 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   #format table columns, add percent difference 
  # rivTables[[k]][,paste0('Difference')] = round( st_drop_geometry(rsegs[,paste0('diff','_',rivseg_metric[k])]) ,digits= 2)
   # rivTables[[k]][,paste0('pct_diff')]= round( st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) , digits= 2)
+  
   tmp_df <- st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])])
   tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-  rivTables[[k]][,paste0('pct_diff')] <- round(tmp_df, digits = 2)
+  rivTables[[k]][,paste0('pct_diff')] <- round(pct_diff, digits = 2) #possible error here?
   
   
   #write.csv(rivTables[[k]], paste0(export_path,"52_rivTables_",rivseg_metric[k],".csv"))
