@@ -12,6 +12,7 @@ library(ggsn)
 library(ggspatial)
 library(ggrepel)
 library(geosphere)
+library(arcpullr)
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),local = TRUE) 
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
@@ -74,11 +75,27 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   #### TEMPORARY work-around: use get_map to get a sattelite map
   #bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use bbox in get_map or get_stamenmap
   #basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
-  basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
-  basemap <- basemap +
-    scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
-    scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
+  # basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
+  # basemap <- basemap +
+  #   scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
+  #   scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
   ####  
+  
+  ## Alternative basemap/background
+  gg_map_layer <- function(map_server, map_layer) {
+    map_url <- paste(map_server,map_layer,sep ="/")
+    mapdata <- get_spatial_layer(map_url)
+    mapdata <- st_crop(mapdata, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
+                                    xmax = max(bbox_points$x), ymax = max(bbox_points$y))) #crop to our extent 
+    plotted_map <- ggplot2::ggplot() +
+      ggplot2::geom_sf(data = mapdata)
+    return(plotted_map)
+  }
+  map_server <- "https://gismaps.vdem.virginia.gov/arcgis/rest/services"
+  # VA LandCover - very sparse, 
+  map_layer = "Download/LandCover_Downloads/MapServer/0"
+  basemap <- gg_map_layer(map_server, map_layer)
+  
   
   
   #For reverse-fill: darken area of map outside basins 
@@ -157,8 +174,10 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   } else {borders <- st_as_sf(borders)}
   sf::st_crs(borders) <- crs_default
   
-  #fix border df -- remove extra rows at bottom 
   borders <- borders[borders$bundle %in% c('region','county','watershed'), ]
+  
+  borders <- st_crop(borders, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
+                                xmax = max(bbox_points$x), ymax = max(bbox_points$y))) #crop to our extent 
   
   #create dataframe for human readable metric names- add here any new metric names being used and their readable version
   read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
@@ -224,7 +243,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
                       labels= c("Region","County","Basin"),
                       name= "Borders")
   } else {
-    map <- map + #ERROR HERE
+    map <- map + 
       new_scale("color") + new_scale("linetype") + new_scale("linewidth") +
       geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
               aes(color= bundle,
