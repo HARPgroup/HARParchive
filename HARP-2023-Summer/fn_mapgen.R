@@ -22,6 +22,12 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_filter_map.R"),l
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
 ## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
+
+#Map 1 Args:
+# mapnum = 1; style = styles[[map_style]]; metric = featrs_file_map_bubble_column[i]; segs = rsegs
+#Map 2 Args:
+# mapnum = 2; style = styles[[map_style]]; metric = rivseg_metric[i]; segs = rsegs_sf
+
 fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
                        nhd, maplabs, mp_layer, metric_unit, title) { 
   
@@ -65,7 +71,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   distance <-  distHaversine(distance) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
   #Filter labels & flowlines 
-  fn_filter_map(labels, nhd, roads, distance)
+  fn_filter_map(labels, nhd, roads, distance) #creates labelsP
   
   #Generate basemap using the given boundary box --- ERROR
   # bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use get_stamenmap()
@@ -73,12 +79,12 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   #basemap <- ggmap(basemap_0)
   
   #### TEMPORARY work-around: use get_map to get a sattelite map
-  #bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use bbox in get_map or get_stamenmap
-  #basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
-  # basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
-  # basemap <- basemap +
-  #   scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
-  #   scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
+  bbox <- setNames(st_bbox(bbox), c("left", "bottom", "right", "top")) #required to use bbox in get_map or get_stamenmap
+  basemap <- ggmap(get_map(location = bbox, maptype = "satellite"))
+  basemap <- ggmap(get_map(location = c(long = mean(bbox_points$x), lat = mean(bbox_points$y)), maptype = "satellite", zoom = (zoomval-2)))
+  basemap <- basemap +
+    scale_x_continuous(limits = bbox_points$x, expand = c(0, 0)) +
+    scale_y_continuous(limits = bbox_points$y, expand = c(0, 0))
   ####  
   
   ## Alternative basemap/background
@@ -95,8 +101,6 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   # VA LandCover - very sparse, 
   map_layer = "Download/LandCover_Downloads/MapServer/0"
   basemap <- gg_map_layer(map_server, map_layer)
-  
-  
   
   #For reverse-fill: darken area of map outside basins 
   rsegs_union <- st_union(segs)
@@ -176,8 +180,16 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   
   borders <- borders[borders$bundle %in% c('region','county','watershed'), ]
   
+  #Crop layers to our extent
   borders <- st_crop(borders, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
-                                xmax = max(bbox_points$x), ymax = max(bbox_points$y))) #crop to our extent 
+                                xmax = max(bbox_points$x), ymax = max(bbox_points$y)))  
+  
+  roads_plot <- st_crop(roads_plot, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
+                                xmax = max(bbox_points$x), ymax = max(bbox_points$y))) 
+  
+  labcoords <- as.data.frame(lat =labelsP$lat,
+                             lng = labelsP$lng) #save coords for filtered labels df 
+  labelsP_sf <- st_as_sf(labelsP, coords = c('lat','lng'))
   
   #create dataframe for human readable metric names- add here any new metric names being used and their readable version
   read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
@@ -274,7 +286,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
                aes(x=lng, y=lat), color= colors_sf["citypts",], size=2)
     # Facility Labels Placeholder (to have other labels repel)
   map <- map + geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA,size=textsize[4],check_overlap=TRUE)
-    # Road Labels
+    # Road Labels --- enlarges extent of map too much
   map <- map + new_scale("color") + new_scale("fill") +
     geom_label_repel(data = labelsP[labelsP$class == c("I","S","U"), ],
                      aes(x=lng, y=lat, label=label, 

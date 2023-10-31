@@ -193,6 +193,7 @@ nhd2 <- rbind( flow[,c("gnis_name", "class", "geometry")], wtbd[,c("gnis_name", 
 ```
 
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 ```
 # Region 
