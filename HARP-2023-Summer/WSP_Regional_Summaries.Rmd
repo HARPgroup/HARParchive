@@ -150,7 +150,6 @@ if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
 st_crs(bbox) <- crs_default
 nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 nhdlabs <- fn_nhd_labs(data=nhd)
-#st_write(nhdlabs, paste0(export_path,"29_nhdlabs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 ```
 
 ```{r Filter NHD, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
@@ -166,7 +165,6 @@ flow$gnis_name <- mgsub(flow$gnis_name, # shorten long names
                         c('NF','SF','EF','WF','MF')) #replacement
 flow$StreamOrde <- mgsub(flow$StreamOrde, c(4,5,6), c("stream","majorRiver","majorRiver"))
 colnames(flow) <- gsub("StreamOrde", "class", colnames(flow))
-#st_write(flow, paste0(export_path,"30_flow_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 # Now do the same for the water bodies
 wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
@@ -183,13 +181,11 @@ statemt <- paste("SELECT *,
                   WHERE (gnis_name != ' ' AND gnis_name != 'Noname' AND gnis_name IS NOT NULL)
                  ", sep=" ")
 wtbd <- fn_sqldf_sf(statemt, "wtbd")
-#st_write(wtbd, paste0(export_path,"31_wtbd_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 # enseure both datasets have same crs prior to rbind()
 st_crs(flow) <- crs_default
 st_crs(wtbd) <- crs_default 
 nhd2 <- rbind( flow[,c("gnis_name", "class", "geometry")], wtbd[,c("gnis_name", "class", "geometry")] )
-#st_write(nhd2, paste0(export_path,"32_nhd2_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 ```
 
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
@@ -243,11 +239,9 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
   mp_layer_sql <- paste('SELECT *, ',featrs_file_map_bubble_column[i],' AS demand_metric
         FROM facils' , sep="") #Renaming metric of interest for generalized sorting into bins
   mp_layer <- fn_sqldf_sf(mp_layer_sql, "facils")
-  #st_write(mp_layer, paste0(export_path,"35_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   bins = as.data.frame(div)
   bins$classid <- index(bins)
   names(bins) <- c("val", "bin")
-  #write.csv(bins, paste0(export_path,"36_bins.csv"))
 
   entity_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
       "select a.NUM, max(b.bin) as bin
@@ -255,7 +249,6 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
       left outer join bins as b 
       on (a.demand_metric >= b.val) 
       group by a.NUM" , "mp_layer")
-  #st_write(entity_classes, paste0(export_path,"37_entity_classes_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
   mp_layer <- fn_sqldf_sf( #joining the bins with the metric data 
       "select a.*, b.bin 
@@ -267,10 +260,8 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
   names(mp_layer)[names(mp_layer) == 'demand_metric'] <- featrs_file_map_bubble_column[i] #change column name back to the specific metric
   mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
   mp_layer <- fn_centroid_coords(mp_layer)
-  #st_write(mp_layer, paste0(export_path,"38_mp_layer_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
   rsegs <- fn_centroid_coords(rsegs)
-  #st_write(rsegs, paste0(export_path,"39_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   
   title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
   
@@ -301,12 +292,14 @@ for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in
   assign(paste0('map', i), map, envir = globalenv())
   }
 
-## Mapping Errors:
+##### Mapping Errors:
   # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
-  # Solution: this indicates the bbox is not in the format needed by the function. Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
+  # Solution: this indicates the bbox is not in the format needed by the function. 
+    # Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
 
   # Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
-  # Solution: maplabs object needs to be re-generated
+  # Solution: maplabs object needs to be removed and re-generated
+#####
 
 # Save map as png
 map_name <- origin
@@ -572,22 +565,13 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
         }
         }
    }
-  #names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
-#names(table) <- mgsub(names(table), pattern="_", replacement=" ")
 
   #format table columns, add percent difference 
- # rivTables[[k]][,paste0('Difference')] = round( st_drop_geometry(rsegs[,paste0('diff','_',rivseg_metric[k])]) ,digits= 2)
-  # rivTables[[k]][,paste0('pct_diff')]= round( st_drop_geometry(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) , digits= 2)
   tmp_df <- as.numeric(rsegs[,paste0('percentDiff','_',rivseg_metric[k])]) #rsegs is a df not sf
   rivTables[[k]][,paste0('pct_diff','_',rivseg_metric[k])] <- round(tmp_df, digits = 2)
   
   #order by lowest % difference from rivTables[[k]]
-  rivdf <- rivTables[[k]] # for sqldf
-  #rivdf <- sqldf(paste('SELECT *, ','pct_diff','_',rivseg_metric[k],' AS pct_diff 
-  #       FROM rivdf' , sep="")) 
-  
-  rivdf <- sqldf(paste0("SELECT rivdf.* FROM rivdf ORDER BY ", 'pct_diff','_',rivseg_metric[k], " ASC")) #ordering by the metric of interest, descending 
-  
+  rivdf <- sqldf(paste0("SELECT rivdf.* FROM rivdf ORDER BY ", 'pct_diff','_',rivseg_metric[k], " ASC")) 
   names(rivdf)[names(rivdf) == paste0('pct_diff','_',rivseg_metric[k])] <- '% Difference'
   
   #need to put NA values @ bottom of df
