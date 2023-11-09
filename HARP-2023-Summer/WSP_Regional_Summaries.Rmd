@@ -571,6 +571,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   rivTables[[k]][,paste0('pct_diff','_',rivseg_metric[k])] <- round(tmp_df, digits = 2)
   
   #order by lowest % difference from rivTables[[k]]
+  rivdf <- rivTables[[k]] #for sqldf
   rivdf <- sqldf(paste0("SELECT rivdf.* FROM rivdf ORDER BY ", 'pct_diff','_',rivseg_metric[k], " ASC")) 
   names(rivdf)[names(rivdf) == paste0('pct_diff','_',rivseg_metric[k])] <- '% Difference'
   
@@ -589,7 +590,6 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
       tablemessage2 = FALSE
     }
   }
-  
   
   title1 <- paste0(rivseg_metric[k]) #define title here for mapping so each map has diff metric title, pass into function
   
