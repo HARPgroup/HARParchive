@@ -10,16 +10,16 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["JL7_7070_0001"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
-  origin_type: ["basin"] #basin, locality, or region
-  featr_type: ["facility"] #source or facility
+  origin: ["Giles"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin_type: ["locality"] #basin, locality, or region
+  featr_type: ["source"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv"
+  featrs_file: "~/Desktop/HARPteam23/Giles_mp_sf.csv"
   featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
-  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
+  featrs_file_table_column: ["five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv" 
-  rivseg_metric: ["l30_Qout", "7q10"] #right now these arent exact column names in the resegs_file
+  rsegs_file: "~/Desktop/HARPteam23/Giles_rsegs_sf.csv" 
+  rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
@@ -33,6 +33,7 @@ params:
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
+  show_map: FALSE #either TRUE or FALSE
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -207,129 +208,145 @@ Ex. for Drought (reg section XXX), refer to summary document Drought section L90
 facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
-for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
-  #legend_title <- paste0(featrs_file_map_bubble_column[i])
-  legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
+if (show_map == TRUE) {
+  for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
+    #legend_title <- paste0(featrs_file_map_bubble_column[i])
+    legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
+    
+    #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
+    if ((featrs_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
+      facils[featrs_file_map_bubble_column[i]] <- NA
+      mapMessage <- TRUE #for returning message to user if map is empty
+    } else { mapMessage <- FALSE  }
+    #Ordering & numbering data by the metric to be mapped 
+     facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
+     "SELECT facils.*  
+     FROM facils
+     ORDER BY", ' ', featrs_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
+     "facils")
+    facils$NUM <- seq(1, nrow(facils))
+   if (i==1) { #data for table will be sorted by the first of featrs_file_map_bubble_column
+     #facils$within <- facils_within
+   } 
+    
+    metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
+                          nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
+    if (metric_unit == "mgd") { #different ranges for mgd and mgy
+    div <- wd_mgd
+    } else if (metric_unit == "mgy") {
+    div <- wd_mgy
+    }
+    
+    mp_layer_sql <- paste('SELECT *, ',featrs_file_map_bubble_column[i],' AS demand_metric
+          FROM facils' , sep="") #Renaming metric of interest for generalized sorting into bins
+    mp_layer <- fn_sqldf_sf(mp_layer_sql, "facils")
+    bins = as.data.frame(div)
+    bins$classid <- index(bins)
+    names(bins) <- c("val", "bin")
   
-  #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
-  if ((featrs_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
-    facils[featrs_file_map_bubble_column[i]] <- NA
-    mapMessage <- TRUE #for returning message to user if map is empty
-  } else { mapMessage <- FALSE  }
-  #Ordering & numbering data by the metric to be mapped 
-   facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
-   "SELECT facils.*  
-   FROM facils
-   ORDER BY", ' ', featrs_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
-   "facils")
-  facils$NUM <- seq(1, nrow(facils))
-  #st_write(facils, paste0(export_path,"34_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
- if (i==1) { #data for table will be sorted by the first of featrs_file_map_bubble_column
-   #facils$within <- facils_within
- } 
+    entity_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
+        "select a.NUM, max(b.bin) as bin
+        from mp_layer as a 
+        left outer join bins as b 
+        on (a.demand_metric >= b.val) 
+        group by a.NUM" , "mp_layer")
+    
+    mp_layer <- fn_sqldf_sf( #joining the bins with the metric data 
+        "select a.*, b.bin 
+        from mp_layer as a 
+        left outer join entity_classes as b 
+        on a.NUM = b.NUM " , "mp_layer")
   
-  metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
-                        nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
-  if (metric_unit == "mgd") { #different ranges for mgd and mgy
-  div <- wd_mgd
-  } else if (metric_unit == "mgy") {
-  div <- wd_mgy
+    mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
+    names(mp_layer)[names(mp_layer) == 'demand_metric'] <- featrs_file_map_bubble_column[i] #change column name back to the specific metric
+    mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
+    mp_layer <- fn_centroid_coords(mp_layer)
+    
+    rsegs <- fn_centroid_coords(rsegs)
+    
+    title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+    
+    if (featrs_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
+        title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
+    } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
+            title <- gsub("wd_mgd", "Withdraw (MGD)", title1)
+    } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
+    title <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', title1)
+    } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
+    title <- gsub("ps_mgd", "Point Source (MGD)", title1)
+    } else {
+      title <- title1
+    }
+  
+    #suppressWarnings(suppressMessages( 
+      map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
+                  metric = featrs_file_map_bubble_column[i], segs = rsegs,
+                  featr_type = featr_type, origin_type = origin_type, 
+                  origin = origin, bbox = bbox,  
+                  counties = counties, roads = roads, 
+                  nhd = nhd, maplabs = maplabs, 
+                  mp_layer = mp_layer, metric_unit = metric_unit, 
+                  title = title)
+    #))
+    
+    #assign map to environment
+    assign(paste0('map', i), map, envir = globalenv())
+  }
+
+  ##### Mapping Errors:
+    # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
+    # Solution: this indicates the bbox is not in the format needed by the function. 
+      # Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
+  
+    # Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
+    # Solution: maplabs object needs to be removed and re-generated
+  #####
+
+  # Save map as png
+  map_name <- origin
+  
+  #add sources or facils to name based on type 
+  if (featr_type == "source") {
+    map_name <- paste0(map_name, '_sources')
+  } else if (featr_type == "facility") {
+    map_name <- paste0(map_name, '_facils')
   }
   
-  mp_layer_sql <- paste('SELECT *, ',featrs_file_map_bubble_column[i],' AS demand_metric
-        FROM facils' , sep="") #Renaming metric of interest for generalized sorting into bins
-  mp_layer <- fn_sqldf_sf(mp_layer_sql, "facils")
-  bins = as.data.frame(div)
-  bins$classid <- index(bins)
-  names(bins) <- c("val", "bin")
-
-  entity_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
-      "select a.NUM, max(b.bin) as bin
-      from mp_layer as a 
-      left outer join bins as b 
-      on (a.demand_metric >= b.val) 
-      group by a.NUM" , "mp_layer")
-  
-  mp_layer <- fn_sqldf_sf( #joining the bins with the metric data 
-      "select a.*, b.bin 
-      from mp_layer as a 
-      left outer join entity_classes as b 
-      on a.NUM = b.NUM " , "mp_layer")
-
-  mp_layer$bin[is.na(mp_layer$bin)] <- "X" # replacing NA values in bin column
-  names(mp_layer)[names(mp_layer) == 'demand_metric'] <- featrs_file_map_bubble_column[i] #change column name back to the specific metric
-  mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
-  mp_layer <- fn_centroid_coords(mp_layer)
-  
-  rsegs <- fn_centroid_coords(rsegs)
-  
-  title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
-  
-  if (featrs_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
-      title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
-  } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
-          title <- gsub("wd_mgd", "Withdraw (MGD)", title1)
-  } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
-  title <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', title1)
-  } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
-  title <- gsub("ps_mgd", "Point Source (MGD)", title1)
-  } else {
-    title <- title1
+  # Saving map(s) as a png
+  # export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
+  mapfilename <- character() #empty character var, not a list
+  for (i in 1:length(featrs_file_map_bubble_column)) {
+    mapfilename[i] <- paste(export_path, map_name, "_", featrs_file_map_bubble_column[i], ".png", sep="")
+    mapf <- get(paste0('map',i))
+    ggsave(
+      filename = mapfilename[i],
+      plot = mapf,
+      width = 25,
+      height = 20)
   }
 
-  #suppressWarnings(suppressMessages( 
-    map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
-                metric = featrs_file_map_bubble_column[i], segs = rsegs,
-                featr_type = featr_type, origin_type = origin_type, 
-                origin = origin, bbox = bbox,  
-                counties = counties, roads = roads, 
-                nhd = nhd, maplabs = maplabs, 
-                mp_layer = mp_layer, metric_unit = metric_unit, 
-                title = title)
-  #))
+} else { #if we don't want to show maps 
+  #still need to sort & number data for table even if not mapping 
+  #default when not mapping will be sorting table by first entry of table columns 
+  facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
+     "SELECT facils.*  
+     FROM facils
+     ORDER BY", ' ', featrs_file_table_column[1], ' ', "DESC"), #ordering by the metric of interest, descending 
+     "facils")
+    facils$NUM <- seq(1, nrow(facils))
   
-  #assign map to environment
-  assign(paste0('map', i), map, envir = globalenv())
-  }
-
-##### Mapping Errors:
-  # Error in if (distance > 300) { : missing value where TRUE/FALSE needed
-  # Solution: this indicates the bbox is not in the format needed by the function. 
-    # Regenerate the bbox and make sure it is of class bbox and has names xmin, xmax, etc.
-
-  # Error in rbind(deparse.level, ...) : numbers of columns of arguments do not match
-  # Solution: maplabs object needs to be removed and re-generated
-#####
-
-# Save map as png
-map_name <- origin
-
-#add sources or facils to name based on type 
-if (featr_type == "source") {
-  map_name <- paste0(map_name, '_sources')
-} else if (featr_type == "facility") {
-  map_name <- paste0(map_name, '_facils')
 }
 
-# Saving map(s) as a png
-# export_path set in config for analysts, set in console if nonexistent to location where map will be exported 
-mapfilename <- character() #empty character var, not a list
-for (i in 1:length(featrs_file_map_bubble_column)) {
-  mapfilename[i] <- paste(export_path, map_name, "_", featrs_file_map_bubble_column[i], ".png", sep="")
-  mapf <- get(paste0('map',i))
-  ggsave(
-    filename = mapfilename[i],
-    plot = mapf,
-    width = 25,
-    height = 20)
- }
+
 ```
 
 ```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
-if (mapMessage == TRUE) {
-  message("The metric requested does not exist for this map.")
-  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+if (show_map == TRUE) {  
+  knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+  if (mapMessage == TRUE) {
+    message("The metric requested does not exist for this map.")
+    message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+  }
 }
 ```
 
@@ -432,109 +449,111 @@ ft1 #display flextable
 ## 2020/2040 Demand Scenarios Through Drought Metrics: L90 – 7Q10:
 ### Map: 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
-#----Map/Table2----
-## Need to adapt this for multiple maps
-#rivdiv <- c(-20,-10,-2,2,10,20,500) #% difference breaks for rivseg map - moved to config
+#----Map 2----
 
-for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within this loop 
-  rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list)
+if (show_map == TRUE) {
+  for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within this loop 
+    rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list)
+    
+    title1 <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
+    
+    if (rivseg_metric[i]=="l30_Qout"){
+        title <- gsub("l30_Qout", "Lowest 30 Day Flow", title1)
+    } else if (rivseg_metric[i]=="l90_Qout"){
+            title <- gsub("l90_Qout", "Lowest 90 Day Flow", title1)
+    } else {
+      title <- title1
+    }
   
-  title1 <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
+    rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
+    #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+    
+  #### Problem with rsegs df happens here 
+    # rseg_sql <- paste('SELECT *, ','percentDiff','_',rivseg_metric[i],' AS pct_diff 
+    #       FROM rsegs' , sep="") #Renaming metric of interest for generalized sorting into bins
+    # 
+    # rsegs <- fn_sqldf_sf(rseg_sql,"rsegs")
+    #st_write(rsegs, paste0(export_path,"46_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+  ####
+    
+    ##Work-around to problem above: change column name
+    rseg_geom <- rsegs$geometry #save geometry before dropping
+    rsegs_nogeom <- st_drop_geometry(rsegs)
+    pct_col <- as.data.frame(rsegs_nogeom[,paste0('percentDiff_', rivseg_metric[i])]) #identify pct diff for metric of interest
+    colnames(pct_col) <- 'pct_diff'
+    rsegs <- cbind(rsegs_nogeom, pct_col)
+    rm(rsegs_nogeom)
+    ##
   
-  if (rivseg_metric[i]=="l30_Qout"){
-      title <- gsub("l30_Qout", "Lowest 30 Day Flow", title1)
-  } else if (rivseg_metric[i]=="l90_Qout"){
-          title <- gsub("l90_Qout", "Lowest 90 Day Flow", title1)
-  } else {
-    title <- title1
+    bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
+    bins$classid <- index(bins)
+    names(bins) <- c("val", "bin")
+    #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
+  
+    rivseg_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
+      "select a.riverseg, min(b.bin) as bin
+      from rsegs as a 
+      left outer join bins as b 
+      on (a.pct_diff <= b.val) 
+      group by a.riverseg" )
+    #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
+    
+  ## sqldf error here about raw vectors  
+    # rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
+    #   "select a.*, b.bin 
+    #   from rsegs as a 
+    #   left outer join rivseg_classes as b 
+    #   on a.riverseg = b.riverseg " , "rsegs")
+    # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
+    
+    rsegs <- sqldf( #joining the bins with the metric data 
+      "select a.*, b.bin 
+      from rsegs as a 
+      left outer join rivseg_classes as b 
+      on a.riverseg = b.riverseg " , "rsegs") 
+    
+    rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
+    st_crs(rsegs_sf) <- crs_default
+  
+    ##Mapping function
+    #suppressWarnings(suppressMessages(
+      map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
+                               metric = rivseg_metric[i], segs = rsegs_sf,
+                               featr_type = featr_type, origin_type = origin_type, 
+                               origin = origin, bbox = bbox,  
+                               counties = counties, roads = roads, 
+                               nhd = nhd, maplabs = maplabs, 
+                               mp_layer = mp_layer, metric_unit = metric_unit, 
+                               title = title) 
+    #))
+    
+    #assign map to environment
+    assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
+  
   }
-
-  rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
-  #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
   
-#### Problem with rsegs df happens here 
-  # rseg_sql <- paste('SELECT *, ','percentDiff','_',rivseg_metric[i],' AS pct_diff 
-  #       FROM rsegs' , sep="") #Renaming metric of interest for generalized sorting into bins
-  # 
-  # rsegs <- fn_sqldf_sf(rseg_sql,"rsegs")
-  #st_write(rsegs, paste0(export_path,"46_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
-####
-  
-  ##Work-around to problem above: change column name
-  rseg_geom <- rsegs$geometry #save geometry before dropping
-  rsegs_nogeom <- st_drop_geometry(rsegs)
-  pct_col <- as.data.frame(rsegs_nogeom[,paste0('percentDiff_', rivseg_metric[i])]) #identify pct diff for metric of interest
-  colnames(pct_col) <- 'pct_diff'
-  rsegs <- cbind(rsegs_nogeom, pct_col)
-  rm(rsegs_nogeom)
-  ##
-
-  bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
-  bins$classid <- index(bins)
-  names(bins) <- c("val", "bin")
-  #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
-
-  rivseg_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
-    "select a.riverseg, min(b.bin) as bin
-    from rsegs as a 
-    left outer join bins as b 
-    on (a.pct_diff <= b.val) 
-    group by a.riverseg" )
-  #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
-  
-## sqldf error here about raw vectors  
-  # rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
-  #   "select a.*, b.bin 
-  #   from rsegs as a 
-  #   left outer join rivseg_classes as b 
-  #   on a.riverseg = b.riverseg " , "rsegs")
-  # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
-  
-  rsegs <- sqldf( #joining the bins with the metric data 
-    "select a.*, b.bin 
-    from rsegs as a 
-    left outer join rivseg_classes as b 
-    on a.riverseg = b.riverseg " , "rsegs") 
-  
-  rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
-  st_crs(rsegs_sf) <- crs_default
-
-  ##Mapping function
-  #suppressWarnings(suppressMessages(
-    map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
-                             metric = rivseg_metric[i], segs = rsegs_sf,
-                             featr_type = featr_type, origin_type = origin_type, 
-                             origin = origin, bbox = bbox,  
-                             counties = counties, roads = roads, 
-                             nhd = nhd, maplabs = maplabs, 
-                             mp_layer = mp_layer, metric_unit = metric_unit, 
-                             title = title) 
-  #))
-  
-  #assign map to environment
-  assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
-
-}
-
-## Save rivseg map
-rivmapfilename <- character() #empty character var, not a list
-for (i in 1:length(rivseg_metric)) {
-  rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
-  mapf <- get(paste0('map_rivseg',i))
-  ggsave(
-    filename = rivmapfilename[i],
-    plot = mapf,
-    width = 25,
-    height = 20)
+  ## Save rivseg map
+  rivmapfilename <- character() #empty character var, not a list
+  for (i in 1:length(rivseg_metric)) {
+    rivmapfilename[i] <- paste(export_path, map_name, "_", rivseg_metric[i], ".png", sep="")
+    mapf <- get(paste0('map_rivseg',i))
+    ggsave(
+      filename = rivmapfilename[i],
+      plot = mapf,
+      width = 25,
+      height = 20)
+  }
 }
 ```
 
 ```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE}
-knitr::include_graphics(rivmapfilename)
+if (show_map == TRUE) {
+  knitr::include_graphics(rivmapfilename)
+}
 ```
 
 ```{r Create Table 2, echo=FALSE, message=FALSE, warning=FALSE}
-#create metric type column
+rsegs <- st_drop_geometry(rsegs)
 
 rivTables <- list() #to store dataframes for each drought metric
 #ftable<- list()
