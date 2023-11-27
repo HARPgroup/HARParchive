@@ -328,15 +328,15 @@ if (show_map == TRUE) {
 } else { #if we don't want to show maps 
   #still need to sort & number data for table even if not mapping 
   #default when not mapping will be sorting table by first entry of table columns 
+  class(facils[,featrs_file_table_column[1]]) <- "numeric"
+  
   facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
      "SELECT facils.*  
      FROM facils
-     ORDER BY", ' ', featrs_file_table_column[1], ' ', "DESC"), #ordering by the metric of interest, descending 
-     "facils")
-    facils$NUM <- seq(1, nrow(facils))
+     ORDER BY", ' ', featrs_file_table_column[1], ' ', "DESC")) #ordering by the metric of interest, descending 
   
+  facils$NUM <- seq(1, nrow(facils))
 }
-
 
 ```
 
@@ -377,21 +377,16 @@ for(i in 1:nrow(table)){
     table$`River Segment Name`[i] <- ""
     }
 }
-#write.csv(table, paste0(export_path,"41_table.csv"))
 
 table$`River Segment ID`= facils$riverseg #add rivseg ID
 
 table$`Permitted Capacity` <- facils$vwp_max_mgy #add permitted capacity to table 
-#write.csv(table, paste0(export_path,"42_table.csv"))
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
   if (featrs_file_table_column[i] %in% colnames(facils)) {
   #adding requested columns to table
-    # table[,table_col[i]] <- round( st_drop_geometry(facils[,table_col[i]]), digits = 2) #round all values to 2 decimal place digits
-    tmp_df <- st_drop_geometry(facils[,featrs_file_table_column[i]])
-    tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-    table[,featrs_file_table_column[i]] <- round(tmp_df, digits = 2)
+    table[,featrs_file_table_column[i]] <- round(as.numeric(facils[,featrs_file_table_column[i]]), digits = 2)
   }
 }
 
