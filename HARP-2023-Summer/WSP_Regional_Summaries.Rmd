@@ -328,14 +328,13 @@ if (show_map == TRUE) {
 } else { #if we don't want to show maps 
   #still need to sort & number data for table even if not mapping 
   #default when not mapping will be sorting table by first entry of table columns 
-  class(facils[,featrs_file_table_column[1]]) <- "numeric"
-  
+  facils_nogeom <- st_drop_geometry(facils)
+  class(facils_nogeom[,featrs_file_table_column[1]]) <- "numeric"
   facils <- fn_sqldf_sf(paste0( #ordering the data using sqldf 
-     "SELECT facils.*  
-     FROM facils
+     "SELECT facils_nogeom.*  
+     FROM facils_nogeom
      ORDER BY", ' ', featrs_file_table_column[1], ' ', "DESC")) #ordering by the metric of interest, descending 
-  
-  facils$NUM <- seq(1, nrow(facils))
+  facils_nogeom$NUM <- seq(1, nrow(facils))
 }
 
 ```
@@ -351,26 +350,33 @@ if (show_map == TRUE) {
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
-names(facils)[names(facils) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
-#facils$within$hydroid <- as.numeric(gsub(",", "", facils$within$hydroid, fixed = TRUE))
+#facils_nogeom created if show_map = FALSE
+if (show_map == FALSE) {
+  facils_table <- facils_nogeom
+} else {
+  facils_table <- facils
+}
+
+names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
+#facils_table$within$hydroid <- as.numeric(gsub(",", "", facils_table$within$hydroid, fixed = TRUE))
 #create initial table
 table <- data.frame(
-  Number= facils$NUM,
-  Facility=facils$Facility,
-  HydroID = facils$Facility_hydroid)
+  Number= facils_table$NUM,
+  Facility=facils_table$Facility,
+  HydroID = facils_table$Facility_hydroid)
 
 #for source type only add mp name and source type to table
 if (featr_type=="source"){
-  table$Source = facils$MP_Name  
-  table$Source_Type = facils$Source_Type
+  table$Source = facils_table$MP_Name  
+  table$Source_Type = facils_table$Source_Type
 }
 
-table$Locality = facils$Locality
+table$Locality = facils_table$Locality
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
 for(i in 1:nrow(table)){ 
-  loc_rivseg <- (rsegs[grep(facils$riverseg[i], rsegs$riverseg),]) #find rivseg in segs and compare to facils to add name
+  loc_rivseg <- (rsegs[grep(facils_table$riverseg[i], rsegs$riverseg),]) #find rivseg in segs and compare to facils_table to add name
   if (nrow(loc_rivseg) != 0) {
     table$`River Segment Name`[i] <- loc_rivseg$name
   } else { # if no matching row was found for the riverseg ID, leave blank but don't break
@@ -378,13 +384,13 @@ for(i in 1:nrow(table)){
     }
 }
 
-table$`River Segment ID`= facils$riverseg #add rivseg ID
+table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils$vwp_max_mgy #add permitted capacity to table 
+table$`Permitted Capacity` <- facils_table$vwp_max_mgy #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
-  if (featrs_file_table_column[i] %in% colnames(facils)) {
+  if (featrs_file_table_column[i] %in% colnames(facils_table)) {
   #adding requested columns to table
     table[,featrs_file_table_column[i]] <- round(as.numeric(facils[,featrs_file_table_column[i]]), digits = 2)
   }
@@ -420,9 +426,9 @@ for (i in 1:length(featrs_file_table_column)) {
   }
 }
 
-#names(table)[names(table) == 'fiveyr_avg_mgy'] <- '5-yr Avg Use (mgy)'
+names(table)[names(table) == 'five_yr_avg'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
-#write.csv(table, paste0(export_path,"44_table.csv"))
+
 
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
