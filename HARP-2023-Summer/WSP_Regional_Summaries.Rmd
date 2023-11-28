@@ -10,15 +10,15 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["Giles"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
-  origin_type: ["locality"] #basin, locality, or region
-  featr_type: ["source"] #source or facility
+  origin: ["Shenandoah_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin_type: ["region"] #basin, locality, or region
+  featr_type: ["facility"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/Giles_mp_sf.csv"
+  featrs_file: "~/Desktop/HARPteam23/Shenandoah_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
-  featrs_file_table_column: ["five_yr_avg","wsp2020_2040_mgy"]
+  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/Giles_rsegs_sf.csv" 
+  rsegs_file: "~/Desktop/HARPteam23/Shenandoah_1_rsegs_sf.csv" 
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -33,7 +33,7 @@ params:
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
-  show_map: FALSE #either TRUE or FALSE
+  show_map: TRUE #either TRUE or FALSE
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -347,13 +347,13 @@ if (show_map == TRUE) {
 ```
 
 ```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-if (show_map == TRUE) {  
-  knitr::include_graphics(mapfilename) #display map PNG - for maps on top of each other
+#if (show_map == TRUE) {  
+  knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
   if (mapMessage == TRUE) {
     message("The metric requested does not exist for this map.")
     message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
   }
-}
+#}
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -361,7 +361,7 @@ if (show_map == TRUE) {
 if (show_map == FALSE) {
   facils_table <- facils_nogeom
 } else {
-  facils_table <- facils
+  facils_table <- st_drop_geometry(facils)
 }
 
 names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
@@ -399,7 +399,7 @@ for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
   if (featrs_file_table_column[i] %in% colnames(facils_table)) {
   #adding requested columns to table
-    table[,featrs_file_table_column[i]] <- round(as.numeric(facils[,featrs_file_table_column[i]]), digits = 2)
+    table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
   }
 }
 
