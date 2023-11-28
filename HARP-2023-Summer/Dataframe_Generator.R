@@ -17,14 +17,14 @@ model_version <- c("vahydro-1.0")
 #rivseg <- "PU6_3730_3750"  << these are now combined into one variable 'origin' to describe what
 #locality <- "Fauquier"         area the map will be centered around, and the variable 'origin_type'
 #region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
-origin <- "JL7_7070_0001" 
-origin_type <- "basin" 
-featr_type <- "facility"
+origin <- "Roanoke_1"
+origin_type <- "region" #basin, locality, or region 
+featr_type <- "facility" #source or facility
 limit_featrs_to_origin <- FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
 metric_mod <- c("wd_mgd")
 metric_feat <- c("wsp2020_2040_mgy")
-rivseg_metric <- c("l30_Qout","7q10")
+rivseg_metric <- c("l30_Qout","l90_Qout")
 
 overwrite_files <- TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
 base_layer_data <- FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)

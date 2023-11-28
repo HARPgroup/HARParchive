@@ -39,7 +39,7 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", metric)
     }  else if (origin_type == "region") {
-      title <- paste0(region, " Region, ", metric)
+      title <- paste0(origin, " Region, ", metric)
     } 
   }
   else {
@@ -48,7 +48,7 @@ if (featr_type == 'facility') { #facility tables need more editing then riverseg
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality, ", title)
     }  else if (origin_type == "region") {
-      title <- paste0(region, " Region, " ,title)
+      title <- paste0(origin, " Region, " ,title)
     } 
   }
   

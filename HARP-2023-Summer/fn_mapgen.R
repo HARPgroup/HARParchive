@@ -161,7 +161,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   if (origin_type=="region") {
     st_geometry(region_OI) <- "geometry"
     #st_crs(region_OI) <- crs(borders)
-    region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[geoCol(region_OI)] )
+    region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[fn_geoCol(region_OI)] )
     borders <- rbind(borders, region_OI)
     borders <- st_as_sf(borders)
     sf::st_crs(borders) <- crs_default
