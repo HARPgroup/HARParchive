@@ -1,5 +1,7 @@
 library(data.table)
 library(hydrotools)
+library(rapportools)
+library(stringr)
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
@@ -72,13 +74,23 @@ if (overwrite_files==TRUE) {
 foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_expanded.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
-  df <- data.frame(runid=runid_list, model_version, metric=metric_mod) #create df of model run specifications for om_vahydro_metric_grid()
-  for(i in 1:length(runid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
-    df$runlabel[i] <- paste0(runid_list[i], '_', metric_mod)
+  
+  facdf <- data.frame()
+  for (k in metric_mod) {
+    
+    df <- data.frame(runid=runid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
+    for(i in 1:length(runid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
+      df$runlabel[i] <- paste0(runid_list[i], '_', k)
+    }
+    if (is.logical(facdf)) {
+      facdf <- df
+    } else {
+      facdf <- rbind(facdf,df)
+    }
   }
   #pull facilities w/ metric of interest from vahydro:
   f_model <- om_vahydro_metric_grid(
-    metric=FALSE, runids=df, featureid='all', 
+    metric=FALSE, runids=facdf, featureid='all', 
     entity_type='dh_feature', bundle='facility',
     ftype='all', model_version=model_version,
     base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
@@ -245,6 +257,8 @@ for (i in unique(featrs$hydroid) ){
                                                            gsub(" ","",toString( model_props )),sep="")
   ))
 }
+
+
 statemt <- paste("SELECT a.*, z.vwp_max_mgy, z.permit_status
                   FROM featrs as a
                   LEFT OUTER JOIN
@@ -281,7 +295,31 @@ featrs <- unique(featrs) #remove duplicated rows
 featrs$vwp_max_mgy[is.na(featrs$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why NAs still exist
 rm(fac_model_data)
 
-#---Pull Rseg Drought Metrics---
+#---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
+rivdf <- data.frame()
+for (k in rivseg_metric) {
+  
+  df <- data.frame(runid=runid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
+  for(i in 1:length(runid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
+    df$runlabel[i] <- paste0(runid_list[i], '_', k)
+  }
+  if (is.logical(rivdf)) {
+    rivdf <- df
+  } else {
+    rivdf <- rbind(rivdf,df)
+  }
+}
+#pull segments w/ metric of interest from vahydro:
+model_data_river <- om_vahydro_metric_grid(
+  metric=FALSE, runids=rivdf, featureid='all', 
+  entity_type='dh_feature', bundle='watershed',
+  ftype='all', model_version=model_version,
+  base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
+  ds=ds
+)
+statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
+rsegs_data <- fn_sqldf_sf(statemt, geomback="rsegs")
+
 for (k in 1:length(rivseg_metric)) {
   for (j in 1:length(runid_list)) {
     for (i in 1:nrow(rsegs)) {
