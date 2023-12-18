@@ -104,27 +104,6 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   #labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
   class(labelsP$bg.r) = "numeric"
   
-  # Legend & Titling
-  # For map title:
-  
-  if (title == "default"){
-    if (origin_type == "basin") {
-      title <- (paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, ",", metric, sep=" ") )
-    } else if (origin_type == "locality") {
-      title <- paste0(origin, " Locality, ", metric)
-    }  else if (origin_type == "region") {
-      title <- paste0(origin, " Region, ", metric)
-    } 
-  } else {
-    if (origin_type == "basin") {
-      title <- ( paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, ",", title, sep=" ") )
-    } else if (origin_type == "locality") {
-      title <- paste0(origin, " Locality, ", title)
-    }  else if (origin_type == "region") {
-      title <- paste0(origin, " Region, " ,title)
-    } 
-  }
-  
   # For binned legend 
   breaks <- seq(1:7)
   lims <- c(min(breaks),max(breaks)) #limits based on range of breaks
