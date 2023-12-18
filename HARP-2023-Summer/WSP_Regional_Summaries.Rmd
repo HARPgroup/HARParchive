@@ -10,15 +10,15 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["Shenandoah_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["Roanoke_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/Shenandoah_1_featrs_sf.csv"
-  featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
-  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
+  featrs_file: "~/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv"
+  featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
+  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/Shenandoah_1_rsegs_sf.csv" 
+  rsegs_file: "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv" 
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -153,7 +153,6 @@ if (show_map == TRUE) {
   nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   nhdlabs <- fn_nhd_labs(data=nhd)
 }
-
 ```
 
 ```{r Filter NHD, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
@@ -239,9 +238,11 @@ if (show_map == TRUE) {
     metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
                           nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
     if (metric_unit == "mgd") { #different ranges for mgd and mgy
-    div <- wd_mgd
+      div <- wd_mgd
     } else if (metric_unit == "mgy") {
-    div <- wd_mgy
+      div <- wd_mgy
+    } else {
+      div <- wd_mgy #default units of million gallons per day 
     }
     
     mp_layer_sql <- paste('SELECT *, ',featrs_file_map_bubble_column[i],' AS demand_metric
@@ -269,7 +270,7 @@ if (show_map == TRUE) {
     mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
     mp_layer <- fn_centroid_coords(mp_layer)
     
-    rsegs <- fn_centroid_coords(rsegs)
+    rsegs <- fn_centroid_coords(rsegs) ## returns an error 
     
     title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
     
