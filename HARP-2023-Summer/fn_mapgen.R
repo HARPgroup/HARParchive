@@ -79,7 +79,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   #basemap <- ggmap(basemap_0)
   
   ## Alternative basemap/background
-  gg_map_layer <- function(map_server, map_layer) {
+  gg_map_layer <- function(map_server, map_layer, bbox_points) {
     map_url <- paste(map_server,map_layer,sep ="/")
     mapdata <- get_spatial_layer(map_url)
     mapdata <- st_crop(mapdata, c(xmin= min(bbox_points$x), ymin = min(bbox_points$y), 
@@ -91,7 +91,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   map_server <- "https://gismaps.vdem.virginia.gov/arcgis/rest/services"
   # VA LandCover - very sparse, 
   map_layer = "Download/LandCover_Downloads/MapServer/0"
-  basemap <- gg_map_layer(map_server, map_layer)
+  basemap <- gg_map_layer(map_server, map_layer, bbox_points)
   
   #For reverse-fill: darken area of map outside basins 
   rsegs_union <- st_union(segs)
@@ -103,27 +103,6 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   
   #labelsP <- labelsP[ ,!duplicated(colnames(labelsP))]
   class(labelsP$bg.r) = "numeric"
-  
-  # Legend & Titling
-  # For map title:
-  
-  if (title == "default"){
-    if (origin_type == "basin") {
-      title <- (paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, ",", metric, sep=" ") )
-    } else if (origin_type == "locality") {
-      title <- paste0(origin, " Locality, ", metric)
-    }  else if (origin_type == "region") {
-      title <- paste0(origin, " Region, ", metric)
-    } 
-  } else {
-    if (origin_type == "basin") {
-      title <- ( paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, ",", title, sep=" ") )
-    } else if (origin_type == "locality") {
-      title <- paste0(origin, " Locality, ", title)
-    }  else if (origin_type == "region") {
-      title <- paste0(origin, " Region, " ,title)
-    } 
-  }
   
   # For binned legend 
   breaks <- seq(1:7)

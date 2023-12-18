@@ -10,15 +10,15 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["Shenandoah_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["Roanoke_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/Shenandoah_1_featrs_sf.csv"
-  featrs_file_map_bubble_column: ["runid_11_wd_mgd"] #runid & metric
-  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","fiveyr_avg_mgy","wsp2020_2040_mgy"]
+  featrs_file: "~/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv"
+  featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
+  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/Shenandoah_1_rsegs_sf.csv" 
+  rsegs_file: "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv" 
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -153,7 +153,6 @@ if (show_map == TRUE) {
   nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   nhdlabs <- fn_nhd_labs(data=nhd)
 }
-
 ```
 
 ```{r Filter NHD, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
@@ -239,9 +238,11 @@ if (show_map == TRUE) {
     metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
                           nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
     if (metric_unit == "mgd") { #different ranges for mgd and mgy
-    div <- wd_mgd
+      div <- wd_mgd
     } else if (metric_unit == "mgy") {
-    div <- wd_mgy
+      div <- wd_mgy
+    } else {
+      div <- wd_mgy #default units of million gallons per day 
     }
     
     mp_layer_sql <- paste('SELECT *, ',featrs_file_map_bubble_column[i],' AS demand_metric
@@ -269,21 +270,39 @@ if (show_map == TRUE) {
     mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
     mp_layer <- fn_centroid_coords(mp_layer)
     
-    rsegs <- fn_centroid_coords(rsegs)
+    rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default)
     
-    title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+    colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
     
-    if (featrs_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
-        title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
+    ## Create title for the map
+      #first create label for metric
+    if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
+      maplabel <- gsub("five_yr_avg", "5 Year Avg (MGY)", colname)
     } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
-            title <- gsub("wd_mgd", "Withdraw (MGD)", title1)
+      maplabel <- gsub("wd_mgd", "Withdraw (MGD)", colname)
     } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
-    title <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', title1)
+      maplabel <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', colname)
     } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
-    title <- gsub("ps_mgd", "Point Source (MGD)", title1)
+      maplabel <- gsub("ps_mgd", "Point Source (MGD)", colname)
     } else {
-      title <- title1
+      maplabel <- colname
     }
+    
+      #create title based on origin & type
+    if (origin_type == "basin") {
+      title <- (paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, sep=" "))
+    } else if (origin_type == "locality") {
+      title <- paste0(origin, " Locality")
+    } else if (origin_type == "region") {
+      title <- paste0(origin, " Region")
+    } 
+    
+    
+      #create map title by combining label and title
+      maptitle <- paste0(title, ", ", maplabel)
+  
+    
+       
   
     #suppressWarnings(suppressMessages( 
       map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
@@ -293,7 +312,7 @@ if (show_map == TRUE) {
                   counties = counties, roads = roads, 
                   nhd = nhd, maplabs = maplabs, 
                   mp_layer = mp_layer, metric_unit = metric_unit, 
-                  title = title)
+                  title = maptitle)
     #))
     
     #assign map to environment
@@ -463,16 +482,18 @@ if (show_map == TRUE) {
   for (i in 1:length(rivseg_metric)){ #something going wrong in rsegs df within this loop 
     rseg_leg_title <- legend_titling(rivseg_metric[i], runid_list)
     
-    title1 <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
+    rivmapmetric <- paste0(rivseg_metric[i]) #define title here for mapping so each map has diff metric title, pass into function
     
     if (rivseg_metric[i]=="l30_Qout"){
-        title <- gsub("l30_Qout", "Lowest 30 Day Flow", title1)
+        rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
     } else if (rivseg_metric[i]=="l90_Qout"){
-            title <- gsub("l90_Qout", "Lowest 90 Day Flow", title1)
+        rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
     } else {
-      title <- title1
+        rivmaplabel <- rivmapmetric
     }
   
+    rivmaptitle <- paste0(title, ", ", rivmaplabel)
+    
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
     #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
     
@@ -532,7 +553,7 @@ if (show_map == TRUE) {
                                counties = counties, roads = roads, 
                                nhd = nhd, maplabs = maplabs, 
                                mp_layer = mp_layer, metric_unit = metric_unit, 
-                               title = title) 
+                               title = rivmaptitle) 
     #))
     
     #assign map to environment
@@ -569,7 +590,6 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
   rivTables[[k]] <- data.frame(Name = rsegs$name) # add rivseg name
   rivTables[[k]][,paste0('Riverseg')] <- rsegs$riverseg # add rivseg number
   rivTables[[k]]$Metric <- rivseg_metric[k] #add metric
-  #write.csv(rivTables[[k]], paste0(export_path,"50_rivTables_",rivseg_metric[k],".csv"))
 
    for (i in 1:nrow(rsegs)) {
         for (j in 1:length(runid_list)){ #add actual metric column data
@@ -580,7 +600,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
           
           for (x in 1:nrow(metric_names)){
           if (runid_list[j]==metric_names$read_metric_name[x])
-          {
+            {
             rivTables[[k]][i,paste0(metric_names$new_metric_name[x])] <- round(tmp_df, digits = 2)
             #names(rivTables[[k]])[names(rivTables[[k]]) == runid_list[j]] <- metric_names$new_metric_name[row]
             #names(rivTables[[k]]) <- mgsub(names(rivTables[[k]]), pattern= runid_list[j], replacement= metric_names$new_metric_name[x])
@@ -590,7 +610,7 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
             next
           }
         }
-        }
+      }
    }
 
   #format table columns, add percent difference 
@@ -618,21 +638,22 @@ for (k in 1:length(rivseg_metric)){ #loop thru metrics
     }
   }
   
-  title1 <- paste0(rivseg_metric[k]) #define title here for mapping so each map has diff metric title, pass into function
+  rivtablemetric <- paste0(rivseg_metric[k]) #define title here for mapping so each map has diff metric title, pass into function
   
   if (rivseg_metric[k]=="l30_Qout"){
-      title <- gsub("l30_Qout", "Lowest 30 Day Flow", title1)
+      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
   } else if (rivseg_metric[k]=="l90_Qout"){
-          title <- gsub("l90_Qout", "Lowest 90 Day Flow", title1)
+      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
   } else {
-    title <- title1
+      rivtablelabel <- rivtablemetric
   }
   
+  rivtabletitle <- paste0(title, ", ", rivtablelabel)
   
   ft2 <- fn_tablegen(featr_type = "riverseg", table = rivdf,
                      columns = "all", alignment = "left", 
                      metric = rivseg_metric[k], origin_type = origin_type,  
-                     origin = origin , title=title) #flextable function
+                     origin = origin , title = rivtabletitle) #flextable function
   
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
