@@ -270,12 +270,12 @@ if (show_map == TRUE) {
     mp_layer <- mp_layer[, !duplicated(colnames(mp_layer))] #remove duplicated columns
     mp_layer <- fn_centroid_coords(mp_layer)
     
-    rsegs <- fn_centroid_coords(rsegs) ## returns an error 
+    rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default) ## returns an error 
     
     title1 <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
     
-    if (featrs_file_map_bubble_column[i]=="fiveyr_avg_mgy"){
-        title <- gsub("fiveyr_avg_mgy", "5 Year Avg (MGY)", title1)
+    if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
+        title <- gsub("five_yr_avg", "5 Year Avg (MGY)", title1)
     } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
             title <- gsub("wd_mgd", "Withdraw (MGD)", title1)
     } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
