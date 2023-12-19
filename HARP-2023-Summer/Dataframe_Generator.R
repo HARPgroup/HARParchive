@@ -8,6 +8,7 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function 
 
 ############################################################### #
 # inputs
@@ -320,7 +321,7 @@ model_data_river <- om_vahydro_metric_grid(
 statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
 rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
-### Less efficient than above, not using metric grid:
+### Less efficient than above, not using metric grid (remove):
 # for (k in 1:length(rivseg_metric)) {
 #   for (j in 1:length(runid_list)) {
 #     for (i in 1:nrow(rsegs)) {
@@ -361,7 +362,12 @@ rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 # rm(model)
 # rm(model_scenario)
 
-#----Calculate Rseg Metric % Diff----
+#----Calculate Rseg Metric % Diff (NEW)----
+rsegs <- fn_pct_diff(data = rsegs, column1 = 'runid_11_l30_Qout', column2 = 'runid_13_l30_Qout', new_col = 'percentDiff_l30_Qout_11_13')
+
+
+
+#----Calculate Rseg Metric % Diff (OLD)----
 for (k in 1:length(rivseg_metric)){
   ### implement % difference function 
   ### remove hard-coded elements of this % diff process:

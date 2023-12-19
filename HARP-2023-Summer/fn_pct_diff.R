@@ -3,6 +3,8 @@
 #fn_sqldf_sf already loaded w/ fns_spatial.R, which enables sqldf to work w/ spatial dataframes
 # explicity load within this function also?
 
+# data = rsegs; column1 = 'runid_11_l30_Qout'; column2 = 'runid_13_l30_Qout'; new_col = 'percentDiff_l30_Qout_11_13' #for testing
+
 fn_pct_diff <- function(data, column1, column2, new_col) {
   
   statemt <- paste("SELECT data.*,
