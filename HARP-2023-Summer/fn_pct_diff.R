@@ -8,17 +8,17 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),loc
 
 fn_pct_diff <- function(data, column1, column2, new_col) {
   
-  df <- data
+  df <- as.data.frame(data)
   
   statemt <- paste("SELECT df.*,
                   CASE WHEN (",column2," - ",column1,")==0
-                    THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
+                    THEN 0 ", # 0/0 is NA so when difference is 0, % diff is 0
                    "ELSE ( (",column2," - ",column1,") / ",column1," * 100) ", #calculate %diff as usual
                    "END as ",new_col, #creates % diff. column
                    " FROM df
                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
   
-  df <- fn_sqldf_sf(statemt, geomback="data")
+  df <- fn_sqldf_sf(statemt, geomback="df")
   
   return(df)
   

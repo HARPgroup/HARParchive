@@ -72,6 +72,7 @@ if (overwrite_files==TRUE) {
 
 #----Pull Data----
 #---Facility Data---
+# foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
 foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_expanded.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
@@ -246,56 +247,6 @@ for (i in 1:nrow(featrs)) {
     TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
 }
 
-#---Permitted Capacity--- #taken out b/c foundational data has this now ?
-fac_model_data <- data.frame()
-for (i in unique(featrs$hydroid) ){
-  #i is a rseg hydroid corresponding to each facility, but it won't pull for the same hydroid twice b/c that is redundant and time-consuming
-  model_props <- c("vwp_max_mgy","permit_status")
-  fac_model_data <- rbind( fac_model_data , read.csv(paste(site,"/model-summary-users-export-all-cols/",
-                                                           gsub(" ","",toString( i )),"/",
-                                                           runid_list[1],"/", #perm.cap doesn't change w/ runid ?
-                                                           gsub(" ","",toString( metric_mod )),"/", #user's model run metric
-                                                           gsub(" ","",toString( model_props )),sep="")
-  ))
-}
-
-
-statemt <- paste("SELECT a.*, z.vwp_max_mgy, z.permit_status
-                  FROM featrs as a
-                  LEFT OUTER JOIN
-              (   SELECT c.facility_hydroid, b.permit_status,
-                  CASE WHEN b.exempts == 'exempt'
-                    THEN b.exempts
-                  ELSE c.permcaps
-                  END as vwp_max_mgy ", #when status is exempt, makes permitted capacity exempt too
-                 "FROM
-                 ( (SELECT facility_hydroid, model_prop_propcode as permit_status,
-                      CASE WHEN model_prop_propcode == 'exempt'
-                        THEN 'exempt'
-                      ELSE 'switch'
-                      END as exempts
-                    FROM fac_model_data
-                    WHERE (model_prop_propname == 'permit_status')
-                    ) as b
-                  LEFT OUTER JOIN (
-                    SELECT facility_hydroid, model_prop_propcode,
-                      CASE WHEN model_prop_propcode IS NULL OR model_prop_propcode == 0
-                        THEN 'No Permit' ", #changes null/0 permit capacity to 'No Permit'
-                 "ELSE model_prop_propcode
-                      END as permcaps
-                    FROM fac_model_data
-                    WHERE (model_prop_propname == 'vwp_max_mgy')
-                    ) as c
-                  ON (b.facility_hydroid = c.facility_hydroid)
-                 )
-              ) as z
-              ON (a.Facility_hydroid = z.facility_hydroid)
-                 ", sep='')
-featrs <- fn_sqldf_sf(statemt, geomback="featrs")
-featrs <- unique(featrs) #remove duplicated rows
-featrs$vwp_max_mgy[is.na(featrs$vwp_max_mgy)] <- "No Permit" #replace remaining NA w/ 'No Permit'; !! figure out why NAs still exist
-rm(fac_model_data)
-
 #---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
 rivdf <- data.frame()
 for (k in rivseg_metric) {
@@ -321,76 +272,34 @@ model_data_river <- om_vahydro_metric_grid(
 statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
 rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
-### Less efficient than above, not using metric grid (remove):
+
+# #----Calculate Rseg Metric % Diff (NEW)----
+# 
+# #Getting just the number elements of provided runids, for column naming
+# run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
+# 
 # for (k in 1:length(rivseg_metric)) {
-#   for (j in 1:length(runid_list)) {
-#     for (i in 1:nrow(rsegs)) {
-#       riverseg <- RomFeature$new(ds,list( #get riverseg feature from vahydro
-#         hydrocode = paste('vahydrosw_wshed_',rsegs$riverseg[i],sep=''),
-#         ftype = 'vahydro',
-#         bundle = 'watershed'
-#       ),TRUE)
-#       
-#       if (!is.na(riverseg$hydroid)) { #only continue if rivseg feature was found
-#         model <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
-#           featureid = riverseg$hydroid,
-#           propcode = 'vahydro-1.0'
-#         ),TRUE)
-#         
-#         model_scenario <- RomProperty$new(ds,list( #get scenario/runid from vahydro
-#           varkey = "om_scenario",
-#           featureid = model$pid,
-#           propname = runid_list[j]
-#         ),TRUE)
-#         
-#         if (!is.na(model_scenario$pid)) { #only continue if runid was found (scenario pid!=NA)
-#           rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- RomProperty$new(ds,list( #get metric from vahydro
-#             featureid = model_scenario$pid,
-#             entity_type = 'dh_properties',
-#             propname = rivseg_metric[k]
-#           ),TRUE)$propvalue #directly assign metric propvalue
-#         } else { #the scenario/runid wasn't found
-#           rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- NA
-#         }
-#       } else { #the rivseg feature wasn't found
-#         rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- NA
-#       }
-#     }
-#   }
+#   ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
+#   rsegs <- fn_pct_diff(data = rsegs,
+#                      column1 = paste0(runid_list[1],"_",rivseg_metric[k]),
+#                      column2 = paste0(runid_list[2],"_",rivseg_metric[k]),
+#                      new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
 # }
-# rm(riverseg)
-# rm(model)
-# rm(model_scenario)
 
-#----Calculate Rseg Metric % Diff (NEW)----
+#----Calculate Rseg Metric % Diff (OLD)----
+for (k in 1:length(rivseg_metric)){
+  colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
+  colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
 
-
-#Getting just the number elements of provided runids, for column naming 
-run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
-
-for (k in 1:length(rivseg_metric)) {
-  ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied 
-  rsegs <- fn_pct_diff(data = rsegs, 
-                     column1 = paste0(runid_list[1],"_",rivseg_metric[k]), 
-                     column2 = paste0(runid_list[2],"_",rivseg_metric[k]), 
-                     new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
+  statemt <- paste("SELECT rsegs.*,
+                  CASE WHEN (",colname2," - ",colname1,")==0
+                    THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
+                   "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
+                   "END as percentDiff_",rivseg_metric[k], #creates % diff. column
+                   " FROM rsegs
+                 ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
+  rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 }
-
-
-# #----Calculate Rseg Metric % Diff (OLD)----
-# for (k in 1:length(rivseg_metric)){
-#   colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
-#   colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
-#   
-#   statemt <- paste("SELECT rsegs.*,
-#                   CASE WHEN (",colname2," - ",colname1,")==0
-#                     THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
-#                    "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
-#                    "END as percentDiff_",rivseg_metric[k], #creates % diff. column
-#                    " FROM rsegs
-#                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
-#   rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
-# }
 
 #----Write Files----
 st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
