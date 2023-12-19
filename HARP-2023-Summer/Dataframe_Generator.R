@@ -20,14 +20,14 @@ model_version <- c("vahydro-1.0")
 #rivseg <- "PU6_3730_3750"  << these are now combined into one variable 'origin' to describe what
 #locality <- "Fauquier"         area the map will be centered around, and the variable 'origin_type'
 #region <- "NA"                 will denote whether this origin is a rivseg, locality, or region
-origin <- "Roanoke_1"
+origin <- "Roanoke_1" #name of a region or locality (Roanoke_1, 
 origin_type <- "region" #basin, locality, or region 
 featr_type <- "facility" #source or facility
 limit_featrs_to_origin <- FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
-metric_mod <- c("wd_mgd")
-metric_feat <- c("wsp2020_2040_mgy")
-rivseg_metric <- c("l30_Qout","l90_Qout")
+metric_mod <- c("wd_mgd") #wd_mgd, ps_mgd
+metric_feat <- c("wsp2020_2040_mgy") #wsp2020_2040_mgy
+rivseg_metric <- c("l30_Qout","l90_Qout") #l30_Qout, l90_Qout, 7q10
 
 overwrite_files <- TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
 base_layer_data <- FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)
@@ -363,26 +363,34 @@ rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 # rm(model_scenario)
 
 #----Calculate Rseg Metric % Diff (NEW)----
-rsegs <- fn_pct_diff(data = rsegs, column1 = 'runid_11_l30_Qout', column2 = 'runid_13_l30_Qout', new_col = 'percentDiff_l30_Qout_11_13')
 
 
+#Getting just the number elements of provided runids, for column naming 
+run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
 
-#----Calculate Rseg Metric % Diff (OLD)----
-for (k in 1:length(rivseg_metric)){
-  ### implement % difference function 
-  ### remove hard-coded elements of this % diff process:
-  colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
-  colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
-  
-  statemt <- paste("SELECT rsegs.*,
-                  CASE WHEN (",colname2," - ",colname1,")==0
-                    THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
-                   "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
-                   "END as percentDiff_",rivseg_metric[k], #creates % diff. column
-                   " FROM rsegs
-                 ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
-  rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+for (k in 1:length(rivseg_metric)) {
+  ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied 
+  rsegs <- fn_pct_diff(data = rsegs, 
+                     column1 = paste0(runid_list[1],"_",rivseg_metric[k]), 
+                     column2 = paste0(runid_list[2],"_",rivseg_metric[k]), 
+                     new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
 }
+
+
+# #----Calculate Rseg Metric % Diff (OLD)----
+# for (k in 1:length(rivseg_metric)){
+#   colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
+#   colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
+#   
+#   statemt <- paste("SELECT rsegs.*,
+#                   CASE WHEN (",colname2," - ",colname1,")==0
+#                     THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
+#                    "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
+#                    "END as percentDiff_",rivseg_metric[k], #creates % diff. column
+#                    " FROM rsegs
+#                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
+#   rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+# }
 
 #----Write Files----
 st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
