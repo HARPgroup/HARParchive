@@ -273,33 +273,33 @@ statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a lef
 rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
 
-# #----Calculate Rseg Metric % Diff (NEW)----
-# 
-# #Getting just the number elements of provided runids, for column naming
-# run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
-# 
-# for (k in 1:length(rivseg_metric)) {
-#   ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
-#   rsegs <- fn_pct_diff(data = rsegs,
-#                      column1 = paste0(runid_list[1],"_",rivseg_metric[k]),
-#                      column2 = paste0(runid_list[2],"_",rivseg_metric[k]),
-#                      new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
-# }
+#----Calculate Rseg Metric % Diff (NEW)----
+
+#Getting just the number elements of provided runids, for column naming
+run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
+
+for (k in 1:length(rivseg_metric)) {
+  ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
+  rsegs <- fn_pct_diff(data = rsegs,
+                     column1 = paste0(runid_list[1],"_",rivseg_metric[k]),
+                     column2 = paste0(runid_list[2],"_",rivseg_metric[k]),
+                     new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
+}
 
 #----Calculate Rseg Metric % Diff (OLD)----
-for (k in 1:length(rivseg_metric)){
-  colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
-  colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
-
-  statemt <- paste("SELECT rsegs.*,
-                  CASE WHEN (",colname2," - ",colname1,")==0
-                    THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
-                   "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
-                   "END as percentDiff_",rivseg_metric[k], #creates % diff. column
-                   " FROM rsegs
-                 ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
-  rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
-}
+# for (k in 1:length(rivseg_metric)){
+#   colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
+#   colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
+# 
+#   statemt <- paste("SELECT rsegs.*,
+#                   CASE WHEN (",colname2," - ",colname1,")==0
+#                     THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
+#                    "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
+#                    "END as percentDiff_",rivseg_metric[k], #creates % diff. column
+#                    " FROM rsegs
+#                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
+#   rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+# }
 
 #----Write Files----
 st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")

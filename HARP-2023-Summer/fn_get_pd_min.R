@@ -3,10 +3,15 @@ library(zoo)
 library(stats) #for window
 library(sqldf)
 
-#ts_data : timeseries data, either a data frame or zoo
-#start/end_date : dates to trim ts_data by
-#colname : column name of interest in ts_data 
- 
+#' fn_get_pd_min()
+#' @description Calculates a minimum value of a specified column in timeseries data over a period of time
+#' @param ts_data Timeseries data, either a data frame or zoo
+#' @param start_date Start of period to trim ts_data by
+#' @param end_date End of period to trim ts_data by
+#' @param colname Column name of interest in ts_data, which minimum will be found for 
+#' @return Value for volume in acre-feet
+#' @import zoo, stats, sqldf
+#' @export fn_get_pd_min
 fn_get_pd_min <- function(ts_data, start_date, end_date, colname) {
 
   #format dates provided
