@@ -13,6 +13,22 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),loc
 ############################################################### #
 # inputs
 ############################################################### #
+
+#' ---
+#' params: 
+#'  origin: "Roanoke_1"
+#'  origin_type: "region"
+#'  featr_type: "facility"
+#'  runid_list: c("runid_11","runid_13")
+#'  model_version: c("vahydro-1.0")
+#'  metric_mod: c("wd_mgd")
+#'  metric_feat: c("wsp2020_2040_mgy")
+#'  rivseg_metric: c("l30_Qout","l90_Qout")
+#'  crs_default: 4326
+#'  limit_featrs_to_origin: FALSE
+#'  overwrite_files: TRUE
+#'  base_layer_data: FALSE
+
 crs_default <- 4326
 runid_list <- c("runid_11","runid_13")
 model_version <- c("vahydro-1.0")
