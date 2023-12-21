@@ -21,7 +21,7 @@ runid <- 11
 ##
 runlabel <- paste0('runid_', runid)
 
-#Pulling in Smin metrics (approx method):
+#Pulling in Smin metrics (exported using fn_get_pd_min(), which uses the Smin approx. method):
 df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
   'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
@@ -94,6 +94,4 @@ metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mg
 #WA as a % of flow 
 metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_mgd)*100
 metric_data$pct_WA90 = (metric_data$WA_L90_mgd / metric_data$l90_Qout_mgd)*100
-
-
 

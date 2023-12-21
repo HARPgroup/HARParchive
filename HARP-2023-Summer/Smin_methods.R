@@ -1,4 +1,10 @@
-#comparing different methods of calculating Smin for water availability calculations 
+#Comparing different methods of calculating Smin for water availability calculations 
+
+# Methods:
+##  Approximate: the minimum storage that occurs during a low-flow year (L30_year)
+##  Near-exact: the minimum storage that occurs during a low flow period (30 or 90-day period when L30/L90 occurs)
+##  Exact: the near-exact method divided by the number of days into that low flow period which the minimum occurs 
+# Note: approx. and near-exact methods result in a volume, while exact method gives a volume/day 
 
 # Load Libraries
 library(stringr)
