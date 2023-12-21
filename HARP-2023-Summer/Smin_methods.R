@@ -51,12 +51,21 @@ storage_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
+storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
+
+#Convert approx. values to mgd
+# storage_data$Smin_L30_11_apx_mgd <- storage_data$SminL30mg_11 / 30
+# storage_data$Smin_L30_13_apx_mgd <- storage_data$SminL30mg_13 / 30
+# storage_data$Smin_L90_11_apx_mgd <- storage_data$SminL90mg_11 / 30
+# storage_data$Smin_L90_13_apx_mgd <- storage_data$SminL90mg_13 / 30
+
 #used in finding how many days outside low flow period Smin happens for the approx. method
 storage_data$outside_pd30 <- NA
 storage_data$outside_pd90 <- NA
 
 for (i in 1:nrow(storage_data)) {
   
+  #Get runfile w/ timeseries data
   pid <- storage_data$pid[i]
   
   token = ds$get_token(rest_pw) #needed for elid function
@@ -164,18 +173,19 @@ for (i in 1:nrow(storage_data)) {
   l90pd_df <- as.data.frame(l90pd_flows)
   
   #Smin within the low flow periods
-  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage)
-  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage)
+    #Storage needs to be converted from acre-feet to million gallons
+  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage) / 3.069
+  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage) / 3.069
   
-  storage_data$Smin_L90_nearexact_perday[i] <- (storage_data$Smin_L90_nearexact[i] / 90) / 3.069 #convert afd to mgd
-  storage_data$Smin_L30_nearexact_perday[i] <- (storage_data$Smin_L30_nearexact[i] / 30) / 3.069
+  # storage_data$Smin_L90_nearexact_perday[i] <- (storage_data$Smin_L90_nearexact[i] / 90) / 3.069 #convert afd to mgd
+  # storage_data$Smin_L30_nearexact_perday[i] <- (storage_data$Smin_L30_nearexact[i] / 30) / 3.069
   
-  ##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
-  dayno_90 <- which.min(l90pd_df$Storage)
-  dayno_30 <- which.min(l30pd_df$Storage)
-  
-  storage_data$Smin_L90_exact_perday[i] <- storage_data$Smin_L90_nearexact[i] / dayno_90
-  storage_data$Smin_L30_exact_perday[i] <- storage_data$Smin_L30_nearexact[i] / dayno_30
+  # ##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
+  # dayno_90 <- which.min(l90pd_df$Storage)
+  # dayno_30 <- which.min(l30pd_df$Storage)
+  # 
+  # storage_data$Smin_L90_exact_perday[i] <- storage_data$Smin_L90_nearexact[i] / dayno_90
+  # storage_data$Smin_L30_exact_perday[i] <- storage_data$Smin_L30_nearexact[i] / dayno_30
   
   #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
   minstorage30yr <- min(l30yr_data$Storage)
@@ -222,10 +232,10 @@ for (i in 1:nrow(storage_data)) {
 
 approx_vs_nearexact <- data.frame(propname = storage_data$propname,
                        riverseg = storage_data$riverseg,
-                       Smin_L90_approx_perday = storage_data$Smin_L90_approx_perday,
-                       Smin_L30_approx_perday = storage_data$Smin_L30_approx_perday,
-                       Smin_L90_nearexact_perday = storage_data$Smin_L90_nearexact_perday,
-                       Smin_L30_nearexact_perday = storage_data$Smin_L30_nearexact_perday,
+                       Smin_L90_approx = storage_data$SminL90mg_11,
+                       Smin_L30_approx = storage_data$SminL30mg_11,
+                       Smin_L90_nearexact = storage_data$Smin_L90_nearexact,
+                       Smin_L30_nearexact = storage_data$Smin_L30_nearexact,
                        min_in_pd90 = storage_data$min_in_pd90,
                        min_in_pd30 = storage_data$min_in_pd30,
                        outside_pd90 = storage_data$outside_pd90,
