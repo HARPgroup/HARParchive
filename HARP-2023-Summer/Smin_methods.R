@@ -13,8 +13,8 @@ source(paste(basepath,'config.R',sep='/'))
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_get_pd_min.R"),local = TRUE) #load Smin_CPL function, approx method
-options(scipen = 999) 
+source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
+options(scipen = 999) #disable scientific notation
 
 #get all impoundment features 
 # df_imp <- data.frame(
@@ -32,7 +32,7 @@ options(scipen = 999)
 runid <- 11
 runlabel <- paste0('runid_', runid)
 
-#Pulling in Smin metrics (approx method):
+#Pulling in Smin metrics from vahydro (approx method):
 df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
   'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
@@ -45,6 +45,7 @@ storage_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
+#used in finding how many days outside low flow period Smin happens for the approx. method
 storage_data$outside_pd30 <- NA
 storage_data$outside_pd90 <- NA
 
@@ -106,16 +107,6 @@ for (i in 1:nrow(storage_data)) {
     start = l30_start,
     end = l30_end
   )
-  
-   ##Approximate method: Smin within low-flow years:
-   Smin_L90_approx <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
-   Smin_L30_approx <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
-  
-  #storage_data$Smin_L90_approx_perday[i] <- storage_data$SminL90mg_11[i] / 90
-  #storage_data$Smin_L30_approx_perday[i] <- storage_data$SminL30mg_11[i] / 30
-  
-   storage_data$Smin_L90_approx_perday[i] <- (Smin_L90_approx / 90) / 3.069 #convert from afd to mgd
-   storage_data$Smin_L30_approx_perday[i] <- (Smin_L30_approx / 30) / 3.069
 
   ##Near-exact method: Smin within the L30 and L90 periods:
   
@@ -167,18 +158,18 @@ for (i in 1:nrow(storage_data)) {
   l90pd_df <- as.data.frame(l90pd_flows)
   
   #Smin within the low flow periods
-  Smin_L90_nearexact <- min(l90pd_df$Storage)
-  Smin_L30_nearexact <- min(l30pd_df$Storage)
+  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage)
+  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage)
   
-  storage_data$Smin_L90_nearexact_perday[i] <- (Smin_L90_nearexact / 90) / 3.069 #convert afd to mgd
-  storage_data$Smin_L30_nearexact_perday[i] <- (Smin_L30_nearexact / 30) / 3.069
+  storage_data$Smin_L90_nearexact_perday[i] <- (storage_data$Smin_L90_nearexact[i] / 90) / 3.069 #convert afd to mgd
+  storage_data$Smin_L30_nearexact_perday[i] <- (storage_data$Smin_L30_nearexact[i] / 30) / 3.069
   
   ##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
   dayno_90 <- which.min(l90pd_df$Storage)
   dayno_30 <- which.min(l30pd_df$Storage)
   
-  storage_data$Smin_L90_exact_perday[i] <- Smin_L90_nearexact / dayno_90
-  storage_data$Smin_L30_exact_perday[i] <- Smin_L30_nearexact / dayno_30
+  storage_data$Smin_L90_exact_perday[i] <- storage_data$Smin_L90_nearexact[i] / dayno_90
+  storage_data$Smin_L30_exact_perday[i] <- storage_data$Smin_L30_nearexact[i] / dayno_30
   
   #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
   minstorage30yr <- min(l30yr_data$Storage)
@@ -233,62 +224,4 @@ approx_vs_nearexact <- data.frame(propname = storage_data$propname,
                        min_in_pd30 = storage_data$min_in_pd30,
                        outside_pd90 = storage_data$outside_pd90,
                        outside_pd30 = storage_data$outside_pd30)
-
-##Getting other variables in the WA equation 
-# For a L90 scenario:
-# Qdem = l90_Qout(cfs)
-# Qbase = l90_Qout + wd_mgd - ps_mgd 
-# WA = Qdem - 0.9*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
-
-df_metrics <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0','vahydro-1.0','vahydro-1.0'),
-  'runid' = c(runlabel, runlabel, runlabel, runlabel, runlabel, runlabel),
-  'metric' = c('l90_Qout', 'l30_Qout', 'l90_year', 'l30_year', 'wd_cumulative_mgd','ps_cumulative_mgd'),
-  'runlabel' = c('l90_Qout', 'l30_Qout', 'l90_year', 'l30_year','wd_cumulative_mgd', 'ps_cumulative_mgd')
-)
-metric_data <- om_vahydro_metric_grid(
-  metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
-  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
-  ds = ds
-)
-
-#convert cfs to mgd 
-metric_data$l30_Qout_mgd = metric_data$l30_Qout / 1.547
-metric_data$l90_Qout_mgd = metric_data$l90_Qout / 1.547
-
-
-metric_data <- sqldf('SELECT a.*, b.Smin_L30_approx_perday, b.Smin_L90_approx_perday
-                   FROM metric_data as a
-                   LEFT OUTER JOIN storage_data as b
-                   ON (a.riverseg = b.riverseg)') #joining rseg data to storage data
-
-#Linking riversegs with upstream impoundments 
-metric_data$SminL30_total <- NA #empty rows to distinguish upstream storage
-metric_data$SminL90_total <- NA 
-
-for (i in 1:nrow(metric_data)) {
-  ups_imp <- fn_extract_basin(storage_data, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
-  if (nrow(ups_imp) > 0) {
-    ups_impsegs <- data.frame(rivseg = ups_imp$riverseg)
-    ups_df <- sqldf("select a.*
-                    from storage_data as a
-                    where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
-    metric_data$SminL30_total[i] <- sum(ups_df$Smin_L30_approx_perday) #sum storage available locally and upstream (S in afd)
-    metric_data$SminL90_total[i] <- sum(ups_df$Smin_L90_approx_perday)
-    
-  }
-}
-
-colnames(metric_data)[which(names(metric_data) == "Smin_L30_approx_perday")] <- "SminL30_local"
-colnames(metric_data)[which(names(metric_data) == "Smin_L90_approx_perday")] <- "SminL90_local"
-
-metric_data[is.na(metric_data)] <- 0 #replace NA storage values with 0
-
-#solve for WA
-metric_data$WA_L30_mgd = metric_data$l30_Qout_mgd - 0.9*(metric_data$l30_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL30_total 
-metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL90_total 
-
-#WA as a % of flow 
-metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_mgd)*100
-metric_data$pct_WA90 = (metric_data$WA_L90_mgd / metric_data$l90_Qout_mgd)*100
 
