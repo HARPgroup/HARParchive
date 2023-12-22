@@ -20,6 +20,7 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function
 options(scipen = 999) #disable scientific notation
 
 #get all impoundment features 
@@ -230,6 +231,16 @@ for (i in 1:nrow(storage_data)) {
   
 }
 
+#Difference between approx and near-exact Smin in units of million gallons 
+## approximate values will always be less than or equal to the near-exact values, so these differences SHOULD be >= 0
+storage_data$diff_L30 <- storage_data$Smin_L30_nearexact - storage_data$SminL30mg_11 
+storage_data$diff_L90 <- storage_data$Smin_L90_nearexact - storage_data$SminL90mg_11
+
+#Percent difference
+storage_data <- fn_pct_diff(data = storage_data, column1 = "Smin_L30_nearexact", column2 = "SminL30mg_11", new_col = "pct_diff_L30", geom = FALSE)
+storage_data$diff_L90 <- 
+
+#Neater dataframe:
 approx_vs_nearexact <- data.frame(propname = storage_data$propname,
                        riverseg = storage_data$riverseg,
                        Smin_L90_approx = storage_data$SminL90mg_11,
@@ -238,6 +249,6 @@ approx_vs_nearexact <- data.frame(propname = storage_data$propname,
                        Smin_L30_nearexact = storage_data$Smin_L30_nearexact,
                        min_in_pd90 = storage_data$min_in_pd90,
                        min_in_pd30 = storage_data$min_in_pd30,
-                       outside_pd90 = storage_data$outside_pd90,
-                       outside_pd30 = storage_data$outside_pd30)
+                       days_outside_pd90 = storage_data$outside_pd90,
+                       days_outside_pd30 = storage_data$outside_pd30)
 

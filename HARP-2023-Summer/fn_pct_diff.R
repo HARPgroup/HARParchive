@@ -6,7 +6,13 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),loc
 
 #data = rsegs; column1 = 'runid_11_l30_Qout'; column2 = 'runid_13_l30_Qout'; new_col = 'percentDiff_l30_Qout_11_13' #for testing
 
-fn_pct_diff <- function(data, column1, column2, new_col) {
+#data: the dataframe, spatial or regular, which the % difference column will be added to 
+#column1: the first col used in the % diff calculation (char)
+#column1: the first col used in the % diff calculation (char)
+#new_col: name of new % diff column added to data (char)
+#geom: either TRUE or FALSE; whether the data is spatial or not (class = sf)
+
+fn_pct_diff <- function(data, column1, column2, new_col, geom) {
   
   df <- as.data.frame(data)
   
@@ -18,7 +24,13 @@ fn_pct_diff <- function(data, column1, column2, new_col) {
                    " FROM df
                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
   
-  df <- fn_sqldf_sf(statemt, geomback="df")
+  if (geom == TRUE) { #if data is spatial 
+    df <- fn_sqldf_sf(statemt, geomback="df") #gives error when no geometry column present 
+  } else {
+    df <- sqldf(statemt)
+  }
+  
+  
   
   return(df)
   
