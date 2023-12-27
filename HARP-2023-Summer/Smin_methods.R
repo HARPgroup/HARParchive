@@ -83,7 +83,7 @@ for (i in 1:nrow(storage_data)) {
   ###
   
   #Reading in runfiles saved locally: 
-  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/runfile_imp_",storage_data$featureid[i],".csv"))
+  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],".csv"))
   dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
   mode(dat) <- 'numeric' # gives error 
   
