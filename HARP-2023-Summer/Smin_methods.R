@@ -7,6 +7,7 @@
 # Note: approx. and near-exact methods result in a volume, while exact method gives a volume/day 
 
 # Load Libraries
+library(data.table)
 library(stringr)
 library(hydrotools)
 library(zoo)
@@ -41,10 +42,10 @@ runlabel <- paste0('runid_', runid)
 
 #Pulling in Smin metrics from vahydro (approx method):
 df_storage <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
-  'metric' = c('Smin_L30_mg', 'Smin_L90_mg','Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c('SminL30mg_11', 'SminL90mg_11','SminL30mg_13', 'SminL90mg_13')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11'),
+  'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
+  'runlabel' = c(paste0('SminL30mg_', runid, '_vah'), paste0('SminL90mg_', runid, '_vah'))
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -65,19 +66,26 @@ storage_data$outside_pd30 <- NA
 storage_data$outside_pd90 <- NA
 
 for (i in 1:nrow(storage_data)) {
-  
+
+  ###
   #Get runfile w/ timeseries data
-  pid <- storage_data$pid[i]
+  # pid <- storage_data$pid[i]
+  # 
+  # token = ds$get_token(rest_pw) #needed for elid function
+  # elid <- om_get_model_elementid(
+  #   base_url = site,
+  #   mid = storage_data$pid[i]
+  # )
+  # rm(token)
+  # 
+  # dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
+  # mode(dat) <- 'numeric'
+  ###
   
-  token = ds$get_token(rest_pw) #needed for elid function
-  elid <- om_get_model_elementid(
-    base_url = site,
-    mid = storage_data$pid[i]
-  )
-  rm(token)
-  
-  dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data
-  mode(dat) <- 'numeric'
+  #Reading in runfiles saved locally: 
+  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/runfile_imp_",storage_data$featureid[i],".csv"))
+  dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
+  mode(dat) <- 'numeric' # gives error 
   
   #is the impoundment active? (imp_off = 0?)
   cols <- names(dat)
@@ -124,6 +132,15 @@ for (i in 1:nrow(storage_data)) {
     end = l30_end
   )
 
+  ##Approximate method: Smin within low-flow years:
+  storage_data$Smin_L90_approx_acf[i] <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
+  storage_data$Smin_L30_approx_acf[i] <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
+  
+  storage_data$Smin_L90_approx_mg[i] <- storage_data$Smin_L90_approx_acf[i] / 3.069
+  storage_data$Smin_L30_approx_mg[i] <- storage_data$Smin_L30_approx_acf[i] / 3.069
+  
+  
+  
   ##Near-exact method: Smin within the L30 and L90 periods:
   
   #data for each l30 and l90 years
@@ -132,7 +149,6 @@ for (i in 1:nrow(storage_data)) {
   
   l30yr_data <- window(dat, start = l30_start, end = l30_end)
   l90yr_data <- window(dat, start = l90_start, end = l90_end)
-  
   
   #zoo to data frame
   l30yr_flows <- as.data.frame(l30yr_flows)
@@ -233,22 +249,53 @@ for (i in 1:nrow(storage_data)) {
 
 #Difference between approx and near-exact Smin in units of million gallons 
 ## approximate values will always be less than or equal to the near-exact values, so these differences SHOULD be >= 0
-storage_data$diff_L30 <- storage_data$Smin_L30_nearexact - storage_data$SminL30mg_11 
-storage_data$diff_L90 <- storage_data$Smin_L90_nearexact - storage_data$SminL90mg_11
+storage_data$diff_L30_calc <- storage_data$Smin_L30_nearexact - storage_data$Smin_L30_approx_mg
+storage_data$diff_L90_calc <- storage_data$Smin_L90_nearexact - storage_data$Smin_L90_approx_mg
+
+storage_data$diff_L30_vah <- storage_data$Smin_L30_nearexact - storage_data$SminL30mg_11_vah
+storage_data$diff_L90_vah <- storage_data$Smin_L90_nearexact - storage_data$SminL90mg_11_vah
 
 #Percent difference
-storage_data <- fn_pct_diff(data = storage_data, column1 = "Smin_L30_nearexact", column2 = "SminL30mg_11", new_col = "pct_diff_L30", geom = FALSE)
-storage_data$diff_L90 <- 
+#storage_data <- fn_pct_diff(data = storage_data, column1 = "Smin_L30_nearexact", column2 = "SminL30mg_11", new_col = "pct_diff_L30", geom = FALSE)
+
 
 #Neater dataframe:
-approx_vs_nearexact <- data.frame(propname = storage_data$propname,
-                       riverseg = storage_data$riverseg,
-                       Smin_L90_approx = storage_data$SminL90mg_11,
-                       Smin_L30_approx = storage_data$SminL30mg_11,
-                       Smin_L90_nearexact = storage_data$Smin_L90_nearexact,
-                       Smin_L30_nearexact = storage_data$Smin_L30_nearexact,
-                       min_in_pd90 = storage_data$min_in_pd90,
-                       min_in_pd30 = storage_data$min_in_pd30,
-                       days_outside_pd90 = storage_data$outside_pd90,
-                       days_outside_pd30 = storage_data$outside_pd30)
+# approx_vs_nearexact <- data.frame(propname = storage_data$propname,
+#                        riverseg = storage_data$riverseg,
+#                        Smin_L90_approx = storage_data$SminL90mg_11,
+#                        Smin_L30_approx = storage_data$SminL30mg_11,
+#                        Smin_L90_nearexact = storage_data$Smin_L90_nearexact,
+#                        Smin_L30_nearexact = storage_data$Smin_L30_nearexact,
+#                        min_in_pd90 = storage_data$min_in_pd90,
+#                        min_in_pd30 = storage_data$min_in_pd30,
+#                        days_outside_pd90 = storage_data$outside_pd90,
+#                        days_outside_pd30 = storage_data$outside_pd30)
+
+
+
+
+# ## Saving impoundment runfiles to save time 
+# 
+# for (i in 1:nrow(storage_data)) {
+#  
+#    #Get runfile w/ timeseries data
+#   pid <- storage_data$pid[i]
+#   
+#   token = ds$get_token(rest_pw) #needed for elid function
+#   elid <- om_get_model_elementid(
+#     base_url = site,
+#     mid = storage_data$pid[i]
+#   )
+#   rm(token)
+#   
+#   dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data
+#   dat <- zoo(dat, order.by = dat$timestamp) #make sure it's ordered correctly 
+#   
+#   #save as a csv to local folder 
+#   write.zoo(dat, paste0(github_location,"/HARParchive/HARP-2023-Summer/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
+#   
+# }
+
+
+
 
