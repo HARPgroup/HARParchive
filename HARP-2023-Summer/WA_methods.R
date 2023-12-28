@@ -1,4 +1,4 @@
-#Water Availability methods & calculations 
+## Water Availability methods & calculations 
 
 # Example equation: For a L90 scenario:
 # Qdemand = l90_Qout(cfs)
@@ -6,8 +6,14 @@
 # WA = Qdem - (Min In stream Flow Coeff)*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
 #note: 0.9 is assumed as the Minimum In stream Flow Coefficient for this script currently
 
+## Next steps:
+# Quantify the difference between actual baseline (runid_0) and approximated baseline (w/ cumulative vars)
+# Add inputs for total user-control: runid, Instream Flow Coefficient
+# Present negative WAs as a volume for storage needed 
+
 ## Setup
 library(hydrotools)
+library(sqldf)
 options(scipen = 999) #disable scientific notation
 
 basepath='/var/www/R';
@@ -15,17 +21,17 @@ source(paste(basepath,'config.R',sep='/'))
 # authenticate
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
-##
 
-## This will ultimately be user-controlled:
-runid <- 11
-##
+## Inputs
+runid <- 11 #currently hard-coded in many places 
+# mifc <- 0.9 #minimum instream flow coefficient #currently hard-coded throughout
+
 runlabel <- paste0('runid_', runid)
 
 ###--- Pull Data From VAhydro ---###
 
 #note: a single om_vahydro_metric_grid() would be sufficient and more concise for 
-# getting all needed metrics as long as the input df is formatted correctly 
+# getting all needed metrics in the future as long as the input df is formatted correctly 
 
 #Pulling in Smin metrics (exported using fn_get_pd_min(), which uses the Smin approx. method):
 df_storage <- data.frame(
@@ -156,6 +162,38 @@ for (i in 1:nrow(metric_data)) {
 #WA as a % of demand scenario flow 
 metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_dem_mgd)*100
 metric_data$pct_WA90 = (metric_data$WA_L90_mgd / metric_data$l90_Qout_dem_mgd)*100
+
+
+###### Comparing actual and approximated baselines
+#runid_0 has actual baseline values 
+#baseline approximation: Qout + wd_mgd - ps_mgd
+
+compare_base <- data.frame(propname = metric_data$propname,
+                           riverseg = metric_data$riverseg,
+                           wd_cumulative_mgd = metric_data$wd_cumulative_mgd,
+                           ps_cumulative_mgd = metric_data$ps_cumulative_mgd,
+                           l30_Qout_dem_mgd = metric_data$l30_Qout_dem_mgd,
+                           l90_Qout_dem_mgd = metric_data$l90_Qout_dem_mgd,
+                           l30_Qout_base_mgd = metric_data$l30_Qout_base_mgd,
+                           l90_Qout_base_mgd = metric_data$l90_Qout_base_mgd)
+
+compare_base <- sqldf("SELECT a.* 
+                      FROM compare_base as a
+                      WHERE l30_Qout_base_mgd 
+                      IS NOT 0")
+
+#Solve for approx. baseline L30/L90 
+compare_base$l30_Qout_base_apx_mgd <- compare_base$l30_Qout_dem_mgd + compare_base$wd_cumulative_mgd - compare_base$ps_cumulative_mgd
+compare_base$l90_Qout_base_apx_mgd <- compare_base$l90_Qout_dem_mgd + compare_base$wd_cumulative_mgd - compare_base$ps_cumulative_mgd
+
+#Difference between actual/approx baseline 
+
+
+#Pct diff 
+
+
+######
+
 
 
 ## Could be useful:
