@@ -3,7 +3,8 @@
 # Example equation: For a L90 scenario:
 # Qdemand = l90_Qout(cfs)
 # Qbaseline: either l90_Qout for runid_0, or when baseline scenario (runid_0) unavailable = l90_Qout + wd_mgd - ps_mgd 
-# WA = Qdem - 0.9*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
+# WA = Qdem - (Min In stream Flow Coeff)*Qbase + Smin/CPL = l90_Qout - 0.9*(l90_Qout + wd_mgd - ps_mgd) + Smin_perday (final units should be mgd)
+#note: 0.9 is assumed as the Minimum In stream Flow Coefficient for this script currently
 
 ## Setup
 library(hydrotools)
@@ -101,7 +102,8 @@ metric_data <- sqldf('SELECT a.*, b.l30_Qout_base_mgd, b.l90_Qout_base_mgd
 
 ###--- Linking Riversegs with Upstream Impoundments  ---###
 
-metric_data$SminL30_total <- NA #empty rows to distinguish upstream storage
+#Empty columns that will hold total storage
+metric_data$SminL30_total <- NA 
 metric_data$SminL90_total <- NA 
 
 for (i in 1:nrow(metric_data)) {
@@ -124,14 +126,38 @@ colnames(metric_data)[which(names(metric_data) == "SminL90mgd_11")] <- "SminL90_
 metric_data[is.na(metric_data)] <- 0 #replace NA storage values with 0
 
 
-
-
 ###--- Solving for Water Availability ---###
 
-metric_data$WA_L30_mgd = metric_data$l30_Qout_mgd - 0.9*(metric_data$l30_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL30_total 
-metric_data$WA_L90_mgd = metric_data$l90_Qout_mgd - 0.9*(metric_data$l90_Qout_mgd + metric_data$wd_cumulative_mgd - metric_data$ps_cumulative_mgd) + metric_data$SminL90_total 
+#Empty columns to hold WA values
+metric_data$WA_L30_mgd <- NA 
+metric_data$WA_L90_mgd <- NA 
 
-#WA as a % of flow 
-metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_mgd)*100
-metric_data$pct_WA90 = (metric_data$WA_L90_mgd / metric_data$l90_Qout_mgd)*100
+for (i in 1:nrow(metric_data)) {
+  if (metric_data$l30_Qout_base_mgd[i] != 0) { #if the baseline data exists (is not 0)
+    metric_data$WA_L30_mgd[i] = metric_data$l30_Qout_dem_mgd[i] - 
+      0.9*metric_data$l30_Qout_base_mgd[i] + 
+      metric_data$SminL30_total[i] 
+    
+    metric_data$WA_L90_mgd[i] = metric_data$l90_Qout_dem_mgd[i] - 
+      0.9*metric_data$l90_Qout_base_mgd[i] + 
+      metric_data$SminL90_total[i] 
+    
+  } else { #if the baseline scenario does not exist, use approximation w/ cumulative metrics 
+    metric_data$WA_L30_mgd[i] = metric_data$l30_Qout_dem_mgd[i] - 
+      0.9*(metric_data$l30_Qout_dem_mgd[i] + metric_data$wd_cumulative_mgd[i] - metric_data$ps_cumulative_mgd[i]) + 
+      metric_data$SminL30_total[i] 
+    
+    metric_data$WA_L90_mgd[i] = metric_data$l90_Qout_dem_mgd[i] - 
+      0.9*(metric_data$l90_Qout_dem_mgd[i] + metric_data$wd_cumulative_mgd[i] - metric_data$ps_cumulative_mgd[i]) + 
+      metric_data$SminL90_total[i] 
+  }
+}
+
+#WA as a % of demand scenario flow 
+metric_data$pct_WA30 = (metric_data$WA_L30_mgd / metric_data$l30_Qout_dem_mgd)*100
+metric_data$pct_WA90 = (metric_data$WA_L90_mgd / metric_data$l90_Qout_dem_mgd)*100
+
+
+## Could be useful:
+# If WA < 0, multiply the WA (mgd) value by 30 or 90 which will give storage (in mg) needed for either a 30 or 90-day drought
 
