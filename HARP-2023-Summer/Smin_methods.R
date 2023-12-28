@@ -7,6 +7,7 @@
 # Note: approx. and near-exact methods result in a volume, while exact method gives a volume/day 
 
 # Load Libraries
+library(data.table)
 library(stringr)
 library(hydrotools)
 library(zoo)
@@ -20,6 +21,7 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function
 options(scipen = 999) #disable scientific notation
 
 #get all impoundment features 
@@ -40,10 +42,10 @@ runlabel <- paste0('runid_', runid)
 
 #Pulling in Smin metrics from vahydro (approx method):
 df_storage <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
-  'metric' = c('Smin_L30_mg', 'Smin_L90_mg','Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c('SminL30mg_11', 'SminL90mg_11','SminL30mg_13', 'SminL90mg_13')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11'),
+  'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
+  'runlabel' = c(paste0('SminL30mg_', runid, '_vah'), paste0('SminL90mg_', runid, '_vah'))
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -51,23 +53,77 @@ storage_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
+storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
+
+
+#Getting low-flow years from vahydro
+df_lfyears <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11'),
+  'metric' = c('l30_year', 'l90_year'),
+  'runlabel' = c(paste0('l30_year_', runid, '_vah'), paste0('l90_year_', runid, '_vah'))
+)
+lfyears_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_lfyears, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+
+#Joining storage data with low-flow year data 
+storage_lf_data <- sqldf('SELECT a.*, b.l30_year_11_vah, b.l90_year_11_vah
+                   FROM storage_data as a
+                   LEFT OUTER JOIN lfyears_data as b
+                   ON (a.riverseg = b.riverseg)') 
+
+## ^^ Not used in analysis yet 
+
+#Convert approx. values to mgd
+# storage_data$Smin_L30_11_apx_mgd <- storage_data$SminL30mg_11 / 30
+# storage_data$Smin_L30_13_apx_mgd <- storage_data$SminL30mg_13 / 30
+# storage_data$Smin_L90_11_apx_mgd <- storage_data$SminL90mg_11 / 30
+# storage_data$Smin_L90_13_apx_mgd <- storage_data$SminL90mg_13 / 30
+
 #used in finding how many days outside low flow period Smin happens for the approx. method
 storage_data$outside_pd30 <- NA
 storage_data$outside_pd90 <- NA
 
 for (i in 1:nrow(storage_data)) {
+
+  ###
+  #Get runfile w/ timeseries data
+  # pid <- storage_data$pid[i]
+  # 
+  # token = ds$get_token(rest_pw) #needed for elid function
+  # elid <- om_get_model_elementid(
+  #   base_url = site,
+  #   mid = storage_data$pid[i]
+  # )
+  # rm(token)
+  # 
+  # dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
+  # mode(dat) <- 'numeric'
+  ###
   
-  pid <- storage_data$pid[i]
+  #Reading in runfiles saved locally (runid11): 
+  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],".csv"))
+  dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
   
-  token = ds$get_token(rest_pw) #needed for elid function
-  elid <- om_get_model_elementid(
-    base_url = site,
-    mid = storage_data$pid[i]
-  )
-  rm(token)
-  
-  dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data
-  mode(dat) <- 'numeric'
+  #trim runfile
+  syear = as.integer(min(dat$year))
+  eyear = as.integer(max(dat$year))
+  model_run_start <- min(dat$thisdate)
+  model_run_end <- max(dat$thisdate)
+  if (syear < (eyear - 2)) {
+    sdate <- as.Date(paste0(syear,"-10-01"))
+    edate <- as.Date(paste0(eyear,"-09-30"))
+    flow_year_type <- 'water'
+  } else {
+    sdate <- as.Date(paste0(syear,"-02-01"))
+    edate <- as.Date(paste0(eyear,"-12-31"))
+    flow_year_type <- 'calendar'
+  }
+  dat <- window(dat, start = sdate, end = edate);
+  mode(dat) <- 'numeric' 
   
   #is the impoundment active? (imp_off = 0?)
   cols <- names(dat)
@@ -114,6 +170,14 @@ for (i in 1:nrow(storage_data)) {
     end = l30_end
   )
 
+  ##Approximate method: Smin within low-flow years:
+  Smin_L30_11_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
+  Smin_L90_11_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
+ 
+  storage_data$Smin_L30_11_approx_mg[i] <- Smin_L30_11_approx_acf / 3.069
+  storage_data$Smin_L90_11_approx_mg[i] <- Smin_L90_11_approx_acf / 3.069
+  
+  
   ##Near-exact method: Smin within the L30 and L90 periods:
   
   #data for each l30 and l90 years
@@ -122,7 +186,6 @@ for (i in 1:nrow(storage_data)) {
   
   l30yr_data <- window(dat, start = l30_start, end = l30_end)
   l90yr_data <- window(dat, start = l90_start, end = l90_end)
-  
   
   #zoo to data frame
   l30yr_flows <- as.data.frame(l30yr_flows)
@@ -164,18 +227,19 @@ for (i in 1:nrow(storage_data)) {
   l90pd_df <- as.data.frame(l90pd_flows)
   
   #Smin within the low flow periods
-  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage)
-  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage)
+    #Storage needs to be converted from acre-feet to million gallons
+  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage) / 3.069
+  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage) / 3.069
   
-  storage_data$Smin_L90_nearexact_perday[i] <- (storage_data$Smin_L90_nearexact[i] / 90) / 3.069 #convert afd to mgd
-  storage_data$Smin_L30_nearexact_perday[i] <- (storage_data$Smin_L30_nearexact[i] / 30) / 3.069
+  # storage_data$Smin_L90_nearexact_perday[i] <- (storage_data$Smin_L90_nearexact[i] / 90) / 3.069 #convert afd to mgd
+  # storage_data$Smin_L30_nearexact_perday[i] <- (storage_data$Smin_L30_nearexact[i] / 30) / 3.069
   
-  ##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
-  dayno_90 <- which.min(l90pd_df$Storage)
-  dayno_30 <- which.min(l30pd_df$Storage)
-  
-  storage_data$Smin_L90_exact_perday[i] <- storage_data$Smin_L90_nearexact[i] / dayno_90
-  storage_data$Smin_L30_exact_perday[i] <- storage_data$Smin_L30_nearexact[i] / dayno_30
+  # ##Exact method: dividing Smin within low-flow period by # of days into that period Smin occurs 
+  # dayno_90 <- which.min(l90pd_df$Storage)
+  # dayno_30 <- which.min(l30pd_df$Storage)
+  # 
+  # storage_data$Smin_L90_exact_perday[i] <- storage_data$Smin_L90_nearexact[i] / dayno_90
+  # storage_data$Smin_L30_exact_perday[i] <- storage_data$Smin_L30_nearexact[i] / dayno_30
   
   #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
   minstorage30yr <- min(l30yr_data$Storage)
@@ -220,14 +284,58 @@ for (i in 1:nrow(storage_data)) {
   
 }
 
-approx_vs_nearexact <- data.frame(propname = storage_data$propname,
-                       riverseg = storage_data$riverseg,
-                       Smin_L90_approx_perday = storage_data$Smin_L90_approx_perday,
-                       Smin_L30_approx_perday = storage_data$Smin_L30_approx_perday,
-                       Smin_L90_nearexact_perday = storage_data$Smin_L90_nearexact_perday,
-                       Smin_L30_nearexact_perday = storage_data$Smin_L30_nearexact_perday,
-                       min_in_pd90 = storage_data$min_in_pd90,
-                       min_in_pd30 = storage_data$min_in_pd30,
-                       outside_pd90 = storage_data$outside_pd90,
-                       outside_pd30 = storage_data$outside_pd30)
+
+#Difference between approx and near-exact Smin in units of million gallons 
+## approximate values will always be less than or equal to the near-exact values, so these differences SHOULD be >= 0
+# storage_data$diff_L30_calc <- storage_data$Smin_L30_nearexact - storage_data$Smin_L30_approx_mg
+# storage_data$diff_L90_calc <- storage_data$Smin_L90_nearexact - storage_data$Smin_L90_approx_mg
+# 
+# storage_data$diff_L30_vah <- storage_data$Smin_L30_nearexact - storage_data$SminL30mg_11_vah
+# storage_data$diff_L90_vah <- storage_data$Smin_L90_nearexact - storage_data$SminL90mg_11_vah
+
+#Percent difference
+#storage_data <- fn_pct_diff(data = storage_data, column1 = "Smin_L30_nearexact", column2 = "SminL30mg_11", new_col = "pct_diff_L30", geom = FALSE)
+
+
+#Neater dataframe:
+# approx_vs_nearexact <- data.frame(propname = storage_data$propname,
+#                        riverseg = storage_data$riverseg,
+#                        Smin_L90_approx = storage_data$SminL90mg_11,
+#                        Smin_L30_approx = storage_data$SminL30mg_11,
+#                        Smin_L90_nearexact = storage_data$Smin_L90_nearexact,
+#                        Smin_L30_nearexact = storage_data$Smin_L30_nearexact,
+#                        min_in_pd90 = storage_data$min_in_pd90,
+#                        min_in_pd30 = storage_data$min_in_pd30,
+#                        days_outside_pd90 = storage_data$outside_pd90,
+#                        days_outside_pd30 = storage_data$outside_pd30)
+
+
+
+
+# ## Saving impoundment runfiles to save time 
+# 
+# all runfiles saved for runid11
+#
+# for (i in 1:nrow(storage_data)) {
+#  
+#    #Get runfile w/ timeseries data
+#   pid <- storage_data$pid[i]
+#   
+#   token = ds$get_token(rest_pw) #needed for elid function
+#   elid <- om_get_model_elementid(
+#     base_url = site,
+#     mid = storage_data$pid[i]
+#   )
+#   rm(token)
+#   
+#   dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data
+#   dat <- zoo(dat, order.by = dat$timestamp) #make sure it's ordered correctly 
+#   
+#   #save as a csv to local folder 
+#   write.zoo(dat, paste0(github_location,"/HARParchive/HARP-2023-Summer/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
+#   
+# }
+
+
+
 
