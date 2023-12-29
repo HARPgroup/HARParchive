@@ -121,7 +121,7 @@ for (i in 1:nrow(metric_data)) {
     ups_df <- sqldf("select a.*
                     from storage_data as a
                     where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
-    metric_data$SminL30_total[i] <- sum(ups_df$SminL30mgd_11) #sum storage available locally and upstream (S in afd)
+    metric_data$SminL30_total[i] <- sum(ups_df$SminL30mgd_11) #sum storage available locally and upstream
     metric_data$SminL90_total[i] <- sum(ups_df$SminL90mgd_11)
     
   }
@@ -194,14 +194,14 @@ compare_base$diff_L90_base <- compare_base$l90_Qout_base_mgd - compare_base$l90_
 
 #Pct diff between actual/approx baseline 
 compare_base <- fn_pct_diff(data = compare_base, 
-                            column1 = 'l30_Qout_base_mgd', 
-                            column2 = 'l30_Qout_base_apx_mgd',
+                            column1 = 'l30_Qout_base_apx_mgd', 
+                            column2 = 'l30_Qout_base_mgd',
                             new_col = 'pct_diff_l30_base', 
                             geom = FALSE)
 
 compare_base <- fn_pct_diff(data = compare_base, 
-                            column1 = 'l90_Qout_base_mgd', 
-                            column2 = 'l90_Qout_base_apx_mgd',
+                            column1 = 'l90_Qout_base_apx_mgd', 
+                            column2 = 'l90_Qout_base_mgd',
                             new_col = 'pct_diff_l90_base', 
                             geom = FALSE)
 
