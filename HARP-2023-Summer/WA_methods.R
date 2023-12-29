@@ -22,6 +22,8 @@ source(paste(basepath,'config.R',sep='/'))
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function 
+
 ## Inputs
 runid <- 11 #currently hard-coded in many places 
 # mifc <- 0.9 #minimum instream flow coefficient #currently hard-coded throughout
@@ -187,9 +189,21 @@ compare_base$l30_Qout_base_apx_mgd <- compare_base$l30_Qout_dem_mgd + compare_ba
 compare_base$l90_Qout_base_apx_mgd <- compare_base$l90_Qout_dem_mgd + compare_base$wd_cumulative_mgd - compare_base$ps_cumulative_mgd
 
 #Difference between actual/approx baseline 
+compare_base$diff_L30_base <- compare_base$l30_Qout_base_mgd - compare_base$l30_Qout_base_apx_mgd
+compare_base$diff_L90_base <- compare_base$l90_Qout_base_mgd - compare_base$l90_Qout_base_apx_mgd
 
+#Pct diff between actual/approx baseline 
+compare_base <- fn_pct_diff(data = compare_base, 
+                            column1 = 'l30_Qout_base_mgd', 
+                            column2 = 'l30_Qout_base_apx_mgd',
+                            new_col = 'pct_diff_l30_base', 
+                            geom = FALSE)
 
-#Pct diff 
+compare_base <- fn_pct_diff(data = compare_base, 
+                            column1 = 'l90_Qout_base_mgd', 
+                            column2 = 'l90_Qout_base_apx_mgd',
+                            new_col = 'pct_diff_l90_base', 
+                            geom = FALSE)
 
 
 ######
