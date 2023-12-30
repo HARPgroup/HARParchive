@@ -55,41 +55,17 @@ storage_data <- om_vahydro_metric_grid(
 
 storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
 
-
-#Getting low-flow years from vahydro
-df_lfyears <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_11', 'runid_11'),
-  'metric' = c('l30_year', 'l90_year'),
-  'runlabel' = c(paste0('l30_year_', runid, '_vah'), paste0('l90_year_', runid, '_vah'))
-)
-lfyears_data <- om_vahydro_metric_grid(
-  metric = metric, runids = df_lfyears, bundle = 'all', ftype = "all",
-  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
-  ds = ds
-)
-
-#Joining storage data with low-flow year data 
-storage_lf_data <- sqldf('SELECT a.*, b.l30_year_11_vah, b.l90_year_11_vah
-                   FROM storage_data as a
-                   LEFT OUTER JOIN lfyears_data as b
-                   ON (a.riverseg = b.riverseg)') 
-
-## ^^ Not used in analysis yet 
-
 #Convert approx. values to mgd
 # storage_data$Smin_L30_11_apx_mgd <- storage_data$SminL30mg_11 / 30
 # storage_data$Smin_L30_13_apx_mgd <- storage_data$SminL30mg_13 / 30
 # storage_data$Smin_L90_11_apx_mgd <- storage_data$SminL90mg_11 / 30
 # storage_data$Smin_L90_13_apx_mgd <- storage_data$SminL90mg_13 / 30
 
-#used in finding how many days outside low flow period Smin happens for the approx. method
-storage_data$outside_pd30 <- NA
-storage_data$outside_pd90 <- NA
 
+#Comparing methods
 for (i in 1:nrow(storage_data)) {
 
-  ###
+  ## Runfiles are saved locally now to save time 
   #Get runfile w/ timeseries data
   # pid <- storage_data$pid[i]
   # 
@@ -102,7 +78,7 @@ for (i in 1:nrow(storage_data)) {
   # 
   # dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
   # mode(dat) <- 'numeric'
-  ###
+
   
   #Reading in runfiles saved locally (runid11): 
   dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],".csv"))
@@ -283,6 +259,7 @@ for (i in 1:nrow(storage_data)) {
   }
   
 }
+
 
 
 #Difference between approx and near-exact Smin in units of million gallons 
