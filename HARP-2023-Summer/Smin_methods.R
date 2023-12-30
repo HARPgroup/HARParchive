@@ -53,7 +53,7 @@ storage_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
-storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
+#storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
 
 #Convert approx. values to mgd
 # storage_data$Smin_L30_11_apx_mgd <- storage_data$SminL30mg_11 / 30
@@ -61,6 +61,9 @@ storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the botto
 # storage_data$Smin_L90_11_apx_mgd <- storage_data$SminL90mg_11 / 30
 # storage_data$Smin_L90_13_apx_mgd <- storage_data$SminL90mg_13 / 30
 
+#Columns that will hold # of days ouside the low-flow periods that Smin occurs for approx method 
+storage_data$outside_pd30 <- NA
+storage_data$outside_pd90 <- NA
 
 #Comparing methods
 for (i in 1:nrow(storage_data)) {
@@ -81,7 +84,7 @@ for (i in 1:nrow(storage_data)) {
 
   
   #Reading in runfiles saved locally (runid11): 
-  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],".csv"))
+  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
   dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
   
   #trim runfile
@@ -111,11 +114,28 @@ for (i in 1:nrow(storage_data)) {
     imp_off = 0
   }
   
-  #different names for storage and Qin values
-  names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
-  names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
-  if (!('Qin' %in% cols)) {
-    names(dat)[names(dat) == 'impoundment_Qin'] <- 'Qin'
+  #Different names for storage and Qin values:
+  
+  if (!('Storage' %in% cols)) { #if a column named Storage does not exist 
+    
+    if ('impoundment_Storage' %in% cols) { 
+      names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
+    } else if ('local_impoundment_Storage' %in% cols) {  
+      names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
+    } else {
+      dat$Storage <- 0 #set storage to 0 if not an impoundment feature 
+    }
+  }
+  
+  
+  if (!('Qin' %in% cols)) { #if a Qin column does not exist 
+    
+    if ('impoundment_Qin' %in% cols) {
+      names(dat)[names(dat) == 'impoundment_Qin'] <- 'Qin'
+    } else if ('Qreach' %in% cols) {
+      names(dat)[names(dat) == 'Qreach'] <- 'Qin'
+    }
+    
   }
   
   #find l30 and l90 years based on Qin
@@ -204,8 +224,9 @@ for (i in 1:nrow(storage_data)) {
   
   #Smin within the low flow periods
     #Storage needs to be converted from acre-feet to million gallons
-  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage) / 3.069
   storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage) / 3.069
+  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage) / 3.069
+  
   
   # storage_data$Smin_L90_nearexact_perday[i] <- (storage_data$Smin_L90_nearexact[i] / 90) / 3.069 #convert afd to mgd
   # storage_data$Smin_L30_nearexact_perday[i] <- (storage_data$Smin_L30_nearexact[i] / 30) / 3.069
@@ -289,28 +310,28 @@ for (i in 1:nrow(storage_data)) {
 
 
 
-# ## Saving impoundment runfiles to save time 
+## Saving impoundment runfiles to save time 
+
+# runid = 11
 # 
-# all runfiles saved for runid11
-#
 # for (i in 1:nrow(storage_data)) {
-#  
+# 
 #    #Get runfile w/ timeseries data
 #   pid <- storage_data$pid[i]
-#   
+# 
 #   token = ds$get_token(rest_pw) #needed for elid function
 #   elid <- om_get_model_elementid(
 #     base_url = site,
 #     mid = storage_data$pid[i]
 #   )
 #   rm(token)
-#   
-#   dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data
-#   dat <- zoo(dat, order.by = dat$timestamp) #make sure it's ordered correctly 
-#   
-#   #save as a csv to local folder 
-#   write.zoo(dat, paste0(github_location,"/HARParchive/HARP-2023-Summer/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
-#   
+# 
+#   dat <- fn_get_runfile(elid, runid , site= omsite,  cached = FALSE) #get timeseries data
+#   dat <- zoo(dat, order.by = dat$timestamp) #make sure it's ordered correctly
+# 
+#   #save as a csv to local folder
+#   write.zoo(dat, paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
+# 
 # }
 
 
