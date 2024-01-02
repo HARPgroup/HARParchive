@@ -412,7 +412,7 @@ for(i in 1:nrow(table)){
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils_table$vwp_max_mgy #add permitted capacity to table 
+table$`Permitted Capacity` <- facils_table$Permit_Limit_MGY #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case

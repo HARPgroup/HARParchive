@@ -74,7 +74,7 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 # foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
-foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_expanded.csv")) #foundational measuring pt(mp)/sources data
+foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   
@@ -184,13 +184,13 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                   ") #all source-related data now only applies to 1 source (random) within the facil 
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
   f_merge <- merge(x=f_model, #merge/full join foundational & modeled facil data
-                   y=f_foundatn[names(f_foundatn)!="Hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
-                   by.x="featureid", by.y="Facility_hydroid", all=T
+                   y=f_foundatn[names(f_foundatn)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
+                   by.x="featureid", by.y="facility_hydroid", all=T
                    )
   #join facility geometry to merged data frame:
   featrs <- sqldf(paste("SELECT", #selects/renames desired columns from f_merge, matches them with geometry from f_geo based on featureid
-                        " a.Facility, a.featureid as Facility_hydroid, a.Use_Type, a.Locality, 
-                      a.sum as five_yr_avg, a.wsp_2040_mgy, a.Permit_Limit, a.",df$runlabel[1],", a.",df$runlabel[2],",
+                        " a.facility, a.featureid as Facility_hydroid, a.Use_Type, a.locality, 
+                      a.sum as five_yr_avg, a.wsp_2040_mgy, a.Permit_Limit_MGY, a.",df$runlabel[1],", a.",df$runlabel[2],",
                       b.",fn_geoCol(f_geo), #robust for varying geometry column names
                         " FROM f_merge as a
                       LEFT OUTER JOIN f_geo as b
