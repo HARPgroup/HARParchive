@@ -68,38 +68,48 @@ storage_data$outside_pd90 <- NA
 #Comparing methods
 for (i in 1:nrow(storage_data)) {
 
-  ## Runfiles are saved locally now to save time 
-  #Get runfile w/ timeseries data
-  # pid <- storage_data$pid[i]
-  # 
-  # token = ds$get_token(rest_pw) #needed for elid function
-  # elid <- om_get_model_elementid(
-  #   base_url = site,
-  #   mid = storage_data$pid[i]
-  # )
-  # rm(token)
-  # 
-  # dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
-  # mode(dat) <- 'numeric'
+  #Reading in runfiles saved locally: 
+  # dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
+  # dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
+ 
+   #Get runfile from VAhydro
+  pid <- storage_data$pid[i]
 
+  token = ds$get_token(rest_pw) #needed for elid function
+  elid <- om_get_model_elementid(
+    base_url = site,
+    mid = storage_data$pid[i]
+  )
+  rm(token)
+
+  dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
+  mode(dat) <- 'numeric'
   
-  #Reading in runfiles saved locally (runid11): 
-  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
-  dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
+  #Get model to get object class
+  model <- RomProperty$new(ds,list( 
+    featureid = storage_data$featureid[i],
+    propcode = 'vahydro-1.0'
+  ),TRUE)
+  
+  #Get object class 
+  object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
+    featureid = model$pid,
+    propname = 'object_class'
+  ),TRUE)  
+  
+  object_class <- object_class$propcode
+  
+
   
   #trim runfile
   syear = as.integer(min(dat$year))
   eyear = as.integer(max(dat$year))
-  model_run_start <- min(dat$thisdate)
-  model_run_end <- max(dat$thisdate)
   if (syear < (eyear - 2)) {
     sdate <- as.Date(paste0(syear,"-10-01"))
     edate <- as.Date(paste0(eyear,"-09-30"))
-    flow_year_type <- 'water'
   } else {
     sdate <- as.Date(paste0(syear,"-02-01"))
     edate <- as.Date(paste0(eyear,"-12-31"))
-    flow_year_type <- 'calendar'
   }
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
@@ -116,30 +126,38 @@ for (i in 1:nrow(storage_data)) {
   
   #Different names for storage and Qin values:
   
-  if (!('Storage' %in% cols)) { #if a column named Storage does not exist 
-    
-    if ('impoundment_Storage' %in% cols) { 
+  if (!('Storage' %in% cols)) { #if a column named Storage does not exist
+
+    if ('impoundment_Storage' %in% cols) {
       names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
-    } else if ('local_impoundment_Storage' %in% cols) {  
+    } else if ('local_impoundment_Storage' %in% cols) {
       names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
     } else {
-      dat$Storage <- 0 #set storage to 0 if not an impoundment feature 
+      dat$Storage <- 0 #set storage to 0 if not an impoundment feature
     }
   }
   
   
-  if (!('Qin' %in% cols)) { #if a Qin column does not exist 
-    
-    if ('impoundment_Qin' %in% cols) {
-      names(dat)[names(dat) == 'impoundment_Qin'] <- 'Qin'
-    } else if ('Qreach' %in% cols) {
-      names(dat)[names(dat) == 'Qreach'] <- 'Qin'
-    }
-    
+  #Finding which var/column our group2() should use, based on model object class 
+  if (object_class == "hydroImpoundment") {
+    Qcol <- "Qin"
+    #storageCol <-   
+  } else if (object_class == "waterSupplyModelNode") {
+    Qcol <- "Qout"
+    #storageCol <-   
+  } else if (object_class == "waterSupplyElement") {
+      if ('Qintake' %in% cols) {
+        Qcol <- "Qintake" 
+      } else if ('Qin' %in% cols) {
+        Qcol <- "Qin"
+      }
+    #storageCol <-   
+  } else {
+    Qcol <- "Qout"
   }
   
-  #find l30 and l90 years based on Qin
-  flows <- zoo(dat$Qin, order.by = index(dat));
+  #find l30 and l90 years based on Qcol
+  flows <- zoo(dat[,Qcol], order.by = index(dat)); ## Change to var based on object class 
   loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
   
   l90 <- loflows["90 Day Min"];
@@ -336,4 +354,11 @@ for (i in 1:nrow(storage_data)) {
 
 
 
-
+#Getting model element IDs for server testing 
+# token = ds$get_token(rest_pw) #needed for elid function
+# elid <- om_get_model_elementid(
+#   base_url = site,
+#   mid = storage_data$pid[i]
+# )
+# rm(token)
+# elid
