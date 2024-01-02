@@ -24,19 +24,6 @@ source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R')
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function
 options(scipen = 999) #disable scientific notation
 
-#get all impoundment features 
-# df_imp <- data.frame(
-#   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-#   'runid' = c('runid_400', 'runid_400', 'runid_400', 'runid_400'),
-#   'metric' = c('usable_pct_p0','usable_pct_p0', 'usable_pct_p0', 'usable_pct_p0'),
-#   'runlabel' = c('Smin_pct_11', 'Smin_pct_perm', 'Smin_pct_prop', 'Smin_pct_800')
-# )
-# all_imp_data <- om_vahydro_metric_grid(
-#   metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
-#   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
-#   ds = ds
-# )
-
 runid <- 11
 runlabel <- paste0('runid_', runid)
 
@@ -52,14 +39,6 @@ storage_data <- om_vahydro_metric_grid(
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
-
-#storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
-
-#Convert approx. values to mgd
-# storage_data$Smin_L30_11_apx_mgd <- storage_data$SminL30mg_11 / 30
-# storage_data$Smin_L30_13_apx_mgd <- storage_data$SminL30mg_13 / 30
-# storage_data$Smin_L90_11_apx_mgd <- storage_data$SminL90mg_11 / 30
-# storage_data$Smin_L90_13_apx_mgd <- storage_data$SminL90mg_13 / 30
 
 #Columns that will hold # of days ouside the low-flow periods that Smin occurs for approx method 
 storage_data$outside_pd30 <- NA
@@ -146,14 +125,14 @@ for (i in 1:nrow(storage_data)) {
     Qcol <- "Qout"
     #storageCol <-   
   } else if (object_class == "waterSupplyElement") {
-      if ('Qintake' %in% cols) {
-        Qcol <- "Qintake" 
+      if ('Qintake' %in% cols) { 
+        Qcol <- "Qintake" #this column used in waterSupplyElement.R
       } else if ('Qin' %in% cols) {
-        Qcol <- "Qin"
+        Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead 
       }
     #storageCol <-   
-  } else {
-    Qcol <- "Qout"
+  } else { #object_class is something else 
+    Qcol <- "Qout" #Qout is the default 
   }
   
   #find l30 and l90 years based on Qcol
@@ -299,7 +278,9 @@ for (i in 1:nrow(storage_data)) {
   
 }
 
-
+#Difference between VAhydro Smin metrcis and those calculated in this script (should be the same)
+storage_data$diff_Smin30 <- round(storage_data$SminL30mg_11_vah - storage_data$Smin_L30_11_approx_mg, digits = 1)
+storage_data$diff_Smin90 <- round(storage_data$SminL90mg_11_vah - storage_data$Smin_L90_11_approx_mg, digits = 1)
 
 #Difference between approx and near-exact Smin in units of million gallons 
 ## approximate values will always be less than or equal to the near-exact values, so these differences SHOULD be >= 0
@@ -328,6 +309,9 @@ for (i in 1:nrow(storage_data)) {
 
 
 
+######################
+
+
 ## Saving impoundment runfiles to save time 
 
 # runid = 11
@@ -354,11 +338,15 @@ for (i in 1:nrow(storage_data)) {
 
 
 
-#Getting model element IDs for server testing 
-# token = ds$get_token(rest_pw) #needed for elid function
-# elid <- om_get_model_elementid(
-#   base_url = site,
-#   mid = storage_data$pid[i]
+# Get all impoundment features 
+# df_imp <- data.frame(
+#   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+#   'runid' = c('runid_400', 'runid_400', 'runid_400', 'runid_400'),
+#   'metric' = c('usable_pct_p0','usable_pct_p0', 'usable_pct_p0', 'usable_pct_p0'),
+#   'runlabel' = c('Smin_pct_11', 'Smin_pct_perm', 'Smin_pct_prop', 'Smin_pct_800')
 # )
-# rm(token)
-# elid
+# all_imp_data <- om_vahydro_metric_grid(
+#   metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
+#   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+#   ds = ds
+# )
