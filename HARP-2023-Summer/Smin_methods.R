@@ -24,19 +24,6 @@ source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R')
 source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function
 options(scipen = 999) #disable scientific notation
 
-#get all impoundment features 
-# df_imp <- data.frame(
-#   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-#   'runid' = c('runid_400', 'runid_400', 'runid_400', 'runid_400'),
-#   'metric' = c('usable_pct_p0','usable_pct_p0', 'usable_pct_p0', 'usable_pct_p0'),
-#   'runlabel' = c('Smin_pct_11', 'Smin_pct_perm', 'Smin_pct_prop', 'Smin_pct_800')
-# )
-# all_imp_data <- om_vahydro_metric_grid(
-#   metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
-#   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
-#   ds = ds
-# )
-
 runid <- 11
 runlabel <- paste0('runid_', runid)
 
@@ -53,14 +40,6 @@ storage_data <- om_vahydro_metric_grid(
   ds = ds
 )
 
-#storage_data <- head(storage_data, -2) #remove 2 non-impoundments from the bottom from testing 
-
-#Convert approx. values to mgd
-# storage_data$Smin_L30_11_apx_mgd <- storage_data$SminL30mg_11 / 30
-# storage_data$Smin_L30_13_apx_mgd <- storage_data$SminL30mg_13 / 30
-# storage_data$Smin_L90_11_apx_mgd <- storage_data$SminL90mg_11 / 30
-# storage_data$Smin_L90_13_apx_mgd <- storage_data$SminL90mg_13 / 30
-
 #Columns that will hold # of days ouside the low-flow periods that Smin occurs for approx method 
 storage_data$outside_pd30 <- NA
 storage_data$outside_pd90 <- NA
@@ -68,38 +47,48 @@ storage_data$outside_pd90 <- NA
 #Comparing methods
 for (i in 1:nrow(storage_data)) {
 
-  ## Runfiles are saved locally now to save time 
-  #Get runfile w/ timeseries data
-  # pid <- storage_data$pid[i]
-  # 
-  # token = ds$get_token(rest_pw) #needed for elid function
-  # elid <- om_get_model_elementid(
-  #   base_url = site,
-  #   mid = storage_data$pid[i]
-  # )
-  # rm(token)
-  # 
-  # dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
-  # mode(dat) <- 'numeric'
+  #Reading in runfiles saved locally: 
+  # dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
+  # dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
+ 
+   #Get runfile from VAhydro
+  pid <- storage_data$pid[i]
 
+  token = ds$get_token(rest_pw) #needed for elid function
+  elid <- om_get_model_elementid(
+    base_url = site,
+    mid = storage_data$pid[i]
+  )
+  rm(token)
+
+  dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
+  mode(dat) <- 'numeric'
   
-  #Reading in runfiles saved locally (runid11): 
-  dat <- fread(paste0(github_location,"/HARParchive/HARP-2023-Summer/impoundment_runfiles/runfile_imp_",storage_data$featureid[i],"_",runid,".csv"))
-  dat <- zoo(dat, order.by = dat$timestamp) #make zoo to mimic fn_get_runfile 
+  #Get model to get object class
+  model <- RomProperty$new(ds,list( 
+    featureid = storage_data$featureid[i],
+    propcode = 'vahydro-1.0'
+  ),TRUE)
+  
+  #Get object class 
+  object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
+    featureid = model$pid,
+    propname = 'object_class'
+  ),TRUE)  
+  
+  object_class <- object_class$propcode
+  
+
   
   #trim runfile
   syear = as.integer(min(dat$year))
   eyear = as.integer(max(dat$year))
-  model_run_start <- min(dat$thisdate)
-  model_run_end <- max(dat$thisdate)
   if (syear < (eyear - 2)) {
     sdate <- as.Date(paste0(syear,"-10-01"))
     edate <- as.Date(paste0(eyear,"-09-30"))
-    flow_year_type <- 'water'
   } else {
     sdate <- as.Date(paste0(syear,"-02-01"))
     edate <- as.Date(paste0(eyear,"-12-31"))
-    flow_year_type <- 'calendar'
   }
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
@@ -116,30 +105,38 @@ for (i in 1:nrow(storage_data)) {
   
   #Different names for storage and Qin values:
   
-  if (!('Storage' %in% cols)) { #if a column named Storage does not exist 
-    
-    if ('impoundment_Storage' %in% cols) { 
+  if (!('Storage' %in% cols)) { #if a column named Storage does not exist
+
+    if ('impoundment_Storage' %in% cols) {
       names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
-    } else if ('local_impoundment_Storage' %in% cols) {  
+    } else if ('local_impoundment_Storage' %in% cols) {
       names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
     } else {
-      dat$Storage <- 0 #set storage to 0 if not an impoundment feature 
+      dat$Storage <- 0 #set storage to 0 if not an impoundment feature
     }
   }
   
   
-  if (!('Qin' %in% cols)) { #if a Qin column does not exist 
-    
-    if ('impoundment_Qin' %in% cols) {
-      names(dat)[names(dat) == 'impoundment_Qin'] <- 'Qin'
-    } else if ('Qreach' %in% cols) {
-      names(dat)[names(dat) == 'Qreach'] <- 'Qin'
-    }
-    
+  #Finding which var/column our group2() should use, based on model object class 
+  if (object_class == "hydroImpoundment") {
+    Qcol <- "Qin"
+    #storageCol <-   
+  } else if (object_class == "waterSupplyModelNode") {
+    Qcol <- "Qout"
+    #storageCol <-   
+  } else if (object_class == "waterSupplyElement") {
+      if ('Qintake' %in% cols) { 
+        Qcol <- "Qintake" #this column used in waterSupplyElement.R
+      } else if ('Qin' %in% cols) {
+        Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead 
+      }
+    #storageCol <-   
+  } else { #object_class is something else 
+    Qcol <- "Qout" #Qout is the default 
   }
   
-  #find l30 and l90 years based on Qin
-  flows <- zoo(dat$Qin, order.by = index(dat));
+  #find l30 and l90 years based on Qcol
+  flows <- zoo(dat[,Qcol], order.by = index(dat)); ## Change to var based on object class 
   loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
   
   l90 <- loflows["90 Day Min"];
@@ -281,7 +278,9 @@ for (i in 1:nrow(storage_data)) {
   
 }
 
-
+#Difference between VAhydro Smin metrcis and those calculated in this script (should be the same)
+storage_data$diff_Smin30 <- round(storage_data$SminL30mg_11_vah - storage_data$Smin_L30_11_approx_mg, digits = 1)
+storage_data$diff_Smin90 <- round(storage_data$SminL90mg_11_vah - storage_data$Smin_L90_11_approx_mg, digits = 1)
 
 #Difference between approx and near-exact Smin in units of million gallons 
 ## approximate values will always be less than or equal to the near-exact values, so these differences SHOULD be >= 0
@@ -310,6 +309,9 @@ for (i in 1:nrow(storage_data)) {
 
 
 
+######################
+
+
 ## Saving impoundment runfiles to save time 
 
 # runid = 11
@@ -336,4 +338,15 @@ for (i in 1:nrow(storage_data)) {
 
 
 
-
+# Get all impoundment features 
+# df_imp <- data.frame(
+#   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+#   'runid' = c('runid_400', 'runid_400', 'runid_400', 'runid_400'),
+#   'metric' = c('usable_pct_p0','usable_pct_p0', 'usable_pct_p0', 'usable_pct_p0'),
+#   'runlabel' = c('Smin_pct_11', 'Smin_pct_perm', 'Smin_pct_prop', 'Smin_pct_800')
+# )
+# all_imp_data <- om_vahydro_metric_grid(
+#   metric = metric, runids = df_imp, bundle = 'all', ftype = "all",
+#   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+#   ds = ds
+# )
