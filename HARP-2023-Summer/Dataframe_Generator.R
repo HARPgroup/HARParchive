@@ -319,43 +319,8 @@ model_data_river <- om_vahydro_metric_grid(
 )
 statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
 rsegs_data <- fn_sqldf_sf(statemt, geomback="rsegs")
+rsegs <- rsegs_data
 
-for (k in 1:length(rivseg_metric)) {
-  for (j in 1:length(runid_list)) {
-    for (i in 1:nrow(rsegs)) {
-      riverseg <- RomFeature$new(ds,list( #get riverseg feature from vahydro
-        hydrocode = paste('vahydrosw_wshed_',rsegs$riverseg[i],sep=''),
-        ftype = 'vahydro',
-        bundle = 'watershed'
-      ),TRUE)
-      
-      if (!is.na(riverseg$hydroid)) { #only continue if rivseg feature was found
-        model <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
-          featureid = riverseg$hydroid,
-          propcode = 'vahydro-1.0'
-        ),TRUE)
-        
-        model_scenario <- RomProperty$new(ds,list( #get scenario/runid from vahydro
-          varkey = "om_scenario",
-          featureid = model$pid,
-          propname = runid_list[j]
-        ),TRUE)
-        
-        if (!is.na(model_scenario$pid)) { #only continue if runid was found (scenario pid!=NA)
-          rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- RomProperty$new(ds,list( #get metric from vahydro
-            featureid = model_scenario$pid,
-            entity_type = 'dh_properties',
-            propname = rivseg_metric[k]
-          ),TRUE)$propvalue #directly assign metric propvalue
-        } else { #the scenario/runid wasn't found
-          rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- NA
-        }
-      } else { #the rivseg feature wasn't found
-        rsegs[i, paste0(runid_list[j],'_',rivseg_metric[k]) ] <- NA
-      }
-    }
-  }
-}
 rm(riverseg)
 rm(model)
 rm(model_scenario)

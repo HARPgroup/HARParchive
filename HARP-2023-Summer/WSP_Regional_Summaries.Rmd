@@ -566,6 +566,20 @@ rsegs <- st_drop_geometry(rsegs)
 rivTables <- list() #to store dataframes for each drought metric
 #ftable<- list()
 for (k in 1:length(rivseg_metric)){ #loop thru metrics
+  # metcol_name <- paste0(runid_list[j],'_',rivseg_metric[k])
+  # Alt. 1:
+  # rivTables[[k]] <- rsegs[,c('name','riverseg', metcol_name]
+  # rivTables[[k]]$Metric <- rivseg_metric[k]
+  # Alt 2:
+  # rivTables[[k]] <- sqldf(
+  #    paste0(
+  #      "select name, riverseg, '",rivseg_metric[k],"' as Metric, ",
+  #      metcol_name,
+  #      " from rsegs"
+  #   )
+  #W )
+  
+  
   rivTables[[k]] <- data.frame(Name = rsegs$name) # add rivseg name
   rivTables[[k]][,paste0('Riverseg')] <- rsegs$riverseg # add rivseg number
   rivTables[[k]]$Metric <- rivseg_metric[k] #add metric
