@@ -279,10 +279,12 @@ run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers wit
 
 for (k in 1:length(rivseg_metric)) {
   ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
-  rsegs <- fn_pct_diff(data = rsegs,
-                     column1 = paste0(runid_list[1],"_",rivseg_metric[k]),
-                     column2 = paste0(runid_list[2],"_",rivseg_metric[k]),
-                     new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
+  column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+  column2 = paste0(runid_list[2],"_",rivseg_metric[k])
+  new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2])
+  rsegs[new_col] <- (
+    (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
+  )
 }
 
 #----Calculate Rseg Metric % Diff (OLD)----
