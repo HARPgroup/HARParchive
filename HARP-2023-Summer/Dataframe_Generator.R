@@ -274,14 +274,11 @@ rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
 #----Calculate Rseg Metric % Diff (NEW)----
 
-#Getting just the number elements of provided runids, for column naming
-run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
-
 for (k in 1:length(rivseg_metric)) {
   ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
   column1 = paste0(runid_list[1],"_",rivseg_metric[k])
   column2 = paste0(runid_list[2],"_",rivseg_metric[k])
-  new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2])
+  new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[2])
   rsegs[new_col] <- (
     (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
   )
