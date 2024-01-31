@@ -29,7 +29,24 @@ new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max',
                      'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
 metric_names <- data.frame(read_metric_name, new_metric_name)
 
+# adapt this to permit us to store pre-configured sets
+# run_set is parameter to use in WSP_Regional_Summaries.Rmd
 
+# run_sets: complex, allows us to render with fewer arguments to Rmarkdown
+# format:
+# wsp_run_set <- list(
+#    riverseg_metrics=list( 
+#      list([parameter style name], [column in CSV file])
+# )
+run_sets <- list(
+  wsp_2020_2040 = list(
+    riverseg_metrics=list( 
+      list(metric='wd_mgd', column_name='wd_mgd_runid_11'),
+      #list(metric='water_available_mgd', column_name='water_available_mgd_runid_11'),
+      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_17')
+    )
+  )
+)
 
 #NHD flowline & waterbody classification & substitution:
 #flowlines:
@@ -46,6 +63,12 @@ wtbd_med_pct_range <- c(0.6,0.9) #quantile range for classifying waterbodies as 
 
 wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000) #set ranges for bins mgd and mgy 
 wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000)
+# replace the above with a generic holder that allow lookup by metric name
+metrc_ramps = list(
+  wd_mgd = c(0, 0.5, 1.0, 2, 10, 25, 100, 1000),
+  wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000),
+  water_available_mgd = c(0, 1, 5, 10, 20, 50, 100)
+)
 
 styles <- list()
 #----Custom Aesthetics:----
