@@ -21,7 +21,7 @@ ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
 source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_pct_diff.R"),local = TRUE) #load % difference function
 options(scipen = 999) #disable scientific notation
 
 runid <- 11

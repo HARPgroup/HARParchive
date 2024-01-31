@@ -7,7 +7,7 @@ basepath='/var/www/R'
 source('/var/www/R/config.R')
 
 #get regional planning groups 
-regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv')
+regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/Regions_ProposedReg_053122.csv')
 
 #get the region names 
 region_names <- sqldf("SELECT DISTINCT VMDWA_Reg2 from regions")

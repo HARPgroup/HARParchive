@@ -2,7 +2,7 @@
 # Ability to pass in one or multiple raw df's at once so that these can be generated anywhere throughout the code; any order
 library(mgsub)
 # Note: requires function centroid_coords() , which is currently defined in mapping_codeReview.Rmd 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_centroid_coords.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_centroid_coords.R"),local = TRUE)
 
 # Note: NHD-related data is passed in all at once & automatically separated into the different labels via a special case loop
 # Note: Supply singular nouns into classes (city, road, etc. NOT cities, roads, etc)

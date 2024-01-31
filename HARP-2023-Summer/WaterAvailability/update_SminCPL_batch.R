@@ -36,13 +36,13 @@ for (i in 1:nrow(all_imp_data)) {
   #Run 1 of 3 om post-processing scripts based on type of impoundment
   if (object_class=="waterSupplyModelNode") {
     commandArgs <- function(...) c(pid,elid,runid)
-    source(paste0(github_location,"/HARParchive/HARP-2023-Summer/waterSupplyModelNode.R")) #riverseg imp
+    source(paste0(github_location,"/HARParchive/HARP-2023-Summer/WaterAvailability/waterSupplyModelNode.R")) #riverseg imp
   } else if (object_class=="waterSupplyElement") {
     commandArgs <- function(...) c(pid,elid,runid)
-    source(paste0(github_location,"/HARParchive/HARP-2023-Summer/waterSupplyElement.R")) #facility imp
+    source(paste0(github_location,"/HARParchive/HARP-2023-Summer/WaterAvailability/waterSupplyElement.R")) #facility imp
   } else if (object_class=="hydroImpoundment") {
     commandArgs <- function(...) c(pid,elid,runid)
-    source(paste0(github_location,"/HARParchive/HARP-2023-Summer/hydroImpoundment.R")) #standalone imp
+    source(paste0(github_location,"/HARParchive/HARP-2023-Summer/WaterAvailability/hydroImpoundment.R")) #standalone imp
   }
 }
 rm(token) #security

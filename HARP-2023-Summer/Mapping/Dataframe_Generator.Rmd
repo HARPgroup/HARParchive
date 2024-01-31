@@ -26,9 +26,9 @@ basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_pct_diff.R"),local = TRUE) #load % difference function 
 
 #assign params
 for(i in 1:length(params)){
@@ -110,15 +110,15 @@ rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 
 #---County Data---
 cnty_fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
-cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
+cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
 
 #---Cities & Roads---
 if(base_layer_data==TRUE){
   roads <- fn_download_read(
-    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
+    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/tl_2022_51_prisecroads.zip", 
     filetype="shp", zip=TRUE) #.shp file for US states & primary roads
   
-  cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv')
+  cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/USA_Major_Cities_GIS.csv')
 }
 
 #----Filter/Process Data----

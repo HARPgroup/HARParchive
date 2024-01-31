@@ -29,6 +29,6 @@ for (i in 1:length(all_imp_data)) {
   pid <- all_imp_data$pid[i]
   
   commandArgs <- function(...) c(pid,runid)
-  source(paste0("~/HARParchive/HARP-2023-Summer/update_Smin.R")) #call summary script
+  source(paste0("~/HARParchive/HARP-2023-Summer/WaterAvailability/update_Smin.R")) #call summary script
   
 }
