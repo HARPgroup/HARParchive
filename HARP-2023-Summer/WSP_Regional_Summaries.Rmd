@@ -598,7 +598,7 @@ if (show_map == TRUE) {
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
   
     ## Save rivseg map
-    rivmapfilename[i] <- paste(export_path, map_name, "_", display_metric, ".png", sep="")
+    rivmapfilename[i] <- paste(export_path, map_name, "_", display_column, ".png", sep="")
     ggsave(
       filename = rivmapfilename[i],
       plot = map_rivseg,
