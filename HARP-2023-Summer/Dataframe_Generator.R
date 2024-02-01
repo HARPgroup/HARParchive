@@ -274,17 +274,16 @@ rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
 #----Calculate Rseg Metric % Diff (NEW)----
 
-#Getting just the number elements of provided runids, for column naming
-run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
-
-for (k in 1:length(rivseg_metric)) {
-  ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
-  column1 = paste0(runid_list[1],"_",rivseg_metric[k])
-  column2 = paste0(runid_list[2],"_",rivseg_metric[k])
-  new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2])
-  rsegs[new_col] <- (
-    (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
-  )
+for (j in 2:length(runid_list)) {
+  for (k in 1:length(rivseg_metric)) {
+    ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
+    column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+    column2 = paste0(runid_list[j],"_",rivseg_metric[k])
+    new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
+    rsegs[new_col] <- (
+      100.0 * (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
+    )
+  }
 }
 
 #----Calculate Rseg Metric % Diff (OLD)----
@@ -303,9 +302,9 @@ for (k in 1:length(rivseg_metric)) {
 # }
 
 #----Write Files----
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
 if(featr_type=="facility"){
-  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
 }
 if(featr_type=="source"){
   featrs <- featrs[names(featrs) %in% grep("^([0-9]+).$", names(featrs), value=TRUE, invert=TRUE)] #get rid of all those year columns
