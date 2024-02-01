@@ -108,15 +108,15 @@ rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 
 #---County Data---
 cnty_fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
-cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
+cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
 
 #---Cities & Roads---
 if(base_layer_data==TRUE){
   roads <- fn_download_read(
-    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/tl_2022_51_prisecroads.zip", 
+    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/tl_2022_51_prisecroads.zip", 
     filetype="shp", zip=TRUE) #.shp file for US states & primary roads
   
-  cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/USA_Major_Cities_GIS.csv')
+  cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/USA_Major_Cities_GIS.csv')
 }
 
 #----Filter/Process Data----

@@ -19,6 +19,7 @@ params:
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
   rsegs_file: FALSE
+  run_set: "wsp_2020_2040"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -137,10 +138,10 @@ if (is.null(run_config)) {
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/DataFiles/regions_sf.csv')
-counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/DataFiles/counties_sf.csv')
-cities_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/DataFiles/cities.csv')
-roads_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/DataFiles/roads_sf.csv')
+regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+cities_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/cities.csv')
+roads_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
 facils <- sf::st_read(featrs_file)
 rsegs <- sf::st_read(rsegs_file)
