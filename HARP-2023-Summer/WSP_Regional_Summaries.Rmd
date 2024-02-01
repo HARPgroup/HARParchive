@@ -19,6 +19,7 @@ params:
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
   rsegs_file: "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv" 
+  run_set: NULL # new method of specifying river metric maps and tables
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -111,6 +112,9 @@ run_config = NULL
 if (!is.null(params$run_set)) {
   run_config <- run_sets[[run_set]]
 } 
+# *****************************************************
+# Insure Backward Compatibility With rivseg_metric input
+# *****************************************************
 # need to load or create nested array riverseg_metrics
 # this is deprecated and support will go away 
 # because it involves guessing what the column names are
@@ -546,24 +550,19 @@ if (show_map == TRUE) {
     
     ##Work-around to problem above: change column name
     rseg_geom <- rsegs$geometry #save geometry before dropping
-    rsegs_nogeom <- st_drop_geometry(rsegs)
-    pct_col <- as.data.frame(rsegs_nogeom[,display_column])  #identify pct diff for metric of interest
-    colnames(pct_col) <- 'pct_diff'
-    rsegs <- cbind(rsegs_nogeom, pct_col)
-    rm(rsegs_nogeom)
-    ##
-  
+    rsegs <- st_drop_geometry(rsegs)
     bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
     bins$classid <- index(bins)
     names(bins) <- c("val", "bin")
     #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
   
-    rivseg_classes <- fn_sqldf_sf( #sorting the data into bins based on their range 
-      "select a.riverseg, min(b.bin) as bin
+    rivseg_classes <- sqldf( #sorting the data into bins based on their range 
+      paste0("select a.riverseg, min(b.bin) as bin
       from rsegs as a 
       left outer join bins as b 
-      on (a.pct_diff <= b.val) 
+      on (a.", display_column," <= b.val) 
       group by a.riverseg" )
+    )
     #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
     
   ## sqldf error here about raw vectors  
