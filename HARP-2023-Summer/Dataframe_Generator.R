@@ -281,7 +281,7 @@ for (j in 2:length(runid_list)) {
     column2 = paste0(runid_list[j],"_",rivseg_metric[k])
     new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
     rsegs[new_col] <- (
-      (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
+      100.0 * (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
     )
   }
 }

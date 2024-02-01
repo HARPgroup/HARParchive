@@ -41,9 +41,9 @@ metric_names <- data.frame(read_metric_name, new_metric_name)
 run_sets <- list(
   wsp_2020_2040 = list(
     riverseg_metrics=list( 
-      list(metric='wd_mgd', column_name='wd_mgd_runid_11'),
-      #list(metric='water_available_mgd', column_name='water_available_mgd_runid_11'),
-      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_17')
+      list(metric='l30_Qout', column_name='wd_mgd_runid_11'),
+      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
+      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_17', run_label = 'Climate Change')
     )
   )
 )
