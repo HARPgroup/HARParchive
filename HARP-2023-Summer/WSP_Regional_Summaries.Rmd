@@ -14,12 +14,11 @@ params:
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv"
+  featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv" 
-  run_set: NULL # new method of specifying river metric maps and tables
+  rsegs_file: FALSE
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
 
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
