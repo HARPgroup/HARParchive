@@ -61,10 +61,23 @@ ds$get_token(rest_pw)
 
 ```{r UserInputs, echo=FALSE}
 # reading in the user inputs from params
-for(i in 1:length(params)){
-  assign(names(params[i]), params[[i]])
-}
+origin <- params$origin #supply either a rivseg, locality, or region name ## JL7_7070_0001
+origin_type <- params$origin_type #basin, locality, or region
+featr_type <- params$featr_type #source or facility
 
+featrs_file <- params$featrs_file
+featrs_file_map_bubble_column <- params$featrs_file_map_bubble_column
+featrs_file_table_column <- params$featrs_file_table_column
+
+rsegs_file <- params$rsegs_file
+run_set <- params$run_set
+rivseg_metric <- params$rivseg_metric
+
+runid_list <- params$runid_list
+crs_default <- params$crs_default
+map_style <- params$map_style
+bbox_type <- params$bbox_type
+show_map <- params$show_map
     
 ```
 

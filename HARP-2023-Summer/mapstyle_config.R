@@ -44,7 +44,8 @@ run_sets <- list(
       list(metric='l30_Qout', column_name='percentDiff_l30_Qout_runid_11_runid_13', run_label = '2040 WSP L30 %'),
       list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_13', run_label = '2040 WSP 7q10 %'),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
-      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_17', run_label = 'Climate Change 7q10 %')
+      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_17', run_label = 'Climate Change 7q10 %'),
+      list(metric='Smin_L30_mg', column_name='runid_13_Smin_L30_mg', run_label = 'Minimum Storage')
     )
   )
 )
