@@ -387,11 +387,13 @@ if(featr_type==&quot;source&quot;){
 }
 if (file.exists(rseg_filepath)) {
   print(&#39;Rseg file already exists&#39;)
-}
-if (file.exists(featr_filepath)) {
+}</code></pre>
+<pre><code>## [1] &quot;Rseg file already exists&quot;</code></pre>
+<pre class="r"><code>if (file.exists(featr_filepath)) {
   print(&#39;Feature file already exists&#39;)
-}
-#stop if the files exist and nothing more is wanted 
+}</code></pre>
+<pre><code>## [1] &quot;Feature file already exists&quot;</code></pre>
+<pre class="r"><code>#stop if the files exist and nothing more is wanted 
 if (file.exists(featr_filepath) &amp; file.exists(featr_filepath) &amp; overwrite_files==FALSE &amp; base_layer_data==FALSE) {
   stop(&#39;\r Riverseg &amp; feature files already exist; quitting&#39;)
 }
@@ -403,9 +405,9 @@ if (overwrite_files==TRUE) {
   if (file.exists(featr_filepath)) {
     file.remove(featr_filepath)
   }
-}
-
-#----Pull Data----
+}</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>#----Pull Data----
 #---Facility Data---
 # foundatn_mp &lt;- fread(paste0(github_location, &quot;/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv&quot;)) #foundational measuring pt(mp)/sources data
 foundatn_mp &lt;- fread(paste0(github_location, &quot;/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv&quot;)) #foundational measuring pt(mp)/sources data
@@ -441,14 +443,14 @@ if (featr_type==&quot;facility&quot;) { #specified model metrics will be pulled 
 <pre><code>## retrieving  http://deq1.bse.vt.edu:81/d.dh/entity-model-prop-level-export/all/dh_feature/facility/all/vahydro-1.0/runid_11/wd_mgd</code></pre>
 <pre><code>## No encoding supplied: defaulting to UTF-8.</code></pre>
 <pre><code>## Rows: 1359 Columns: 17
-## -- Column specification -----------------------------------------------------------------------------------------------------------
+## ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
 ## chr (9): propname, propcode, varkey, varname, run_name, attribute_name, hydrocode, riverseg, Property Name
 ## dbl (5): pid, propvalue, attribute_value, featureid, om_elementid
 ## lgl (3): startdate, enddate, attribute_code
 ## 
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ## Found info
 ## 
 ## runid_13vahydro-1.0wd_mgdrunid_13_wd_mgd
@@ -458,14 +460,14 @@ if (featr_type==&quot;facility&quot;) { #specified model metrics will be pulled 
 ## No encoding supplied: defaulting to UTF-8.
 ## 
 ## Rows: 1332 Columns: 17
-## -- Column specification -----------------------------------------------------------------------------------------------------------
+## ── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
 ## chr (9): propname, propcode, varkey, varname, run_name, attribute_name, hydrocode, riverseg, Property Name
 ## dbl (5): pid, propvalue, attribute_value, featureid, om_elementid
 ## lgl (3): startdate, enddate, attribute_code
 ## 
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ## select a.*, b.attribute_value as  runid_13_wd_mgd from alldata as a 
 ##         left outer join rawdata as b 
 ##         on (
@@ -923,7 +925,7 @@ if (limit_featrs_to_origin==FALSE | origin_type==&quot;basin&quot;) {
 <pre><code>## although coordinates are longitude/latitude, st_intersects assumes that they are planar
 ## although coordinates are longitude/latitude, st_intersects assumes that they are planar</code></pre>
 <pre><code>## Warning: There was 1 warning in `stopifnot()`.
-## i In argument: `lengths(.predicate(x, y, ...)) &gt; 0`.
+## ℹ In argument: `lengths(.predicate(x, y, ...)) &gt; 0`.
 ## Caused by warning in `st_is_longlat()`:
 ## ! bounding box has potentially an invalid value range for longlat data</code></pre>
 <pre class="r"><code>#----Additional Pulling Post-Filtering----
@@ -3185,23 +3187,23 @@ model_data_river &lt;- om_vahydro_metric_grid(
 ## runid_11vahydro-1.0l30_Qoutrunid_11_l30_Qout
 ## retrieving  http://deq1.bse.vt.edu:81/d.dh/entity-model-prop-level-export/all/dh_feature/watershed/all/vahydro-1.0/runid_11/l30_Qout
 ## No encoding supplied: defaulting to UTF-8.
-## Rows: 569 Columns: 17-- Column specification ----------------------------------------------------------------------------------------------------------------------
+## Rows: 569 Columns: 17── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
 ## chr (9): propname, propcode, varkey, varname, run_name, attribute_name, hydrocode, riverseg, Property Name
 ## dbl (5): pid, propvalue, attribute_value, featureid, om_elementid
 ## lgl (3): startdate, enddate, attribute_code
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.Found info
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.Found info
 ## runid_13vahydro-1.0l30_Qoutrunid_13_l30_Qout
 ## retrieving  http://deq1.bse.vt.edu:81/d.dh/entity-model-prop-level-export/all/dh_feature/watershed/all/vahydro-1.0/runid_13/l30_Qout
 ## No encoding supplied: defaulting to UTF-8.
-## Rows: 494 Columns: 17-- Column specification ----------------------------------------------------------------------------------------------------------------------
+## Rows: 494 Columns: 17── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
 ## chr (9): propname, propcode, varkey, varname, run_name, attribute_name, hydrocode, riverseg, Property Name
 ## dbl (5): pid, propvalue, attribute_value, featureid, om_elementid
 ## lgl (3): startdate, enddate, attribute_code
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.select a.*, b.attribute_value as  runid_13_l30_Qout from alldata as a 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.select a.*, b.attribute_value as  runid_13_l30_Qout from alldata as a 
 ##         left outer join rawdata as b 
 ##         on (
 ##           a.featureid = b.featureid
@@ -3210,13 +3212,13 @@ model_data_river &lt;- om_vahydro_metric_grid(
 ## runid_11vahydro-1.0l90_Qoutrunid_11_l90_Qout
 ## retrieving  http://deq1.bse.vt.edu:81/d.dh/entity-model-prop-level-export/all/dh_feature/watershed/all/vahydro-1.0/runid_11/l90_Qout
 ## No encoding supplied: defaulting to UTF-8.
-## Rows: 569 Columns: 17-- Column specification ----------------------------------------------------------------------------------------------------------------------
+## Rows: 569 Columns: 17── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
 ## chr (9): propname, propcode, varkey, varname, run_name, attribute_name, hydrocode, riverseg, Property Name
 ## dbl (5): pid, propvalue, attribute_value, featureid, om_elementid
 ## lgl (3): startdate, enddate, attribute_code
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.select a.*, b.attribute_value as  runid_11_l90_Qout from alldata as a 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.select a.*, b.attribute_value as  runid_11_l90_Qout from alldata as a 
 ##         left outer join rawdata as b 
 ##         on (
 ##           a.featureid = b.featureid
@@ -3225,13 +3227,13 @@ model_data_river &lt;- om_vahydro_metric_grid(
 ## runid_13vahydro-1.0l90_Qoutrunid_13_l90_Qout
 ## retrieving  http://deq1.bse.vt.edu:81/d.dh/entity-model-prop-level-export/all/dh_feature/watershed/all/vahydro-1.0/runid_13/l90_Qout
 ## No encoding supplied: defaulting to UTF-8.
-## Rows: 557 Columns: 17-- Column specification ----------------------------------------------------------------------------------------------------------------------
+## Rows: 557 Columns: 17── Column specification ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
 ## chr (9): propname, propcode, varkey, varname, run_name, attribute_name, hydrocode, riverseg, Property Name
 ## dbl (5): pid, propvalue, attribute_value, featureid, om_elementid
 ## lgl (3): startdate, enddate, attribute_code
-## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.select a.*, b.attribute_value as  runid_13_l90_Qout from alldata as a 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.select a.*, b.attribute_value as  runid_13_l90_Qout from alldata as a 
 ##         left outer join rawdata as b 
 ##         on (
 ##           a.featureid = b.featureid
@@ -3239,43 +3241,36 @@ model_data_river &lt;- om_vahydro_metric_grid(
 <pre class="r"><code>statemt &lt;- &quot;select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)&quot;
 rsegs &lt;- fn_sqldf_sf(statemt, geomback=&quot;rsegs&quot;)
 
-#----Calculate Rseg Metric % Diff (NEW)----
-
-# #Getting just the number elements of provided runids, for column naming
-# run_nums &lt;- as.numeric(gsub(&quot;\\D&quot;, &quot;&quot;, runid_list)) #substitutes non-numbers with spaces
-# 
-# for (k in 1:length(rivseg_metric)) {
-#   ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
-#   rsegs &lt;- fn_pct_diff(data = rsegs,
-#                      column1 = paste0(runid_list[1],&quot;_&quot;,rivseg_metric[k]),
-#                      column2 = paste0(runid_list[2],&quot;_&quot;,rivseg_metric[k]),
-#                      new_col = paste0(&quot;percentDiff_&quot;, rivseg_metric[k], &quot;_&quot;, run_nums[1], &quot;_&quot;, run_nums[2]))
-# }
-
-#----Calculate Rseg Metric % Diff (OLD)----
-for (k in 1:length(rivseg_metric)){
-  colname1 &lt;- paste0(runid_list[1],&#39;_&#39;,rivseg_metric[k])
-  colname2 &lt;- paste0(runid_list[2],&#39;_&#39;,rivseg_metric[k])
-
-  statemt &lt;- paste(&quot;SELECT rsegs.*,
-                  CASE WHEN (&quot;,colname2,&quot; - &quot;,colname1,&quot;)==0
-                    THEN 0 &quot;, # 0/0 is NA so when difference is 0, %diff is 0
-                   &quot;ELSE ( (&quot;,colname2,&quot; - &quot;,colname1,&quot;) / &quot;,colname1,&quot; * 100) &quot;, #calculate %diff as usual
-                   &quot;END as percentDiff_&quot;,rivseg_metric[k], #creates % diff. column
-                   &quot; FROM rsegs
-                 &quot;,sep=&quot;&quot;) #!! need a case for when colname1 is zero but colname2 isn&#39;t ?
-  rsegs &lt;- fn_sqldf_sf(statemt, geomback=&quot;rsegs&quot;)
-}
-
-#----Write Files----
+#----Calculate Rseg Metric % Diff ----
+rsegs_data &lt;- st_drop_geometry(rsegs)
+for (j in 2:length(runid_list)) {
+  for (k in 1:length(rivseg_metric)) {
+    ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
+    column1 = paste0(runid_list[1],&quot;_&quot;,rivseg_metric[k])
+    column2 = paste0(runid_list[j],&quot;_&quot;,rivseg_metric[k])
+    new_col = paste0(&quot;percentDiff_&quot;, rivseg_metric[k], &quot;_&quot;, runid_list[1], &quot;_&quot;, runid_list[j])
+    message(paste(&quot;Adding %diff for&quot;, rivseg_metric[k], runid_list[1], runid_list[j]))
+    for (n in 1:nrow(rsegs_data)) {
+      if ( (!is.na(rsegs_data[n,column1])) &amp; (!is.na(rsegs_data[n,column2]))) {
+        rsegs_data[n,new_col] &lt;- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
+      } else {
+        rsegs_data[n,new_col] &lt;- NA
+      }
+    }
+    rsegs[[new_col]] &lt;- rsegs_data[[new_col]]
+  }
+}</code></pre>
+<pre><code>## Adding %diff for l30_Qout runid_11 runid_13
+## Adding %diff for l90_Qout runid_11 runid_13</code></pre>
+<pre class="r"><code>#----Write Files----
 st_write(rsegs, paste0(export_path,origin,&quot;_rsegs_sf.csv&quot;), layer_options = &quot;GEOMETRY=AS_WKT&quot;)</code></pre>
-<pre><code>## Writing layer `Roanoke_1_rsegs_sf&#39; to data source `C:/HARP/Exports/Roanoke_1_rsegs_sf.csv&#39; using driver `CSV&#39;
+<pre><code>## Writing layer `Roanoke_1_rsegs_sf&#39; to data source `/Users/glenncampagna/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv&#39; using driver `CSV&#39;
 ## options:        GEOMETRY=AS_WKT 
 ## Writing 27 features with 15 fields and geometry type Unknown (any).</code></pre>
 <pre class="r"><code>if(featr_type==&quot;facility&quot;){
   st_write(featrs, paste0(export_path,origin,&quot;_featrs_sf.csv&quot;), layer_options = &quot;GEOMETRY=AS_WKT&quot;)
 }</code></pre>
-<pre><code>## Writing layer `Roanoke_1_featrs_sf&#39; to data source `C:/HARP/Exports/Roanoke_1_featrs_sf.csv&#39; using driver `CSV&#39;
+<pre><code>## Writing layer `Roanoke_1_featrs_sf&#39; to data source `/Users/glenncampagna/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv&#39; using driver `CSV&#39;
 ## options:        GEOMETRY=AS_WKT 
 ## Writing 247 features with 12 fields and geometry type Point.</code></pre>
 <pre class="r"><code>if(featr_type==&quot;source&quot;){
