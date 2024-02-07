@@ -10,7 +10,7 @@ output: pdf_document #overridden by output_format in render command
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["Roanoke_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["Shennandoah_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
