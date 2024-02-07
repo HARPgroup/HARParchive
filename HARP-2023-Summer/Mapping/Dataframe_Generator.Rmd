@@ -276,32 +276,24 @@ model_data_river <- om_vahydro_metric_grid(
 statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
 rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
-#----Calculate Rseg Metric % Diff (NEW)----
-
-# #Getting just the number elements of provided runids, for column naming
-# run_nums <- as.numeric(gsub("\\D", "", runid_list)) #substitutes non-numbers with spaces
-# 
-# for (k in 1:length(rivseg_metric)) {
-#   ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
-#   rsegs <- fn_pct_diff(data = rsegs,
-#                      column1 = paste0(runid_list[1],"_",rivseg_metric[k]),
-#                      column2 = paste0(runid_list[2],"_",rivseg_metric[k]),
-#                      new_col = paste0("percentDiff_", rivseg_metric[k], "_", run_nums[1], "_", run_nums[2]))
-# }
-
-#----Calculate Rseg Metric % Diff (OLD)----
-for (k in 1:length(rivseg_metric)){
-  colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
-  colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
-
-  statemt <- paste("SELECT rsegs.*,
-                  CASE WHEN (",colname2," - ",colname1,")==0
-                    THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
-                   "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
-                   "END as percentDiff_",rivseg_metric[k], #creates % diff. column
-                   " FROM rsegs
-                 ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
-  rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+#----Calculate Rseg Metric % Diff ----
+rsegs_data <- st_drop_geometry(rsegs)
+for (j in 2:length(runid_list)) {
+  for (k in 1:length(rivseg_metric)) {
+    ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
+    column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+    column2 = paste0(runid_list[j],"_",rivseg_metric[k])
+    new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
+    message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
+    for (n in 1:nrow(rsegs_data)) {
+      if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
+        rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
+      } else {
+        rsegs_data[n,new_col] <- NA
+      }
+    }
+    rsegs[[new_col]] <- rsegs_data[[new_col]]
+  }
 }
 
 #----Write Files----

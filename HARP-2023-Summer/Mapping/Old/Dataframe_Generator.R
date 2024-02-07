@@ -273,16 +273,22 @@ rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
 
 #----Calculate Rseg Metric % Diff (NEW)----
-
+rsegs_data <- st_drop_geometry(rsegs)
 for (j in 2:length(runid_list)) {
   for (k in 1:length(rivseg_metric)) {
-    ## To do: enable pct difference calculation to work with more than 2 runids, with the difference always in relation to first runid supplied
+    ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
     column1 = paste0(runid_list[1],"_",rivseg_metric[k])
     column2 = paste0(runid_list[j],"_",rivseg_metric[k])
     new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
-    rsegs[new_col] <- (
-      100.0 * (rsegs[[column2]] - rsegs[[column1]]) / rsegs[[column1]]
-    )
+    message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
+    for (n in 1:nrow(rsegs_data)) {
+      if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
+        rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
+      } else {
+        rsegs_data[n,new_col] <- NA
+      }
+    }
+    rsegs[[new_col]] <- rsegs_data[[new_col]]
   }
 }
 
