@@ -1,3 +1,23 @@
+---
+title: "Dataframe_Generator"
+params:
+  origin: ["Roanoke_1"] #name of a region (Roanoke_1), locality (Montgomery), or a rivseg ID (JL7_7070_0001)
+  origin_type: ["region"] #basin, locality, or region
+  featr_type: ["facility"] #source or facility
+  runid_list: ["runid_11","runid_13"]
+  model_version: ["vahydro-1.0"]
+  metric_mod: ["wd_mgd"] #wd_mgd, ps_mgd
+  metric_feat: ["NA"] #wsp2020_2040_mgy, NA
+  rivseg_metric: ["l30_Qout","l90_Qout"] #l30_Qout, l90_Qout, 7q10
+  crs_default: 4326
+  limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
+                                  #if FALSE --> all featrs in the associated basins will be plotted
+  overwrite_files: TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
+  base_layer_data: FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)
+                           #if TRUE -> will also re-generate map base-layer data (regions, counties, cities, roads)
+---
+
+```{r setup}
 library(data.table)
 library(hydrotools)
 library(rapportools)
@@ -6,39 +26,21 @@ basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_pct_diff.R"),local = TRUE) #load % difference function 
 
-############################################################### #
-# inputs
-############################################################### #
-
-## Manually setting parameters:
-crs_default <- 4326
-runid_list <- c("runid_11","runid_13")
-model_version <- c("vahydro-1.0")
-origin <- "Roanoke_1" #name of a region (Roanoke_1), locality (Montgomery), or a rivseg ID (JL7_7070_0001)
-origin_type <- "region" #basin, locality, or region
-featr_type <- "facility" #source or facility
-limit_featrs_to_origin <- FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
-                                  #if FALSE --> all featrs in the associated basins will be plotted
-metric_mod <- c("wd_mgd") #wd_mgd, ps_mgd
-metric_feat <- c("wsp2020_2040_mgy") #wsp2020_2040_mgy
-rivseg_metric <- c("l30_Qout","l90_Qout") #l30_Qout, l90_Qout, 7q10
-
-overwrite_files <- TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
-base_layer_data <- FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)
-                           #if TRUE -> will also re-generate map base-layer data (regions, counties, cities, roads)
-##
+#assign params
+for(i in 1:length(params)){
+  assign(names(params[i]), params[[i]])
+}
 
 #note: the variables "github_location" and "export_path" should be defined in config.local
 #github_location provides easy access to functions & dataset resources ; export_path is where generated dataframes will output
+```
 
-############################################################### #
 
-############################################################### #
-
+```{r}
 #----Check if Files Already Exist----
 #rivseg file
 rseg_filepath <- paste0(export_path,origin,"_rsegs_sf.csv")
@@ -72,7 +74,7 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 # foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
-foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_expanded.csv")) #foundational measuring pt(mp)/sources data
+foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   
@@ -108,15 +110,15 @@ rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), fi
 
 #---County Data---
 cnty_fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
-cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
+cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
 
 #---Cities & Roads---
 if(base_layer_data==TRUE){
   roads <- fn_download_read(
-    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/tl_2022_51_prisecroads.zip", 
+    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/tl_2022_51_prisecroads.zip", 
     filetype="shp", zip=TRUE) #.shp file for US states & primary roads
   
-  cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/USA_Major_Cities_GIS.csv')
+  cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/DataFiles/USA_Major_Cities_GIS.csv')
 }
 
 #----Filter/Process Data----
@@ -182,13 +184,13 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                   ") #all source-related data now only applies to 1 source (random) within the facil 
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
   f_merge <- merge(x=f_model, #merge/full join foundational & modeled facil data
-                   y=f_foundatn[names(f_foundatn)!="Hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
-                   by.x="featureid", by.y="Facility_hydroid", all=T
+                   y=f_foundatn[names(f_foundatn)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
+                   by.x="featureid", by.y="facility_hydroid", all=T
                    )
   #join facility geometry to merged data frame:
   featrs <- sqldf(paste("SELECT", #selects/renames desired columns from f_merge, matches them with geometry from f_geo based on featureid
-                        " a.Facility, a.featureid as Facility_hydroid, a.Use_Type, a.Locality, 
-                      a.sum as five_yr_avg, a.wsp_2040_mgy, a.Permit_Limit, a.",df$runlabel[1],", a.",df$runlabel[2],",
+                        " a.facility, a.featureid as Facility_hydroid, a.Use_Type, a.locality, 
+                      a.sum as five_yr_avg, a.wsp_2040_mgy, a.Permit_Limit_MGY, a.",df$runlabel[1],", a.",df$runlabel[2],",
                       b.",fn_geoCol(f_geo), #robust for varying geometry column names
                         " FROM f_merge as a
                       LEFT OUTER JOIN f_geo as b
@@ -239,12 +241,15 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
 
 #----Additional Pulling Post-Filtering----
 #---User-Input Non-Modeled Feature Metrics---
-for (i in 1:nrow(featrs)) {
-  featrs[i,metric_feat] <- RomProperty$new(ds,list(
-    featureid = featrs$Facility_hydroid[i], 
-    propname = metric_feat),
-    TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
+if (metric_feat != "NA") {
+ for (i in 1:nrow(featrs)) {
+    featrs[i,metric_feat] <- RomProperty$new(ds,list(
+      featureid = featrs$Facility_hydroid[i], 
+      propname = metric_feat),
+      TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
+  } 
 }
+  
 
 #---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
 rivdf <- data.frame()
@@ -271,8 +276,7 @@ model_data_river <- om_vahydro_metric_grid(
 statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
 rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
-
-#----Calculate Rseg Metric % Diff (NEW)----
+#----Calculate Rseg Metric % Diff ----
 rsegs_data <- st_drop_geometry(rsegs)
 for (j in 2:length(runid_list)) {
   for (k in 1:length(rivseg_metric)) {
@@ -292,25 +296,10 @@ for (j in 2:length(runid_list)) {
   }
 }
 
-#----Calculate Rseg Metric % Diff (OLD)----
-# for (k in 1:length(rivseg_metric)){
-#   colname1 <- paste0(runid_list[1],'_',rivseg_metric[k])
-#   colname2 <- paste0(runid_list[2],'_',rivseg_metric[k])
-# 
-#   statemt <- paste("SELECT rsegs.*,
-#                   CASE WHEN (",colname2," - ",colname1,")==0
-#                     THEN 0 ", # 0/0 is NA so when difference is 0, %diff is 0
-#                    "ELSE ( (",colname2," - ",colname1,") / ",colname1," * 100) ", #calculate %diff as usual
-#                    "END as percentDiff_",rivseg_metric[k], #creates % diff. column
-#                    " FROM rsegs
-#                  ",sep="") #!! need a case for when colname1 is zero but colname2 isn't ?
-#   rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
-# }
-
 #----Write Files----
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 if(featr_type=="facility"){
-  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append=FALSE)
+  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
 if(featr_type=="source"){
   featrs <- featrs[names(featrs) %in% grep("^([0-9]+).$", names(featrs), value=TRUE, invert=TRUE)] #get rid of all those year columns
@@ -322,3 +311,5 @@ if(base_layer_data==TRUE){
   st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
   write.csv(cities, paste0(export_path,"cities.csv")) 
 }
+
+```

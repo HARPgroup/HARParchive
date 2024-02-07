@@ -1,7 +1,7 @@
 # Function for a percent difference calculation between 2 columns of a dataframe using sqldf 
 
 library(sqldf)
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fns_spatial.R"),local = TRUE)
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE)
 #fn_sqldf_sf loaded within fns_spatial.R, which enables sqldf to work w/ spatial dataframes
 
 #data = rsegs; column1 = 'runid_11_l30_Qout'; column2 = 'runid_13_l30_Qout'; new_col = 'percentDiff_l30_Qout_11_13' #for testing

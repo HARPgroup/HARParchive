@@ -22,7 +22,7 @@ source(paste(basepath,'config.R',sep='/'))
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_pct_diff.R"),local = TRUE) #load % difference function 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_pct_diff.R"),local = TRUE) #load % difference function 
 
 ## Inputs
 runid <- 11 #currently hard-coded in many places 
