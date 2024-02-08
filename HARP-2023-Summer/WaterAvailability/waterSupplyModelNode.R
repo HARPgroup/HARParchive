@@ -129,10 +129,16 @@ if ("wd_cumulative_mgd" %in% cols) { #cumulative variables are needed for calcul
   dat$wd_cumulative_mgd <- dat$wd_mgd
 }
 
-ps_mgd <- mean(as.numeric(dat$ps_mgd) )
-if (is.na(ps_mgd)) {
+if ("ps_mgd" %in% cols) {
+  ps_mgd <- mean(as.numeric(dat$ps_mgd) )
+  if (is.na(ps_mgd)) {
+    ps_mgd = 0.0
+  }
+} else {
   ps_mgd = 0.0
+  dat$ps_mgd = 0.0
 }
+
 if ("ps_cumulative_mgd" %in% cols) { #cumulative variables are needed for calculations including Water Availability and combine all upstream contributions
   ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
   if (is.na(ps_cumulative_mgd)) {
