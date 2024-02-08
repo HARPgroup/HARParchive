@@ -17,12 +17,7 @@ library(hydrotools)
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-source("https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/fn_get_pd_min.R") #for testing 
-#source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R')
-
-#Temporary:
-save_directory <- '/media/model/p532/out/river/hsp2_2022/impound'
-save_url <- 'http://deq1.bse.vt.edu:81/p532/out/river/hsp2_2022/impound'
+source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R')
 
 # Read Args
 argst <- commandArgs(trailingOnly=T)
@@ -30,7 +25,7 @@ pid <- as.integer(argst[1])
 elid <- as.integer(argst[2])
 runid <- as.integer(argst[3])
 
-finfo <- fn_get_runfile_info(elid, runid)
+finfo <- fn_get_runfile_info(elementid = elid, runid = runid, site=omsite)
 remote_url <- finfo$remote_url
 # Note: when we migrate to om_get_rundata()
 # we must insure that we do NOT use the auto-trim to water year
@@ -89,7 +84,7 @@ vahydro_post_metric_to_scenprop(scenprop$pid, 'external_file', remote_url, 'logf
 
 # does this have an impoundment sub-comp and is imp_off = 0?
 cols <- names(dat)
-imp_off <- NULL# default to no impouhd
+imp_off <- 1# default to no impouhd
 if ("imp_off" %in% cols) {
   imp_off <- as.integer(median(dat$imp_off))
 } else {
@@ -102,6 +97,17 @@ if ("imp_off" %in% cols) {
     imp_off <- 1 # default to no impoundment
   }
 }
+print("**************************************")
+print("**************************************")
+print("**************************************")
+print("**************************************")
+print(paste("IMP_OFF = ", imp_off))
+print("**************************************")
+print("**************************************")
+print("**************************************")
+print("**************************************")
+print("**************************************")
+
 wd_mgd <- mean(as.numeric(dat$wd_mgd) )
 if (is.na(wd_mgd)) {
   wd_mgd = 0.0
@@ -113,7 +119,7 @@ if (is.na(wd_imp_child_mgd)) {
 # combine these two for reporting
 wd_mgd <- wd_mgd + wd_imp_child_mgd
 
-if ("wd_cumulative_mgd" %in% cols) {
+if ("wd_cumulative_mgd" %in% cols) { #cumulative variables are needed for calculations including Water Availability and combine all upstream contributions
   wd_cumulative_mgd <- mean(as.numeric(dat$wd_cumulative_mgd) )
   if (is.na(wd_cumulative_mgd)) {
     wd_cumulative_mgd = wd_mgd
@@ -127,7 +133,7 @@ ps_mgd <- mean(as.numeric(dat$ps_mgd) )
 if (is.na(ps_mgd)) {
   ps_mgd = 0.0
 }
-if ("ps_cumulative_mgd" %in% cols) {
+if ("ps_cumulative_mgd" %in% cols) { #cumulative variables are needed for calculations including Water Availability and combine all upstream contributions
   ps_cumulative_mgd <- mean(as.numeric(dat$ps_cumulative_mgd) )
   if (is.na(ps_cumulative_mgd)) {
     ps_cumulative_mgd = ps_mgd
@@ -208,6 +214,8 @@ flows <- aggregate(
   ),
   'mean'
 )
+## Water year is overridden in group2() by calendar year for L30 and L90 calculations to avoid overestimation of Smin in the current year and underestimation in the next
+## The period of minimum storage in impoundments (period of Smin) often overlaps with Oct 1st 
 #loflows <- group2(flows, flow_year_type); 
 loflows <- group2(flows, year = 'calendar');
 l90 <- loflows["90 Day Min"];
@@ -215,8 +223,8 @@ ndx = which.min(as.numeric(l90[,"90 Day Min"]));
 l90_Qout = round(loflows[ndx,]$"90 Day Min",6);
 l90_year = loflows[ndx,]$"year";
 
-if (is.na(l90)) {
-  l90_Runit = 0.0
+if (is.na(l90_Qout)) {
+  l90_Qout = 0.0
   l90_year = 0
 }
 
@@ -270,36 +278,6 @@ if (is.na(unmet_demand_mgd)) {
 }
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'unmet_demand_mgd', unmet_demand_mgd, ds)
 
-if (imp_off==0) {
-  # Smin_CPL metrics
-  start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
-  end_date_30 <- paste0(l30_year,"-12-31")
-  
-  start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
-  end_date_90 <- paste0(l90_year,"-12-31")
-  
-  # Calculate Smin_CPLs using function
-  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_30, end_date = end_date_30,
-                                 colname = "impoundment_Storage")
-  
-  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_90, end_date = end_date_90,
-                                 colname = "impoundment_Storage")
-  
-  # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
-  Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
-  Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
-  
-  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
-  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
-  
-} else if (imp_off == 1) {  # Set Smin metrics to 0 if impoundment is not active
-  Smin_L30_mg <- 0
-  Smin_L90_mg <- 0
-  
-  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
-  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
-}
-
 # Metrics trimmed to climate change scenario timescale (Jan. 1 1990 -- Dec. 31 2000)
 if (syear <= 1990 && eyear >= 2000) {
   sdate_trim <- as.Date(paste0(1990,"-10-01"))
@@ -350,8 +328,36 @@ if (syear <= 1990 && eyear >= 2000) {
 
 message("Plotting critical flow periods")
 # does this have an active impoundment sub-comp
-if (imp_off == 0) {
+if (imp_off == 0) { #has impoundment 
+  print("*******************************************")
+  print("*******************************************")
+  print("*******************************************")
+  print("has IMPOUNDMENT")
+  print("*******************************************")
+  print("*******************************************")
+  print("*******************************************")
 
+  # Smin_CPL metrics
+  start_date_30 <- paste0(l30_year,"-01-01") # Dates for l90_year
+  end_date_30 <- paste0(l30_year,"-12-31")
+  
+  start_date_90 <- paste0(l90_year,"-01-01") # Dates for l30_year
+  end_date_90 <- paste0(l90_year,"-12-31")
+  
+  # Calculate Smin_CPLs using function
+  Smin_L30_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_30, end_date = end_date_30,
+                                 colname = "impoundment_Storage")
+  
+  Smin_L90_acft <- fn_get_pd_min(ts_data = dat, start_date = start_date_90, end_date = end_date_90,
+                                 colname = "impoundment_Storage")
+  
+  # Convert from from ac-ft to mg: 1 mg = 3.069 acre-feet
+  Smin_L30_mg <- round(Smin_L30_acft/3.069, digits = 3)
+  Smin_L90_mg <- round(Smin_L90_acft/3.069, digits = 3)
+  
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
+  
   if("impoundment" %in% cols) {
     # Plot and analyze impoundment sub-comps
     dat$storage_pct <- dat$impoundment_use_remain_mg * 3.07 / dat$impoundment_max_usable
@@ -616,11 +622,25 @@ if (imp_off == 0) {
     vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'elev90_imp_storage.all', 0.0, ds)
 
   }
-} else {
+} else { #no impoundment 
   # plot Qin, Qout of mainstem, and wd_mgd, and wd_cumulative_mgd
   # TBD
   # l90 2 year
-  # this has an impoundment.  Plot it up.
+  print("**************************************")
+  print("**************************************")
+  print("**************************************")
+  print("**************************************")
+  print("Riverine model only, plotting regular hydrographs.")
+  print("**************************************")
+  print("**************************************")
+  print("**************************************")
+  print("**************************************")
+  
+  # No storage if there is no impoundment
+  Smin_L30_mg <- 0
+  Smin_L90_mg <- 0
+  
+  # Plot hydrographs only (no impoundment)
   # Now zoom in on critical drought period
   pdstart = as.Date(paste0(l90_year,"-06-01") )
   pdend = as.Date(paste0(l90_year, "-11-15") )
@@ -674,6 +694,17 @@ if (imp_off == 0) {
   print(paste("Saved file: ", fname, "with URL", furl))
   vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.l90_flows.2yr', 0.0, ds)
 
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("PLOTTING FULL PERIOD FLOWS")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+
   datpd <- dat
   fname <- paste(
     save_directory,
@@ -709,10 +740,23 @@ if (imp_off == 0) {
   axis(side = 4)
   mtext(side = 4, line = 3, 'Flow/Demand (cfs)')
   dev.off()
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
   print(paste("Saved file: ", fname, "with URL", furl))
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
+  message("**************************************")
   vahydro_post_metric_to_scenprop(scenprop$pid, 'dh_image_file', furl, 'fig.flows.all', 0.0, ds)
 
 }
+
+# Export Smin
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L30_mg', Smin_L30_mg, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Smin_L90_mg', Smin_L90_mg, ds)
 
 
 ###############################################
@@ -743,7 +787,7 @@ furl <- paste(
   sep = '/'
 )
 
-#FDC fails when plotting neg values, replace neg Qbaseline w/ 0 
+#FDC fails when plotting neg values, so replace neg Qbaseline w/ 0 
 if (any(datpd[,base_var] < 0)) { #check if any Qbaseline < 0
   datpd_pos <- datpd
   datpd_pos[,base_var] <- pmax(datpd_pos[,base_var], 0)
@@ -770,8 +814,6 @@ fdc_plot <- hydroTSM::fdc(
   # ylim=c(1.0, 5000),
   # ylim=c(min(datpd), max(datpd)),
   ylim=c(ymn, ymx),
-#  ylim=c(1, 100), #for an empty fdc when Qout & Qbaseline = 0 
-#  xlim=c(1,100), #for an empty fdc when Qout & Qbaseline = 0 
   cex.main=1.75,
   cex.axis=1.50,
   leg.cex=2,
