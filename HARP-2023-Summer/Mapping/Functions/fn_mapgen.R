@@ -335,7 +335,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
   #                  dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
   #                  st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
   #   )
-  map <- map + ggspatial::annotation_scale(unit_category="imperial") #plot_unit="mi")
+  map <- map + ggspatial::annotation_scale(unit_category="imperial")
   
   map <- map + ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
