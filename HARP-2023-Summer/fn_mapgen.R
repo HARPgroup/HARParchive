@@ -1,14 +1,14 @@
 ## Establishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
 library(sp)
-library(rgeos)
+#library(rgeos)
 library(ggmap)
 library(raster)
 library(ggplot2)
 library(ggnewscale)
 library(mgsub)
 library(sf)
-library(ggsn)
+#library(ggsn)
 library(ggspatial)
 library(ggrepel)
 library(geosphere)
@@ -333,10 +333,10 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
     
   map <- map + geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill= colors_sf["shadow",], lwd=1 ) # Reverse Fill
     
-  map <- map + ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = rsegs
-                   dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
-                   st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
-    )
+  # map <- map + ggsn::scalebar(data = bbox_sf, dist= round((distance/20),digits=0), # previously: data = rsegs
+  #                  dist_unit='mi', location='bottomleft', transform=TRUE, model='WGS84', 
+  #                  st.bottom=FALSE, st.size=textsize[4], st.dist=0.03, anchor = anchor_vect #,box.color="#FF00FF", border.size=12 
+  #   )
   map <- map + ggspatial::annotation_north_arrow(which_north="true", location="tr",
                                       height= unit(4,"cm"), width= unit(3, "cm"), 
                                       style= north_arrow_orienteering(text_size=35)

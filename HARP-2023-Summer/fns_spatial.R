@@ -1,7 +1,7 @@
 # Defines all HARP-analyst-written functions for dealing with spatial data
 library(sf)
 library(sp)
-library(rgeos)
+#library(rgeos)
 
 #---- fn_geoCol ----
 ## Determines & returns the name of the spatial geometry column in the data
