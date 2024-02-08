@@ -1,7 +1,6 @@
 # Defines all HARP-analyst-written functions for dealing with spatial data
 library(sf)
 library(sp)
-library(rgeos)
 
 #---- fn_geoCol ----
 ## Determines & returns the name of the spatial geometry column in the data
@@ -65,18 +64,19 @@ fn_centroid_coords <- function(data, geom_col, crs=4326) {
 # data : dataframe for processing
 # geom_col : the character name of the column containing spatial geometry data
 
-fn_wkt_sp <- function(data, geom_col) {
-  for (i in 1:nrow(data)) { 
-    sp.i <- sp::addAttrToGeom(
-      x=rgeos::readWKT(data[i,geom_col]), #read geometry from column identified in input
-      y=as.data.frame(as.list(subset(data[i,],select=-c(names(data)==geom_col)))),      
-      match.ID=TRUE
-    )
-    if (i == 1) { #start with one 
-      data_sp <- sp.i
-    } else { #append
-      data_sp <- rbind(data_sp, sp.i)
-    }
-  }
-  return(data_sp) #final data frame of specified format is created with geom
-}
+# #commenting out because rgeos is now archived on CRAN, fn_wkt_sp is no longer used in the code
+# fn_wkt_sp <- function(data, geom_col) {
+#   for (i in 1:nrow(data)) { 
+#     sp.i <- sp::addAttrToGeom(
+#       x=rgeos::readWKT(data[i,geom_col]), #read geometry from column identified in input
+#       y=as.data.frame(as.list(subset(data[i,],select=-c(names(data)==geom_col)))),      
+#       match.ID=TRUE
+#     )
+#     if (i == 1) { #start with one 
+#       data_sp <- sp.i
+#     } else { #append
+#       data_sp <- rbind(data_sp, sp.i)
+#     }
+#   }
+#   return(data_sp) #final data frame of specified format is created with geom
+# }
