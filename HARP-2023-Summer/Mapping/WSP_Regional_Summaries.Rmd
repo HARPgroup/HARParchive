@@ -19,10 +19,8 @@ params:
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
   rsegs_file: FALSE
-  run_set: "wsp_2020_2040"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
-
-  #run_set: NULL # new method of specifying river metric maps and tables
+  run_set: NULL # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
   # default files for map's base-layers
@@ -343,7 +341,7 @@ if (show_map == TRUE) {
     
       #create title based on origin & type
     if (origin_type == "basin") {
-      title <- (paste("Basin Upstream of", segs$name[segs$riverseg==origin] , origin, sep=" "))
+      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
     } else if (origin_type == "locality") {
       title <- paste0(origin, " Locality")
     } else if (origin_type == "region") {
