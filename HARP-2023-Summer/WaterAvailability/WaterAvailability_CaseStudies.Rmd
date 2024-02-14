@@ -6,6 +6,7 @@ output: word_document
 
 params: 
   impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
+  runlabel: ["runid_11"]
 
 ---
 
@@ -46,10 +47,10 @@ A case study is a descriptive example of a particular area (ex. a watershed/regi
 ```{r Pull Data}
 #Get storage metrics 
 df_storage <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
-  'metric' = c('Smin_L30_mg', 'Smin_L90_mg','Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c('SminL30mg_11', 'SminL90mg_11','SminL30mg_13', 'SminL90mg_13')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c(runlabel, runlabel),
+  'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
+  'runlabel' = c(paste0('SminL30mg_',runlabel), paste0('SminL90mg_', runlabel))
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -59,10 +60,10 @@ storage_data <- om_vahydro_metric_grid(
 
 #Get demand scenario metrics used in WA eqn
 df_metrics <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
-  'metric' = c('l30_Qout', 'l90_Qout', 'l30_Qout', 'l90_Qout'),
-  'runlabel' = c('l30_Qout_11_dem', 'l90_Qout_11_dem', 'l30_Qout_13_dem', 'l90_Qout_13_dem')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c(runlabel, runlabel),
+  'metric' = c('l30_Qout', 'l90_Qout'),
+  'runlabel' = c(paste0('l30_Qout_', runlabel), paste0('l90_Qout_', runlabel))
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -86,24 +87,11 @@ baseline_data <- om_vahydro_metric_grid(
 
 
 ```{r Sum Storage by Riverseg}
-#First create df with storage based on rivseg rather than impoundment
-storage_byseg <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_11,
-                       SUM(SminL30mg_11) AS SminL30mg_11_sum
-                       FROM storage_data
-                       GROUP BY riverseg
-                       ")
-
-
-
-```
-
-
-```{r Connect Impoundments to their Basins}
-
-#fn_extract_basin()
-
-#Get any other impoundments in the same basins
-
+# storage_byseg <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_11,
+#                        SUM(SminL30mg_11) AS SminL30mg_11_sum
+#                        FROM storage_data
+#                        GROUP BY riverseg
+#                        ")
 ```
 
 
