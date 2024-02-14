@@ -1,0 +1,145 @@
+---
+title: "WaterAvailability_CaseStudies"
+author: "HARP Analysts"
+date: "2024-02-14"
+output: word_document
+
+params: 
+  impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
+
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(hydrotools)
+library(sqldf)
+
+basepath='/var/www/R'
+source('/var/www/R/config.R') 
+ds <- RomDataSource$new(site, rest_uname)
+ds$get_token(rest_pw)
+
+#assign params
+for(i in 1:length(params)){
+  assign(names(params[i]), params[[i]])
+}
+```
+
+# Water Availability Case Studies 
+
+
+## Case Study Description 
+A case study is a descriptive example of a particular area (ex. a watershed/region) where water availability is calculated. For that example watershed, we can take a detailed look at the individual calculations and resulting values generated.
+
+
+## Impoundments for case studies:
+- Lake Manassas 
+- Lake Moomaw
+- Lake Chesdin 
+- Lake Anna 
+- Carvin's Cove 
+- Jennings Randolph Lake 
+
+
+## Table 1: Smin Analysis 
+
+```{r Pull Data}
+#Get storage metrics 
+df_storage <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
+  'metric' = c('Smin_L30_mg', 'Smin_L90_mg','Smin_L30_mg', 'Smin_L90_mg'),
+  'runlabel' = c('SminL30mg_11', 'SminL90mg_11','SminL30mg_13', 'SminL90mg_13')
+)
+storage_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+
+#Get demand scenario metrics used in WA eqn
+df_metrics <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_11', 'runid_11', 'runid_13', 'runid_13'),
+  'metric' = c('l30_Qout', 'l90_Qout', 'l30_Qout', 'l90_Qout'),
+  'runlabel' = c('l30_Qout_11_dem', 'l90_Qout_11_dem', 'l30_Qout_13_dem', 'l90_Qout_13_dem')
+)
+metric_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+
+#Get baseline scenario metrics for WA eqn
+df_baseline <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c('runid_0', 'runid_0'),
+  'metric' = c('l90_Qout', 'l30_Qout'),
+  'runlabel' = c('l90_Qout_base', 'l30_Qout_base')
+)
+baseline_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_baseline, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+```
+
+
+```{r Sum Storage by Riverseg}
+#First create df with storage based on rivseg rather than impoundment
+storage_byseg <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_11,
+                       SUM(SminL30mg_11) AS SminL30mg_11_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       ")
+
+
+
+```
+
+
+```{r Connect Impoundments to their Basins}
+
+#fn_extract_basin()
+
+#Get any other impoundments in the same basins
+
+```
+
+
+```{r Create and Display Table}
+
+
+
+```
+
+
+## Table 2: Cases of Differing Minimum Smins by Method 
+
+```{r}
+#the approx metho should always give us the lowest value of Smin 
+```
+
+
+
+
+## Table/Map 3: Water Availability by Riverseg
+
+```{r}
+
+```
+
+
+
+
+## Graph 1: WA vs. Demand and Flow
+
+```{r}
+#demand could be represented by wd_mgd or maybe consumptive_use_frac
+#flow will be represented by Qout 
+```
+
+
+
+
+## Notes & Discussion 
