@@ -6,7 +6,7 @@ output: word_document
 
 params: 
   impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
-  runlabel: ["runid_11"]
+  runid: ["11"] #numeric only
 
 ---
 
@@ -20,10 +20,16 @@ source('/var/www/R/config.R')
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
+source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
+
+options(scipen = 999) #disable scientific notation
+
 #assign params
 for(i in 1:length(params)){
   assign(names(params[i]), params[[i]])
 }
+
+runlabel <- paste0('runid_', runid)
 ```
 
 # Water Availability Case Studies 
@@ -44,13 +50,13 @@ A case study is a descriptive example of a particular area (ex. a watershed/regi
 
 ## Table 1: Smin Analysis 
 
-```{r Pull Data}
+```{r Pull Data, message=FALSE}
 #Get storage metrics 
 df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
   'runid' = c(runlabel, runlabel),
   'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c(paste0('SminL30mg_',runlabel), paste0('SminL90mg_', runlabel))
+  'runlabel' = c(paste0('SminL30mg_',runlabel, '_vah'), paste0('SminL90mg_', runlabel, '_vah'))
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -87,12 +93,243 @@ baseline_data <- om_vahydro_metric_grid(
 
 
 ```{r Sum Storage by Riverseg}
-# storage_byseg <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_11,
-#                        SUM(SminL30mg_11) AS SminL30mg_11_sum
-#                        FROM storage_data
-#                        GROUP BY riverseg
-#                        ")
+#Sum SminL30 by riverseg
+storage_byseg_30 <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL30mg_",runlabel,"_vah,
+                       SUM(SminL30mg_",runlabel,"_vah) AS SminL30mg_",runlabel,"_vah_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       "))
+
+#Sum SminL90 by riverseg
+storage_byseg_90 <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL90mg_",runlabel,"_vah,
+                       SUM(SminL90mg_",runlabel,"_vah) AS SminL90mg_",runlabel,"_vah_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       "))
+
+#Join SminL30 and SminL90 summed storage
+storage_byseg <- sqldf(paste0("SELECT a.riverseg, a.SminL30mg_",runlabel,"_vah_sum, b.SminL90mg_",runlabel,"_vah_sum
+                              FROM storage_byseg_30 AS a
+                              LEFT OUTER JOIN storage_byseg_90 AS b
+                              WHERE (a. riverseg = b.riverseg) "))
 ```
+
+
+```{r Smin Calculations, message=FALSE}
+
+for (i in 1:nrow(storage_data)) {
+  #Get runfile with timeseries data from VAhydro
+  pid <- storage_data$pid[i]
+
+  token = ds$get_token(rest_pw) #needed for elid function
+  elid <- om_get_model_elementid(
+    base_url = site,
+    mid = storage_data$pid[i]
+  )
+  rm(token)
+
+  dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
+  mode(dat) <- 'numeric'
+  
+  #Get model to get object class
+  model <- RomProperty$new(ds,list( 
+    featureid = storage_data$featureid[i],
+    propcode = 'vahydro-1.0'
+  ),TRUE)
+  
+  #Get object class 
+  object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
+    featureid = model$pid,
+    propname = 'object_class'
+  ),TRUE)  
+  
+  object_class <- object_class$propcode
+  
+  #Trim runfile
+  syear = as.integer(min(dat$year))
+  eyear = as.integer(max(dat$year))
+  if (syear < (eyear - 2)) {
+    sdate <- as.Date(paste0(syear,"-10-01"))
+    edate <- as.Date(paste0(eyear,"-09-30"))
+  } else {
+    sdate <- as.Date(paste0(syear,"-02-01"))
+    edate <- as.Date(paste0(eyear,"-12-31"))
+  }
+  dat <- window(dat, start = sdate, end = edate);
+  mode(dat) <- 'numeric' 
+  cols <- names(dat)
+  
+  #Different names for storage and Qin values:
+  
+  if (!('Storage' %in% cols)) { #if a column named Storage does not exist
+
+    if ('impoundment_Storage' %in% cols) {
+      names(dat)[names(dat) == 'impoundment_Storage'] <- 'Storage'
+    } else if ('local_impoundment_Storage' %in% cols) {
+      names(dat)[names(dat) == 'local_impoundment_Storage'] <- 'Storage'
+    } else {
+      dat$Storage <- 0 #set storage to 0 if not an impoundment feature
+    }
+  }
+  
+  #Finding which var/column our group2() should use, based on model object class 
+  if (object_class == "hydroImpoundment") {
+    Qcol <- "Qin"
+    #storageCol <-   
+  } else if (object_class == "waterSupplyModelNode") {
+    Qcol <- "Qout"
+    #storageCol <-   
+  } else if (object_class == "waterSupplyElement") {
+      if ('Qintake' %in% cols) { 
+        Qcol <- "Qintake" #this column used in waterSupplyElement.R
+      } else if ('Qin' %in% cols) {
+        Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead 
+      }
+    #storageCol <-   
+  } else { #object_class is something else 
+    Qcol <- "Qout" #Qout is the default 
+  }
+  
+  #find l30 and l90 years based on Qcol
+  flows <- zoo(dat[,Qcol], order.by = index(dat)); ## Change to var based on object class 
+  loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
+  
+  l90 <- loflows["90 Day Min"];
+  ndx = which.min(as.numeric(l90[,"90 Day Min"]));
+  l90_Qout = round(loflows[ndx,]$"90 Day Min",6);
+  l90_year = loflows[ndx,]$"year";
+  l90_start = as.Date(paste0(l90_year,"-01-01"))
+  l90_end = as.Date(paste0(l90_year,"-12-31"))
+  datpd_90 <- window(
+    dat,
+    start = l90_start,
+    end = l90_end
+  )
+  
+  l30 <- loflows["30 Day Min"];
+  ndx = which.min(as.numeric(l30[,"30 Day Min"]));
+  l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
+  l30_year = loflows[ndx,]$"year";
+  l30_start = as.Date(paste0(l30_year,"-01-01"))
+  l30_end = as.Date(paste0(l30_year,"-12-31"))
+  datpd_30 <- window(
+    dat,
+    start = l30_start,
+    end = l30_end
+  )
+
+  ##Approximate method: Smin within low-flow years:
+  Smin_L30_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
+  Smin_L90_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
+ 
+  storage_data$Smin_L30_approx_mg[i] <- Smin_L30_approx_acf / 3.069
+  storage_data$Smin_L90_approx_mg[i] <- Smin_L90_approx_acf / 3.069
+  
+  
+  ##Near-exact method: Smin within the L30 and L90 periods:
+  
+  #data for each l30 and l90 years
+  l30yr_flows <- window(flows, start = l30_start, end = l30_end)
+  l90yr_flows <- window(flows, start = l90_start, end = l90_end)
+  
+  l30yr_data <- window(dat, start = l30_start, end = l30_end)
+  l90yr_data <- window(dat, start = l90_start, end = l90_end)
+  
+  #zoo to data frame
+  l30yr_flows <- as.data.frame(l30yr_flows)
+  l90yr_flows <- as.data.frame(l90yr_flows)
+  
+  l30yr_data <- as.data.frame(l30yr_data)
+  l90yr_data <- as.data.frame(l90yr_data)
+  
+  l30yr_df <- l30yr_flows %>% mutate(rollmean_30 = rollmean(l30yr_flows, k=30, fill=NA, align='left' ))
+  l90yr_df <- l90yr_flows %>% mutate(rollmean_90 = rollmean(l90yr_flows, k=90, fill=NA, align='left'))
+  
+  #start dates for low flow periods
+  rownum_start90 <- which.min(l90yr_df$rollmean_90) 
+  rownum_start30 <- which.min(l30yr_df$rollmean_30)
+  
+  l30pd_start <- as.Date(row.names(l30yr_df[which.min(l30yr_df$rollmean_30),]))
+  l90pd_start <- as.Date(row.names(l90yr_df[which.min(l90yr_df$rollmean_90),]))
+  
+  #end dates for low flow periods
+  rownum_end90 <- which.min(l90yr_df$rollmean_90) + 90
+  rownum_end30 <- which.min(l30yr_df$rollmean_30) + 30
+  
+  #end rownum cant be greater than length of data 
+  if (rownum_end90 > nrow(l90yr_df)) {
+    rownum_end90 = nrow(l90yr_df)
+  }
+  if (rownum_end30 > nrow(l30yr_df)) {
+    rownum_end30 = nrow(l30yr_df)
+  }
+  
+  l30pd_end <- as.Date(row.names(l30yr_df[rownum_end30, ]))
+  l90pd_end <- as.Date(row.names(l90yr_df[rownum_end90, ]))
+  
+  #flow data for the drought periods 
+  l30pd_flows <- window(dat, start = l30pd_start, end = l30pd_end)
+  l90pd_flows <- window(dat, start = l90pd_start, end = l90pd_end)
+  
+  l30pd_df <- as.data.frame(l30pd_flows)
+  l90pd_df <- as.data.frame(l90pd_flows)
+  
+  #Smin within the low flow periods
+    #Storage needs to be converted from acre-feet to million gallons
+  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage) / 3.069
+  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage) / 3.069
+  
+  #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
+  minstorage30yr <- min(l30yr_data$Storage)
+  minstorage90yr <- min(l90yr_data$Storage)
+  
+  n_mins30 <- length(which(l30yr_data$Storage==minstorage30yr))
+  n_mins90 <- length(which(l90yr_data$Storage==minstorage90yr))
+  
+  yearMinRow30 <- which.min(l30yr_data$Storage) 
+  yearMinRow90 <- which.min(l90yr_data$Storage)
+
+  if (n_mins30 > 1) {  # workaround for when a min value is repeated, ex. 100s across all storage vals 
+    storage_data$min_in_pd30[i] <- TRUE
+  } else {
+    storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
+  }
+  if (n_mins90 > 1) {
+    storage_data$min_in_pd90[i] <- TRUE
+  } else {
+  storage_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
+  }
+  
+  #If not, how far outisde the low flow period?
+  if (storage_data$min_in_pd30[i] == FALSE) {
+    not_before <- rownum_start30 < yearMinRow30
+    not_after <- rownum_end30 > yearMinRow30
+    if (not_before == FALSE) {
+      storage_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
+    } else if (not_after == FALSE) {
+      storage_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
+    }
+  }
+  if (storage_data$min_in_pd90[i] == FALSE) {
+    not_before <- rownum_start90 < yearMinRow90
+    not_after <- rownum_end90 > yearMinRow90
+    if (not_before == FALSE) {
+      storage_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
+    } else if (not_after == FALSE) {
+      storage_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90) 
+    }
+  }
+  
+}
+
+```
+
+
+
+
+
+
+
 
 
 ```{r Create and Display Table}
