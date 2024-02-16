@@ -41,11 +41,39 @@ metric_names <- data.frame(read_metric_name, new_metric_name)
 run_sets <- list(
   wsp_2020_2040 = list(
     riverseg_metrics=list( 
-      list(metric='l30_Qout', column_name='percentDiff_l30_Qout_runid_11_runid_13', run_label = '2040 WSP L30 %'),
-      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_13', run_label = '2040 WSP 7q10 %'),
+      list(
+        metric='l30_Qout', 
+        column_name='percentDiff_l30_Qout_runid_11_runid_13', 
+        run_label = '2040 WSP L30 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
+        sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
+        sort_descending = FALSE
+      ),
+      list(
+        metric='7q10', 
+        column_name='percentDiff_7q10_runid_11_runid_13', 
+        run_label = '2040 WSP 7q10 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
+        sort_col = 'percentDiff_7q10_runid_11_runid_13',
+        sort_descending = FALSE
+      ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
-      list(metric='7q10', column_name='percentDiff_7q10_runid_11_runid_17', run_label = 'Climate Change 7q10 %'),
-      list(metric='Smin_L30_mg', column_name='runid_13_Smin_L30_mg', run_label = 'Minimum Storage')
+      list(
+        metric='7q10', 
+        column_name='percentDiff_7q10_runid_11_runid_17', 
+        run_label = 'Climate Change 7q10 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_17_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
+        sort_col = 'percentDiff_7q10_runid_11_runid_17',
+        sort_descending = FALSE
+      ),
+      list(
+        metric='Smin_L30_mg', 
+        column_name='runid_13_Smin_L30_mg', 
+        run_label = 'Minimum Storage', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'),
+        sort_col = 'runid_13_Smin_L30_mg',
+        sort_descending = TRUE
+      )
     )
   )
 )
