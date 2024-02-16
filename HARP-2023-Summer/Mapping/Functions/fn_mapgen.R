@@ -19,7 +19,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/f
 ## "featr_type" will be either basin, locality, or region
 ## "style" dictates which mapping aesthetics are desired from mapstyle_config.R (options right now are custom or default) 
 ## "mapnum": either 1 (facility/source maps) or 2 (riverseg maps)
-## "title": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
+## "maptitle": so we can specify titles for the riverseg maps, either pass in rivseg section or use "default"(for table 1)
 
 #Map 1 Args:
 # mapnum = 1; style = styles[[map_style]]; metric = featrs_file_map_bubble_column[i]; segs = rsegs
@@ -27,7 +27,7 @@ source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/f
 # mapnum = 2; style = styles[[map_style]]; metric = rivseg_metric[i]; segs = rsegs_sf
 
 fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
-                       nhd, maplabs, mp_layer, metric_unit, title) { 
+                       nhd, maplabs, mp_layer, metric_unit, maptitle) { 
   
   # Combine all map labels into one df:
   for(i in 1:length(maplabs)){
@@ -156,7 +156,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
     # Titles
     theme(text=element_text(size=20), title=element_text(size=40), #setting text sizes
           legend.title = element_text(size=25), axis.title.x=element_blank(), axis.title.y=element_blank()) +
-    ggtitle(title)
+    ggtitle(maptitle)
   # Rivseg fill based on drought metric % difference for rivseg maps 
   if (mapnum == 2) {
     map <- map + new_scale("fill") +
