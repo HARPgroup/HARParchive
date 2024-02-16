@@ -73,7 +73,7 @@ if (overwrite_files==TRUE) {
 
 #----Pull Data----
 #---Facility Data---
-foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/data/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   
@@ -99,7 +99,7 @@ if (featr_type=="facility") { #specified model metrics will be pulled @ the faci
     ds=ds
   )
   #pull facility-level geometry to join with model data:
-  f_geo <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
+  f_geo <- fread(paste0(github_location, "/Foundational_Data/data/facilities_all_geom.csv"))
 } 
 #---Watershed/Riverseg Data---
 #rsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ## VAhydro gives errors
