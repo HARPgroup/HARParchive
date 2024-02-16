@@ -76,34 +76,34 @@ run_sets <- list(
       )
     )
   ),
-permit_dev = list(
-  riverseg_metrics=list( 
-    list(
-      metric='l30_Qout', 
-      column_name='percentDiff_l30_Qout_runid_401_runid_601', 
-      run_label = '2040 WSP L30 %', 
-      tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_l30_Qout', 'runid_601_l30_Qout', 'percentDiff_l30_Qout_runid_401_runid_601'),
-      sort_col = 'percentDiff_l30_Qout_runid_401_runid_601',
-      sort_decreasing = FALSE
-    ),
-    list(
-      metric='7q10', 
-      column_name='percentDiff_7q10_runid_401_runid_601', 
-      run_label = '2040 WSP 7q10 %', 
-      tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_7q10', 'runid_601_7q10', 'percentDiff_7q10_runid_401_runid_601'),
-      sort_col = 'percentDiff_7q10_runid_401_runid_601',
-      sort_decreasing = FALSE
-    ),
-    list(
-      metric='Smin_L30_mg', 
-      column_name='runid_601_Smin_L30_mg', 
-      run_label = 'Minimum Storage', 
-      tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_Smin_L30_mg', 'runid_601_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_401_runid_601'),
-      sort_col = 'runid_601_Smin_L30_mg',
-      sort_decreasing = TRUE
+  permit_dev = list(
+    riverseg_metrics=list( 
+      list(
+        metric='l30_Qout', 
+        column_name='percentDiff_l30_Qout_runid_401_runid_601', 
+        run_label = '2040 WSP L30 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_l30_Qout', 'runid_601_l30_Qout', 'percentDiff_l30_Qout_runid_401_runid_601'),
+        sort_col = 'percentDiff_l30_Qout_runid_401_runid_601',
+        sort_decreasing = FALSE
+      ),
+      list(
+        metric='7q10', 
+        column_name='percentDiff_7q10_runid_401_runid_601', 
+        run_label = '2040 WSP 7q10 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_7q10', 'runid_601_7q10', 'percentDiff_7q10_runid_401_runid_601'),
+        sort_col = 'percentDiff_7q10_runid_401_runid_601',
+        sort_decreasing = FALSE
+      ),
+      list(
+        metric='Smin_L30_mg', 
+        column_name='runid_601_Smin_L30_mg', 
+        run_label = 'Minimum Storage', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_Smin_L30_mg', 'runid_601_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_401_runid_601'),
+        sort_col = 'runid_601_Smin_L30_mg',
+        sort_decreasing = TRUE
+      )
     )
   )
-)
 )
 
 #NHD flowline & waterbody classification & substitution:
