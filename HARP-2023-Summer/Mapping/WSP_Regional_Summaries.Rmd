@@ -14,11 +14,11 @@ params:
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
+  featrs_file: "~/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: FALSE
+  rsegs_file: "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: NULL # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -33,7 +33,7 @@ params:
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
-  show_map: TRUE #either TRUE or FALSE
+  show_map: FALSE #either TRUE or FALSE
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -270,6 +270,15 @@ Ex. for Drought (reg section XXX), refer to summary document Drought section L90
 facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
+#create title based on origin & type
+if (origin_type == "basin") {
+  title_main <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
+} else if (origin_type == "locality") {
+  title_main <- paste0(origin, " Locality")
+} else if (origin_type == "region") {
+  title_main <- paste0(origin, " Region")
+} 
+
 if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
     #legend_title <- paste0(featrs_file_map_bubble_column[i])
@@ -343,22 +352,9 @@ if (show_map == TRUE) {
     } else {
       maplabel <- colname
     }
-    
-      #create title based on origin & type
-    if (origin_type == "basin") {
-      title <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
-    } else if (origin_type == "locality") {
-      title <- paste0(origin, " Locality")
-    } else if (origin_type == "region") {
-      title <- paste0(origin, " Region")
-    } 
-    
-    
+
       #create map title by combining label and title
-      maptitle <- paste0(title, ", ", maplabel)
-  
-    
-       
+      maptitle <- paste0(title_main, ", ", maplabel)
   
     #suppressWarnings(suppressMessages( 
       map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
@@ -368,7 +364,7 @@ if (show_map == TRUE) {
                   counties = counties, roads = roads, 
                   nhd = nhd, maplabs = maplabs, 
                   mp_layer = mp_layer, metric_unit = metric_unit, 
-                  title = maptitle)
+                  maptitle = maptitle)
     #))
     
     #assign map to environment
@@ -422,13 +418,17 @@ if (show_map == TRUE) {
 ```
 
 ```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-#if (show_map == TRUE) {  
-  knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
-  if (mapMessage == TRUE) {
-    message("The metric requested does not exist for this map.")
-    message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
-  }
-#}
+# if (show_map == TRUE) {
+#   knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
+#   if (mapMessage == TRUE) {
+#     message("The metric requested does not exist for this map.")
+#     message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+#   }
+# }
+
+if (show_map == TRUE) {
+  knitr::include_graphics(mapfilename) #display map(s) as PNG
+}
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -515,7 +515,7 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
                    origin_type = origin_type, metric = rivseg_metric[i], 
-                   origin = origin, title = title ) #execute flextable function
+                   origin = origin, tabletitle = title_main ) #execute flextable function
 
 ```
 ###Narrative note: 
@@ -552,7 +552,7 @@ if (show_map == TRUE) {
         rivmaplabel <- rivmapmetric
     }
   
-    rivmaptitle <- paste0(title, ", ", rivmaplabel)
+    rivmaptitle <- paste0(title_main, ", ", rivmaplabel)
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
     #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -608,7 +608,7 @@ if (show_map == TRUE) {
                                counties = counties, roads = roads, 
                                nhd = nhd, maplabs = maplabs, 
                                mp_layer = mp_layer, metric_unit = metric_unit, 
-                               title = rivmaptitle) 
+                               maptitle = rivmaptitle) 
     #))
     
     #assign map to environment
@@ -701,12 +701,12 @@ for (k in 1:length(run_config$riverseg_metrics)){ #loop thru metrics
       rivtablelabel <- rivtablemetric
   }
   
-  rivtabletitle <- paste0(title, ", ", rivtablelabel)
+  rivtabletitle <- paste0(title_main, ", ", rivtablelabel)
   
   ft2 <- fn_tablegen(featr_type = "riverseg", table = rivdf,
                      columns = "all", alignment = "left", 
                      metric = display_metric, origin_type = origin_type,  
-                     origin = origin , title = rivtabletitle) #flextable function
+                     origin = origin , tabletitle = rivtabletitle) #flextable function
   
   assign(paste0('table', k), ft2, envir = globalenv())
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
