@@ -3,7 +3,7 @@
 library(flextable)
 
 #create function
-fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metric, origin, title) { 
+fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metric, origin, tabletitle) { 
   #featr_type: either 'facility' (map 1) or 'riverseg' (map 2)
   #table: data frame to be transformed into a flextable 
   #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
@@ -39,7 +39,7 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
     ft <- width(ft, j=2, width = 0.8)
     ft <- align(ft, align = alignment, part = "all")
     ft <- add_header_lines(ft, values= "Table 1.1") #add subtite
-    ft <- add_header_lines(ft, values= title) #add title 
+    ft <- add_header_lines(ft, values= tabletitle) #add title 
     ft <- fontsize(ft, i=1, size=14, part = "header") #inc size of title
     
   } else if (featr_type == 'riverseg') {
@@ -58,7 +58,7 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
     ft <- add_header_lines(ft, values= paste0("Table 2.", num)) #add subtite
     
     #ft <- add_header_lines(ft, values= numname) #add subtite
-    ft <- add_header_lines(ft, values= title) #add title 
+    ft <- add_header_lines(ft, values= tabletitle) #add title 
     ft <- fontsize(ft, i=1, size=14, part = "header") #inc size of title
   }
   return(ft)

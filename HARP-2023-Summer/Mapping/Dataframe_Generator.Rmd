@@ -1,7 +1,7 @@
 ---
 title: "Dataframe_Generator"
 params:
-  origin: ["Roanoke_1"] #name of a region (Roanoke_1), locality (Montgomery), or a rivseg ID (JL7_7070_0001)
+  origin: ["Roanoke_1"] #name of a region (Roanoke_1), locality (use FIPS, i.e, 51015 = Augusta county), or a rivseg ID (JL7_7070_0001)
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   runid_list: ["runid_11","runid_13"]
@@ -75,8 +75,7 @@ if (overwrite_files==TRUE) {
 
 #----Pull Data----
 #---Facility Data---
-# foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
-foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/2023/foundation_dataset_mgy_1982-2022_HARP_11-16.csv")) #foundational measuring pt(mp)/sources data
+foundatn_mp <- fread(paste0(github_location, "/Foundational_Data/data/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   
@@ -103,7 +102,7 @@ if (featr_type=="facility") { #specified model metrics will be pulled @ the faci
     ds=ds
   )
   #pull facility-level geometry to join with model data:
-  f_geo <- fread(paste0(github_location, "/Foundational_Data/2023/facilities_all_geom.csv"))
+  f_geo <- fread(paste0(github_location, "/Foundational_Data/data/facilities_all_geom.csv"))
 } 
 #---Watershed/Riverseg Data---
 #rsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ## VAhydro gives errors
@@ -226,7 +225,7 @@ if (origin_type=="basin") { #finding upstream riversegs for basin maps
   rsegs <- unique(rsegs) #don't duplicate riversegs for overlapping basins
   rm(basin)
 } else if (origin_type=="locality") { #for locality level
-  rsegs <- st_filter(rsegs, counties[counties$name==origin, ]) #filter basins by locality (if REST is working)
+  rsegs <- st_filter(rsegs, counties[counties$hydrocode==origin, ]) #filter basins by locality (if REST is working)
 } else if (origin_type=="region") { #for region level
   rsegs <- st_filter(rsegs, regions[regions$region==origin,]) #filter basins by the region given in params
 }
