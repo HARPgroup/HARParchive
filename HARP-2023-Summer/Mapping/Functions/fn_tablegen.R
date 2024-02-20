@@ -51,8 +51,8 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
     ft <- width(ft, j=5, width = 1)
     ft <- align(ft, align = alignment, part = "all")
     
-    #highlight when precent diff is below highlight limit(defined in config)
-    ft <- flextable::bg(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
+    #highlight when precent diff is below highlight limit(defined in config)- CURRENTLY DISABLED FOR ERROR 
+    #ft <- flextable::bg(ft, i = ft$body$dataset$`percentDiff` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
    
     num <- grep(metric, rivseg_metric, value=FALSE)
     ft <- add_header_lines(ft, values= paste0("Table 2.", num)) #add subtite

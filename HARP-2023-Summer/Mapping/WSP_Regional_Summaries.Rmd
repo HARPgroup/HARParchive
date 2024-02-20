@@ -14,13 +14,13 @@ params:
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "~/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv"
+  featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv"
+  rsegs_file: "C:/HARP/Exports/Roanoke_1_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
-  run_set: NULL # new method of specifying river metric maps and tables
+  run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
   # default files for map's base-layers
@@ -143,6 +143,7 @@ if (is.null(run_config)) {
 } else {
   # we got a valid run_config so load riverseg_metrics AND generate rivseg_metric
   rivseg_metric = c()
+  
   for (j in 1:length(run_config$riverseg_metrics)) {
     rivseg_metric[j] = run_config$riverseg_metrics[[j]]$metric
   }
@@ -255,15 +256,17 @@ if (show_map == TRUE) {
   maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 }
 ```
-# Region 
+
+# Region
 
 ## Framing Text:
-Including how to use this doc per regulatory requirement.
-Include note that water is limited for your locality due to what was withdrawn upstream, and what needs to be left for downstream users.
-Ex. for Drought (reg section XXX), refer to summary document Drought section L90 maps.
+
+Including how to use this doc per regulatory requirement. Include note that water is limited for your locality due to what was withdrawn upstream, and what needs to be left for downstream users. Ex. for Drought (reg section XXX), refer to summary document Drought section L90 maps.
 
 ## State Plan 2020 demand - State Plan 2040 demand:
-### Map: 
+
+### Map:
+
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
@@ -518,10 +521,11 @@ ft1 <- fn_tablegen(featr_type = "facility", table = table,
                    origin = origin, tabletitle = title_main ) #execute flextable function
 
 ```
-###Narrative note: 
-Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
+
+###Narrative note: Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
 
 ### Table:
+
 ```{r View Table 1, echo=FALSE, out.width='100%', message=TRUE}
 if (tableMessage == TRUE) {
   message("Missing column indicates the metric requested does not exist for this table")
@@ -529,8 +533,10 @@ if (tableMessage == TRUE) {
 ft1 #display flextable
 ```
 
-## 2020/2040 Demand Scenarios Through Drought Metrics: L90 – 7Q10:
-### Map: 
+## 2020/2040 Demand Scenarios Through Drought Metrics: L90 -- 7Q10:
+
+### Map:
+
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
 
@@ -539,6 +545,7 @@ if (show_map == TRUE) {
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
     display_metric <- run_config$riverseg_metrics[[i]]$metric
     display_column <- run_config$riverseg_metrics[[i]]$column_name
+    display_title <- run_config$riverseg_metrics[[i]]$run_label
     
     rseg_leg_title <- legend_titling(display_metric, runid_list)
     
@@ -552,7 +559,7 @@ if (show_map == TRUE) {
         rivmaplabel <- rivmapmetric
     }
   
-    rivmaptitle <- paste0(title_main, ", ", rivmaplabel)
+    rivmaptitle <- paste0(display_title, ", ", rivmaplabel)
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
     #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -631,7 +638,7 @@ if (show_map == TRUE) {
 }
 ```
 
-```{r Create Table 2, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Create Table 2, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 rsegs <- st_drop_geometry(rsegs)
 
 rivTables <- list() #to store dataframes for each drought metric
@@ -713,7 +720,62 @@ for (k in 1:length(run_config$riverseg_metrics)){ #loop thru metrics
 }
 ```
 
-### Table: 
+```{r Create Table 2 UPDATED, echo=FALSE, message=FALSE, warning=FALSE}
+
+#NEW TABLE WITH RUNSET
+
+rivTables <- list() #to store dataframes for each drought metric
+rseg_display <- st_drop_geometry(rsegs) #copy of rsegs 
+
+  # base info
+for (k in 1:length(run_config$riverseg_metrics)){
+  display_metric <- run_config$riverseg_metrics[[k]]$metric
+  display_column <- run_config$riverseg_metrics[[k]]$column_name
+  table_cols <- unlist(run_config$riverseg_metrics[[k]]$tables_cols)
+  display_title <- run_config$riverseg_metrics[[k]]$run_label
+
+  
+  #metrics, to be suppressed later?
+  rseg_display$Metric <- display_metric 
+  
+  #assemble our table, with the columns in order defined by table_cols
+  rseg_display <- rseg_display[table_cols] 
+  
+  
+  #sorting 
+  sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+  rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+  
+  #fill blanks with NA
+  rivTables[[k]][rivTables[[k]] == ''] <- NA
+  print(rivTables[[k]])
+  
+  
+  #defining titles 
+  rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
+  
+  if (display_metric=="l30_Qout"){
+      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
+  } else if (display_metric=="l90_Qout"){
+      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
+  } else {
+      rivtablelabel <- rivtablemetric
+  }
+  
+  rivtabletitle <- paste0(display_title)
+  
+  ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
+                     columns = "all", alignment = "left", 
+                     metric = display_metric, origin_type = origin_type,  
+                     origin = origin , tabletitle = rivtabletitle) #flextable function
+  
+  assign(paste0('table', k), ft2, envir = globalenv())
+  print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+}
+```
+
+### Table:
+
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 #result = 'asis' necessary 
 if (tablemessage2==TRUE) {
@@ -727,29 +789,30 @@ for (k in 1:length(rivseg_metric)){
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
 
-### Narrative note: 
+### Narrative note:
 
 Narrative summarizing highlights from maps/tables
 
 ## Climate: State Plan Dry climate scenario - Climate differential scenario
 
-### Map 
+### Map
 
 ### Table
 
-### Narrative Note: 
+### Narrative Note:
 
 Narrative summarizing highlights from maps/tables
 
 ## CU: Overall Change in Flow from State Plan
 
-### Map 
+### Map
 
 ### Table
 
-### Narrative Note: 
+### Narrative Note:
 
-# Locality Focus: 
+# Locality Focus:
+
 repeat above for localities
 
-# Region Appendix: 
+# Region Appendix:
