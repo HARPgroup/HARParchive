@@ -56,7 +56,7 @@ df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
   'runid' = c(runlabel, runlabel),
   'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c(paste0('SminL30mg_',runlabel, '_vah'), paste0('SminL90mg_', runlabel, '_vah'))
+  'runlabel' = c(paste0('SminL30mg_',runid, '_apx'), paste0('SminL90mg_', runid, '_apx'))
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -69,7 +69,7 @@ df_metrics <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
   'runid' = c(runlabel, runlabel),
   'metric' = c('l30_Qout', 'l90_Qout'),
-  'runlabel' = c(paste0('l30_Qout_', runlabel), paste0('l90_Qout_', runlabel))
+  'runlabel' = c(paste0('l30_Qout_', runid), paste0('l90_Qout_', runid))
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -92,30 +92,7 @@ baseline_data <- om_vahydro_metric_grid(
 ```
 
 
-```{r Sum Storage by Riverseg}
-#Sum SminL30 by riverseg
-storage_byseg_30 <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL30mg_",runlabel,"_vah,
-                       SUM(SminL30mg_",runlabel,"_vah) AS SminL30mg_",runlabel,"_vah_sum
-                       FROM storage_data
-                       GROUP BY riverseg
-                       "))
-
-#Sum SminL90 by riverseg
-storage_byseg_90 <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL90mg_",runlabel,"_vah,
-                       SUM(SminL90mg_",runlabel,"_vah) AS SminL90mg_",runlabel,"_vah_sum
-                       FROM storage_data
-                       GROUP BY riverseg
-                       "))
-
-#Join SminL30 and SminL90 summed storage
-storage_byseg <- sqldf(paste0("SELECT a.riverseg, a.SminL30mg_",runlabel,"_vah_sum, b.SminL90mg_",runlabel,"_vah_sum
-                              FROM storage_byseg_30 AS a
-                              LEFT OUTER JOIN storage_byseg_90 AS b
-                              WHERE (a. riverseg = b.riverseg) "))
-```
-
-
-```{r Smin Calculations, message=FALSE}
+```{r Smin Calculations, message=FALSE, warning=FALSE}
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
@@ -222,8 +199,10 @@ for (i in 1:nrow(storage_data)) {
   Smin_L30_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
   Smin_L90_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
  
-  storage_data$Smin_L30_approx_mg[i] <- Smin_L30_approx_acf / 3.069
-  storage_data$Smin_L90_approx_mg[i] <- Smin_L90_approx_acf / 3.069
+  storage_data$SminL30mg_approx[i] <- Smin_L30_approx_acf / 3.069
+  storage_data$SminL90mg_approx[i] <- Smin_L90_approx_acf / 3.069
+  
+  ## rivTables[[k]][,paste0('pct_diff','_',display_metric)] <- round(tmp_df, digits = 2)
   
   
   ##Near-exact method: Smin within the L30 and L90 periods:
@@ -276,67 +255,139 @@ for (i in 1:nrow(storage_data)) {
   
   #Smin within the low flow periods
     #Storage needs to be converted from acre-feet to million gallons
-  storage_data$Smin_L30_nearexact[i] <- min(l30pd_df$Storage) / 3.069
-  storage_data$Smin_L90_nearexact[i] <- min(l90pd_df$Storage) / 3.069
+  storage_data$SminL30mg_nearexact[i] <- min(l30pd_df$Storage) / 3.069
+  storage_data$SminL90mg_nearexact[i] <- min(l90pd_df$Storage) / 3.069
   
   #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
-  minstorage30yr <- min(l30yr_data$Storage)
-  minstorage90yr <- min(l90yr_data$Storage)
-  
-  n_mins30 <- length(which(l30yr_data$Storage==minstorage30yr))
-  n_mins90 <- length(which(l90yr_data$Storage==minstorage90yr))
-  
-  yearMinRow30 <- which.min(l30yr_data$Storage) 
-  yearMinRow90 <- which.min(l90yr_data$Storage)
-
-  if (n_mins30 > 1) {  # workaround for when a min value is repeated, ex. 100s across all storage vals 
-    storage_data$min_in_pd30[i] <- TRUE
-  } else {
-    storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
-  }
-  if (n_mins90 > 1) {
-    storage_data$min_in_pd90[i] <- TRUE
-  } else {
-  storage_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
-  }
-  
-  #If not, how far outisde the low flow period?
-  if (storage_data$min_in_pd30[i] == FALSE) {
-    not_before <- rownum_start30 < yearMinRow30
-    not_after <- rownum_end30 > yearMinRow30
-    if (not_before == FALSE) {
-      storage_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
-    } else if (not_after == FALSE) {
-      storage_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
-    }
-  }
-  if (storage_data$min_in_pd90[i] == FALSE) {
-    not_before <- rownum_start90 < yearMinRow90
-    not_after <- rownum_end90 > yearMinRow90
-    if (not_before == FALSE) {
-      storage_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
-    } else if (not_after == FALSE) {
-      storage_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90) 
-    }
-  }
+  # minstorage30yr <- min(l30yr_data$Storage)
+  # minstorage90yr <- min(l90yr_data$Storage)
+  # 
+  # n_mins30 <- length(which(l30yr_data$Storage==minstorage30yr))
+  # n_mins90 <- length(which(l90yr_data$Storage==minstorage90yr))
+  # 
+  # yearMinRow30 <- which.min(l30yr_data$Storage) 
+  # yearMinRow90 <- which.min(l90yr_data$Storage)
+  # 
+  # if (n_mins30 > 1) {  # workaround for when a min value is repeated, ex. 100s across all storage vals 
+  #   storage_data$min_in_pd30[i] <- TRUE
+  # } else {
+  #   storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
+  # }
+  # if (n_mins90 > 1) {
+  #   storage_data$min_in_pd90[i] <- TRUE
+  # } else {
+  # storage_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
+  # }
+  # 
+  # #If not, how far outisde the low flow period?
+  # if (storage_data$min_in_pd30[i] == FALSE) {
+  #   not_before <- rownum_start30 < yearMinRow30
+  #   not_after <- rownum_end30 > yearMinRow30
+  #   if (not_before == FALSE) {
+  #     storage_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
+  #   } else if (not_after == FALSE) {
+  #     storage_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
+  #   }
+  # }
+  # if (storage_data$min_in_pd90[i] == FALSE) {
+  #   not_before <- rownum_start90 < yearMinRow90
+  #   not_after <- rownum_end90 > yearMinRow90
+  #   if (not_before == FALSE) {
+  #     storage_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
+  #   } else if (not_after == FALSE) {
+  #     storage_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90) 
+  #   }
+  # }
   
 }
 
 ```
 
 
+```{r Sum Storage by Riverseg}
+
+#Approximate Smin Values 
+
+#Sum approx SminL30 by riverseg
+storage_byseg_30_apx <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL30mg_",runid,"_apx,
+                       SUM(SminL30mg_",runid,"_apx) AS SminL30mg_",runid,"_apx_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       "))
+
+#Sum qpprox SminL90 by riverseg
+storage_byseg_90_apx <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL90mg_",runid,"_apx,
+                       SUM(SminL90mg_",runid,"_apx) AS SminL90mg_",runid,"_apx_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       "))
+
+#Join approx SminL30 and SminL90 summed storage
+storage_byseg_apx <- sqldf(paste0("SELECT a.riverseg, a.SminL30mg_",runid,"_apx_sum, b.SminL90mg_",runid,"_apx_sum
+                              FROM storage_byseg_30_apx AS a
+                              LEFT OUTER JOIN storage_byseg_90_apx AS b
+                              WHERE (a. riverseg = b.riverseg) "))
 
 
+#Near-exact Smin Values 
+
+#Sum near-exact SminL30 by riverseg
+storage_byseg_30_nex <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL30mg_nearexact,
+                       SUM(SminL30mg_nearexact) AS SminL30mg_",runid,"_nex_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       "))
+
+# #Sum near-exact SminL90 by riverseg
+storage_byseg_90_nex <- sqldf(paste0("SELECT storage_data.riverseg, storage_data.SminL90mg_nearexact,
+                       SUM(SminL90mg_nearexact) AS SminL90mg_",runid,"_nex_sum
+                       FROM storage_data
+                       GROUP BY riverseg
+                       "))
+
+#Join near-exact SminL30 and SminL90 summed storage
+storage_byseg_nex <- sqldf(paste0("SELECT a.riverseg, a.SminL30mg_",runid,"_nex_sum, b.SminL90mg_",runid,"_nex_sum
+                              FROM storage_byseg_30_nex AS a
+                              LEFT OUTER JOIN storage_byseg_90_nex AS b
+                              WHERE (a. riverseg = b.riverseg) "))
+
+#Join Approx and Near-exact Smin values by riverseg
+storage_byseg <- sqldf(paste0("SELECT a.*,  b.SminL30mg_",runid,"_nex_sum, b.SminL90mg_",runid,"_nex_sum
+                              FROM storage_byseg_apx AS a
+                              LEFT OUTER JOIN storage_byseg_nex AS b
+                              WHERE (a. riverseg = b.riverseg) "))
+```
 
 
+```{r Unit Conversions}
 
-
-
-```{r Create and Display Table}
-
-
+# #Convert storage from mg to mgd 
+# storage_data$SminL30mgd_11 <- storage_data$SminL30mg_11 / 30 #dividing by # of days in low flow period 
+# storage_data$SminL30mgd_13 <- storage_data$SminL30mg_13 / 30
+# storage_data$SminL90mgd_11 <- storage_data$SminL90mg_11 / 30
+# storage_data$SminL90mgd_13 <- storage_data$SminL90mg_13 / 30
+# 
+# #Convert cfs to mgd 
+# #demand scenario
+# metric_data$l30_Qout_dem_mgd = metric_data$l30_Qout_dem / 1.547
+# metric_data$l90_Qout_dem_mgd = metric_data$l90_Qout_dem / 1.547
+# 
+# #baseline scenario
+# baseline_data$l30_Qout_base_mgd = baseline_data$l30_Qout_base / 1.547
+# baseline_data$l90_Qout_base_mgd = baseline_data$l90_Qout_base / 1.547
 
 ```
+
+
+```{r Join Storage and Metric Data}
+
+```
+
+
+```{r Calculate Water Availability}
+
+```
+
 
 
 ## Table 2: Cases of Differing Minimum Smins by Method 
