@@ -359,7 +359,52 @@ storage_byseg <- sqldf(paste0("SELECT a.*,  b.SminL30mg_",runid,"_nex_sum, b.Smi
 ```
 
 
-```{r Unit Conversions}
+```{r Join Storage, Metric, and Baseline Data}
+#Storage data by riverseg in storage_byseg 
+#Metric data by riverseg in metric_data 
+
+#Join storage data onto demand scenario metric data 
+metric_data <- sqldf(paste0('SELECT a.*, b.SminL30mg_', runid, '_apx_sum, b.SminL90mg_', runid, '_apx_sum, b.SminL30mg_', runid, '_nex_sum, b.SminL90mg_', runid, '_nex_sum
+                   FROM metric_data as a
+                   LEFT OUTER JOIN storage_byseg as b
+                   ON (a.riverseg = b.riverseg)')) 
+
+#Join baseline scenario data onto demand scenario & storage data 
+metric_data <- sqldf(paste0('SELECT a.*, b.l30_Qout_base, b.l90_Qout_base
+                   FROM metric_data as a
+                   LEFT OUTER JOIN baseline_data as b
+                   ON (a.riverseg = b.riverseg)')) 
+
+
+```
+
+```{r Link Upstream Impoundments}
+#Empty columns that will hold total storage
+metric_data$SminL30mg_apx_total <- NA 
+metric_data$SminL90mg_apx_total <- NA 
+metric_data$SminL30mg_nex_total <- NA 
+metric_data$SminL90mg_nex_total <- NA 
+
+for (i in 1:nrow(metric_data)) {
+  ups_imp <- fn_extract_basin(storage_byseg, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
+  if (nrow(ups_imp) > 0) {
+    ups_impsegs <- data.frame(rivseg = ups_imp$riverseg)
+    ups_df <- sqldf("select a.*
+                    from storage_byseg as a
+                    where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
+    metric_data$SminL30mg_apx_total[i] <- sum(ups_df$SminL30mg_11_apx_sum) #sum storage available locally and upstream
+    metric_data$SminL90mg_apx_total[i] <- sum(ups_df$SminL90mg_11_apx_sum) 
+    metric_data$SminL30mg_nex_total[i] <- sum(ups_df$SminL30mg_11_nex_sum) 
+    metric_data$SminL90mg_nex_total[i] <- sum(ups_df$SminL90mg_11_nex_sum)
+    
+  }
+}
+```
+
+
+```{r Calculate Water Availability}
+
+## Perform unit conversions when plugging values into WA equation 
 
 # #Convert storage from mg to mgd 
 # storage_data$SminL30mgd_11 <- storage_data$SminL30mg_11 / 30 #dividing by # of days in low flow period 
@@ -375,16 +420,6 @@ storage_byseg <- sqldf(paste0("SELECT a.*,  b.SminL30mg_",runid,"_nex_sum, b.Smi
 # #baseline scenario
 # baseline_data$l30_Qout_base_mgd = baseline_data$l30_Qout_base / 1.547
 # baseline_data$l90_Qout_base_mgd = baseline_data$l90_Qout_base / 1.547
-
-```
-
-
-```{r Join Storage and Metric Data}
-
-```
-
-
-```{r Calculate Water Availability}
 
 ```
 
