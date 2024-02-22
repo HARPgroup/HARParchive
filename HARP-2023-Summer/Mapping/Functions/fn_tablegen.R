@@ -3,7 +3,7 @@
 library(flextable)
 
 #create function
-fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metric, origin, tabletitle) { 
+fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metric, origin, tabletitle, num) { 
   #featr_type: either 'facility' (map 1) or 'riverseg' (map 2)
   #table: data frame to be transformed into a flextable 
   #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
@@ -52,9 +52,9 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
     ft <- align(ft, align = alignment, part = "all")
     
     #highlight when precent diff is below highlight limit(defined in config)
-    ft <- flextable::bg(ft, i = ft$body$dataset$`% Difference` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
+    ft <- flextable::bg(ft, i = ft$body$dataset$`percentDiff` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
    
-    num <- grep(metric, rivseg_metric, value=FALSE)
+    #num <- grep(metric, rivseg_metric, value=FALSE)
     ft <- add_header_lines(ft, values= paste0("Table 2.", num)) #add subtite
     
     #ft <- add_header_lines(ft, values= numname) #add subtite
