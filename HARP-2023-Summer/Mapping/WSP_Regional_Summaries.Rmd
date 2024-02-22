@@ -725,10 +725,11 @@ for (k in 1:length(run_config$riverseg_metrics)){ #loop thru metrics
 #NEW TABLE WITH RUNSET
 
 rivTables <- list() #to store dataframes for each drought metric
-rseg_display <- st_drop_geometry(rsegs) #copy of rsegs 
+rseg_no_geom <- st_drop_geometry(rsegs) #copy of rsegs 
 
   # base info
 for (k in 1:length(run_config$riverseg_metrics)){
+  rseg_display <- rseg_no_geom # must reinitialize rseg_display each time since we remove unused columns below
   display_metric <- run_config$riverseg_metrics[[k]]$metric
   display_column <- run_config$riverseg_metrics[[k]]$column_name
   table_cols <- unlist(run_config$riverseg_metrics[[k]]$tables_cols)
