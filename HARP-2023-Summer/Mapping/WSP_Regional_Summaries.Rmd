@@ -420,18 +420,13 @@ if (show_map == TRUE) {
 
 ```
 
-```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE}
-# if (show_map == TRUE) {
-#   knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
-#   if (mapMessage == TRUE) {
-#     message("The metric requested does not exist for this map.")
-#     message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
-#   }
-# }
-
-if (show_map == TRUE) {
-  knitr::include_graphics(mapfilename) #display map(s) as PNG
+```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE,eval = show_map}
+knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
+if (mapMessage) {
+  message("The metric requested does not exist for this map.")
+  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
 }
+
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}

@@ -15,6 +15,8 @@ params:
   overwrite_files: TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
   base_layer_data: FALSE #if FALSE -> will only generate the origin/metric-dependent data for mapping (rsegs, featrs)
                            #if TRUE -> will also re-generate map base-layer data (regions, counties, cities, roads)
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup}
@@ -79,11 +81,12 @@ if (featr_type=="facility") { #specified model metrics will be pulled @ the faci
   
   facdf <- data.frame()
   for (k in metric_mod) {
+    #create df of model run specifications for om_vahydro_metric_grid()
+    df <- data.frame(runid=runid_list, model_version, metric=k) 
+    #add column to df containing 'runlabel' which will become the metric column
+    #names in featrs$model
+    df$runlabel <- paste0(runid_list, "_", k)
     
-    df <- data.frame(runid=runid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
-    for(i in 1:length(runid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
-      df$runlabel[i] <- paste0(runid_list[i], '_', k)
-    }
     if (is.logical(facdf)) {
       facdf <- df
     } else {
