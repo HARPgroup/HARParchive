@@ -638,7 +638,9 @@ if (show_map == TRUE) {
 }
 ```
 
-```{r Create Table 2, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Create Table 2- OLD, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+#OLD TABLE WORK- DONT RUN
+
 rsegs <- st_drop_geometry(rsegs)
 
 rivTables <- list() #to store dataframes for each drought metric
@@ -742,19 +744,31 @@ for (k in 1:length(run_config$riverseg_metrics)){
   #assemble our table, with the columns in order defined by table_cols
   rseg_display <- rseg_display[table_cols] 
   
+  #na messages 
+  
+    nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
+  for (i in 1:nrow(nacols)) {
+    if (nacols$colSums.is.na.rseg_display......nrow.rseg_display.[i] == TRUE){ #if any column is all na, then return true
+      tablemessage2 = TRUE
+    }
+    else { #if column is not all na, then return false
+      tablemessage2 = FALSE
+    }
+  }
   
   #sorting 
   sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
   rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
   
+  
   #fill blanks with NA
   rivTables[[k]][rivTables[[k]] == ''] <- NA
-  print(rivTables[[k]])
   
   
   #defining titles 
   rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   
+  #this chunk is not in use at the moment, based on titles being done in config 
   if (display_metric=="l30_Qout"){
       rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
   } else if (display_metric=="l90_Qout"){
@@ -763,14 +777,18 @@ for (k in 1:length(run_config$riverseg_metrics)){
       rivtablelabel <- rivtablemetric
   }
   
-  rivtabletitle <- paste0(display_title)
+  rivtabletitle <- paste0(title_main , ' - ' ,display_title)
+  
+  rivtablenum <- k #for heading numbering 
+  
   
   ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
                      columns = "all", alignment = "left", 
                      metric = display_metric, origin_type = origin_type,  
-                     origin = origin , tabletitle = rivtabletitle) #flextable function
+                     origin = origin , tabletitle = rivtabletitle, num=rivtablenum) #flextable function
   
   assign(paste0('table', k), ft2, envir = globalenv())
+
   print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
 ```
@@ -787,6 +805,8 @@ if (tablemessage2==TRUE) {
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
 }
+
+
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
 
