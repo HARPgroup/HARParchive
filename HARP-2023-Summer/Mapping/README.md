@@ -39,7 +39,9 @@ Make sure to have installed all the following packages to ensure all functions a
 -   geosphere
 -   pandoc
 -   rapportools
+-   arcpullr
 -   stringr
+-   "memoise"
 
 ## Dataframe_Generator
 
@@ -64,16 +66,16 @@ This information can be generated via render or via direct parameter changes in 
 A current working render is as follows:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Generator.Rmd", 
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
                   params = list(
-                      origin = "Roanoke_1", 
-                      origin_type = "region", 
+                      origin = "JL6_7430_7320", 
+                      origin_type = "basin", 
                       featr_type = "facility", 
                       metric_mod = "wd_mgd", 
                       model_version = "vahydro-1.0",
                       metric_feat = "wsp2020_2040_mgy", 
-                      rivseg_metric = c("l30_Qout", "l90_Qout"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rivseg_metric = c("l30_Qout", "7q10", "Smin_L30_mg"), 
+                      runid_list = c("runid_11", "runid_13", "runid_17", "runid_19"), 
                       crs_default = 4326, 
                       limit_featrs_to_origin = FALSE,
                       overwrite_files = TRUE, 
@@ -83,22 +85,43 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Gener
 ### Parameters
 
 -   **origin**: name of the region, locality, or rivseg, make sure to use correct naming
-    -   *rivseg*: river segment ID of basin to be mapped, for map type basin
-    -   *locality*: locality/county of interest, for map type locality
-    -   *region*: region of interest, must match a region name in <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv>
-    -   *Possible regions* :`BigSandy_UpperTennessee_1`, `BigSandy_UpperTennessee_2`, `Chowan_1`, `Chowan_2`, `Eastern_Shore`, `MiddleJames_1`, `MiddleJames_2`, `MiddleJames_3`, `NewRiver_1`, `NewRiver_2`, `NorthernCoastalPlain_1`, `NorthernCoastalPlain_2`, `NorthernCoastalPlain_3`, `NorthernPiedmont_1`, `NorthernPiedmont_2`, `NorthernVirginia`, `Roanoke_1`, `Roanoke_2`, `Roanoke_3`, `Shenandoah_1`, `Shenandoah_2`, `SoutheastVirginia`, `UpperJames_1`, `UpperJames_2`, `York_James_1`, `York_James_2`
+
+    -   **rivseg**: river segment ID of basin to be mapped, for map type basin
+
+    -   **locality**: locality/county of interest, for map type locality
+
+    -   
+
+        ```         
+        **region**: region of interest, must match a region name in <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv>
+        ```
+
+-   **Possible regions** :`BigSandy_UpperTennessee_1`, `BigSandy_UpperTennessee_2`, `Chowan_1`, `Chowan_2`, `Eastern_Shore`, `MiddleJames_1`, `MiddleJames_2`, `MiddleJames_3`, `NewRiver_1`, `NewRiver_2`, `NorthernCoastalPlain_1`, `NorthernCoastalPlain_2`, `NorthernCoastalPlain_3`, `NorthernPiedmont_1`, `NorthernPiedmont_2`, `NorthernVirginia`, `Roanoke_1`, `Roanoke_2`, `Roanoke_3`, `Shenandoah_1`, `Shenandoah_2`, `SoutheastVirginia`, `UpperJames_1`, `UpperJames_2`, `York_James_1`, `York_James_2`
+
 -   **origin_type**: what type of origin the name above is categorized under
+
     -   *Possible Origins*: `basin`, `locality` or `region`
+
 -   **featr_type**: Which feature type you want to map by
+
     -   *Possible Input* : `source` or `facility`
+
 -   **metric_mod**: the modeled metric name to be mapped & used in table. Does not need to be set to fiveyr_avg_mgy if mapping source
+
     -   *Possible Metrics*: `wd_mgd`, `gw_demand_mgd`, `l30_Qintake`, `ps_mgd`, `fiveyr_avg_mgy`, etc.
+
 -   **model_version**: used in pulling facility metrics from vahydro
+
     -   *Possible Input*: `vahydro-1.0`, etc.
+
 -   **metric_feat**: non-modeled metric name
-    -   *Possible Metrics*: `wsp2020_2040_mgy`, `fiveyr_avg_mgy`, etc.
+
+    -   *Possible Metrics*: `wsp2020_2040_mgy`
+
 -   **rivseg_metric**: drought metric for riverseg maps, can list multiple, use c()
+
     -   *Possible Metrics*: `190_Qout`,`7q10`, `l30_Qout`, etc.
+
 -   **runid_list**: likely to be modified- return to description
 
 | `runid` List Key |                      Scenario                       |
@@ -119,20 +142,16 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Gener
 |    `runid_21`    |                  2015 Demand 2010                   |
 |    `runid_22`    |                  2015 Demand 2040                   |
 
--   **crs_default**: always `4326`
+-   **crs_default**: usually `4326`
 -   **limit_featrs_to_origin**: if `TRUE` then featrs will be cutoff at the region/locality specified, if `FALSE` then all featrs in the associated basins are plotted
 -   **overwrite_files**: if `FALSE` then the document will stop execution if rivseg and feature files already exist
 -   **base_later_data**: if `FALSE` then the document will only generate the origin/metric-dependent data for mapping (rsegs, featrs), if `TRUE` then the document will also re-generate map base-layer data (regions, counties, cities, roads)
 
 ### Related Documents/Functions
 
--   **fn_download_read** : used for files that need to be downloaded prior to reading in the data; typically necessary for downloading & unpacking less-straightforward filetypes like .zip files, .shp files, etc.
--   **fns_spatial** : Defines all HARP-analyst-written functions for dealing with spatial data
-    -   *fn_geoCol* : Determines & returns the name of the spatial geometry column in the data
-    -   *fn_sqldf_sf* : allows the use of sqldf with sf objects. Limitations: data frames contained in a list cannot be passed in using with([List], sqldf("[statement]"))
-    -   *fn_centroid_coords*: for adding centroid coordinates to a data frame based on the geometry contained, used mostly for labeling purposes
-    -   *fn_wkt_sp*: Convert any data frame w/ spatial data stored as Well Known Text (WKT) to "SpatialXxxDataFrame" (Xx_sp)
--   **fn_pct_diff** : Function for a percent difference calculation between 2 columns of a dataframe using sqldf
+-   *fn_download_read* : used for files that need to be downloaded prior to reading in the data; typically necessary for downloading & unpacking less-straightforward filetypes like .zip files, .shp files, etc.
+-   *fns_spatial* : Defines all HARP-analyst-written functions for dealing with spatial data
+-   *fn_centroid_coords*: for adding centroid coordinates to a data frame based on the geometry contained, used mostly for labeling purposes
 
 ## WSP_Regional_Summaries.RMD
 
@@ -147,19 +166,19 @@ This information can be generated via render or via direct parameter changes in 
 A current working render is as follows:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/WSP_Regional_Summaries.Rmd", 
-                  output_file = "~/Desktop/HARPteam23/JL7_7070_0001_facils_knit",
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
+                  output_file = paste0(export_path, "/JL6_7430_7320test"),
                   output_format = "word_document",
                   params = list(
-                      origin = "JL7_7070_0001", 
+                      origin = "JL6_7430_7320", 
                       origin_type = "basin", 
                       featr_type = "facility", 
-                      featrs_file = "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv", 
-                      featrs_file_map_bubble_column = "runid_11_wd_mgd", 
+                      featrs_file = paste0(export_path, "/JL6_7430_7320_featrs_sf.csv"), 
+                      featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
                       featrs_file_table_column = c("runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"), 
-                      rsegs_file = "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv", 
-                      rivseg_metric = c("l30_Qout", "7q10"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rsegs_file = paste0(export_path, "/JL6_7430_7320_rsegs_sf.csv"), 
+                      run_set = "wsp_2020_2040", 
+                      runid_list = c("runid_11", "runid_13", "runid_17" ,"runid_19"), 
                       crs_default = 4326, 
                       map_style = "custom", 
                       bbox_type = "auto",
@@ -170,13 +189,15 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/WSP_Regional_Su
 
 When completing these, it is imperative everything aligns with input parameters for the `Dataframe_Generator.R` and with the document titles created by it.
 
--   **Params that are the same as `Dataframe_Generator`**: origin, origin_type, featr_type, rivseg_metric, runid_list, crs_default
+-   **Params that need to match the `Dataframe_Generator` params**: origin, origin_type, featr_type, runid_list, crs_default
 -   **featrs_file**: input the location and name for the `featrs_sf` or `mp_sf` file created by `Dataframe_Generator.R`
 -   **featrs_file_map_bubble_column** : the desired runid and metric that will be mapped as a bubble
     -   *Possible input examples*: all by runid_metric like- `runid_11_wd_mgd`, except for- `five_yr_avg`
 -   **featrs_file_table_column** : the desired runid and metric for the table documentation
     -   *Possible input examples*: `runid_11_wd_mgd`,`runid_13_wd_mgd`,`five_yr_avg`,`wsp2020_2040_mgy`
 -   **rsegs_file** : input the location and name for the `rsegs_sf` file created by `Dataframe_Generator.R`
+-   **run_set** : looks for metric and data column names to map and show in tables, works with the config, need to make sure requested runid and metric are available
+    -   *Possible input* : generally `wsp_2020_2040` but for case studies `permit_dev`
 -   **map_style** : determining map aesthetics like colors, fonts, font size
     -   *Possible Input* : `colorblind`, `default`, `custom`
 -   **bbox_type** : either auto or vahydro(pulls box from vahydro values), the vahydro type only functional for river segments
@@ -185,13 +206,15 @@ When completing these, it is imperative everything aligns with input parameters 
 
 ### Related Documents/Functions
 
--   **fns_spatial** : Defines all HARP-analyst-written functions for dealing with spatial data, see above section for details
--   **fn_mapgen**: contains the mapping process used to create all map types (facils/sources only and rivserseg maps)gen
+-   *fns_spatial* : Defines all HARP-analyst-written functions for dealing with spatial data, see above section for details
+-   *fn_mapgen*: contains the mapping process used to create all map types (facils/sources only and rivserseg maps)gen
     -   Uses **fn_filter_map** : contains process of filtering flowlines, labels etc. to be mapped based on size of boundary box, only called within mapping function
--   **fn_tablegen**: creates a flextable from data frame provided (and soon the columns specified within that data)
--   **fn_labelprep** : general actions for label processing, run on nhd labels and road labels after each of their respective functions
--   **fn_nhd_labs** : contains nhd-specific actions for labeling (flowlines and waterbodies); want to do away with this function since it only filters NHD data (this can be done with the rest of the data processing) -**mapstyle_config** : contains aesthetic customization for mapping (all map types), including unique styling for each label type (rivers/streams, counties, cities etc.)
--   **riversegmaps_config** : contains customizations specific for rivseg drought maps, including values and colors for % difference ranges
+-   *fn_tablegen*: creates a flextable from data frame provided (and soon the columns specified within that data)
+-   *fn_labelprep* : general actions for label processing, run on nhd labels and road labels after each of their respective functions
+-   *fn_nhd_labs* : contains nhd-specific actions for labeling (flowlines and waterbodies); want to do away with this function since it only filters NHD data (this can be done with the rest of the data processing)
+-   *mapstyle_config* : contains aesthetic customization for mapping (all map types), including unique styling for each label type (rivers/streams, counties, cities etc.)
+-   *riversegmaps_config* : contains customizations specific for rivseg drought maps, including values and colors for % difference ranges
+-   *fn_get_memo_nhdplus*: for the memoise function
 
 ## Config Files
 
@@ -199,11 +222,52 @@ There are three locations planners will be editing code, the parameters in `Data
 
 ### Mapstyle_config
 
-to edit later
+-   **Human-Readable Metric Names**: this section is added so runids and metrics have a understandable name -`read_metric_name`: this is for input of metrics or runids that need to be renamed -`new_metric_name`: this is for input of new names, keep everything in the same order as `read_metric_name`
+
+-   **Run_Sets**: this section allows the user to input various pieces of information for use in dataframe, mapping and table gen
+
+```         
+format:
+ wsp_run_set <- list(
+    riverseg_metrics=list( 
+      list([parameter style name], [column in CSV file]) )
+```
+
+-   *Current params in use*:
+
+    -   metric: input the specific metric wanted to be used, such as 'l30_Qout',
+    -   column_name: input the percent diff long column name, such as 'percentDiff_l30_Qout_runid_11_runid_13',
+    -   run_label: this is used for naming of tables and maps, such as '2040 WSP L30 %',
+    -   tables_cols: this is what columns are desired in the tables presented, such as c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
+    -   sort_col: this is what column will be sorted by in the table, such as 'percentDiff_l30_Qout_runid_11_runid_13',
+    -   sort_decreasing: this is TRUE if sorting by decreasing and FALSE if sorting by increasing
+
+-   Everything in custom aesthetics can be adjusted, if not changed, then defaults (below custom) will be used
+
+-   **Current Possible Text Layers: Require MANY font/color/size aesthetics**
+
+    -   **Roads**: Interstate(I), US Hwy(U), State Rte(S)
+    -   **Cities**: Major Cities, Towns
+    -   **Water**: Major Rivers (nhd class 5,6), Streams (nhd class 4), Waterbodies (nhd network and off network wtbd's)
+    -   **Polygons**: Counties, Potentially Riversegs/Watersheds
+
+-   **Current Possible Point Layers: Require colors & point sizes**
+
+    -   **Cities**: Major Cities, Towns
+    -   **Facilities**: Metric-scaled bubbles of either:
+        -   surface water for model data at the facility-level (default color 1)
+        -   distinct surface water (default color 1) and groundwater (default color 2) for data at MP-level
+        -   neither purely surface water nor groundwater at the facility level (default color 3)
+
+-   **Current Possible sf Layers: Require colors & line widths**
+
+    -   **Roads**: Interstate(I), US Hwy(U), State Rte(S)
+    -   **NHD**: Whichever flowlines were kept for the extent, scaled by streamOrde ; Waterbodies
+    -   **Polygons**: Counties, Reverse fill of basin, Riverseg borders
 
 ### Riversegmaps_config
 
-to edit later
+to edit later(might end up merging into mapstyle)
 
 # Example Renders
 
@@ -212,38 +276,38 @@ to edit later
 ### Dataframe_Generator Render:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Generator.Rmd", 
-                 params = list(
-                     origin = "JL7_7070_0001", 
-                     origin_type = "basin", 
-                     featr_type = "facility", 
-                     metric_mod = "wd_mgd", 
-                     model_version = "vahydro-1.0",
-                     metric_feat = "wsp2020_2040_mgy", 
-                     rivseg_metric = c("l30_Qout", "l90_Qout"), 
-                     runid_list = c("runid_11", "runid_13"), 
-                     crs_default = 4326, 
-                     limit_featrs_to_origin = FALSE,
-                     overwrite_files = TRUE, 
-                     base_layer_data = FALSE))
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
+                  params = list(
+                      origin = "JL6_7430_7320", 
+                      origin_type = "basin", 
+                      featr_type = "facility", 
+                      metric_mod = "wd_mgd", 
+                      model_version = "vahydro-1.0",
+                      metric_feat = "wsp2020_2040_mgy", 
+                      rivseg_metric = c("l30_Qout", "7q10", "Smin_L30_mg"), 
+                      runid_list = c("runid_11", "runid_13", "runid_17", "runid_19"), 
+                      crs_default = 4326, 
+                      limit_featrs_to_origin = FALSE,
+                      overwrite_files = TRUE, 
+                      base_layer_data = FALSE))
 ```
 
 ### WSP_Regional_Summaries Render:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/WSP_Regional_Summaries.Rmd", 
-                  output_file = "~/Desktop/HARPteam23/JL7_7070_0001_facils_knit",
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
+                  output_file = paste0(export_path, "/JL6_7430_7320test"),
                   output_format = "word_document",
                   params = list(
-                      origin = "JL7_7070_0001", 
+                      origin = "JL6_7430_7320", 
                       origin_type = "basin", 
                       featr_type = "facility", 
-                      featrs_file = "~/Desktop/HARPteam23/JL7_7070_0001_featrs_sf.csv", 
-                      featrs_file_map_bubble_column = "runid_11_wd_mgd", 
+                      featrs_file = paste0(export_path, "/JL6_7430_7320_featrs_sf.csv"), 
+                      featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
                       featrs_file_table_column = c("runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"), 
-                      rsegs_file = "~/Desktop/HARPteam23/JL7_7070_0001_rsegs_sf.csv", 
-                      rivseg_metric = c("l30_Qout", "7q10"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rsegs_file = paste0(export_path, "/JL6_7430_7320_rsegs_sf.csv"), 
+                      run_set = "wsp_2020_2040", 
+                      runid_list = c("runid_11", "runid_13", "runid_17" ,"runid_19"), 
                       crs_default = 4326, 
                       map_style = "custom", 
                       bbox_type = "auto",
@@ -251,6 +315,7 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/WSP_Regional_Su
 ```
 
 ### Example Images
+
 to edit later
 
 ## For working Region example:
@@ -258,7 +323,7 @@ to edit later
 ### Dataframe_Generator Render:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Generator.Rmd", 
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
                   params = list(
                       origin = "Roanoke_1", 
                       origin_type = "region", 
@@ -266,8 +331,8 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Gener
                       metric_mod = "wd_mgd", 
                       model_version = "vahydro-1.0",
                       metric_feat = "wsp2020_2040_mgy", 
-                      rivseg_metric = c("l30_Qout", "l90_Qout"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rivseg_metric = c("l30_Qout", "7q10", "Smin_L30_mg"), 
+                      runid_list = c("runid_11", "runid_13", "runid_17", "runid_19"), 
                       crs_default = 4326, 
                       limit_featrs_to_origin = FALSE,
                       overwrite_files = TRUE, 
@@ -277,33 +342,35 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Gener
 ### WSP_Regional_Summaries Render:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/WSP_Regional_Summaries.Rmd", 
-                  output_file = "~/Desktop/HARPteam23/Roanoke_1_facilities_knit",
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
+                  output_file = paste0(export_path, "/roanoke1test"),
                   output_format = "word_document",
                   params = list(
                       origin = "Roanoke_1", 
                       origin_type = "region", 
                       featr_type = "facility", 
-                      featrs_file = "~/Desktop/HARPteam23/Roanoke_1_featrs_sf.csv", 
-                      featrs_file_map_bubble_column = "five_yr_avg", 
+                      featrs_file = paste0(export_path, "/Roanoke_1_featrs_sf.csv"), 
+                      featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
                       featrs_file_table_column = c("runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"), 
-                      rsegs_file = "~/Desktop/HARPteam23/Roanoke_1_rsegs_sf.csv", 
-                      rivseg_metric = c("l30_Qout", "l90_Qout"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rsegs_file = paste0(export_path, "/Roanoke_1_rsegs_sf.csv"), 
+                      run_set = "wsp_2020_2040", 
+                      runid_list = c("runid_11", "runid_13", "runid_17" ,"runid_19"), 
                       crs_default = 4326, 
                       map_style = "custom", 
                       bbox_type = "auto",
                       show_map = TRUE))
 ```
+
 ### Example Images
+
 to edit later
 
-## For working Locality example:
+## For working Locality example: (Not Currently Running)
 
 ### Dataframe_Generator Render:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Generator.Rmd", 
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
                   params = list(
                       origin = "Giles", 
                       origin_type = "locality", 
@@ -311,8 +378,8 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Gener
                       metric_mod = "wd_mgd", 
                       model_version = "vahydro-1.0",
                       metric_feat = "wsp2020_2040_mgy", 
-                      rivseg_metric = c("l30_Qout", "l90_Qout"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rivseg_metric = c("l30_Qout", "7q10", "Smin_L30_mg"), 
+                      runid_list = c("runid_11", "runid_13", "runid_17", "runid_19"), 
                       crs_default = 4326, 
                       limit_featrs_to_origin = FALSE,
                       overwrite_files = TRUE, 
@@ -322,27 +389,28 @@ rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/Dataframe_Gener
 ### WSP_Regional_Summaries Render:
 
 ```         
-rmarkdown::render("~/Desktop/GitHub/HARParchive/HARP-2023-Summer/WSP_Regional_Summaries.Rmd", 
-                  output_file = "~/Desktop/HARPteam23/Giles_facilities_knit",
+rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
+                  output_file = paste0(export_path, "/Gilestest"),
                   output_format = "word_document",
                   params = list(
                       origin = "Giles", 
                       origin_type = "locality", 
                       featr_type = "facility", 
-                      featrs_file = "~/Desktop/HARPteam23/Giles_featrs_sf.csv", 
+                      featrs_file = paste0(export_path, "/Giles_featrs_sf.csv"), 
                       featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
                       featrs_file_table_column = c("runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"), 
-                      rsegs_file = "~/Desktop/HARPteam23/Giles_rsegs_sf.csv", 
-                      rivseg_metric = c("l30_Qout", "l90_Qout"), 
-                      runid_list = c("runid_11", "runid_13"), 
+                      rsegs_file = paste0(export_path, "/Giles_1_rsegs_sf.csv"), 
+                      run_set = "wsp_2020_2040", 
+                      runid_list = c("runid_11", "runid_13", "runid_17" ,"runid_19"), 
                       crs_default = 4326, 
                       map_style = "custom", 
-                      bbox_type = "auto", 
-                      show_map = FALSE))
+                      bbox_type = "auto",
+                      show_map = TRUE))
 ```
-### Example Images
-to edit later
 
+### Example Images
+
+to edit later
 
 ## Other Documents In Use:
 
