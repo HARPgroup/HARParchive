@@ -16,4 +16,4 @@ rivmap_labs <- c(" <= -20", #less than or equal to first value in pct vector
                  " > +20") #last label should be greater than 2nd-to-last value in pct vector 
 #^needs to be same length as rivseg_pct_vect
 
-rseg_highlight_limit <- -10 #sets upper llimit of % difference for highlighting values/rows in the riverseg table
+rseg_highlight_limit <- -10 #sets upper limit of % difference for highlighting values/rows in the riverseg table
