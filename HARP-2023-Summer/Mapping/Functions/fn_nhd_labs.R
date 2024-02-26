@@ -4,7 +4,7 @@
 
 # JK 8.8.23: Need to load the config file for this to run
 # Will need to explicitly pass in params such as nhd_rivname_pattern
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Config/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
 fn_nhd_labs <- function(data) {
 
   for(d in 1:length(data)){
