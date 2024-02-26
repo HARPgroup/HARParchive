@@ -158,18 +158,14 @@ counties_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/counties_sf.
 cities_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/cities.csv')
 roads_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
-facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default)
-rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default)
-counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default)
-regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default)
+facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
-roads <- sf::st_as_sf(read.csv(roads_file), wkt = "WKT", crs=crs_default)
-regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default)
+roads <- sf::st_as_sf(read.csv(roads_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 
-st_crs(facils) <- crs_default
-st_crs(rsegs) <- crs_default
-st_crs(counties) <- crs_default
-st_crs(roads) <- crs_default
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
