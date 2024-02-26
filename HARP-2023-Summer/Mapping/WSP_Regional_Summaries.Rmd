@@ -83,14 +83,15 @@ show_map <- params$show_map
 ```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R"),local = TRUE) #load mapping function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R"),local = TRUE) #load table function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R"),local = TRUE) #load labeling function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R"),local = TRUE) #load nhd label function
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Config/mapstyle_config.R"),local = TRUE) #load general mapping aesthetics 
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R"),local = TRUE) #load rivseg-specific mapping aesthetics
-source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R"),local = TRUE) #nhd caching
+github_uri <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
 
 # legend_titling() --> Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
