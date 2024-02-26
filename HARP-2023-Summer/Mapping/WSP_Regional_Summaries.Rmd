@@ -153,10 +153,10 @@ if (is.null(run_config)) {
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
-counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
-cities_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/cities.csv')
-roads_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
+regions_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+counties_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+cities_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/cities.csv')
+roads_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
 facils <- sf::st_read(featrs_file)
 rsegs <- sf::st_read(rsegs_file)
