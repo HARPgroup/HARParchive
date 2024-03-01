@@ -203,11 +203,11 @@ if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
 # NHD data within the bbox
 if (show_map == TRUE) {
   st_crs(bbox) <- crs_default
-  if (exists("memo_plot_nhdplus")){
+  #if (exists("memo_plot_nhdplus")){
     nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-  } else {
-    nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-  }
+  #} else {
+   # nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  #}
   nhdlabs <- fn_nhd_labs(data=nhd)
 }
 ```
@@ -279,7 +279,9 @@ if (origin_type == "basin") {
 } else if (origin_type == "locality") {
   title_main <- paste0(origin, " Locality")
 } else if (origin_type == "region") {
-  title_main <- paste0(origin, " Region")
+  origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
+  title_main <- paste0( gsub("_", " ", origin_readable) , " Region")
+  
 } 
 
 if (show_map == TRUE) {
