@@ -153,23 +153,19 @@ if (is.null(run_config)) {
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
-counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
-cities_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/cities.csv')
-roads_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
+regions_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+counties_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+cities_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/cities.csv')
+roads_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
-facils <- sf::st_read(featrs_file)
-rsegs <- sf::st_read(rsegs_file)
-counties <- sf::st_read(counties_file)
-regions <- sf::st_read(regions_file)
+facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
-roads <- sf::st_read(roads_file)
-regions <- sf::st_read(regions_file)
+roads <- sf::st_as_sf(read.csv(roads_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 
-st_crs(facils) <- crs_default
-st_crs(rsegs) <- crs_default
-st_crs(counties) <- crs_default
-st_crs(roads) <- crs_default
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
