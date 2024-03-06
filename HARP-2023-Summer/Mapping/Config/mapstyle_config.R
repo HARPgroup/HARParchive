@@ -53,7 +53,7 @@ run_sets <- list(
         metric='l90_Qout', 
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
         run_label = 'Dry Climate Change WSP L90 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         sort_decreasing = FALSE
       ),
@@ -69,7 +69,7 @@ run_sets <- list(
         metric='l30_Qout', 
         column_name='percentDiff_l30_Qout_runid_11_runid_17', 
         run_label = 'Dry climate Change WSP L30 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         sort_decreasing = FALSE
       ),
