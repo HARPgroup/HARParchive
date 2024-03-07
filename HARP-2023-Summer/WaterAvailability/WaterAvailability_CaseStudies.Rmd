@@ -261,10 +261,39 @@ for (i in 1:nrow(storage_data)) {
   
   #Smin within the low flow periods
     #Storage needs to be converted from acre-feet to million gallons
-  storage_data$SminL30mg_nex[i] <- min(l30pd_df$Storage) / 3.069
-  storage_data$SminL90mg_nex[i] <- min(l90pd_df$Storage) / 3.069
+  storage_data$SminL30mg_nex[i] <- round((min(l30pd_df$Storage) / 3.069), digits = 3)
+  storage_data$SminL90mg_nex[i] <- round((min(l90pd_df$Storage) / 3.069), digits = 3)
   
-  #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
+}
+
+```
+
+
+```{r Smin Method Comparison}
+
+#compare approx and near exact Smin values. Approx should always be <= near exact 
+
+storage_data$apx_lessthan_nex_30 <- NA #empty columns to hold true/false
+storage_data$apx_lessthan_nex_90 <- NA #empty columns to hold true/false
+
+for (i in 1:nrow(storage_data)) { 
+  if (storage_data$SminL30mg_apx[i] <= storage_data$SminL30mg_nex[i]) { #if approx value is <= near exact
+    storage_data$apx_lessthan_nex_30[i] = TRUE
+  } else {
+    storage_data$apx_lessthan_nex_30[i] = FALSE
+  }
+  
+  if (storage_data$SminL90mg_apx[i] <= storage_data$SminL90mg_nex[i]) { #if approx value is <= near exact
+    storage_data$apx_lessthan_nex_90[i] = TRUE
+  } else {
+    storage_data$apx_lessthan_nex_90[i] = FALSE
+  }    
+  
+  
+  }
+
+
+#Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
   # minstorage30yr <- min(l30yr_data$Storage)
   # minstorage90yr <- min(l90yr_data$Storage)
   # 
@@ -305,9 +334,8 @@ for (i in 1:nrow(storage_data)) {
   #   }
   # }
   
-}
-
 ```
+
 
 
 ```{r Sum Storage by Riverseg}
