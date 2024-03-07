@@ -6,7 +6,8 @@ output: word_document
 
 params: 
   impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
-  runid: ["11"] #numeric only
+  demand_scenario: ["runid_11"] 
+  baseline_scenario: ["runid_0"] 
 
 ---
 
@@ -20,7 +21,7 @@ source('/var/www/R/config.R')
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
 
-source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
+#source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
 
 options(scipen = 999) #disable scientific notation
 
@@ -29,7 +30,9 @@ for(i in 1:length(params)){
   assign(names(params[i]), params[[i]])
 }
 
-runlabel <- paste0('runid_', runid)
+#get numeric element of demand scenario runid to use in fn_get_runfile
+runid_dem = as.numeric(gsub(".*?([0-9]+).*", "\\1", demand_scenario))             
+
 ```
 
 # Water Availability Case Studies 
@@ -54,9 +57,9 @@ A case study is a descriptive example of a particular area (ex. a watershed/regi
 #Get storage metrics 
 df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c(runlabel, runlabel),
+  'runid' = c(demand_scenario, demand_scenario),
   'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c(paste0('SminL30mg_',runid, '_apx'), paste0('SminL90mg_', runid, '_apx'))
+  'runlabel' = c('SminL30mg_apx','SminL90mg_apx')
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -67,9 +70,9 @@ storage_data <- om_vahydro_metric_grid(
 #Get demand scenario metrics used in WA eqn
 df_metrics <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c(runlabel, runlabel),
+  'runid' = c(demand_scenario, demand_scenario),
   'metric' = c('l30_Qout', 'l90_Qout'),
-  'runlabel' = c(paste0('l30_Qout_', runid), paste0('l90_Qout_', runid))
+  'runlabel' = c('l30_Qout_dem', 'l90_Qout_dem')
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -80,7 +83,7 @@ metric_data <- om_vahydro_metric_grid(
 #Get baseline scenario metrics for WA eqn
 df_baseline <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c('runid_0', 'runid_0'),
+  'runid' = c(baseline_scenario, baseline_scenario),
   'metric' = c('l90_Qout', 'l30_Qout'),
   'runlabel' = c('l90_Qout_base', 'l30_Qout_base')
 )
@@ -94,6 +97,10 @@ baseline_data <- om_vahydro_metric_grid(
 
 ```{r Smin Calculations, message=FALSE, warning=FALSE}
 
+#create empty columns to hold near exact storage values 
+storage_data$SminL30mg_nex <- NA
+storage_data$SminL90mg_nex <- NA
+
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
   pid <- storage_data$pid[i]
@@ -105,7 +112,7 @@ for (i in 1:nrow(storage_data)) {
   )
   rm(token)
 
-  dat <- fn_get_runfile(elid, runid, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
+  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
   mode(dat) <- 'numeric'
   
   #Get model to get object class
@@ -196,13 +203,12 @@ for (i in 1:nrow(storage_data)) {
   )
 
   ##Approximate method: Smin within low-flow years:
-  Smin_L30_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
-  Smin_L90_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
- 
-  storage_data$SminL30mg_approx[i] <- Smin_L30_approx_acf / 3.069
-  storage_data$SminL90mg_approx[i] <- Smin_L90_approx_acf / 3.069
-  
-  ## rivTables[[k]][,paste0('pct_diff','_',display_metric)] <- round(tmp_df, digits = 2)
+  # Smin_L30_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l30_start, end_date = l30_end, colname = "Storage")
+  # Smin_L90_approx_acf <- fn_get_pd_min(ts_data = dat, start_date = l90_start, end_date = l90_end, colname = "Storage")
+  # 
+  # storage_data$SminL30mg_approx[i] <- Smin_L30_approx_acf / 3.069
+  # storage_data$SminL90mg_approx[i] <- Smin_L90_approx_acf / 3.069
+  # 
   
   
   ##Near-exact method: Smin within the L30 and L90 periods:
@@ -255,8 +261,8 @@ for (i in 1:nrow(storage_data)) {
   
   #Smin within the low flow periods
     #Storage needs to be converted from acre-feet to million gallons
-  storage_data$SminL30mg_nearexact[i] <- min(l30pd_df$Storage) / 3.069
-  storage_data$SminL90mg_nearexact[i] <- min(l90pd_df$Storage) / 3.069
+  storage_data$SminL30mg_nex[i] <- min(l30pd_df$Storage) / 3.069
+  storage_data$SminL90mg_nex[i] <- min(l90pd_df$Storage) / 3.069
   
   #Method comparison: Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
   # minstorage30yr <- min(l30yr_data$Storage)
