@@ -51,8 +51,6 @@ A case study is a descriptive example of a particular area (ex. a watershed/regi
 - Jennings Randolph Lake 
 
 
-## Table 1: Smin Analysis 
-
 ```{r Pull Data, message=FALSE}
 #Get storage metrics 
 df_storage <- data.frame(
@@ -322,12 +320,6 @@ for (i in 1:nrow(storage_data)) {
   
 }
 
-
-##### NOT FUNCTIONAL YET #####
-
-
-###############
-
 ```
 
 
@@ -432,35 +424,56 @@ for (i in 1:nrow(metric_data)) {
 
 ```{r Calculate Water Availability}
 
-## Perform unit conversions when plugging values into WA equation 
+## Reminder: Perform unit conversions when plugging values into WA equation 
+# mgd = cfs / 1.547
+metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 
-# #Convert storage from mg to mgd 
-# storage_data$SminL30mgd_11 <- storage_data$SminL30mg_11 / 30 #dividing by # of days in low flow period 
-# storage_data$SminL30mgd_13 <- storage_data$SminL30mg_13 / 30
-# storage_data$SminL90mgd_11 <- storage_data$SminL90mg_11 / 30
-# storage_data$SminL90mgd_13 <- storage_data$SminL90mg_13 / 30
-# 
-# #Convert cfs to mgd 
-# #demand scenario
-# metric_data$l30_Qout_dem_mgd = metric_data$l30_Qout_dem / 1.547
-# metric_data$l90_Qout_dem_mgd = metric_data$l90_Qout_dem / 1.547
-# 
-# #baseline scenario
-# baseline_data$l30_Qout_base_mgd = baseline_data$l30_Qout_base / 1.547
-# baseline_data$l90_Qout_base_mgd = baseline_data$l90_Qout_base / 1.547
+#Will have 4 total WA values: L30 and L90 for each approx and near exact storage 
+metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
+  0.9*(metric_data$l30_Qout_base / 1.547) + 
+  (metric_data$SminL30mg_apx_sum / 30), digits = 3)
+
+metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
+  0.9*(metric_data$l90_Qout_base / 1.547) + 
+  (metric_data$SminL30mg_apx_sum / 90), digits = 3)
+
+metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
+  0.9*(metric_data$l30_Qout_base / 1.547) + 
+  (metric_data$SminL30mg_nex_sum / 30), digits = 3)
+
+metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
+  0.9*(metric_data$l90_Qout_base / 1.547) + 
+  (metric_data$SminL90mg_nex_sum / 90), digits = 3)
+
 
 ```
 
 
+```{r Create Table 1}
+
+df1 <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
+
+table1 <- data.frame(propname = df1$propname,
+                     riverseg = df1$riverseg,
+                     l30_Qout = df1$l30_Qout_dem,
+                     l90_Qout = df1$l90_Qout_dem,
+                     l30_Qout_base = df1$l30_Qout_base,
+                     l90_Qout_base = df1$l90_Qout_base,
+                     SminL30mg_apx = df1$SminL30mg_apx_total,
+                     SminL90mg_apx = df1$SminL90mg_apx_total,
+                     SminL30mg_nex = df1$SminL30mg_nex_total,
+                     SminL90mg_nex = df1$SminL90mg_nex_total,
+                     WA_mgd_30_apx = df1$WA_mgd_30_apx,
+                     WA_mgd_90_apx = df1$WA_mgd_90_apx,
+                     WA_mgd_30_nex = df1$WA_mgd_30_nex,
+                     WA_mgd_90_nex = df1$WA_mgd_90_nex)
+
+```
+
+
+## Table 1: Smin Analysis 
 
 ## Table 2: Cases of Differing Minimum Smins by Method 
-
-```{r}
-#the approx metho should always give us the lowest value of Smin 
-```
-
-
-
 
 ## Table/Map 3: Water Availability by Riverseg
 
