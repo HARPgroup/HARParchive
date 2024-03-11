@@ -8,6 +8,7 @@ params:
   impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
+  instream_coeff: [0.9]
 
 ---
 
@@ -15,6 +16,7 @@ params:
 library(data.table)
 library(hydrotools)
 library(sqldf)
+library(flextable)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -451,9 +453,9 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```{r Create Table 1}
 
-df1 <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
+df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
 
-table1 <- data.frame(propname = df1$propname,
+table_WA <- data.frame(propname = df1$propname,
                      riverseg = df1$riverseg,
                      l30_Qout = df1$l30_Qout_dem,
                      l90_Qout = df1$l90_Qout_dem,
