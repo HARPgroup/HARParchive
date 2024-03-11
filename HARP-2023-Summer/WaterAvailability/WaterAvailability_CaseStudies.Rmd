@@ -430,7 +430,7 @@ for (i in 1:nrow(metric_data)) {
 # mgd = cfs / 1.547
 metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 
-#Will have 4 total WA values: L30 and L90 for each approx and near exact storage 
+#4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
   instream_coeff*(metric_data$l30_Qout_base / 1.547) + 
   (metric_data$SminL30mg_apx_sum / 30), digits = 3)
@@ -450,42 +450,82 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```
 
+## Table 1: Overall Water Availability Across VA
+# Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
-```{r Create Table 1}
-
+```{r Table 1}
+title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+  
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
 
-table_WA <- data.frame(propname = df1$propname,
-                     riverseg = df1$riverseg,
-                     l30_Qout = df1$l30_Qout_dem,
-                     l90_Qout = df1$l90_Qout_dem,
-                     l30_Qout_base = df1$l30_Qout_base,
-                     l90_Qout_base = df1$l90_Qout_base,
-                     SminL30mg_apx = df1$SminL30mg_apx_total,
-                     SminL90mg_apx = df1$SminL90mg_apx_total,
-                     SminL30mg_nex = df1$SminL30mg_nex_total,
-                     SminL90mg_nex = df1$SminL90mg_nex_total,
-                     WA_mgd_30_apx = df1$WA_mgd_30_apx,
-                     WA_mgd_90_apx = df1$WA_mgd_90_apx,
-                     WA_mgd_30_nex = df1$WA_mgd_30_nex,
-                     WA_mgd_90_nex = df1$WA_mgd_90_nex)
+table_WA <- data.frame(Propname = df_WA$propname,
+                     Riverseg = df_WA$riverseg,
+                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
+                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
+                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
+                     SminL30mg_apx = df_WA$SminL30mg_apx_total,
+                     SminL30mg_nex = df_WA$SminL30mg_nex_total,
+                     SminL90mg_apx = df_WA$SminL90mg_apx_total,
+                     SminL90mg_nex = df_WA$SminL90mg_nex_total,
+                     WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
+                     WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
+                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
+                     WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
 
+ftable_WA <- flextable(table_WA) #create flextable
+ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
+
+ftable_WA
+```
+
+
+
+
+## Table 2: Cases of Differing Minimum Smins by Method 
+# The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
+
+```{r}
+title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+
+table_Smin <- data.frame(Propname = storage_data$propname,
+                     Riverseg = storage_data$riverseg,
+                     SminL30mg_apx = storage_data$SminL30mg_apx,
+                     SminL30mg_nex = storage_data$SminL30mg_nex,
+                     SminL90mg_apx = storage_data$SminL90mg_apx,
+                     SminL90mg_nex = storage_data$SminL90mg_nex,
+                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
+                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
+
+
+ftable_Smin <- flextable(table_Smin) #create flextable
+#highlight when approx is not <= near-exact
+rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
+rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
+rownums <- c(rownums30, rownums90)
+
+ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
+ftable_Smin <- flextable:add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
+
+ftable_Smin
 
 
 ```
 
 
-## Table 1: Smin Analysis 
-
-## Table 2: Cases of Differing Minimum Smins by Method 
-
-## Table/Map 3: Water Availability by Riverseg
+## Table 9: Smin Method Comparison
 
 ```{r}
 
 ```
 
 
+## Map 1: Water Availability by Riverseg
+# Map showing available water across VA
+
+```{r}
+
+```
 
 
 ## Graph 1: WA vs. Demand and Flow
