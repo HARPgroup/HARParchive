@@ -432,19 +432,19 @@ metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 
 #Will have 4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
-  0.9*(metric_data$l30_Qout_base / 1.547) + 
+  instream_coeff*(metric_data$l30_Qout_base / 1.547) + 
   (metric_data$SminL30mg_apx_sum / 30), digits = 3)
 
 metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
-  0.9*(metric_data$l90_Qout_base / 1.547) + 
+  instream_coeff*(metric_data$l90_Qout_base / 1.547) + 
   (metric_data$SminL30mg_apx_sum / 90), digits = 3)
 
 metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
-  0.9*(metric_data$l30_Qout_base / 1.547) + 
+  instream_coeff*(metric_data$l30_Qout_base / 1.547) + 
   (metric_data$SminL30mg_nex_sum / 30), digits = 3)
 
 metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
-  0.9*(metric_data$l90_Qout_base / 1.547) + 
+  instream_coeff*(metric_data$l90_Qout_base / 1.547) + 
   (metric_data$SminL90mg_nex_sum / 90), digits = 3)
 
 
@@ -469,6 +469,8 @@ table_WA <- data.frame(propname = df1$propname,
                      WA_mgd_90_apx = df1$WA_mgd_90_apx,
                      WA_mgd_30_nex = df1$WA_mgd_30_nex,
                      WA_mgd_90_nex = df1$WA_mgd_90_nex)
+
+
 
 ```
 
