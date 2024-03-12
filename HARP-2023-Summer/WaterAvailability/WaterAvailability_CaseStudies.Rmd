@@ -454,7 +454,7 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 # Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
 ```{r Table 1, echo = FALSE, message=FALSE}
-title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
   
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
 
@@ -486,7 +486,7 @@ ftable_WA
 # The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
 
 ```{r}
-title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
 
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
@@ -514,7 +514,7 @@ ftable_Smin
 ## Table 3: Smin Method Comparison
 
 ```{r Table 3, echo = FALSE, message=FALSE}
-title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
 
 #sort table by the sum of 2 values
 storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
