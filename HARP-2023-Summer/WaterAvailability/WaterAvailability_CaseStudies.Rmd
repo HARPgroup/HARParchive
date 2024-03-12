@@ -95,7 +95,7 @@ baseline_data <- om_vahydro_metric_grid(
 ```
 
 
-```{r Smin Calculations, message=FALSE, warning=FALSE}
+```{r Smin Calculations, echo = FALSE, message=FALSE, warning=FALSE}
 
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
@@ -300,7 +300,7 @@ for (i in 1:nrow(storage_data)) {
 ```
 
 
-```{r Smin Method Comparison}
+```{r Smin Method Comparison, echo = FALSE, message=FALSE}
 
 #Compare approx and near exact Smin values. Approx should always be <= near exact 
 
@@ -326,7 +326,7 @@ for (i in 1:nrow(storage_data)) {
 
 
 
-```{r Sum Storage by Riverseg}
+```{r Sum Storage by Riverseg, echo = FALSE, message=FALSE}
 
 #Approximate Smin Values 
 
@@ -381,7 +381,7 @@ storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_sum, b.SminL90mg_nex_sum
 ```
 
 
-```{r Join Storage, Metric, and Baseline Data}
+```{r Join Storage + Metric + Baseline Data, echo = FALSE, message=FALSE}
 #Storage data by riverseg in storage_byseg 
 #Metric data by riverseg in metric_data 
 
@@ -400,7 +400,7 @@ metric_data <- sqldf('SELECT a.*, b.l30_Qout_base, b.l90_Qout_base
 
 ```
 
-```{r Link Upstream Impoundments}
+```{r Link Upstream Impoundments, echo = FALSE, message=FALSE}
 #Empty columns that will hold total storage
 metric_data$SminL30mg_apx_total <- NA 
 metric_data$SminL90mg_apx_total <- NA 
@@ -424,7 +424,7 @@ for (i in 1:nrow(metric_data)) {
 ```
 
 
-```{r Calculate Water Availability}
+```{r Calculate Water Availability, echo = FALSE, message=FALSE}
 
 ## Reminder: Perform unit conversions when plugging values into WA equation 
 # mgd = cfs / 1.547
@@ -453,7 +453,7 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 ## Table 1: Overall Water Availability Across VA
 # Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
-```{r Table 1}
+```{r Table 1, echo = FALSE, message=FALSE}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
   
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
@@ -505,18 +505,38 @@ rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
 rownums <- c(rownums30, rownums90)
 
 ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
-ftable_Smin <- flextable:add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
+ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
 
 ftable_Smin
-
-
 ```
 
 
-## Table 9: Smin Method Comparison
+## Table 3: Smin Method Comparison
 
-```{r}
+```{r Table 3, echo = FALSE, message=FALSE}
+title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
 
+#sort table by the sum of 2 values
+storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
+storage_data$outside_sum <- storage_data$outside_pd30 + storage_data$outside_pd90
+storage_data <- sqldf("SELECT a.* FROM storage_data as a 
+                       ORDER BY (a.outside_sum) desc")
+
+table_Storage <- data.frame(Propname = storage_data$propname,
+                     Riverseg = storage_data$riverseg,
+                     SminL30mg_apx = storage_data$SminL30mg_apx,
+                     SminL30mg_nex = storage_data$SminL30mg_nex,
+                     SminL90mg_apx = storage_data$SminL90mg_apx,
+                     SminL90mg_nex = storage_data$SminL90mg_nex,
+                     outside_pd30 = storage_data$outside_pd30,
+                     outside_pd90 = storage_data$outside_pd90)
+
+
+
+ftable_Storage <- flextable(table_Storage) #create flextable
+ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
+
+ftable_Storage
 ```
 
 
