@@ -69,10 +69,10 @@ storage_data <- om_vahydro_metric_grid(
 
 #Get demand scenario metrics used in WA eqn
 df_metrics <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c(demand_scenario, demand_scenario),
-  'metric' = c('l30_Qout', 'l90_Qout'),
-  'runlabel' = c('l30_Qout_dem', 'l90_Qout_dem')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c(demand_scenario, demand_scenario, demand_scenario),
+  'metric' = c('wd_cumulative_mgd', 'l30_Qout', 'l90_Qout'),
+  'runlabel' = c('wd_cumulative_mgd', 'l30_Qout_dem', 'l90_Qout_dem')
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -397,6 +397,11 @@ metric_data <- sqldf('SELECT a.*, b.l30_Qout_base, b.l90_Qout_base
                    LEFT OUTER JOIN baseline_data as b
                    ON (a.riverseg = b.riverseg)')
 
+#Join cumulative demand to storage data for inclusion in tables 
+storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
+                   FROM storage_data as a
+                   LEFT OUTER JOIN metric_data as b
+                   ON (a.riverseg = b.riverseg)')
 
 ```
 
@@ -454,16 +459,24 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 # Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
 ```{r Table 1, echo = FALSE, message=FALSE}
-title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
   
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
 
+df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
+
+df_WA <- sqldf("SELECT a.* FROM df_WA as a 
+                       ORDER BY (a.WA_apx_sum)") #order df with lowest WA at the top 
+
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
+                     wd_cumu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
                      l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
                      l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
+                     l30_Qout_mif = round((df_WA$l30_Qout_base*instream_coeff), digits = 3),
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
                      l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
+                     l90_Qout_mif = round((df_WA$l90_Qout_base*instream_coeff), digits = 3),
                      SminL30mg_apx = df_WA$SminL30mg_apx_total,
                      SminL30mg_nex = df_WA$SminL30mg_nex_total,
                      SminL90mg_apx = df_WA$SminL90mg_apx_total,
@@ -480,16 +493,15 @@ ftable_WA
 ```
 
 
-
-
 ## Table 2: Cases of Differing Minimum Smins by Method 
 # The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
 
-```{r}
-title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+```{r Table 2, echo = FALSE, message=FALSE}
+title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
 
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
+                     wd_cumu_mgd = round(storage_data$wd_cumulative_mgd, digits = 3),
                      SminL30mg_apx = storage_data$SminL30mg_apx,
                      SminL30mg_nex = storage_data$SminL30mg_nex,
                      SminL90mg_apx = storage_data$SminL90mg_apx,
@@ -497,9 +509,17 @@ table_Smin <- data.frame(Propname = storage_data$propname,
                      apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
                      apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
 
+#order table with rows of interest at the top 
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_30)") 
+
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_90)") 
+
 
 ftable_Smin <- flextable(table_Smin) #create flextable
-#highlight when approx is not <= near-exact
+
+#to highlight when approx is not <= near-exact
 rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
 rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
 rownums <- c(rownums30, rownums90)
@@ -514,7 +534,7 @@ ftable_Smin
 ## Table 3: Smin Method Comparison
 
 ```{r Table 3, echo = FALSE, message=FALSE}
-title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario)
+title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
 
 #sort table by the sum of 2 values
 storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
@@ -524,14 +544,13 @@ storage_data <- sqldf("SELECT a.* FROM storage_data as a
 
 table_Storage <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
+                     wd_cumu_mgd = round(storage_data$wd_cumulative_mgd, digits = 3), 
                      SminL30mg_apx = storage_data$SminL30mg_apx,
                      SminL30mg_nex = storage_data$SminL30mg_nex,
                      SminL90mg_apx = storage_data$SminL90mg_apx,
                      SminL90mg_nex = storage_data$SminL90mg_nex,
                      outside_pd30 = storage_data$outside_pd30,
                      outside_pd90 = storage_data$outside_pd90)
-
-
 
 ftable_Storage <- flextable(table_Storage) #create flextable
 ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
