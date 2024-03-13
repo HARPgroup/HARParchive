@@ -1,29 +1,34 @@
 ---
-title: "WaterAvailability_CaseStudies"
-author: "HARP Analysts"
-date: "2024-02-14"
-output: word_document
-
+date: "`r Sys.Date()`"
+author: "Glenn Campagna"
+title: "officedown template"
+output: 
+  officedown::rdocx_document:
+    mapstyles:
+      Normal: ['First Paragraph']
+      
 params: 
   impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
-
+  
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.cap = TRUE)
+
 library(data.table)
 library(hydrotools)
 library(sqldf)
 library(flextable)
+library(officedown)
+library(officer)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
-
-#source('https://github.com/HARPgroup/om/raw/master/R/summarize/fn_get_pd_min.R') #load Smin_CPL function, approx method
 
 options(scipen = 999) #disable scientific notation
 
@@ -33,9 +38,42 @@ for(i in 1:length(params)){
 }
 
 #get numeric element of demand scenario runid to use in fn_get_runfile
-runid_dem = as.numeric(gsub(".*?([0-9]+).*", "\\1", demand_scenario))             
+runid_dem = as.numeric(gsub(".*?([0-9]+).*", "\\1", demand_scenario))      
 
+#document formatting (came with template)
+fp <- fp_par(
+  text.align = "center", 
+  padding.bottom = 20, padding.top = 120, 
+  border.bottom = fp_border())
+
+ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 ```
+
+
+\newpage
+
+## Table of contents
+
+<!---BLOCK_TOC--->
+
+## List of tables
+
+<!---BLOCK_TOC{seq_id: 'tab'}--->
+
+## List of figures
+
+<!---BLOCK_TOC{seq_id: 'fig'}--->
+
+
+\newpage
+
+## Sections
+
+<!---BLOCK_MULTICOL_START--->
+Column1
+`r run_columnbreak()` 
+Column2
+<!---BLOCK_MULTICOL_STOP{widths: [3,3], space: 0.2, sep: true}--->
 
 # Water Availability Case Studies 
 
@@ -420,7 +458,6 @@ for (i in 1:nrow(metric_data)) {
 }
 ```
 
-
 ```{r Calculate Water Availability, echo = FALSE, message=FALSE, warning=FALSE}
 
 ## Reminder: Perform unit conversions when plugging values into WA equation 
@@ -446,6 +483,8 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 
 ```
+
+<!---BLOCK_LANDSCAPE_START--->
 
 # Table 1: Overall Water Availability Across VA
 ## Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
@@ -580,7 +619,6 @@ ftable_imp <- add_header_lines(ftable_imp, values= title_table_imp) #add title
 ftable_imp
 ```
 
-
 # Table 5: WA Upstream of Impoundments of Interest 
 
 ```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
@@ -626,24 +664,15 @@ ftable_ups
 ```
 
 
+<!---BLOCK_LANDSCAPE_STOP--->
 
 
-# Map 1: Water Availability by Riverseg
-## Map showing available water across VA
+```{r tab.cap="caption 1", tab.id="mtcars"}
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```
+
+```{r fig.cap="A boxplot", fig.id = "boxplot"}
 
 ```
 
 
-## Graph 1: WA vs. Demand and Flow
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-#demand could be represented by wd_mgd or maybe consumptive_use_frac
-#flow will be represented by Qout 
-```
-
-
-
-
-## Notes & Discussion 
