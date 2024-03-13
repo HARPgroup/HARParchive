@@ -458,6 +458,11 @@ title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenari
   
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
 
+df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
+
+df_WA <- sqldf("SELECT a.* FROM df_WA as a 
+                       ORDER BY (a.WA_apx_sum)") #order df with lowest WA at the top 
+
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
                      l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
@@ -480,13 +485,12 @@ ftable_WA
 ```
 
 
-
-
 ## Table 2: Cases of Differing Minimum Smins by Method 
 # The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
 
-```{r}
+```{r Table 2, echo = FALSE, message=FALSE}
 title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+
 
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
@@ -497,9 +501,17 @@ table_Smin <- data.frame(Propname = storage_data$propname,
                      apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
                      apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
 
+#order table with rows of interest at the top 
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_30)") 
+
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_90)") 
+
 
 ftable_Smin <- flextable(table_Smin) #create flextable
-#highlight when approx is not <= near-exact
+
+#to highlight when approx is not <= near-exact
 rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
 rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
 rownums <- c(rownums30, rownums90)
