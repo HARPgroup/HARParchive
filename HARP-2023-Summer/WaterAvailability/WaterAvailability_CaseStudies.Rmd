@@ -8,7 +8,7 @@ params:
   impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
-  instream_coeff: [0.9]
+  mif_coef: [0.9]
 
 ---
 
@@ -437,19 +437,19 @@ metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
-  instream_coeff*(metric_data$l30_Qout_base / 1.547) + 
+  mif_coef*(metric_data$l30_Qout_base / 1.547) + 
   (metric_data$SminL30mg_apx_sum / 30), digits = 3)
 
 metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
-  instream_coeff*(metric_data$l90_Qout_base / 1.547) + 
+  mif_coef*(metric_data$l90_Qout_base / 1.547) + 
   (metric_data$SminL30mg_apx_sum / 90), digits = 3)
 
 metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
-  instream_coeff*(metric_data$l30_Qout_base / 1.547) + 
+  mif_coef*(metric_data$l30_Qout_base / 1.547) + 
   (metric_data$SminL30mg_nex_sum / 30), digits = 3)
 
 metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
-  instream_coeff*(metric_data$l90_Qout_base / 1.547) + 
+  mif_coef*(metric_data$l90_Qout_base / 1.547) + 
   (metric_data$SminL90mg_nex_sum / 90), digits = 3)
 
 
@@ -459,7 +459,7 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 # Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
 ```{r Table 1, echo = FALSE, message=FALSE}
-title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
   
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
 
@@ -473,10 +473,10 @@ table_WA <- data.frame(Propname = df_WA$propname,
                      wd_cumu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
                      l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
                      l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((df_WA$l30_Qout_base*instream_coeff), digits = 3),
+                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
                      l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
                      l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((df_WA$l90_Qout_base*instream_coeff), digits = 3),
+                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
                      SminL30mg_apx = df_WA$SminL30mg_apx_total,
                      SminL30mg_nex = df_WA$SminL30mg_nex_total,
                      SminL90mg_apx = df_WA$SminL90mg_apx_total,
@@ -497,7 +497,7 @@ ftable_WA
 # The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
 
 ```{r Table 2, echo = FALSE, message=FALSE}
-title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
@@ -534,7 +534,7 @@ ftable_Smin
 ## Table 3: Smin Method Comparison
 
 ```{r Table 3, echo = FALSE, message=FALSE}
-title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
 storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
@@ -562,7 +562,7 @@ ftable_Storage
 ## Table 4: Impoundments of Interest 
 
 ```{r Table 4, echo = FALSE, message=FALSE}
-title_table_imp <- paste0('TABLE 4: IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+title_table_imp <- paste0('TABLE 4: IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #get impoundments of interest 
 imp_df <- data.frame() #empty df to hold impoundment objects 
@@ -592,7 +592,7 @@ ftable_imp
 ## Table 5: WA Upstream of Impoundments of Interest 
 
 ```{r Table 5, echo = FALSE, message=FALSE}
-title_table_ups <- paste0('TABLE 5: WA UPSTREAM OF IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+title_table_ups <- paste0('TABLE 5: WA UPSTREAM OF IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #get segs which impoundments of interets are within or downstream of 
 ups_df <- data.frame() 
@@ -614,10 +614,10 @@ table_ups <- data.frame(Propname = ups_df$propname,
                      wd_cumu_mgd = round(ups_df$wd_cumulative_mgd, digits = 3),
                      l30_Qout = round(ups_df$l30_Qout_dem, digits = 3),
                      l30_Qout_base = round(ups_df$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((ups_df$l30_Qout_base*instream_coeff), digits = 3),
+                     l30_Qout_mif = round((ups_df$l30_Qout_base*mif_coef), digits = 3),
                      l90_Qout = round(ups_df$l90_Qout_dem, digits = 3),
                      l90_Qout_base = round(ups_df$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((ups_df$l90_Qout_base*instream_coeff), digits = 3),
+                     l90_Qout_mif = round((ups_df$l90_Qout_base*mif_coef), digits = 3),
                      SminL30mg_apx = ups_df$SminL30mg_apx_total,
                      SminL30mg_nex = ups_df$SminL30mg_nex_total,
                      SminL90mg_apx = ups_df$SminL90mg_apx_total,
