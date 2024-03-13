@@ -41,10 +41,10 @@ runid_dem = as.numeric(gsub(".*?([0-9]+).*", "\\1", demand_scenario))
 
 
 ## Case Study Description 
-A case study is a descriptive example of a particular area (ex. a watershed/region) where water availability is calculated. For that example watershed, we can take a detailed look at the individual calculations and resulting values generated.
+### A case study is a descriptive example of a particular area (ex. a watershed/region) where water availability is calculated. For that example watershed, we can take a detailed look at the individual calculations and resulting values generated.
 
 
-## Impoundments for case studies:
+# Impoundments for case studies:
 - Lake Manassas 
 - Lake Moomaw
 - Lake Chesdin 
@@ -53,7 +53,7 @@ A case study is a descriptive example of a particular area (ex. a watershed/regi
 - Jennings Randolph Lake 
 
 
-```{r Pull Data, message=FALSE}
+```{r Pull Data, echo = FALSE, message=FALSE, warning=FALSE}
 #Get storage metrics 
 df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
@@ -94,9 +94,7 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
-
-```{r Smin Calculations, echo = FALSE, message=FALSE, warning=FALSE}
-
+```{r Smin Calculations, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
 
@@ -299,9 +297,7 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-
-```{r Smin Method Comparison, echo = FALSE, message=FALSE}
-
+```{r Smin Method Comparison, echo=FALSE, message=FALSE, warning=FALSE}
 #Compare approx and near exact Smin values. Approx should always be <= near exact 
 
 storage_data$apx_lessthan_nex_30 <- NA #empty columns to hold true/false
@@ -324,10 +320,7 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-
-
-```{r Sum Storage by Riverseg, echo = FALSE, message=FALSE}
-
+```{r Sum Storage by Riverseg, echo=FALSE, message=FALSE, warning=FALSE}
 #Approximate Smin Values 
 
 #Sum approx SminL30 by riverseg
@@ -380,8 +373,7 @@ storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_sum, b.SminL90mg_nex_sum
                               WHERE (a. riverseg = b.riverseg) ")
 ```
 
-
-```{r Join Storage + Metric + Baseline Data, echo = FALSE, message=FALSE}
+```{r Join Storage + Metric + Baseline Data, echo=FALSE, message=FALSE, warning=FALSE}
 #Storage data by riverseg in storage_byseg 
 #Metric data by riverseg in metric_data 
 
@@ -405,7 +397,7 @@ storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
 
 ```
 
-```{r Link Upstream Impoundments, echo = FALSE, message=FALSE}
+```{r Link Upstream Impoundments, echo = FALSE, message=FALSE, warning=FALSE}
 #Empty columns that will hold total storage
 metric_data$SminL30mg_apx_total <- NA 
 metric_data$SminL90mg_apx_total <- NA 
@@ -429,7 +421,7 @@ for (i in 1:nrow(metric_data)) {
 ```
 
 
-```{r Calculate Water Availability, echo = FALSE, message=FALSE}
+```{r Calculate Water Availability, echo = FALSE, message=FALSE, warning=FALSE}
 
 ## Reminder: Perform unit conversions when plugging values into WA equation 
 # mgd = cfs / 1.547
@@ -455,10 +447,10 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```
 
-## Table 1: Overall Water Availability Across VA
-# Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
+# Table 1: Overall Water Availability Across VA
+## Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
-```{r Table 1, echo = FALSE, message=FALSE}
+```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
   
 df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
@@ -493,10 +485,10 @@ ftable_WA
 ```
 
 
-## Table 2: Cases of Differing Minimum Smins by Method 
-# The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
+# Table 2: Cases of Differing Minimum Smins by Method 
+## The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
 
-```{r Table 2, echo = FALSE, message=FALSE}
+```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_Smin <- data.frame(Propname = storage_data$propname,
@@ -531,9 +523,9 @@ ftable_Smin
 ```
 
 
-## Table 3: Smin Method Comparison
+# Table 3: Smin Method Comparison
 
-```{r Table 3, echo = FALSE, message=FALSE}
+```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
@@ -559,9 +551,9 @@ ftable_Storage
 ```
 
 
-## Table 4: Impoundments of Interest 
+# Table 4: Impoundments of Interest 
 
-```{r Table 4, echo = FALSE, message=FALSE}
+```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_imp <- paste0('TABLE 4: IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #get impoundments of interest 
@@ -589,9 +581,9 @@ ftable_imp
 ```
 
 
-## Table 5: WA Upstream of Impoundments of Interest 
+# Table 5: WA Upstream of Impoundments of Interest 
 
-```{r Table 5, echo = FALSE, message=FALSE}
+```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_ups <- paste0('TABLE 5: WA UPSTREAM OF IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #get segs which impoundments of interets are within or downstream of 
@@ -636,17 +628,17 @@ ftable_ups
 
 
 
-## Map 1: Water Availability by Riverseg
-# Map showing available water across VA
+# Map 1: Water Availability by Riverseg
+## Map showing available water across VA
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 ```
 
 
 ## Graph 1: WA vs. Demand and Flow
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #demand could be represented by wd_mgd or maybe consumptive_use_frac
 #flow will be represented by Qout 
 ```
