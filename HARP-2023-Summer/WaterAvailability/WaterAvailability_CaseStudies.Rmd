@@ -69,10 +69,10 @@ storage_data <- om_vahydro_metric_grid(
 
 #Get demand scenario metrics used in WA eqn
 df_metrics <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c(demand_scenario, demand_scenario),
-  'metric' = c('l30_Qout', 'l90_Qout'),
-  'runlabel' = c('l30_Qout_dem', 'l90_Qout_dem')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c(demand_scenario, demand_scenario, demand_scenario),
+  'metric' = c('wd_cumulative_mgd', 'l30_Qout', 'l90_Qout'),
+  'runlabel' = c('wd_cumulative_mgd', 'l30_Qout_dem', 'l90_Qout_dem')
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -397,6 +397,11 @@ metric_data <- sqldf('SELECT a.*, b.l30_Qout_base, b.l90_Qout_base
                    LEFT OUTER JOIN baseline_data as b
                    ON (a.riverseg = b.riverseg)')
 
+#Join cumulative demand to storage data for inclusion in tables 
+storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
+                   FROM storage_data as a
+                   LEFT OUTER JOIN metric_data as b
+                   ON (a.riverseg = b.riverseg)')
 
 ```
 
@@ -465,10 +470,13 @@ df_WA <- sqldf("SELECT a.* FROM df_WA as a
 
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
+                     wd_cumu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
                      l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
                      l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
+                     l30_Qout_mif = round((df_WA$l30_Qout_base*instream_coeff), digits = 3),
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
                      l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
+                     l90_Qout_mif = round((df_WA$l90_Qout_base*instream_coeff), digits = 3),
                      SminL30mg_apx = df_WA$SminL30mg_apx_total,
                      SminL30mg_nex = df_WA$SminL30mg_nex_total,
                      SminL90mg_apx = df_WA$SminL90mg_apx_total,
@@ -491,9 +499,9 @@ ftable_WA
 ```{r Table 2, echo = FALSE, message=FALSE}
 title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
 
-
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
+                     wd_cumu_mgd = round(storage_data$wd_cumulative_mgd, digits = 3),
                      SminL30mg_apx = storage_data$SminL30mg_apx,
                      SminL30mg_nex = storage_data$SminL30mg_nex,
                      SminL90mg_apx = storage_data$SminL90mg_apx,
@@ -536,14 +544,13 @@ storage_data <- sqldf("SELECT a.* FROM storage_data as a
 
 table_Storage <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
+                     wd_cumu_mgd = round(storage_data$wd_cumulative_mgd, digits = 3), 
                      SminL30mg_apx = storage_data$SminL30mg_apx,
                      SminL30mg_nex = storage_data$SminL30mg_nex,
                      SminL90mg_apx = storage_data$SminL90mg_apx,
                      SminL90mg_nex = storage_data$SminL90mg_nex,
                      outside_pd30 = storage_data$outside_pd30,
                      outside_pd90 = storage_data$outside_pd90)
-
-
 
 ftable_Storage <- flextable(table_Storage) #create flextable
 ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
