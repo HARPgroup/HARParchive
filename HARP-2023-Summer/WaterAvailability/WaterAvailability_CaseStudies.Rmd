@@ -559,6 +559,83 @@ ftable_Storage
 ```
 
 
+## Table 4: Impoundments of Interest 
+
+```{r Table 4, echo = FALSE, message=FALSE}
+title_table_imp <- paste0('TABLE 4: IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+
+#get impoundments of interest 
+imp_df <- data.frame() #empty df to hold impoundment objects 
+
+for (i in 1:length(impoundment_list)) {
+  improw <- storage_data[grep(impoundment_list[i], storage_data$propname), ]
+  imp_df <- rbind(imp_df, improw)
+}
+
+table_imp <- data.frame(Propname = imp_df$propname,
+                     Riverseg = imp_df$riverseg,
+                     wd_cumu_mgd = round(imp_df$wd_cumulative_mgd, digits = 3), 
+                     SminL30mg_apx = imp_df$SminL30mg_apx,
+                     SminL30mg_nex = imp_df$SminL30mg_nex,
+                     SminL90mg_apx = imp_df$SminL90mg_apx,
+                     SminL90mg_nex = imp_df$SminL90mg_nex,
+                     outside_pd30 = imp_df$outside_pd30,
+                     outside_pd90 = imp_df$outside_pd90)
+
+ftable_imp <- flextable(table_imp) #create flextable
+ftable_imp <- add_header_lines(ftable_imp, values= title_table_imp) #add title 
+
+ftable_imp
+```
+
+
+## Table 5: WA Upstream of Impoundments of Interest 
+
+```{r Table 5, echo = FALSE, message=FALSE}
+title_table_ups <- paste0('TABLE 5: WA UPSTREAM OF IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', instream_coeff)
+
+#get segs which impoundments of interets are within or downstream of 
+ups_df <- data.frame() 
+
+for (i in 1:length(imp_df)) { 
+  ups_segs <- fn_extract_basin(metric_data, imp_df$riverseg[i])
+  if (nrow(ups_segs) > 0) {
+    ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
+  }
+  ups_df <- rbind(ups_df, ups_segs)
+}
+
+#remove rows matching rows in impoundment df
+ups_df <- ups_df[!(ups_df$featureid %in% imp_df$featureid),]
+
+table_ups <- data.frame(Propname = ups_df$propname,
+                     Riverseg = ups_df$riverseg,
+                     DSimpound = ups_df$ds_impoundment,
+                     wd_cumu_mgd = round(ups_df$wd_cumulative_mgd, digits = 3),
+                     l30_Qout = round(ups_df$l30_Qout_dem, digits = 3),
+                     l30_Qout_base = round(ups_df$l30_Qout_base, digits = 3),
+                     l30_Qout_mif = round((ups_df$l30_Qout_base*instream_coeff), digits = 3),
+                     l90_Qout = round(ups_df$l90_Qout_dem, digits = 3),
+                     l90_Qout_base = round(ups_df$l90_Qout_base, digits = 3),
+                     l90_Qout_mif = round((ups_df$l90_Qout_base*instream_coeff), digits = 3),
+                     SminL30mg_apx = ups_df$SminL30mg_apx_total,
+                     SminL30mg_nex = ups_df$SminL30mg_nex_total,
+                     SminL90mg_apx = ups_df$SminL90mg_apx_total,
+                     SminL90mg_nex = ups_df$SminL90mg_nex_total,
+                     WA_mgd_30_apx = ups_df$WA_mgd_30_apx,
+                     WA_mgd_30_nex = ups_df$WA_mgd_30_nex,
+                     WA_mgd_90_apx = ups_df$WA_mgd_90_apx,
+                     WA_mgd_90_nex = ups_df$WA_mgd_90_nex)
+
+ftable_ups <- flextable(table_ups) #create flextable
+ftable_ups <- add_header_lines(ftable_ups, values= title_table_ups) #add title 
+
+ftable_ups
+```
+
+
+
+
 ## Map 1: Water Availability by Riverseg
 # Map showing available water across VA
 
