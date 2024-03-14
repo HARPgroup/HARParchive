@@ -38,7 +38,14 @@ for(i in 1:length(params)){
 }
 
 #get numeric element of demand scenario runid to use in fn_get_runfile
-runid_dem = as.numeric(gsub(".*?([0-9]+).*", "\\1", demand_scenario))      
+runid_dem = as.numeric(gsub(".*?([0-9]+).*", "\\1", demand_scenario))   
+
+#flextable default formatting
+set_flextable_defaults(
+  font.size = 8, background.color = "white", 
+  na_str = "NA", nan_str = "NA", #padding = 1, 
+  table.layout = 'fixed', tabcolsep = 1.5,
+  fonts_ignore = T, big.mark = "", decimal.mark= ".") #fonts_ignore applies when knitting as pdf 
 
 #document formatting (came with template)
 fp <- fp_par(
@@ -666,12 +673,31 @@ ftable_ups
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
+```{r Save Tables as Images, echo=FALSE, message=FALSE, warning=FALSE}
+flextable::save_as_image(ftable_WA, path = paste0(export_path, 'WAcaseStudies_WAtable1_', 
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
-```{r tab.cap="caption 1", tab.id="mtcars"}
+flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'WAcaseStudies_SminTable2_', 
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table2
+
+flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'WAcaseStudies_StorageTable3_', 
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
+
+flextable::save_as_image(ftable_imp, path = paste0(export_path, 'WAcaseStudies_impTable4_', 
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
+
+flextable::save_as_image(ftable_ups, path = paste0(export_path, 'WAcaseStudies_upsTable5_', 
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
+```
+
+
+
+
+```{r tab.cap="", tab.id=""}
 
 ```
 
-```{r fig.cap="A boxplot", fig.id = "boxplot"}
+```{r fig.cap="", fig.id = ""}
 
 ```
 
