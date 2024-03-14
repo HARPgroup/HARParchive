@@ -4,36 +4,30 @@ author: "HARP Analysts"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
 output: pdf_document #overridden by output_format in render command 
-
-#Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
-#Can edit here or in a render command 
-## More params used during development and testing for user-control -- will be consolidated  
 params: 
-
+  
   origin: ["Roanoake_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  
   featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
-
   rsegs_file: "C:/HARP/Exports/Roanoke_1_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
-
   # default files for map's base-layers
   # regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
   # counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
   # cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
   # roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
-
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
   show_map: FALSE #either TRUE or FALSE
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}

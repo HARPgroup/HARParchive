@@ -1,7 +1,4 @@
 ## Establishing a function to generate table when given data 
-# Loading required libraries for table
-library(flextable)
-
 #create function
 fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metric, origin, tabletitle, num) { 
   #featr_type: either 'facility' (map 1) or 'riverseg' (map 2)

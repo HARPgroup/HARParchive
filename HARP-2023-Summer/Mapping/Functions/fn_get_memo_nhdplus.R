@@ -1,6 +1,3 @@
-# set up a caching function for NWIS
-##install.packages("memoise")
-library("memoise")
 
 # identify location of caching / cached items
 dir <- Sys.getenv("USGS_cache_dir")

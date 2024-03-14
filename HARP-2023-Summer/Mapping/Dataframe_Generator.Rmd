@@ -20,10 +20,29 @@ editor_options:
 ---
 
 ```{r setup}
+library(arcpullr)
+library(ggspatial)
+library(ggplot2)
+# Loading required libraries for table
+library(flextable)
+library(geosphere)#Used one time
+library(ggnewscale)#Used one time
+library(ggrepel)
+# set up a caching function for NWIS
+library(memoise)
+library(mgsub)
+library(sf)
+library(sqldf)
+#Used in this document
 library(data.table)
 library(hydrotools)
-library(rapportools)
 library(stringr)
+#The following packages may not be needed. They seem to only be used for 
+#min, max, range, and merge, which are likely base wrappers. Kept for now.
+library(rapportools)#Univar min,max,range wrappers
+library(raster)#Difficult to tell if this is used.
+library(sp)#Only uses merge, which may be base and raster also have
+
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)

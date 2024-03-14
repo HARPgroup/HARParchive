@@ -1,6 +1,4 @@
 # Add centroid coordinate columns to a data frame
-library(sf)
-
 fn_centroid_coords <- function(data, geom_col, crs=4326) {
   
   if( length(grep("sfc", lapply(data, class)))==0 ){ #EXPLAIN

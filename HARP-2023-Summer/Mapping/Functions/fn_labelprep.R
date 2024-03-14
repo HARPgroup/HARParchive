@@ -1,6 +1,8 @@
-# Goal for this fn(): df's are added incrementally to the maplabs list so they can be combined later into one df by fn_mapgen()
-# Ability to pass in one or multiple raw df's at once so that these can be generated anywhere throughout the code; any order
-library(mgsub)
+# Goal for this fn(): df's are added incrementally to the maplabs list so they
+# can be combined later into one df by fn_mapgen() Ability to pass in one or
+# multiple raw df's at once so that these can be generated anywhere throughout
+# the code; any order
+
 # Note: requires function centroid_coords() , which is currently defined in mapping_codeReview.Rmd 
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_centroid_coords.R"),local = TRUE)
 

@@ -1,6 +1,5 @@
 # Function for a percent difference calculation between 2 columns of a dataframe using sqldf 
 
-library(sqldf)
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE)
 #fn_sqldf_sf loaded within fns_spatial.R, which enables sqldf to work w/ spatial dataframes
 
@@ -11,7 +10,6 @@ source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),lo
 #column1: the first col used in the % diff calculation (char)
 #new_col: name of new % diff column added to data (char)
 #geom: either TRUE or FALSE; whether the data is spatial or not (class = sf)
-
 fn_pct_diff <- function(data, column1, column2, new_col, geom) {
   
   df <- as.data.frame(data)

@@ -1,16 +1,5 @@
 ## Establishing a function to generate maps when given data and aesthetics 
 # Loading required libraries for mapping
-library(sp)
-library(ggmap)
-library(raster)
-library(ggplot2)
-library(ggnewscale)
-library(mgsub)
-library(sf)
-library(ggspatial)
-library(ggrepel)
-library(geosphere)
-library(arcpullr)
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_filter_map.R"),local = TRUE) 
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
