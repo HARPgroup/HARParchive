@@ -78,6 +78,11 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 foundatn_mp <- fread(paste0(foundation_location, "/OWS/foundation_datasets/wsp/wsp2020/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
+  if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
+    foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp_2040_mgy
+  }
+}
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   
@@ -127,6 +132,8 @@ if(base_layer_data==TRUE){
 #----Filter/Process Data----
 #---Counties---
 cnty_fips$name <- sub(" County", "", cnty_fips$name) # fix any names followed by " County" to match the names of counties in the regions df
+# rename Region col in base set to prevent conflict
+colnames(cnty_fips)[colnames(cnty_fips) == 'Region'] <- 'us_region'
 cnty_fips <- sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
                 FROM cnty_fips as a
                 LEFT OUTER JOIN cnty_regions as b
@@ -185,6 +192,7 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                     from foundatn_mp
                     group by Facility_hydroid
                   ") #all source-related data now only applies to 1 source (random) within the facil 
+  f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp_2040_mgy
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
   f_merge <- merge(x=f_model, #merge/full join foundational & modeled facil data
                    y=f_foundatn[names(f_foundatn)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
@@ -241,17 +249,6 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
   }
 }
 
-#----Additional Pulling Post-Filtering----
-#---User-Input Non-Modeled Feature Metrics---
-if (metric_feat != "NA") {
- for (i in 1:nrow(featrs)) {
-    featrs[i,metric_feat] <- RomProperty$new(ds,list(
-      featureid = featrs$Facility_hydroid[i], 
-      propname = metric_feat),
-      TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
-  } 
-}
-  
 
 #---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
 rivdf <- data.frame()
