@@ -9,6 +9,14 @@ fn_geoCol <- function(data){
   if(length(colname) > 1){
     colname <- grep("geom",colname,value=TRUE) #for the case of "dh_geofield.geom" "dh_geofield.geo_type" "dh_geofield.lat" "dh_geofield.lon", etc.
   }
+  if (length(colname) == 0) {
+    # try WKT 
+    colname <- grep("WKT",colnames(data),value=TRUE)
+  }
+  if (length(colname) == 0) {
+    # try WKT 
+    colname <- grep("wkt",colnames(data),value=TRUE)
+  }
   return(colname)
 }
 
