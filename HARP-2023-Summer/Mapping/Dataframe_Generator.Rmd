@@ -192,15 +192,14 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                    by.x="featureid", by.y="facility_hydroid", all=T
                    )
   #join facility geometry to merged data frame:
-  featrs <- sqldf(paste("SELECT", #selects/renames desired columns from f_merge, matches them with geometry from f_geo based on featureid
-                        " a.facility, a.featureid as Facility_hydroid, a.Use_Type, a.locality, 
-                      a.sum as five_yr_avg, a.wsp_2040_mgy, a.Permit_Limit_MGY, a.",df$runlabel[1],", a.",df$runlabel[2],",
-                      b.",fn_geoCol(f_geo), #robust for varying geometry column names
+  featrs <- sqldf(paste("SELECT a.*, b.",fn_geoCol(f_geo), #robust for varying geometry column names
                         " FROM f_merge as a
                       LEFT OUTER JOIN f_geo as b
                       ON (a.featureid = b.Facility_hydroid)", 
                     sep="")
                   )
+  # Also: we should *not* be doing this -- or if we do, we need to alert the user in the exceptions
+  # or in an appendix
   featrs <- featrs[featrs[,fn_geoCol(featrs)]!="" & !is.na(featrs[,fn_geoCol(featrs)]),] #omits facilities with blank or NA geometry
   featrs <- sf::st_as_sf(featrs, wkt = fn_geoCol(featrs), crs=crs_default) #convert to sf
 }
