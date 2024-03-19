@@ -107,13 +107,12 @@ if (featr_type=="facility") { #specified model metrics will be pulled @ the faci
   f_geo <- fread(paste0(foundation_location , "\\OWS\\foundation_datasets\\wsp\\wsp2020\\facilities_all_geom.csv"))
 } 
 #---Watershed/Riverseg Data---
-#rsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ## VAhydro gives errors
 rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
   #pulls csv with All vahydro watershed features
   #note: potential NULLs for newly carved data^
 
 #---County Data---
-cnty_fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
+cnty_fips <- fread("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data/counties_sf.csv")
 cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
 
 #---Cities & Roads---
