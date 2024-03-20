@@ -441,7 +441,7 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 #create initial table
 table <- data.frame(
   Number= facils_table$NUM,
-  Facility=facils_table$Facility,
+  Facility=facils_table$facility,
   HydroID = facils_table$Facility_hydroid)
 
 #for source type only add mp name and source type to table
