@@ -114,10 +114,10 @@ storage_data <- om_vahydro_metric_grid(
 
 #Get demand scenario metrics used in WA eqn
 df_metrics <- data.frame(
-  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
-  'runid' = c(demand_scenario, demand_scenario, demand_scenario),
-  'metric' = c('wd_cumulative_mgd', 'l30_Qout', 'l90_Qout'),
-  'runlabel' = c('wd_cumulative_mgd', 'l30_Qout_dem', 'l90_Qout_dem')
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c(demand_scenario, demand_scenario, demand_scenario, demand_scenario),
+  'metric' = c('wd_cumulative_mgd', 'ps_cumulative_mgd', 'l30_Qout', 'l90_Qout'),
+  'runlabel' = c('wd_cumulative_mgd','ps_cumulative_mgd', 'l30_Qout_dem', 'l90_Qout_dem')
 )
 metric_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_metrics, bundle = 'all', ftype = "all",
@@ -553,7 +553,8 @@ df_WA <- sqldf("SELECT a.* FROM df_WA as a
 
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
-                     wd_cumu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
+                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
+                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
                      l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
                      l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
                      l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
@@ -582,15 +583,20 @@ ftable_WA
 ```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
+#add % differences
+storage_data$pctDiff30 <- 100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex
+storage_data$pctDiff90 <- 100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex
+
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
-                     wd_cumu_mgd = round(storage_data$wd_cumulative_mgd, digits = 3),
                      SminL30mg_apx = storage_data$SminL30mg_apx,
                      SminL30mg_nex = storage_data$SminL30mg_nex,
                      SminL90mg_apx = storage_data$SminL90mg_apx,
                      SminL90mg_nex = storage_data$SminL90mg_nex,
                      apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
-                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
+                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
+                     pctDiff30 = storage_data$pctDiff30,
+                     pctDiff90 = storage_data$pctDiff90)
 
 #order table with rows of interest at the top 
 table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
