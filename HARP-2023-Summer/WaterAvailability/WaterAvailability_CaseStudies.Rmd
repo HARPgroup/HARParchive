@@ -146,8 +146,8 @@ storage_data$SminL90mg_nex <- NA
 storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
 storage_data$min_in_pd90 <- NA 
 
-# storage_data$outside_pd30 <- NA #empty columns to hold numeric values
-# storage_data$outside_pd90 <- NA 
+storage_data$outside_pd30 <- NA #empty columns to hold numeric values
+storage_data$outside_pd90 <- NA 
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
@@ -215,7 +215,7 @@ for (i in 1:nrow(storage_data)) {
   }
   
   
-  #Only do Storage calculation if impoundment is active 
+#### Only do Storage calculation if impoundment is active 
   if (imp_enabled == TRUE | imp_off == 0) {
  
     #Different names for storage and Q values based on object_class:
@@ -330,8 +330,8 @@ for (i in 1:nrow(storage_data)) {
     l30pd_df <- as.data.frame(l30pd_flowz)
     l90pd_df <- as.data.frame(l90pd_flowz)
     
-    #Smin within the low flow periods
-    #Storage needs to be converted from acre-feet to million gallons
+    #Smin within the low flow periods (near-exact method)
+      #Storage needs to be converted from acre-feet to million gallons
     storage_data$SminL30mg_nex[i] <- round((min(l30pd_df$Storage) / 3.069), digits = 3)
     storage_data$SminL90mg_nex[i] <- round((min(l90pd_df$Storage) / 3.069), digits = 3)
     
@@ -348,54 +348,41 @@ for (i in 1:nrow(storage_data)) {
     rownum_apx90 <- which.min(l90yr_df$Storage)
     
     #test if values occur in the same place
-    
     match30 <- (as.numeric(rownum_nex30yr) == as.numeric(rownum_apx30))
-    match90 <- (rownum_nex90yr == rownum_apx90)
+    match90 <- (as.numeric(rownum_nex90yr) == as.numeric(rownum_apx90))
     
+    #add TRUE/FALSE to dataframe
     storage_data$min_in_pd30[i] <- paste0(match30)
     storage_data$min_in_pd90[i] <- paste0(match90)
-     
-    # #workaround for when a min value is repeated, ex. 100s across all storage vals
-    # minstorage30yr <- storage_data[i, 'SminL30mg_apx'] #get min Storage in l30 year (approx Smin)
-    # minstorage90yr <- storage_data[i, 'SminL90mg_apx']
-    # 
-    # n_mins30 <- length(which(datpd_30yr$Storage==minstorage30yr))
-    # n_mins90 <- length(which(datpd_90yr$Storage==minstorage90yr))
-    # 
-    # yearMinRow30 <- which.min(datpd_30yr$Storage)
-    # yearMinRow90 <- which.min(datpd_90yr$Storage)
-    # 
-    # if (n_mins30 > 1) {  
-    #   storage_data$min_in_pd30[i] <- TRUE
-    # } else {
-    #   storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
-    # }
-    # if (n_mins90 > 1) {
-    #   storage_data$min_in_pd90[i] <- TRUE
-    # } else {
-    #   storage_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
-    # }
-    # 
-    # #If not, how far outisde the low flow period?
-    # if (storage_data$min_in_pd30[i] == FALSE) {
-    #   not_before <- rownum_start30 < yearMinRow30
-    #   not_after <- rownum_end30 > yearMinRow30
-    #   if (not_before == FALSE) {
-    #     storage_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
-    #   } else if (not_after == FALSE) {
-    #     storage_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
-    #   }
-    # }
-    # if (storage_data$min_in_pd90[i] == FALSE) {
-    #   not_before <- rownum_start90 < yearMinRow90
-    #   not_after <- rownum_end90 > yearMinRow90
-    #   if (not_before == FALSE) {
-    #     storage_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
-    #   } else if (not_after == FALSE) {
-    #     storage_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90)
-    #   }
-    # }
     
+    # If approx. and near-exact values are different: 
+    # How far outside the low-flow period does the approximate value occur?
+      ## Positive: near-exact Smin happens AFTER the approx. Smin 
+      ## Negative: near-exact Smin happens BEFORE the approx. Smin 
+
+    if (storage_data$min_in_pd30[i] == FALSE) {
+      storage_data$outside_pd30[i] = rownum_nex30yr - rownum_apx30
+    }
+    if (storage_data$min_in_pd90[i] == FALSE) {
+      storage_data$outside_pd90[i] = rownum_nex90yr - rownum_apx90
+    }
+    
+  }
+}
+
+#when a min value is repeated, ex. 100s across all storage vals, our method is flawed
+  #this causes FALSEs and # of days to show up where we should have TRUE and 0 days 
+storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
+
+for (i in 1:nrow(storage_data)) {
+  if (storage_data$SminL30mg_apx[i] == storage_data$SminL30mg_nex[i]) {
+    storage_data$min_in_pd30[i] <- TRUE
+    storage_data$outside_pd30[i] <- 0  
+  } 
+      
+  if (storage_data$SminL90mg_apx[i] == storage_data$SminL90mg_nex[i]) {
+    storage_data$min_in_pd90[i] <- TRUE
+    storage_data$outside_pd90[i] <- 0
   }
 }
 
@@ -403,8 +390,6 @@ for (i in 1:nrow(storage_data)) {
 
 ```{r Smin Method Comparison, echo=FALSE, message=FALSE, warning=FALSE}
 #Compare approx and near exact Smin values. Approx should always be <= near exact 
-storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
-
 storage_data$apx_lessthan_nex_30 <- NA #empty columns to hold true/false
 storage_data$apx_lessthan_nex_90 <- NA 
 
@@ -629,24 +614,25 @@ ftable_Smin
 ```
 
 
-# Table 3: Smin Method Comparison
+ # Table 3: Smin Method Comparison
 
 ```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
 storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
-storage_data$outside_sum <- storage_data$outside_pd30 + storage_data$outside_pd90
+storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
 storage_data <- sqldf("SELECT a.* FROM storage_data as a 
                        ORDER BY (a.outside_sum) desc")
 
 table_Storage <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
-                     wd_cumu_mgd = round(storage_data$wd_cumulative_mgd, digits = 3), 
                      SminL30mg_apx = storage_data$SminL30mg_apx,
                      SminL30mg_nex = storage_data$SminL30mg_nex,
                      SminL90mg_apx = storage_data$SminL90mg_apx,
                      SminL90mg_nex = storage_data$SminL90mg_nex,
+                     min_in_pd30 = storage_data$min_in_pd30,
+                     min_in_pd90 = storage_data$min_in_pd90,
                      outside_pd30 = storage_data$outside_pd30,
                      outside_pd90 = storage_data$outside_pd90)
 
