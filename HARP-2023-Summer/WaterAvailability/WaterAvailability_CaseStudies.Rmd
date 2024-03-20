@@ -616,6 +616,36 @@ ftable_Smin
 
  # Table 3: Smin Method Comparison
 
+
+```{r echo=FALSE, message=FALSE}
+#for highlighting rows which current Smin comparison method is flawed 
+#highlight when TRUE and/or 0 accompanies values that are not equal 
+storage_data$unequal_30 <- NA
+storage_data$unequal_90 <- NA
+
+for (i in 1:nrow(storage_data)) {
+  if (storage_data$SminL30mg_apx[i] != storage_data$SminL30mg_nex[i]) { #if values don't match
+    if (storage_data$min_in_pd30[i] == TRUE) { #but we're saying the values occur at the same time 
+      storage_data$unequal_30[i] <- TRUE
+    }
+    if (storage_data$outside_pd30[i] == 0) {
+      storage_data$unequal_30[i] <- TRUE
+    } 
+  }
+  
+  if (storage_data$SminL90mg_apx[i] != storage_data$SminL90mg_nex[i]) { #if values don't match
+    if (storage_data$min_in_pd90[i] == TRUE) { #but we're saying the values occur at the same time 
+      storage_data$unequal_90[i] <- TRUE
+    }
+    if (storage_data$outside_pd90[i] == 0) {
+      storage_data$unequal_90[i] <- TRUE
+    } 
+  } 
+}
+
+```
+
+
 ```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
@@ -638,6 +668,13 @@ table_Storage <- data.frame(Propname = storage_data$propname,
 
 ftable_Storage <- flextable(table_Storage) #create flextable
 ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
+
+#to highlight when method is flawed
+rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
+rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
+rownums <- c(rownums30, rownums90)
+
+ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
 
 ftable_Storage
 ```
