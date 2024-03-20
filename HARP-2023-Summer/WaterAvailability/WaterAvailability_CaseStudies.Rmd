@@ -139,7 +139,7 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
-```{r Smin Calculations, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Smin Calculations, include=FALSE, echo=FALSE}
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
 
@@ -151,22 +151,12 @@ storage_data$outside_pd90 <- NA
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
-  pid <- storage_data$pid[i]
 
-  token = ds$get_token(rest_pw) #needed for elid function
-  elid <- om_get_model_elementid(
-    base_url = site,
-    mid = storage_data$pid[i]
-  )
-  rm(token)
-
-  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = FALSE) #get timeseries data (read in as zoo)
-  mode(dat) <- 'numeric'
-  
-  #Get model to get object class
+    #Get model to get object class
   model <- RomProperty$new(ds,list( 
     featureid = storage_data$featureid[i],
-    propcode = 'vahydro-1.0'
+    propcode = 'vahydro-1.0',
+    entity_type = 'dh_feature'
   ),TRUE)
   
   #Get object class 
@@ -176,6 +166,17 @@ for (i in 1:nrow(storage_data)) {
   ),TRUE)  
   
   object_class <- object_class$propcode
+  
+  token = ds$get_token(rest_pw) #needed for elid function
+  elid <- om_get_model_elementid( #use RomProperty after puling the model instead
+    base_url = site,
+    mid = model$pid
+  )
+  rm(token)
+
+  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = TRUE) #get timeseries data (read in as zoo)
+  
+  mode(dat) <- 'numeric'
   cols <- names(dat)
   
   #Trim runfile
@@ -415,20 +416,20 @@ for (i in 1:nrow(storage_data)) {
 
 #Sum approx SminL30 by riverseg
 storage_byseg_30_apx <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_apx,
-                       SUM(SminL30mg_apx) AS SminL30mg_apx_sum
+                       SUM(SminL30mg_apx) AS SminL30mg_apx_local
                        FROM storage_data
                        GROUP BY riverseg
                        ")
 
 #Sum qpprox SminL90 by riverseg
 storage_byseg_90_apx <- sqldf("SELECT storage_data.riverseg, storage_data.SminL90mg_apx,
-                       SUM(SminL90mg_apx) AS SminL90mg_apx_sum
+                       SUM(SminL90mg_apx) AS SminL90mg_apx_local
                        FROM storage_data
                        GROUP BY riverseg
                        ")
 
 #Join approx SminL30 and SminL90 summed storage
-storage_byseg_apx <- sqldf("SELECT a.riverseg, a.SminL30mg_apx_sum, b.SminL90mg_apx_sum
+storage_byseg_apx <- sqldf("SELECT a.riverseg, a.SminL30mg_apx_local, b.SminL90mg_apx_local
                               FROM storage_byseg_30_apx AS a
                               LEFT OUTER JOIN storage_byseg_90_apx AS b
                               WHERE (a. riverseg = b.riverseg) ")
@@ -438,26 +439,26 @@ storage_byseg_apx <- sqldf("SELECT a.riverseg, a.SminL30mg_apx_sum, b.SminL90mg_
 
 #Sum near-exact SminL30 by riverseg
 storage_byseg_30_nex <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_nex,
-                       SUM(SminL30mg_nex) AS SminL30mg_nex_sum
+                       SUM(SminL30mg_nex) AS SminL30mg_nex_local
                        FROM storage_data
                        GROUP BY riverseg
                        ")
 
 # #Sum near-exact SminL90 by riverseg
 storage_byseg_90_nex <- sqldf("SELECT storage_data.riverseg, storage_data.SminL90mg_nex,
-                       SUM(SminL90mg_nex) AS SminL90mg_nex_sum
+                       SUM(SminL90mg_nex) AS SminL90mg_nex_local
                        FROM storage_data
                        GROUP BY riverseg
                        ")
 
 #Join near-exact SminL30 and SminL90 summed storage
-storage_byseg_nex <- sqldf("SELECT a.riverseg, a.SminL30mg_nex_sum, b.SminL90mg_nex_sum
+storage_byseg_nex <- sqldf("SELECT a.riverseg, a.SminL30mg_nex_local, b.SminL90mg_nex_local
                               FROM storage_byseg_30_nex AS a
                               LEFT OUTER JOIN storage_byseg_90_nex AS b
                               WHERE (a. riverseg = b.riverseg) ")
 
 #Join Approx and Near-exact Smin values by riverseg
-storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_sum, b.SminL90mg_nex_sum
+storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_local, b.SminL90mg_nex_local
                               FROM storage_byseg_apx AS a
                               LEFT OUTER JOIN storage_byseg_nex AS b
                               WHERE (a. riverseg = b.riverseg) ")
@@ -468,7 +469,7 @@ storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_sum, b.SminL90mg_nex_sum
 #Metric data by riverseg in metric_data 
 
 #Join storage data onto demand scenario metric data 
-metric_data <- sqldf('SELECT a.*, b.SminL30mg_apx_sum, b.SminL90mg_apx_sum, b.SminL30mg_nex_sum, b.SminL90mg_nex_sum
+metric_data <- sqldf('SELECT a.*, b.SminL30mg_apx_local, b.SminL90mg_apx_local, b.SminL30mg_nex_local, b.SminL90mg_nex_local
                    FROM metric_data as a
                    LEFT OUTER JOIN storage_byseg as b
                    ON (a.riverseg = b.riverseg)')
@@ -488,7 +489,12 @@ storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
 ```
 
 ```{r Link Upstream Impoundments, echo = FALSE, message=FALSE, warning=FALSE}
-#Empty columns that will hold total storage
+#Empty columns that will hold storage
+metric_data$SminL30mg_apx_ups <- NA 
+metric_data$SminL90mg_apx_ups <- NA 
+metric_data$SminL30mg_nex_ups <- NA 
+metric_data$SminL90mg_nex_ups <- NA 
+
 metric_data$SminL30mg_apx_total <- NA 
 metric_data$SminL90mg_apx_total <- NA 
 metric_data$SminL30mg_nex_total <- NA 
@@ -501,12 +507,16 @@ for (i in 1:nrow(metric_data)) {
     ups_df <- sqldf("select a.*
                     from storage_byseg as a
                     where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
-    metric_data$SminL30mg_apx_total[i] <- sum(ups_df$SminL30mg_apx_sum) #sum storage available locally and upstream
-    metric_data$SminL90mg_apx_total[i] <- sum(ups_df$SminL90mg_apx_sum) 
-    metric_data$SminL30mg_nex_total[i] <- sum(ups_df$SminL30mg_nex_sum) 
-    metric_data$SminL90mg_nex_total[i] <- sum(ups_df$SminL90mg_nex_sum)
-    
+    metric_data$SminL30mg_apx_ups[i] <- sum(ups_df$SminL30mg_apx_local) - metric_data$SminL30mg_apx_local[i]
+    metric_data$SminL90mg_apx_ups[i] <- sum(ups_df$SminL90mg_apx_local) - metric_data$SminL90mg_apx_local[i]
+    metric_data$SminL30mg_nex_ups[i] <- sum(ups_df$SminL30mg_nex_local) - metric_data$SminL30mg_nex_local[i]
+    metric_data$SminL90mg_nex_ups[i] <- sum(ups_df$SminL90mg_nex_local) - metric_data$SminL90mg_nex_local[i]
   }
+  #add upstream and local storage to get total storage, which will be used in WA equation 
+  metric_data$SminL30mg_apx_total[i] <- metric_data$SminL30mg_apx_local[i] + metric_data$SminL30mg_apx_ups[i]
+  metric_data$SminL90mg_apx_total[i] <- metric_data$SminL90mg_apx_local[i] + metric_data$SminL90mg_apx_ups[i]
+  metric_data$SminL30mg_nex_total[i] <- metric_data$SminL30mg_nex_local[i] + metric_data$SminL30mg_nex_ups[i]
+  metric_data$SminL90mg_nex_total[i] <- metric_data$SminL90mg_nex_local[i] + metric_data$SminL90mg_nex_ups[i]
 }
 ```
 
@@ -519,19 +529,19 @@ metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
   mif_coef*(metric_data$l30_Qout_base / 1.547) + 
-  (metric_data$SminL30mg_apx_sum / 30), digits = 3)
+  (metric_data$SminL30mg_apx_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
   mif_coef*(metric_data$l90_Qout_base / 1.547) + 
-  (metric_data$SminL30mg_apx_sum / 90), digits = 3)
+  (metric_data$SminL30mg_apx_total / 90), digits = 3)
 
 metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
   mif_coef*(metric_data$l30_Qout_base / 1.547) + 
-  (metric_data$SminL30mg_nex_sum / 30), digits = 3)
+  (metric_data$SminL30mg_nex_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
   mif_coef*(metric_data$l90_Qout_base / 1.547) + 
-  (metric_data$SminL90mg_nex_sum / 90), digits = 3)
+  (metric_data$SminL90mg_nex_total / 90), digits = 3)
 
 
 ```
@@ -544,7 +554,7 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 ```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
   
-df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_total IS NOT 0")
+df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_local IS NOT 0")
 
 df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
 
@@ -701,7 +711,6 @@ for (i in 1:length(impoundment_list)) {
 
 table_imp <- data.frame(Propname = imp_df$propname,
                      Riverseg = imp_df$riverseg,
-                     wd_cumu_mgd = round(imp_df$wd_cumulative_mgd, digits = 3), 
                      SminL30mg_apx = imp_df$SminL30mg_apx,
                      SminL30mg_nex = imp_df$SminL30mg_nex,
                      SminL90mg_apx = imp_df$SminL90mg_apx,
@@ -737,21 +746,20 @@ ups_df <- ups_df[!(ups_df$featureid %in% imp_df$featureid),]
 table_ups <- data.frame(Propname = ups_df$propname,
                      Riverseg = ups_df$riverseg,
                      DSimpound = ups_df$ds_impoundment,
-                     wd_cumu_mgd = round(ups_df$wd_cumulative_mgd, digits = 3),
+                     wd_cu_mgd = round(ups_df$wd_cumulative_mgd, digits = 3),
+                     ps_cu_mgd = round(ups_df$ps_cumulative_mgd, digits = 3),
                      l30_Qout = round(ups_df$l30_Qout_dem, digits = 3),
                      l30_Qout_base = round(ups_df$l30_Qout_base, digits = 3),
                      l30_Qout_mif = round((ups_df$l30_Qout_base*mif_coef), digits = 3),
                      l90_Qout = round(ups_df$l90_Qout_dem, digits = 3),
                      l90_Qout_base = round(ups_df$l90_Qout_base, digits = 3),
                      l90_Qout_mif = round((ups_df$l90_Qout_base*mif_coef), digits = 3),
-                     SminL30mg_apx = ups_df$SminL30mg_apx_total,
-                     SminL30mg_nex = ups_df$SminL30mg_nex_total,
-                     SminL90mg_apx = ups_df$SminL90mg_apx_total,
-                     SminL90mg_nex = ups_df$SminL90mg_nex_total,
-                     WA_mgd_30_apx = ups_df$WA_mgd_30_apx,
-                     WA_mgd_30_nex = ups_df$WA_mgd_30_nex,
-                     WA_mgd_90_apx = ups_df$WA_mgd_90_apx,
-                     WA_mgd_90_nex = ups_df$WA_mgd_90_nex)
+                     SminL30mg_local = ups_df$SminL30mg_apx_local,
+                     SminL30mg_upstream = ups_df$SminL30mg_apx_ups,
+                     SminL90mg_local = ups_df$SminL90mg_apx_local,
+                     SminL90mg_upstream = ups_df$SminL90mg_apx_ups,
+                     WA_mgd_30 = ups_df$WA_mgd_30_apx,
+                     WA_mgd_90 = ups_df$WA_mgd_90_apx)
 
 ftable_ups <- flextable(table_ups) #create flextable
 ftable_ups <- add_header_lines(ftable_ups, values= title_table_ups) #add title 
@@ -762,21 +770,41 @@ ftable_ups
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
-```{r Save Tables as Images, echo=FALSE, message=FALSE, warning=FALSE}
-flextable::save_as_image(ftable_WA, path = paste0(export_path, 'WAcaseStudies_WAtable1_', 
+```{r Save Tables as Images, echo=FALSE}
+flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WA_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
-flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'WAcaseStudies_SminTable2_', 
+flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_table2_Smin_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table2
 
-flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'WAcaseStudies_StorageTable3_', 
+flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table3_Storage_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
 
-flextable::save_as_image(ftable_imp, path = paste0(export_path, 'WAcaseStudies_impTable4_', 
+flextable::save_as_image(ftable_imp, path = paste0(export_path, 'CaseStudies_table4_imp_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
 
-flextable::save_as_image(ftable_ups, path = paste0(export_path, 'WAcaseStudies_upsTable5_', 
+flextable::save_as_image(ftable_ups, path = paste0(export_path, 'CaseStudies_table5_ups_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
+```
+
+```{r Write Tables as CSVs, echo=FALSE}
+
+write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WA_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
+
+write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
+
+write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
+
+write.csv(table_imp, paste0(export_path, 'CaseStudies_table4_imp_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
+
+write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_ups_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
+
+
 ```
 
 
