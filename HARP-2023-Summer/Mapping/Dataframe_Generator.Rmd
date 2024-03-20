@@ -78,6 +78,11 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 foundatn_mp <- fread(paste0(foundation_location, "/OWS/foundation_datasets/wsp/wsp2020/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
+  if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
+    foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp_2040_mgy
+  }
+}
 
 if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
   
@@ -107,13 +112,12 @@ if (featr_type=="facility") { #specified model metrics will be pulled @ the faci
   f_geo <- fread(paste0(foundation_location , "\\OWS\\foundation_datasets\\wsp\\wsp2020\\facilities_all_geom.csv"))
 } 
 #---Watershed/Riverseg Data---
-#rsegs <- ds$get('dh_feature', config=list(ftype='vahydro',bundle='watershed')) ## VAhydro gives errors
 rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
   #pulls csv with All vahydro watershed features
   #note: potential NULLs for newly carved data^
 
 #---County Data---
-cnty_fips <- ds$get('dh_feature', config=list(bundle='usafips')) #pull all counties from VAhydro
+cnty_fips <- fread("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data/counties_sf.csv")
 cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
 
 #---Cities & Roads---
@@ -128,6 +132,8 @@ if(base_layer_data==TRUE){
 #----Filter/Process Data----
 #---Counties---
 cnty_fips$name <- sub(" County", "", cnty_fips$name) # fix any names followed by " County" to match the names of counties in the regions df
+# rename Region col in base set to prevent conflict
+colnames(cnty_fips)[colnames(cnty_fips) == 'Region'] <- 'us_region'
 cnty_fips <- sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
                 FROM cnty_fips as a
                 LEFT OUTER JOIN cnty_regions as b
@@ -186,21 +192,21 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                     from foundatn_mp
                     group by Facility_hydroid
                   ") #all source-related data now only applies to 1 source (random) within the facil 
+  f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp_2040_mgy
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
   f_merge <- merge(x=f_model, #merge/full join foundational & modeled facil data
                    y=f_foundatn[names(f_foundatn)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
                    by.x="featureid", by.y="facility_hydroid", all=T
                    )
   #join facility geometry to merged data frame:
-  featrs <- sqldf(paste("SELECT", #selects/renames desired columns from f_merge, matches them with geometry from f_geo based on featureid
-                        " a.facility, a.featureid as Facility_hydroid, a.Use_Type, a.locality, 
-                      a.sum as five_yr_avg, a.wsp_2040_mgy, a.Permit_Limit_MGY, a.",df$runlabel[1],", a.",df$runlabel[2],",
-                      b.",fn_geoCol(f_geo), #robust for varying geometry column names
+  featrs <- sqldf(paste("SELECT a.*, b.",fn_geoCol(f_geo), #robust for varying geometry column names
                         " FROM f_merge as a
                       LEFT OUTER JOIN f_geo as b
                       ON (a.featureid = b.Facility_hydroid)", 
                     sep="")
                   )
+  # Also: we should *not* be doing this -- or if we do, we need to alert the user in the exceptions
+  # or in an appendix
   featrs <- featrs[featrs[,fn_geoCol(featrs)]!="" & !is.na(featrs[,fn_geoCol(featrs)]),] #omits facilities with blank or NA geometry
   featrs <- sf::st_as_sf(featrs, wkt = fn_geoCol(featrs), crs=crs_default) #convert to sf
 }
@@ -243,17 +249,6 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
   }
 }
 
-#----Additional Pulling Post-Filtering----
-#---User-Input Non-Modeled Feature Metrics---
-if (metric_feat != "NA") {
- for (i in 1:nrow(featrs)) {
-    featrs[i,metric_feat] <- RomProperty$new(ds,list(
-      featureid = featrs$Facility_hydroid[i], 
-      propname = metric_feat),
-      TRUE)$propvalue #pull feature & directly assign metric propvalue to facility i
-  } 
-}
-  
 
 #---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
 rivdf <- data.frame()
