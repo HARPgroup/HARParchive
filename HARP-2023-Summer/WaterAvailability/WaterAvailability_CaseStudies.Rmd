@@ -143,8 +143,11 @@ baseline_data <- om_vahydro_metric_grid(
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
 
-storage_data$outside_pd30 <- NA #empty columns to hold numeric values
-storage_data$outside_pd90 <- NA 
+storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
+storage_data$min_in_pd90 <- NA 
+
+# storage_data$outside_pd30 <- NA #empty columns to hold numeric values
+# storage_data$outside_pd90 <- NA 
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
@@ -201,8 +204,16 @@ for (i in 1:nrow(storage_data)) {
   if (imp_off == 1) { #check if imp_off exists, if not:
     if("impoundment" %in% cols) {
       imp_enabled = TRUE
+      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
     }
+  } else if (imp_off == 0) {
+    paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
   }
+    
+  if (imp_enabled == FALSE & imp_off == 1) {
+    paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Diabled')
+  }
+  
   
   #Only do Storage calculation if impoundment is active 
   if (imp_enabled == TRUE | imp_off == 0) {
@@ -242,126 +253,148 @@ for (i in 1:nrow(storage_data)) {
     }
      
     #find l30 and l90 years based on Qcol
-    flows <- zoo(dat[,Qcol], order.by = index(dat)); ## Change to var based on object class 
+    flows <- zoo(dat[,Qcol], order.by = index(dat)); 
     loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
     
     l90 <- loflows["90 Day Min"];
     ndx = which.min(as.numeric(l90[,"90 Day Min"]));
     l90_Qout = round(loflows[ndx,]$"90 Day Min",6);
     l90_year = loflows[ndx,]$"year";
-    l90_start = as.Date(paste0(l90_year,"-01-01"))
-    l90_end = as.Date(paste0(l90_year,"-12-31"))
-    datpd_90 <- window(
+    l90yr_start = as.Date(paste0(l90_year,"-01-01")) #start of l90 year
+    l90yr_end = as.Date(paste0(l90_year,"-12-31")) #end of l90 year
+    datpd_90yr <- window( #data for the l90 year
       dat,
-      start = l90_start,
-      end = l90_end
+      start = l90yr_start,
+      end = l90yr_end
     )
     
     l30 <- loflows["30 Day Min"];
     ndx = which.min(as.numeric(l30[,"30 Day Min"]));
     l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
     l30_year = loflows[ndx,]$"year";
-    l30_start = as.Date(paste0(l30_year,"-01-01"))
-    l30_end = as.Date(paste0(l30_year,"-12-31"))
-    datpd_30 <- window(
+    l30yr_start = as.Date(paste0(l30_year,"-01-01"))
+    l30yr_end = as.Date(paste0(l30_year,"-12-31"))
+    datpd_30yr <- window(
       dat,
-      start = l30_start,
-      end = l30_end
+      start = l30yr_start,
+      end = l30yr_end
     )
   
     ##Near-exact method: Smin within the L30 and L90 periods:
     
-    #data for each l30 and l90 years
-    l30yr_flows <- window(flows, start = l30_start, end = l30_end)
-    l90yr_flows <- window(flows, start = l90_start, end = l90_end)
+    l30yr_df <- as.data.frame(datpd_30yr)
+    l90yr_df <- as.data.frame(datpd_90yr)
     
-    l30yr_data <- window(dat, start = l30_start, end = l30_end)
-    l90yr_data <- window(dat, start = l90_start, end = l90_end)
+    #zoo of Qcol for each l30 and l90 years
+    l30yr_flowz <- window(flows, start = l30yr_start, end = l30yr_end)
+    l90yr_flowz <- window(flows, start = l90yr_start, end = l90yr_end)
     
     #zoo to data frame
-    l30yr_flows <- as.data.frame(l30yr_flows)
-    l90yr_flows <- as.data.frame(l90yr_flows)
+    l30yr_flows <- data.frame(Q = l30yr_flowz)
+    l90yr_flows <- data.frame(Q = l90yr_flowz)
     
-    l30yr_data <- as.data.frame(l30yr_data)
-    l90yr_data <- as.data.frame(l90yr_data)
+    #use rolling mean to identify each low-flow period
+    rollmean30 = rollmean(l30yr_flows, k=30, fill=NA, align='left') #results in matrix/array
+    rollmean90 = rollmean(l90yr_flows, k=90, fill=NA, align='left')
     
-    l30yr_df <- l30yr_flows %>% mutate(rollmean_30 = rollmean(l30yr_flows, k=30, fill=NA, align='left' ))
-    l90yr_df <- l90yr_flows %>% mutate(rollmean_90 = rollmean(l90yr_flows, k=90, fill=NA, align='left'))
+    l30yr_flows$rollmean30 <- rollmean30[,1]
+    l90yr_flows$rollmean90 <- rollmean90[,1]
     
-    #start dates for low flow periods
-    rownum_start90 <- which.min(l90yr_df$rollmean_90) 
-    rownum_start30 <- which.min(l30yr_df$rollmean_30)
+    #start row numbers for low flow periods
+    rownum_start30 <- which.min(l30yr_flows$rollmean30) #min rolling mean since we used a left alignment 
+    rownum_start90 <- which.min(l90yr_flows$rollmean90) 
     
-    l30pd_start <- as.Date(row.names(l30yr_df[which.min(l30yr_df$rollmean_30),]))
-    l90pd_start <- as.Date(row.names(l90yr_df[which.min(l90yr_df$rollmean_90),]))
+    #end row numbers for low flow periods
+    rownum_end30 <- rownum_start30 + 29
+    rownum_end90 <- rownum_start90 + 89
     
-    #end dates for low flow periods
-    rownum_end90 <- which.min(l90yr_df$rollmean_90) + 90
-    rownum_end30 <- which.min(l30yr_df$rollmean_30) + 30
-    
-    #end rownum cant be greater than length of data 
-    if (rownum_end90 > nrow(l90yr_df)) {
-      rownum_end90 = nrow(l90yr_df)
-    }
-    if (rownum_end30 > nrow(l30yr_df)) {
-      rownum_end30 = nrow(l30yr_df)
-    }
-    
+    #start  and end dates for low flow periods
+    l30pd_start <- as.Date(row.names(l30yr_flows[rownum_start30, ]))
+    l90pd_start <- as.Date(row.names(l90yr_flows[rownum_start90, ]))
     l30pd_end <- as.Date(row.names(l30yr_df[rownum_end30, ]))
     l90pd_end <- as.Date(row.names(l90yr_df[rownum_end90, ]))
     
-    #flow data for the drought periods 
-    l30pd_flows <- window(dat, start = l30pd_start, end = l30pd_end)
-    l90pd_flows <- window(dat, start = l90pd_start, end = l90pd_end)
+    #end rownum cant be greater than length of data 
+    # if (rownum_end90 > nrow(l90yr_df)) {
+    #   rownum_end90 = nrow(l90yr_df)
+    # }
+    # if (rownum_end30 > nrow(l30yr_df)) {
+    #   rownum_end30 = nrow(l30yr_df)
+    # }
     
-    l30pd_df <- as.data.frame(l30pd_flows)
-    l90pd_df <- as.data.frame(l90pd_flows)
+    #zoos for the drought periods 
+    l30pd_flowz <- window(dat, start = l30pd_start, end = l30pd_end)
+    l90pd_flowz <- window(dat, start = l90pd_start, end = l90pd_end)
+    
+    #data for low flow periods
+    l30pd_df <- as.data.frame(l30pd_flowz)
+    l90pd_df <- as.data.frame(l90pd_flowz)
     
     #Smin within the low flow periods
     #Storage needs to be converted from acre-feet to million gallons
     storage_data$SminL30mg_nex[i] <- round((min(l30pd_df$Storage) / 3.069), digits = 3)
     storage_data$SminL90mg_nex[i] <- round((min(l90pd_df$Storage) / 3.069), digits = 3)
     
-    #Does the Smin in the low flow year (approx method) occur within low-flow period? (near-exact)
-    minstorage30yr <- min(l30yr_data$Storage)
-    minstorage90yr <- min(l90yr_data$Storage)
-  
-    n_mins30 <- length(which(l30yr_data$Storage==minstorage30yr))
-    n_mins90 <- length(which(l90yr_data$Storage==minstorage90yr))
-  
-    yearMinRow30 <- which.min(l30yr_data$Storage)
-    yearMinRow90 <- which.min(l90yr_data$Storage)
-  
-    if (n_mins30 > 1) {  # workaround for when a min value is repeated, ex. 100s across all storage vals
-      storage_data$min_in_pd30[i] <- TRUE
-    } else {
-      storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
-    }
-    if (n_mins90 > 1) {
-      storage_data$min_in_pd90[i] <- TRUE
-    } else {
-      storage_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
-    }
-  
-    #If not, how far outisde the low flow period?
-    if (storage_data$min_in_pd30[i] == FALSE) {
-      not_before <- rownum_start30 < yearMinRow30
-      not_after <- rownum_end30 > yearMinRow30
-      if (not_before == FALSE) {
-        storage_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
-      } else if (not_after == FALSE) {
-        storage_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
-      }
-    }
-    if (storage_data$min_in_pd90[i] == FALSE) {
-      not_before <- rownum_start90 < yearMinRow90
-      not_after <- rownum_end90 > yearMinRow90
-      if (not_before == FALSE) {
-        storage_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
-      } else if (not_after == FALSE) {
-        storage_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90)
-      }
-    }
+    #get row numbers where near-exact Smin happens within low flow period 
+    rownum_nex30 <- which.min(l30pd_df$Storage) 
+    rownum_nex90 <- which.min(l90pd_df$Storage)
+
+    #get row numbers where near-exact Smin happens within low flow year 
+    rownum_nex30yr <- rownum_start30 + rownum_nex30 - 1
+    rownum_nex90yr <- rownum_start90 + rownum_nex90 - 1
+
+    #get row numbers where approx Smin happens within low flow year 
+    rownum_apx30 <- which.min(l30yr_df$Storage) 
+    rownum_apx90 <- which.min(l90yr_df$Storage)
+    
+    #test if values occur in the same place
+    
+    match30 <- (as.numeric(rownum_nex30yr) == as.numeric(rownum_apx30))
+    match90 <- (rownum_nex90yr == rownum_apx90)
+    
+    storage_data$min_in_pd30[i] <- paste0(match30)
+    storage_data$min_in_pd90[i] <- paste0(match90)
+     
+    # #workaround for when a min value is repeated, ex. 100s across all storage vals
+    # minstorage30yr <- storage_data[i, 'SminL30mg_apx'] #get min Storage in l30 year (approx Smin)
+    # minstorage90yr <- storage_data[i, 'SminL90mg_apx']
+    # 
+    # n_mins30 <- length(which(datpd_30yr$Storage==minstorage30yr))
+    # n_mins90 <- length(which(datpd_90yr$Storage==minstorage90yr))
+    # 
+    # yearMinRow30 <- which.min(datpd_30yr$Storage)
+    # yearMinRow90 <- which.min(datpd_90yr$Storage)
+    # 
+    # if (n_mins30 > 1) {  
+    #   storage_data$min_in_pd30[i] <- TRUE
+    # } else {
+    #   storage_data$min_in_pd30[i] <- between(yearMinRow30, rownum_start30, rownum_end30)
+    # }
+    # if (n_mins90 > 1) {
+    #   storage_data$min_in_pd90[i] <- TRUE
+    # } else {
+    #   storage_data$min_in_pd90[i] <- between(yearMinRow90, rownum_start90, rownum_end90)
+    # }
+    # 
+    # #If not, how far outisde the low flow period?
+    # if (storage_data$min_in_pd30[i] == FALSE) {
+    #   not_before <- rownum_start30 < yearMinRow30
+    #   not_after <- rownum_end30 > yearMinRow30
+    #   if (not_before == FALSE) {
+    #     storage_data$outside_pd30[i] <- as.numeric(rownum_start30 - yearMinRow30)
+    #   } else if (not_after == FALSE) {
+    #     storage_data$outside_pd30[i] <- as.numeric(yearMinRow30 - rownum_end30)
+    #   }
+    # }
+    # if (storage_data$min_in_pd90[i] == FALSE) {
+    #   not_before <- rownum_start90 < yearMinRow90
+    #   not_after <- rownum_end90 > yearMinRow90
+    #   if (not_before == FALSE) {
+    #     storage_data$outside_pd90[i] <- as.numeric(rownum_start90 - yearMinRow90)
+    #   } else if (not_after == FALSE) {
+    #     storage_data$outside_pd90[i] <- as.numeric(yearMinRow90 - rownum_end90)
+    #   }
+    # }
     
   }
 }
