@@ -43,22 +43,20 @@ run_sets <- list(
     riverseg_metrics=list( 
       list(
         metric='l30_Qout', 
-        data_set = 'rseg',
+        data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_13', 
         run_label = '2040 WSP L30 %', 
-        tables_cols_r = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
-        tables_cols_f = c('facility', 'Facility_hydroid', 'locality', 'five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         sort_decreasing = FALSE, 
         show_map = TRUE
       ),
       list(
         metric='7q10', 
-        data_set = 'rseg',
+        data_set = 'rseg_no_geom',
         column_name='percentDiff_7q10_runid_11_runid_13', 
         run_label = '2040 WSP 7q10 %', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
-        tables_cols_f = c('facility', 'Facility_hydroid', 'locality', 'five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
         sort_decreasing = FALSE, 
         show_map = TRUE
@@ -66,27 +64,33 @@ run_sets <- list(
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
         metric='7q10', 
-        data_set = 'facil',
+        data_set = 'rseg_no_geom',
         column_name='percentDiff_7q10_runid_11_runid_17', 
         run_label = 'Climate Change 7q10 %', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
-        tables_cols_f = c('facility', 'Facility_hydroid', 'locality', 'five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
         sort_col = 'percentDiff_7q10_runid_11_runid_17',
-        sort_decreasing = FALSE, 
-        show_map= TRUE
+        sort_decreasing = FALSE,
+        show_map = TRUE
       ),
       list(
         metric='Smin_L30_mg', 
-        data_set = 'rseg',
+        data_set = 'rseg_no_geom',
         column_name='runid_13_Smin_L30_mg', 
         run_label = 'Minimum Storage', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'),
-        tables_cols_f = c('facility', 'Facility_hydroid', 'locality', 'five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'), 
         sort_col = 'runid_13_Smin_L30_mg',
         sort_decreasing = TRUE, 
         show_map = TRUE
+      ), 
+      list(
+        metric='wsp2020_2040_mgy', #replace with unmet demand req 
+        data_set = 'facils_nogeom',
+        column_name='wsp2020_2040_mgy', 
+        run_label = 'A TEST FOR FACIL FUNCTION', 
+        tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
+        sort_decreasing = FALSE, 
+        show_map= FALSE
       )
-    )
   ),
   permit_dev = list(
     riverseg_metrics=list( 
@@ -119,6 +123,7 @@ run_sets <- list(
       )
     )
   )
+)
 )
 
 #NHD flowline & waterbody classification & substitution:
