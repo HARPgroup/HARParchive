@@ -194,6 +194,7 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                   ") #all source-related data now only applies to 1 source (random) within the facil 
   f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp_2040_mgy
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
+  f_model$Facility_hydroid <- f_model$featureid 
   f_merge <- merge(x=f_model, #merge/full join foundational & modeled facil data
                    y=f_foundatn[names(f_foundatn)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
                    by.x="featureid", by.y="facility_hydroid", all=T
@@ -215,9 +216,40 @@ rsegs$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs$hydroco
 rsegs <- rsegs[ rsegs[,fn_geoCol(rsegs)]!="" & !is.na(rsegs[,fn_geoCol(rsegs)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 rsegs <- sf::st_as_sf(rsegs, wkt=fn_geoCol(rsegs), crs=crs_default) #convert to sf
 sf::sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_join, st_filter) give errors without this
-featrs <- sf::st_join(featrs, rsegs[ ,c("riverseg","hydroid",fn_geoCol(rsegs)) ]) #pairs riverseg column from rsegs w/ featrs based on geometry
-#note: we add an riverseg column via geometry in both source & facility cases b/c even when facilities come in with a riverseg column, many are blank
 
+# INSURE Riverseg: we add an riverseg column via geometry in case model riverseg is blank
+# 1. We should take the model riverseg if available, 
+# 2. If model riverseg is NA, use featrs intersection riverseg
+#   - when feature is contained by multiple river segs, choose the smallest area
+# Note:
+# - Above relies on up to date riverseg properties in model
+# - could add clause to use MP~riverseg if model riverseg does not occur in current river seg list - that would indicate that model riverseg is bunk
+# create intersection feature and riversegs
+featrs_riverseg <- st_drop_geometry( sf::st_join(featrs[,c('facility','featureid')], rsegs[ ,c("riverseg","hydroid", "area_dd",fn_geoCol(rsegs)) ]))
+# find the smallest riversg containing each feature
+featrs_riverseg_sm <- sqldf(
+  "select a.featureid, a.riverseg from featrs_riverseg as a 
+   left outer join (
+     select featureid, min(area_dd) as min_area_dd 
+     from featrs_riverseg group by riverseg
+  ) as b
+  where a.area_dd = b.min_area_dd and a.featureid = b.featureid"
+)
+# Add riverseg from featrs_riverseg_sm for featrs that have NA riverseg
+featrs <- fn_sqldf_sf(
+  "select a.*, b.riverseg as riverseg_contains 
+   from featrs as a 
+  left outer join featrs_riverseg_sm as b 
+  on (a.featureid = b.featureid)
+ ", 
+ geomback = 'featrs'
+)
+# ID those without a riverseg
+needs_riverseg <- which(is.na(featrs$riverseg))
+# copy the riverseg_contains value
+featrs[needs_riverseg,]$riverseg <- featrs[needs_riverseg,]$riverseg_contains
+
+# 
 #filter by boundary type:
 #---Rsegs---
 if (origin_type=="basin") { #finding upstream riversegs for basin maps 
