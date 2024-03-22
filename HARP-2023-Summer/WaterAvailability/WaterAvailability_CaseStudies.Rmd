@@ -25,6 +25,7 @@ library(flextable)
 library(officedown)
 library(officer)
 library(jsonlite)
+library(ggplot2)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -574,8 +575,13 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-  
-df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_local IS NOT 0")
+
+#select all segments that have storage locally or upstream (total storage)
+#ensure we check both SminL30 and 90
+df_WA <- sqldf("SELECT a.* 
+               FROM metric_data as a 
+               WHERE Sminl30mg_apx_total IS NOT 0
+               OR Sminl90mg_apx_total IS NOT 0")
 
 df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
 
@@ -789,6 +795,65 @@ ftable_ups
 ```
 
 
+# Table 6: Smins that Need to be Updated
+
+```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#select rows where vahydro and calculated approx Smins are different 
+df_update <- sqldf("SELECT a.* 
+                    FROM storage_data as a 
+                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
+                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
+
+table_update <- data.frame(Propname = df_update$propname,
+                     Riverseg = df_update$riverseg,
+                     SminL30mg_vah = df_update$SminL30mg_vah,
+                     SminL30mg_apx = df_update$SminL30mg_apx,
+                     SminL90mg_vah= df_update$SminL90mg_vah,
+                     SminL90mg_apx = df_update$SminL90mg_apx)
+
+ftable_update <- flextable(table_update) #create flextable
+ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
+
+ftable_update
+```
+
+# Graph 1: Water Availability vs Flow 
+
+```{r Graph 1.1, echo=FALSE, fig.cap="", fig.id = ""}
+#create bar chart showing both WA and Qnsf (L30/90) or Qbaseline
+scale = 1 #scale for transforming first y axis to 2nd
+
+#l30 graph
+plot30 <- ggplot(data = df_WA, aes(x=riverseg)) +
+  geom_bar(aes(y=WA_mgd_30_apx), stat = 'identity', fill = 'blue') +
+  geom_bar(aes(y=l30_Qout_dem), stat = 'identity', fill = 'green') +
+  scale_y_continuous(name = 'Water Availability (mgd)') +
+  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L30_Qout')) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
+  theme(axis.title.x=element_blank()) +
+  ggtitle('WA vs Flow (L30)')
+
+plot30
+
+
+#l90 graph
+plot90 <- ggplot(data = df_WA, aes(x=riverseg)) +
+  geom_bar(aes(y=WA_mgd_90_apx), stat = 'identity', fill = 'blue') +
+  geom_bar(aes(y=l90_Qout_dem), stat = 'identity', fill = 'green') +
+  scale_y_continuous(name = 'Water Availability (mgd)') +
+  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout')) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
+  theme(axis.title.x=element_blank()) +
+  ggtitle('WA vs Flow (L90)')
+
+plot90
+```
+
+
+
 <!---BLOCK_LANDSCAPE_STOP--->
 
 ```{r Save Tables as Images, echo=FALSE}
@@ -832,10 +897,6 @@ write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_ups_',
 
 
 ```{r tab.cap="", tab.id=""}
-
-```
-
-```{r fig.cap="", fig.id = ""}
 
 ```
 
