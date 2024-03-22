@@ -216,7 +216,7 @@ rsegs$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs$hydroco
 rsegs <- rsegs[ rsegs[,fn_geoCol(rsegs)]!="" & !is.na(rsegs[,fn_geoCol(rsegs)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 rsegs <- sf::st_as_sf(rsegs, wkt=fn_geoCol(rsegs), crs=crs_default) #convert to sf
 sf::sf_use_s2(FALSE) # switch off Spherical geometry ; some functions (eg. st_join, st_filter) give errors without this
-
+rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sorting
 # INSURE Riverseg: we add an riverseg column via geometry in case model riverseg is blank
 # 1. We should take the model riverseg if available, 
 # 2. If model riverseg is NA, use featrs intersection riverseg
@@ -252,13 +252,14 @@ featrs[needs_riverseg,]$riverseg <- featrs[needs_riverseg,]$riverseg_contains
 # 
 #filter by boundary type:
 #---Rsegs---
+rsegs_data <- st_drop_geometry(rsegs)
 if (origin_type=="basin") { #finding upstream riversegs for basin maps 
   for(i in origin){
     if(i==origin[1]){
-      basin <- fn_extract_basin(st_drop_geometry(rsegs), i) #fn_extract_basin runs sqldf which can't handle sf geometry
+      basin <- fn_extract_basin(rsegs_data, i) #fn_extract_basin runs sqldf which can't handle sf geometry
     }
     if(i!=origin[1]){
-      basin <- rbind(basin, fn_extract_basin(st_drop_geometry(rsegs), i))
+      basin <- rbind(basin, fn_extract_basin(rsegs_data, i))
     }
   }
   rsegs <- st_as_sf( merge(x=basin,y=rsegs), crs=crs_default) #add the geometries back on
@@ -308,7 +309,7 @@ statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a lef
 rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
 
 #----Calculate Rseg Metric % Diff ----
-rsegs_data <- st_drop_geometry(rsegs)
+rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data
 for (j in 2:length(runid_list)) {
   for (k in 1:length(rivseg_metric)) {
     ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
