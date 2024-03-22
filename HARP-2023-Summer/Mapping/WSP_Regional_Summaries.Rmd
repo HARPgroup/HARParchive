@@ -33,7 +33,7 @@ params:
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
-  show_map: FALSE #either TRUE or FALSE
+  show_map: TRUE #either TRUE or FALSE
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -534,16 +534,18 @@ ft1 #display flextable
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
 
-if (show_map == TRUE) {
   rivmapfilename <- character() #empty character var, not a list, to store map names
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
-    display_metric <- run_config$riverseg_metrics[[i]]$metric
-    display_column <- run_config$riverseg_metrics[[i]]$column_name
-    display_title <- run_config$riverseg_metrics[[i]]$run_label
+     
+     display_map <- run_config$riverseg_metrics[[i]]$show_map
+     if (display_map == TRUE) {
+      display_metric <- run_config$riverseg_metrics[[i]]$metric
+      display_column <- run_config$riverseg_metrics[[i]]$column_name
+      display_title <- run_config$riverseg_metrics[[i]]$run_label
     
-    rseg_leg_title <- legend_titling(display_metric, runid_list)
+     rseg_leg_title <- legend_titling(display_metric, runid_list)
     
-    rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
+      rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
     if (display_metric=="l30_Qout"){
         rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
@@ -622,8 +624,10 @@ if (show_map == TRUE) {
       plot = map_rivseg,
       width = 25,
       height = 20)
-  }
+     } else {
+    print("No map created for this metric")
 }
+  }
 ```
 
 ```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE}
@@ -632,89 +636,6 @@ if (show_map == TRUE) {
 }
 ```
 
-```{r Create Table 2- OLD, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
-#OLD TABLE WORK- DONT RUN
-
-rsegs <- st_drop_geometry(rsegs)
-
-rivTables <- list() #to store dataframes for each drought metric
-#ftable<- list()
-
-
-for (k in 1:length(run_config$riverseg_metrics)){ #loop thru metrics
-  display_metric <- run_config$riverseg_metrics[[k]]$metric
-  display_column <- run_config$riverseg_metrics[[k]]$column_name
-  rivTables[[k]] <- data.frame(Name = rsegs$name) # add rivseg name
-  rivTables[[k]][,paste0('Riverseg')] <- rsegs$riverseg # add rivseg number
-  rivTables[[k]]$Metric <- display_metric #add metric
-
-   for (i in 1:nrow(rsegs)) {
-        for (j in 1:length(runid_list)){ #add actual metric column data
-          tmp_df <- st_drop_geometry(rsegs[i,paste0(runid_list[j],'_',display_metric)])
-          tmp_df <- as.data.frame(lapply(tmp_df,as.numeric))
-          #rivTables[[k]][i,paste0(runid_list[j])] <- round(tmp_df, digits = 2)
-          
-          for (x in 1:nrow(metric_names)){
-          if (runid_list[j]==metric_names$read_metric_name[x])
-            {
-            rivTables[[k]][i,paste0(metric_names$new_metric_name[x])] <- round(tmp_df, digits = 2)
-            #names(rivTables[[k]])[names(rivTables[[k]]) == runid_list[j]] <- metric_names$new_metric_name[row]
-            #names(rivTables[[k]]) <- mgsub(names(rivTables[[k]]), pattern= runid_list[j], replacement= metric_names$new_metric_name[x])
-          }
-          else
-          {
-            next
-          }
-        }
-      }
-   }
-
-  #format table columns, add percent difference 
-  tmp_df <- as.numeric(rsegs[,display_column]) #rsegs is a df not sf
-  rivTables[[k]][,paste0('pct_diff','_',display_metric)] <- round(tmp_df, digits = 2)
-  
-  #order by lowest % difference from rivTables[[k]]
-  rivdf <- rivTables[[k]] #for sqldf
-  rivdf <- sqldf(paste0("SELECT rivdf.* FROM rivdf ORDER BY ", 'pct_diff','_',display_metric, " ASC")) 
-  names(rivdf)[names(rivdf) == paste0('pct_diff','_',display_metric)] <- '% Difference'
-  
-  #need to put NA values @ bottom of df
-  nanum <- sum(is.na(rivdf$`% Difference`))
-  narows <- head(rivdf, nanum)
-  goodrows <- rivdf[(nanum+1):nrow(rivdf), ]
-  rivdf <- rbind(goodrows, narows)
-  
-  nacols <- data.frame(colSums(is.na(rivdf)) == nrow(rivdf)) #dataframe of which columns are all na or not
-  for (i in 1:nrow(nacols)) {
-    if (nacols$colSums.is.na.rivdf......nrow.rivdf.[i] == TRUE){ #if any column is all na, then return true
-      tablemessage2 = TRUE
-    }
-    else { #if column is not all na, then return false
-      tablemessage2 = FALSE
-    }
-  }
-  
-  rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
-  
-  if (display_metric=="l30_Qout"){
-      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
-  } else if (display_metric=="l90_Qout"){
-      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-  } else {
-      rivtablelabel <- rivtablemetric
-  }
-  
-  rivtabletitle <- paste0(title_main, ", ", rivtablelabel)
-  
-  ft2 <- fn_tablegen(featr_type = "riverseg", table = rivdf,
-                     columns = "all", alignment = "left", 
-                     metric = display_metric, origin_type = origin_type,  
-                     origin = origin , tabletitle = rivtabletitle) #flextable function
-  
-  assign(paste0('table', k), ft2, envir = globalenv())
-  print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
-}
-```
 
 ```{r Create Table 2 UPDATED, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -725,30 +646,39 @@ rseg_no_geom <- st_drop_geometry(rsegs) #copy of rsegs
 
   # base info
 for (k in 1:length(run_config$riverseg_metrics)){
-  rseg_display <- rseg_no_geom # must reinitialize rseg_display each time since we remove unused columns below
-  display_metric <- run_config$riverseg_metrics[[k]]$metric
-  display_column <- run_config$riverseg_metrics[[k]]$column_name
+  
+  data_set <- run_config$riverseg_metrics[[k]]$data_set
   table_cols <- unlist(run_config$riverseg_metrics[[k]]$tables_cols)
-  display_title <- run_config$riverseg_metrics[[k]]$run_label
+  display_column <- run_config$riverseg_metrics[[k]]$column_name
+  
+  # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "faclis_nogeom"
+    if (exists(data_set)) {
+      rseg_display <- get(data_set)
+      } else {
+    message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
+    }
 
   
+  display_metric <- run_config$riverseg_metrics[[k]]$metric
+  display_title <- run_config$riverseg_metrics[[k]]$run_label
+
   #metrics, to be suppressed later?
   rseg_display$Metric <- display_metric 
   
   #assemble our table, with the columns in order defined by table_cols
-  rseg_display <- rseg_display[table_cols] 
+  rseg_display <- rseg_display[table_cols] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
   
   #na messages 
   
-    nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
-  for (i in 1:nrow(nacols)) {
-    if (nacols$colSums.is.na.rseg_display......nrow.rseg_display.[i] == TRUE){ #if any column is all na, then return true
-      tablemessage2 = TRUE
-    }
-    else { #if column is not all na, then return false
-      tablemessage2 = FALSE
-    }
-  }
+   # nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
+ # for (i in 1:nrow(nacols)) {
+   # if (nacols$colSums.is.na.rseg_display......nrow.rseg_display.[i] == TRUE){ #if any column is all na, then return true
+   #   tablemessage2 = TRUE
+   # }
+   # else { #if column is not all na, then return false
+   #   tablemessage2 = FALSE
+   # }
+ # }
   
   #sorting 
   sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
@@ -783,7 +713,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
   
   assign(paste0('table', k), ft2, envir = globalenv())
 
-  print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+  #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
 ```
 
@@ -798,6 +728,8 @@ if (tablemessage2==TRUE) {
 }
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
+  cat("\n\n\\pagebreak\n")
+  #cat(flextable::flextable_to_rmd(get(paste0('table', k))))
 }
 
 

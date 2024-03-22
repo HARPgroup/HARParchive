@@ -52,7 +52,11 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
     ft <- align(ft, align = alignment, part = "all")
     
     #highlight when precent diff is below highlight limit(defined in config)
+    
+    if (data_set == 'rseg_no_geom')  { #only do this for rseg maps not facil maps 
     ft <- flextable::bg(ft, i = ft$body$dataset$`percentDiff` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
+    }
+    
    
     #num <- grep(metric, rivseg_metric, value=FALSE)
     ft <- add_header_lines(ft, values= paste0("Table 2.", num)) #add subtite
