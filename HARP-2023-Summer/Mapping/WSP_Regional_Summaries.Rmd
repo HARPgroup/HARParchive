@@ -728,10 +728,9 @@ if (tablemessage2==TRUE) {
           or the segments are all tidal")
 }
 for (k in 1:length(rivseg_metric)){
-  #cat(knitr::knit_print(get(paste0('table', k))))
-  #cat(paste("#### Table", k, ,"\n"))
-  cat(flextable::flextable_to_rmd(get(paste0('table', k))))
+  cat(knitr::knit_print(get(paste0('table', k))))
   cat("\n\n\\pagebreak\n")
+  #cat(flextable::flextable_to_rmd(get(paste0('table', k))))
 }
 
 
