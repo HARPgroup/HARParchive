@@ -8,7 +8,7 @@ output:
       Normal: ['First Paragraph']
       
 params: 
-  impoundment_list: ["Lake Manassas", "Lake Moomaw", "Lake Chesdin", "Lake Anna", "Carvins Cove", "Jennings Randolph Lake"]
+  outlet_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
@@ -731,10 +731,11 @@ title_table_imp <- paste0('TABLE 4: IMPOUNDMENTS OF INTEREST. Demand: ', demand_
 #get impoundments of interest 
 imp_df <- data.frame() #empty df to hold impoundment objects 
 
-for (i in 1:length(impoundment_list)) {
-  improw <- storage_data[grep(impoundment_list[i], storage_data$propname), ]
+for (i in 1:length(outlet_list)) {
+  improw <- storage_data[grep(outlet_list[i], storage_data$riverseg), ]
   imp_df <- rbind(imp_df, improw)
 }
+
 
 table_imp <- data.frame(Propname = imp_df$propname,
                      Riverseg = imp_df$riverseg,
@@ -756,19 +757,45 @@ ftable_imp
 ```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_ups <- paste0('TABLE 5: WA UPSTREAM OF IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
-#get segs which impoundments of interets are within or downstream of 
-ups_df <- data.frame() 
+#get upstream segments
 
-for (i in 1:length(imp_df)) { 
+for (i in 1:nrow(imp_df)) { 
   ups_segs <- fn_extract_basin(metric_data, imp_df$riverseg[i])
   if (nrow(ups_segs) > 0) {
-    ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
+    #ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
   }
-  ups_df <- rbind(ups_df, ups_segs)
+  assign(paste0('ups_df_', i), ups_segs)
 }
 
 #remove rows matching rows in impoundment df
-ups_df <- ups_df[!(ups_df$featureid %in% imp_df$featureid),]
+#ups_df <- ups_df[!(ups_df$featureid %in% imp_df$featureid),]
+
+
+#get downstream segments
+ds_df <- data.frame() 
+
+#get 3 segments downstream of each case study segment
+for (i in 1:nrow(imp_df)) { 
+  ds_seg1 <- fn_downstream(imp_df$riverseg[i], metric_data$riverseg)
+  ds_segs <- c(ds_seg1)
+  if (ds_seg1 != 'NA') {
+    ds_seg2 <- fn_downstream(ds_seg1, metric_data$riverseg)
+    ds_segs <- c(ds_seg1, ds_seg2)
+  }
+  if (ds_seg2 != 'NA') {
+    ds_seg3 <- fn_downstream(ds_seg2, metric_data$riverseg)
+    ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
+  }
+  ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
+  ds_df <- ds_df[!duplicated(ds_df), ]
+  assign(paste0('ds_df_', i), ds_df)
+}
+
+for (i in 1:nrow(imp_df)) { 
+  assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
+}
+
+### updates done up until here
 
 table_ups <- data.frame(Propname = ups_df$propname,
                      Riverseg = ups_df$riverseg,
@@ -830,7 +857,6 @@ scale = 1 #scale for transforming first y axis to 2nd
 plot30 <- ggplot(data = df_WA, aes(x=riverseg)) +
   geom_bar(aes(y=WA_mgd_30_apx), stat = 'identity', fill = 'blue') +
   geom_bar(aes(y=l30_Qout_dem), stat = 'identity', fill = 'green') +
-  scale_y_continuous(name = 'Water Availability (mgd)') +
   scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L30_Qout')) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
   theme(axis.title.x=element_blank()) +
@@ -843,10 +869,10 @@ plot30
 plot90 <- ggplot(data = df_WA, aes(x=riverseg)) +
   geom_bar(aes(y=WA_mgd_90_apx), stat = 'identity', fill = 'blue') +
   geom_bar(aes(y=l90_Qout_dem), stat = 'identity', fill = 'green') +
-  scale_y_continuous(name = 'Water Availability (mgd)') +
-  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout')) +
+  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout (cfs)')) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
   theme(axis.title.x=element_blank()) +
+  ylab('Water Availability (mgd)') +
   ggtitle('WA vs Flow (L90)')
 
 plot90
@@ -855,6 +881,30 @@ plot90
 
 
 <!---BLOCK_LANDSCAPE_STOP--->
+
+```{r Write Tables as CSVs, echo=FALSE}
+
+write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailability_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+write.csv(table_imp, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_Upstream_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+write.csv(table_update, paste0(export_path, 'CaseStudies_table6_UpdateSmin_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+
+```
+
 
 ```{r Save Tables as Images, echo=FALSE}
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WA_', 
@@ -873,25 +923,7 @@ flextable::save_as_image(ftable_ups, path = paste0(export_path, 'CaseStudies_tab
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
 
-```{r Write Tables as CSVs, echo=FALSE}
 
-write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WA_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
-
-write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
-
-write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
-
-write.csv(table_imp, paste0(export_path, 'CaseStudies_table4_imp_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
-
-write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_ups_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv'), col.names = TRUE) 
-
-
-```
 
 
 
