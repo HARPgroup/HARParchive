@@ -1,7 +1,7 @@
 ---
 date: "`r Sys.Date()`"
 author: "Glenn Campagna"
-title: "officedown template"
+title: "Water Availability Case Studies"
 output: 
   officedown::rdocx_document:
     mapstyles:
@@ -24,6 +24,8 @@ library(sqldf)
 library(flextable)
 library(officedown)
 library(officer)
+library(jsonlite)
+library(ggplot2)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -104,7 +106,7 @@ df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
   'runid' = c(demand_scenario, demand_scenario),
   'metric' = c('Smin_L30_mg', 'Smin_L90_mg'),
-  'runlabel' = c('SminL30mg_apx','SminL90mg_apx')
+  'runlabel' = c('SminL30mg_vah','SminL90mg_vah')
 )
 storage_data <- om_vahydro_metric_grid(
   metric = metric, runids = df_storage, bundle = 'all', ftype = "all",
@@ -143,38 +145,52 @@ baseline_data <- om_vahydro_metric_grid(
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
 
+storage_data$SminL30mg_apx <- NA
+storage_data$SminL90mg_apx <- NA
+
 storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
 storage_data$min_in_pd90 <- NA 
 
 storage_data$outside_pd30 <- NA #empty columns to hold numeric values
 storage_data$outside_pd90 <- NA 
 
+storage_data$object_class <- NA
+
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
 
-    #Get model to get object class
+  #Get model
   model <- RomProperty$new(ds,list( 
     featureid = storage_data$featureid[i],
     propcode = 'vahydro-1.0',
     entity_type = 'dh_feature'
   ),TRUE)
   
-  #Get object class 
+  #Get object class
   object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
     featureid = model$pid,
     propname = 'object_class'
-  ),TRUE)  
-  
+  ),TRUE)
   object_class <- object_class$propcode
-  
+
+  #Get element id
   token = ds$get_token(rest_pw) #needed for elid function
   elid <- om_get_model_elementid( #use RomProperty after puling the model instead
     base_url = site,
     mid = model$pid
   )
   rm(token)
+  
+  ## This method takes too long for testing purposes until a caching method is found 
+  # #Get model info using ds$auth_read to authenticate and grab model info+data
+  # obj_url <- paste(json_obj_url, model$pid, sep="/")
+  # model_info <- ds$auth_read(obj_url,  "text/json", "")
+  # model_info <- fromJSON(model_info)
+  # elid <- model_info[[1]]$om_element_connection$value
+  # object_class <- model_info[[1]]$object_class
+  # storage_data$object_class[i] <- object_class
 
-  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = TRUE) #get timeseries data (read in as zoo)
+  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
   
   mode(dat) <- 'numeric'
   cols <- names(dat)
@@ -281,8 +297,7 @@ for (i in 1:nrow(storage_data)) {
       end = l30yr_end
     )
   
-    ##Near-exact method: Smin within the L30 and L90 periods:
-    
+    #data for the low flow years
     l30yr_df <- as.data.frame(datpd_30yr)
     l90yr_df <- as.data.frame(datpd_90yr)
     
@@ -302,7 +317,7 @@ for (i in 1:nrow(storage_data)) {
     l90yr_flows$rollmean90 <- rollmean90[,1]
     
     #start row numbers for low flow periods
-    rownum_start30 <- which.min(l30yr_flows$rollmean30) #min rolling mean since we used a left alignment 
+    rownum_start30 <- which.min(l30yr_flows$rollmean30) #min rolling mean since we used a left alignment
     rownum_start90 <- which.min(l90yr_flows$rollmean90) 
     
     #end row numbers for low flow periods
@@ -331,10 +346,17 @@ for (i in 1:nrow(storage_data)) {
     l30pd_df <- as.data.frame(l30pd_flowz)
     l90pd_df <- as.data.frame(l90pd_flowz)
     
-    #Smin within the low flow periods (near-exact method)
+    #Near-Exact Smin 
+      #Lowest storage within the low flow periods 
       #Storage needs to be converted from acre-feet to million gallons
     storage_data$SminL30mg_nex[i] <- round((min(l30pd_df$Storage) / 3.069), digits = 3)
     storage_data$SminL90mg_nex[i] <- round((min(l90pd_df$Storage) / 3.069), digits = 3)
+    
+    #Approximate Smin 
+      #Lowest storage within the low flow years 
+      #Storage needs to be converted from acre-feet to million gallons
+    storage_data$SminL30mg_apx[i] <- round((min(l30yr_df$Storage) / 3.069), digits = 3)
+    storage_data$SminL90mg_apx[i] <- round((min(l90yr_df$Storage) / 3.069), digits = 3)
     
     #get row numbers where near-exact Smin happens within low flow period 
     rownum_nex30 <- which.min(l30pd_df$Storage) 
@@ -553,8 +575,13 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-  
-df_WA <- sqldf("SELECT a.* FROM metric_data as a WHERE Sminl30mg_apx_local IS NOT 0")
+
+#select all segments that have storage locally or upstream (total storage)
+#ensure we check both SminL30 and 90
+df_WA <- sqldf("SELECT a.* 
+               FROM metric_data as a 
+               WHERE Sminl30mg_apx_total IS NOT 0
+               OR Sminl90mg_apx_total IS NOT 0")
 
 df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
 
@@ -594,8 +621,8 @@ ftable_WA
 title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #add % differences
-storage_data$pctDiff30 <- 100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex
-storage_data$pctDiff90 <- 100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex
+storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
+storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
 
 table_Smin <- data.frame(Propname = storage_data$propname,
                      Riverseg = storage_data$riverseg,
@@ -768,6 +795,65 @@ ftable_ups
 ```
 
 
+# Table 6: Smins that Need to be Updated
+
+```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#select rows where vahydro and calculated approx Smins are different 
+df_update <- sqldf("SELECT a.* 
+                    FROM storage_data as a 
+                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
+                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
+
+table_update <- data.frame(Propname = df_update$propname,
+                     Riverseg = df_update$riverseg,
+                     SminL30mg_vah = df_update$SminL30mg_vah,
+                     SminL30mg_apx = df_update$SminL30mg_apx,
+                     SminL90mg_vah= df_update$SminL90mg_vah,
+                     SminL90mg_apx = df_update$SminL90mg_apx)
+
+ftable_update <- flextable(table_update) #create flextable
+ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
+
+ftable_update
+```
+
+# Graph 1: Water Availability vs Flow 
+
+```{r Graph 1.1, echo=FALSE, fig.cap="", fig.id = ""}
+#create bar chart showing both WA and Qnsf (L30/90) or Qbaseline
+scale = 1 #scale for transforming first y axis to 2nd
+
+#l30 graph
+plot30 <- ggplot(data = df_WA, aes(x=riverseg)) +
+  geom_bar(aes(y=WA_mgd_30_apx), stat = 'identity', fill = 'blue') +
+  geom_bar(aes(y=l30_Qout_dem), stat = 'identity', fill = 'green') +
+  scale_y_continuous(name = 'Water Availability (mgd)') +
+  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L30_Qout')) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
+  theme(axis.title.x=element_blank()) +
+  ggtitle('WA vs Flow (L30)')
+
+plot30
+
+
+#l90 graph
+plot90 <- ggplot(data = df_WA, aes(x=riverseg)) +
+  geom_bar(aes(y=WA_mgd_90_apx), stat = 'identity', fill = 'blue') +
+  geom_bar(aes(y=l90_Qout_dem), stat = 'identity', fill = 'green') +
+  scale_y_continuous(name = 'Water Availability (mgd)') +
+  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout')) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
+  theme(axis.title.x=element_blank()) +
+  ggtitle('WA vs Flow (L90)')
+
+plot90
+```
+
+
+
 <!---BLOCK_LANDSCAPE_STOP--->
 
 ```{r Save Tables as Images, echo=FALSE}
@@ -811,10 +897,6 @@ write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_ups_',
 
 
 ```{r tab.cap="", tab.id=""}
-
-```
-
-```{r fig.cap="", fig.id = ""}
 
 ```
 
