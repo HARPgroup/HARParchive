@@ -43,19 +43,23 @@ run_sets <- list(
     riverseg_metrics=list( 
       list(
         metric='l90_Qout', 
+        data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_13', 
         run_label = '2040 WSP L90 %', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
-        sort_decreasing = FALSE
+        sort_decreasing = FALSE,
+        show_map = TRUE
       ),
       list(
         metric='l90_Qout', 
+        data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
         run_label = 'Dry Climate Change WSP L90 %', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
-        sort_decreasing = FALSE
+        sort_decreasing = FALSE,
+        show_map = TRUE
       ),
       list(
         metric='l30_Qout', 
@@ -69,11 +73,13 @@ run_sets <- list(
       ),
       list(
         metric='l30_Qout', 
+        data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_17', 
         run_label = 'Dry climate Change WSP L30 %', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
-        sort_decreasing = FALSE
+        sort_decreasing = FALSE,
+        show_map = TRUE
       ),
       list(
         metric='7q10', 
@@ -107,6 +113,7 @@ run_sets <- list(
         show_map = TRUE
       ), 
       list(
+        data_set = 'facils_nogeom',
         metric='wsp2020_2040_mgy', #replace with unmet demand req 
         data_set = 'facils_nogeom',
         column_name='wsp2020_2040_mgy', 
@@ -119,6 +126,7 @@ run_sets <- list(
   permit_dev = list(
     riverseg_metrics=list( 
       list(
+        data_set = 'rseg_no_geom',
         metric='l30_Qout', 
         column_name='percentDiff_l30_Qout_runid_0_runid_601', 
         run_label = '2040 WSP L30 %', 
@@ -128,6 +136,7 @@ run_sets <- list(
         show_map = TRUE
       ),
       list(
+        data_set = 'rseg_no_geom',
         metric='7q10', 
         column_name='percentDiff_7q10_runid_0_runid_601', 
         run_label = '2040 WSP 7q10 %', 
@@ -137,6 +146,7 @@ run_sets <- list(
         show_map = TRUE
       ),
       list(
+        data_set = 'rseg_no_geom',
         metric='Smin_L30_mg', 
         column_name='runid_601_Smin_L30_mg', 
         run_label = 'Minimum Storage', 
