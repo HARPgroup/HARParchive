@@ -568,6 +568,19 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```
 
+
+```{r Add Qavailable to DataFrame, echo = FALSE}
+#add Qavailable for each L30 and L90 to the metric dataframe 
+# Qavailable = Qdemand - MIF*Qbaseline
+metric_data$Qavailable_30 <- round((metric_data$l30_Qout_dem - mif_coef*metric_data$l30_Qout_base), digits = 3)
+metric_data$Qavailable_90 <- round((metric_data$l90_Qout_dem - mif_coef*metric_data$l90_Qout_base), digits = 3)
+
+
+```
+
+
+
+
 <!---BLOCK_LANDSCAPE_START--->
 
 # Table 1: Overall Water Availability Across VA
@@ -814,9 +827,11 @@ for (i in 1:nrow(caseStudies_df)) {
                       l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
                       l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
                       l30_Qout_mif = round((csws_df$l30_Qout_base*mif_coef), digits = 3),
+                      Qavailable_30 = csws_df$Qavailable_30,
                       l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
                       l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
                       l90_Qout_mif = round((csws_df$l90_Qout_base*mif_coef), digits = 3),
+                      Qavailable_90 = csws_df$Qavailable_90,
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
                       SminL90mg_local = csws_df$SminL90mg_apx_local,
