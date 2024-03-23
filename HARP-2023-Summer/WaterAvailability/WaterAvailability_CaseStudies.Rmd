@@ -723,60 +723,54 @@ ftable_Storage
 ```
 
 
-# Table 4: Impoundments of Interest 
+# Table 4: Case Studies 
 
 ```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_imp <- paste0('TABLE 4: IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+title_table_caseStudies <- paste0('TABLE 4: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #get impoundments of interest 
-imp_df <- data.frame() #empty df to hold impoundment objects 
+caseStudies_df <- data.frame() #empty df to hold impoundment objects 
 
 for (i in 1:length(outlet_list)) {
-  improw <- storage_data[grep(outlet_list[i], storage_data$riverseg), ]
-  imp_df <- rbind(imp_df, improw)
+  caseStudyRow <- storage_data[grep(outlet_list[i], storage_data$riverseg), ]
+  caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
 
 
-table_imp <- data.frame(Propname = imp_df$propname,
-                     Riverseg = imp_df$riverseg,
-                     SminL30mg_apx = imp_df$SminL30mg_apx,
-                     SminL30mg_nex = imp_df$SminL30mg_nex,
-                     SminL90mg_apx = imp_df$SminL90mg_apx,
-                     SminL90mg_nex = imp_df$SminL90mg_nex,
-                     outside_pd30 = imp_df$outside_pd30,
-                     outside_pd90 = imp_df$outside_pd90)
+table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
+                     Riverseg = caseStudies_df$riverseg,
+                     SminL30mg_apx = caseStudies_df$SminL30mg_apx,
+                     SminL30mg_nex = caseStudies_df$SminL30mg_nex,
+                     SminL90mg_apx = caseStudies_df$SminL90mg_apx,
+                     SminL90mg_nex = caseStudies_df$SminL90mg_nex,
+                     outside_pd30 = caseStudies_df$outside_pd30,
+                     outside_pd90 = caseStudies_df$outside_pd90)
 
-ftable_imp <- flextable(table_imp) #create flextable
-ftable_imp <- add_header_lines(ftable_imp, values= title_table_imp) #add title 
+ftable_caseStudies <- flextable(table_caseStudies) #create flextable
+ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
 
-ftable_imp
+ftable_caseStudies
 ```
 
-# Table 5: WA Upstream of Impoundments of Interest 
+# Table 5: WA in Case Study Watersheds
 
 ```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_ups <- paste0('TABLE 5: WA UPSTREAM OF IMPOUNDMENTS OF INTEREST. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
 #get upstream segments
-
-for (i in 1:nrow(imp_df)) { 
-  ups_segs <- fn_extract_basin(metric_data, imp_df$riverseg[i])
+for (i in 1:nrow(caseStudies_df)) { 
+  ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
   if (nrow(ups_segs) > 0) {
     #ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
   }
+  #ups_segs <- rbind(ups_segs, metric_data[metric_data$riverseg == imp_df$riverseg[i],]) #add case study segment to upstream dataframe
   assign(paste0('ups_df_', i), ups_segs)
 }
-
-#remove rows matching rows in impoundment df
-#ups_df <- ups_df[!(ups_df$featureid %in% imp_df$featureid),]
-
 
 #get downstream segments
 ds_df <- data.frame() 
 
 #get 3 segments downstream of each case study segment
-for (i in 1:nrow(imp_df)) { 
-  ds_seg1 <- fn_downstream(imp_df$riverseg[i], metric_data$riverseg)
+for (i in 1:nrow(caseStudies_df)) { 
+  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg)
   ds_segs <- c(ds_seg1)
   if (ds_seg1 != 'NA') {
     ds_seg2 <- fn_downstream(ds_seg1, metric_data$riverseg)
@@ -791,34 +785,52 @@ for (i in 1:nrow(imp_df)) {
   assign(paste0('ds_df_', i), ds_df)
 }
 
-for (i in 1:nrow(imp_df)) { 
+#combine upstream and downstream datframes
+for (i in 1:nrow(caseStudies_df)) { 
   assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
 }
 
-### updates done up until here
+#upstream and downstream dataframes are NOT ordered correctly yet (upstream to downstream)
+#order by wd_cumulative first, which should give upstream -> downstream
+for (i in 1:nrow(caseStudies_df)) { 
+  ordered_df <- sqldf(paste0("SELECT a.* FROM ups_ds_df_", i ," as a 
+                       ORDER BY (a.wd_cumulative_mgd)")) 
+  assign(paste0('ups_ds_df_', i), ordered_df)
+}
 
-table_ups <- data.frame(Propname = ups_df$propname,
-                     Riverseg = ups_df$riverseg,
-                     DSimpound = ups_df$ds_impoundment,
-                     wd_cu_mgd = round(ups_df$wd_cumulative_mgd, digits = 3),
-                     ps_cu_mgd = round(ups_df$ps_cumulative_mgd, digits = 3),
-                     l30_Qout = round(ups_df$l30_Qout_dem, digits = 3),
-                     l30_Qout_base = round(ups_df$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((ups_df$l30_Qout_base*mif_coef), digits = 3),
-                     l90_Qout = round(ups_df$l90_Qout_dem, digits = 3),
-                     l90_Qout_base = round(ups_df$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((ups_df$l90_Qout_base*mif_coef), digits = 3),
-                     SminL30mg_local = ups_df$SminL30mg_apx_local,
-                     SminL30mg_upstream = ups_df$SminL30mg_apx_ups,
-                     SminL90mg_local = ups_df$SminL90mg_apx_local,
-                     SminL90mg_upstream = ups_df$SminL90mg_apx_ups,
-                     WA_mgd_30 = ups_df$WA_mgd_30_apx,
-                     WA_mgd_90 = ups_df$WA_mgd_90_apx)
+# then ordering will have to be by rseg naming convention - how can this be done in R?
 
-ftable_ups <- flextable(table_ups) #create flextable
-ftable_ups <- add_header_lines(ftable_ups, values= title_table_ups) #add title 
 
-ftable_ups
+#separate flextables for each case study with case study rseg in header 
+for (i in 1:nrow(caseStudies_df)) { 
+  title_table_caseStudyWshed <- paste0('TABLE 5: WA IN CASE STUDY WATERSHEDS. Demand: ', 
+                                       demand_scenario, ', Baseline: ', baseline_scenario, 
+                                       ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
+  csws_df <- get(paste0('ups_ds_df_', i))
+  table_caseStudyWshed <-   data.frame(Propname = csws_df$propname,
+                      Riverseg = csws_df$riverseg,
+                      wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
+                      ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
+                      l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
+                      l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
+                      l30_Qout_mif = round((csws_df$l30_Qout_base*mif_coef), digits = 3),
+                      l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
+                      l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
+                      l90_Qout_mif = round((csws_df$l90_Qout_base*mif_coef), digits = 3),
+                      SminL30mg_local = csws_df$SminL30mg_apx_local,
+                      SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
+                      SminL90mg_local = csws_df$SminL90mg_apx_local,
+                      SminL90mg_upstream = csws_df$SminL90mg_apx_ups,
+                      WA_mgd_30 = csws_df$WA_mgd_30_apx,
+                      WA_mgd_90 = csws_df$WA_mgd_90_apx)
+  
+  ftable_csws <- flextable(table_caseStudyWshed)
+  ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
+  assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
+  print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
+}
+
+
 ```
 
 
