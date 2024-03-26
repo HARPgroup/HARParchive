@@ -568,17 +568,42 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
 
 ```
 
-
 ```{r Add Qavailable to DataFrame, echo = FALSE}
 #add Qavailable for each L30 and L90 to the metric dataframe 
 # Qavailable = Qdemand - MIF*Qbaseline
-metric_data$Qavailable_30 <- round((metric_data$l30_Qout_dem - mif_coef*metric_data$l30_Qout_base), digits = 3)
-metric_data$Qavailable_90 <- round((metric_data$l90_Qout_dem - mif_coef*metric_data$l90_Qout_base), digits = 3)
+metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - mif_coef*metric_data$l30_Qout_base), digits = 3)
+metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - mif_coef*metric_data$l90_Qout_base), digits = 3)
 
 
 ```
 
+```{r Smin Comparison Check, echo=FALSE, message=FALSE}
+#for highlighting rows which current Smin comparison method is flawed 
+#highlight when TRUE and/or 0 accompanies values that are not equal 
+storage_data$unequal_30 <- NA
+storage_data$unequal_90 <- NA
 
+for (i in 1:nrow(storage_data)) {
+  if (storage_data$SminL30mg_apx[i] != storage_data$SminL30mg_nex[i]) { #if values don't match
+    if (storage_data$min_in_pd30[i] == TRUE) { #but we're saying the values occur at the same time 
+      storage_data$unequal_30[i] <- TRUE
+    }
+    if (storage_data$outside_pd30[i] == 0) {
+      storage_data$unequal_30[i] <- TRUE
+    } 
+  }
+  
+  if (storage_data$SminL90mg_apx[i] != storage_data$SminL90mg_nex[i]) { #if values don't match
+    if (storage_data$min_in_pd90[i] == TRUE) { #but we're saying the values occur at the same time 
+      storage_data$unequal_90[i] <- TRUE
+    }
+    if (storage_data$outside_pd90[i] == 0) {
+      storage_data$unequal_90[i] <- TRUE
+    } 
+  } 
+}
+
+```
 
 
 <!---BLOCK_LANDSCAPE_START--->
@@ -672,36 +697,6 @@ ftable_Smin
 
  # Table 3: Smin Method Comparison
 
-
-```{r echo=FALSE, message=FALSE}
-#for highlighting rows which current Smin comparison method is flawed 
-#highlight when TRUE and/or 0 accompanies values that are not equal 
-storage_data$unequal_30 <- NA
-storage_data$unequal_90 <- NA
-
-for (i in 1:nrow(storage_data)) {
-  if (storage_data$SminL30mg_apx[i] != storage_data$SminL30mg_nex[i]) { #if values don't match
-    if (storage_data$min_in_pd30[i] == TRUE) { #but we're saying the values occur at the same time 
-      storage_data$unequal_30[i] <- TRUE
-    }
-    if (storage_data$outside_pd30[i] == 0) {
-      storage_data$unequal_30[i] <- TRUE
-    } 
-  }
-  
-  if (storage_data$SminL90mg_apx[i] != storage_data$SminL90mg_nex[i]) { #if values don't match
-    if (storage_data$min_in_pd90[i] == TRUE) { #but we're saying the values occur at the same time 
-      storage_data$unequal_90[i] <- TRUE
-    }
-    if (storage_data$outside_pd90[i] == 0) {
-      storage_data$unequal_90[i] <- TRUE
-    } 
-  } 
-}
-
-```
-
-
 ```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
@@ -765,16 +760,25 @@ ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_c
 ftable_caseStudies
 ```
 
-# Table 5: WA in Case Study Watersheds
 
-```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+```{r Processing for Case Study Wsheds, echo=FALSE}
+
+#add special case for Carvins Cove 
+  #carvins is a headwater, so we need to pull upstream segments from one seg downstream from carvins 
+
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
-  ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
+  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins", "YP2_6390_6330")) { #don't do tradition upstream process for carvins cove or lake anna
+    ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
   if (nrow(ups_segs) > 0) {
     #ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
   }
   #ups_segs <- rbind(ups_segs, metric_data[metric_data$riverseg == imp_df$riverseg[i],]) #add case study segment to upstream dataframe
+  } else { #carvins and lake anna special case
+    ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
+    ups_segs <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
+  }
   assign(paste0('ups_df_', i), ups_segs)
 }
 
@@ -813,13 +817,19 @@ for (i in 1:nrow(caseStudies_df)) {
 
 # then ordering will have to be by rseg naming convention - how can this be done in R?
 
+```
 
+
+# Table 5: WA in Case Study Watersheds
+
+```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:nrow(caseStudies_df)) { 
   title_table_caseStudyWshed <- paste0('TABLE 5: WA IN CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
                                        ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
   csws_df <- get(paste0('ups_ds_df_', i))
+  csws_df <- csws_df[!duplicated(csws_df), ]#remove duplicate rows
   table_caseStudyWshed <-   data.frame(Propname = csws_df$propname,
                       Riverseg = csws_df$riverseg,
                       wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
@@ -827,11 +837,11 @@ for (i in 1:nrow(caseStudies_df)) {
                       l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
                       l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
                       l30_Qout_mif = round((csws_df$l30_Qout_base*mif_coef), digits = 3),
-                      Qavailable_30 = csws_df$Qavailable_30,
+                      Qavailable_30_cfs = csws_df$Qavailable_30_cfs,
                       l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
                       l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
                       l90_Qout_mif = round((csws_df$l90_Qout_base*mif_coef), digits = 3),
-                      Qavailable_90 = csws_df$Qavailable_90,
+                      Qavailable_90_cfs = csws_df$Qavailable_90_cfs,
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
                       SminL90mg_local = csws_df$SminL90mg_apx_local,
