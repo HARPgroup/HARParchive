@@ -607,7 +607,6 @@ for (i in 1:nrow(storage_data)) {
 
 
 ```{r Processing for Case Study Wsheds, echo=FALSE}
-
 caseStudies_df <- data.frame()
 
 for (i in 1:length(outlet_list)) {
@@ -620,18 +619,22 @@ for (i in 1:length(outlet_list)) {
 
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
-  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins", "YP2_6390_6330")) { #don't do tradition upstream process for carvins cove or lake anna
+  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
     ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
   if (nrow(ups_segs) > 0) {
-    #ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
   }
-  #ups_segs <- rbind(ups_segs, metric_data[metric_data$riverseg == imp_df$riverseg[i],]) #add case study segment to upstream dataframe
-  } else { #carvins and lake anna special case
+  
+  } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
     ups_segs <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
   }
+  ups_segs <- rbind(ups_segs[nrow(ups_segs),],ups_segs[1:(nrow(ups_segs)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
+  ups_segs <- ups_segs[nrow(ups_segs):1,]#reverse order to get upstream to downstream
+  ups_segs <- ups_segs[!duplicated(ups_segs), ] #remove duplicate rows
   assign(paste0('ups_df_', i), ups_segs)
 }
+
+#upstream dataframes ordered correctly (upstream -> downstream)
 
 #get downstream segments
 ds_df <- data.frame() 
@@ -650,26 +653,31 @@ for (i in 1:nrow(caseStudies_df)) {
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
   ds_df <- ds_df[!duplicated(ds_df), ]
+  
+  #order df 
+  ds_df$riverseg <- factor(ds_df$riverseg, levels=ds_segs) 
+  ds_df <- ds_df[order(ds_df$riverseg),]
   assign(paste0('ds_df_', i), ds_df)
 }
 
-#combine upstream and downstream datframes
+#downstream datframes are not sorted correctly 
+#the ds_seg strings within the loop are in the correct order 
+
+#combine upstream and downstream dataframes
 for (i in 1:nrow(caseStudies_df)) { 
   assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
 }
 
 #upstream and downstream dataframes are NOT ordered correctly yet (upstream to downstream)
 #order by wd_cumulative first, which should give upstream -> downstream
-for (i in 1:nrow(caseStudies_df)) { 
-  ordered_df <- sqldf(paste0("SELECT a.* FROM ups_ds_df_", i ," as a 
-                       ORDER BY (a.wd_cumulative_mgd)")) 
-  assign(paste0('ups_ds_df_', i), ordered_df)
-}
+# for (i in 1:nrow(caseStudies_df)) { 
+#   ordered_df <- sqldf(paste0("SELECT a.* FROM ups_ds_df_", i ," as a 
+#                        ORDER BY (a.wd_cumulative_mgd)")) 
+#   assign(paste0('ups_ds_df_', i), ordered_df)
+# }
 
-# then ordering will have to be by rseg naming convention - how can this be done in R?
 
 ```
-
 
 <!---BLOCK_LANDSCAPE_START--->
 
@@ -707,7 +715,6 @@ ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #ad
 
 ftable_Storage
 ```
-
 
 # Table 2: Smin Method Discrepancies
 ## The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
@@ -776,7 +783,6 @@ ftable_update <- add_header_lines(ftable_update, values= title_table_update) #ad
 ftable_update
 ```
 
-
 # Table 4: Case Studies 
 
 ```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
@@ -796,7 +802,6 @@ ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_c
 
 ftable_caseStudies
 ```
-
 
 # Table 5: Case Study Watersheds
 
@@ -835,7 +840,6 @@ for (i in 1:nrow(caseStudies_df)) {
 
 
 ```
-
 
 # Table 6: Overall Water Availability Across VA
 ## Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
@@ -880,10 +884,12 @@ ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title
 ftable_WA
 ```
 
-
 # Graph 1: Water Availability vs Flow 
 
 ```{r Graph 1.1, echo=FALSE, fig.cap="", fig.id = ""}
+#New graph idea: Qavailable vs Qdemand vs Qbaseline
+
+
 #create bar chart showing both WA and Qnsf (L30/90) or Qbaseline
 scale = 1 #scale for transforming first y axis to 2nd
 
