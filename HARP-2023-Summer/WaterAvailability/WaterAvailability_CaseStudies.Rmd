@@ -606,163 +606,14 @@ for (i in 1:nrow(storage_data)) {
 ```
 
 
-<!---BLOCK_LANDSCAPE_START--->
+```{r Processing for Case Study Wsheds, echo=FALSE}
 
-# Table 1: Overall Water Availability Across VA
-## Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
-
-```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#select all segments that have storage locally or upstream (total storage)
-#ensure we check both SminL30 and 90
-df_WA <- sqldf("SELECT a.* 
-               FROM metric_data as a 
-               WHERE Sminl30mg_apx_total IS NOT 0
-               OR Sminl90mg_apx_total IS NOT 0")
-
-df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
-
-df_WA <- sqldf("SELECT a.* FROM df_WA as a 
-                       ORDER BY (a.WA_apx_sum)") #order df with lowest WA at the top 
-
-table_WA <- data.frame(Propname = df_WA$propname,
-                     Riverseg = df_WA$riverseg,
-                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
-                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
-                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
-                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
-                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
-                     SminL30mg_apx = df_WA$SminL30mg_apx_total,
-                     SminL30mg_nex = df_WA$SminL30mg_nex_total,
-                     SminL90mg_apx = df_WA$SminL90mg_apx_total,
-                     SminL90mg_nex = df_WA$SminL90mg_nex_total,
-                     WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
-                     WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
-                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
-                     WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
-
-ftable_WA <- flextable(table_WA) #create flextable
-ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
-
-ftable_WA
-```
-
-
-# Table 2: Cases of Differing Minimum Smins by Method 
-## The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
-
-```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#add % differences
-storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
-storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
-
-table_Smin <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
-                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
-                     pctDiff30 = storage_data$pctDiff30,
-                     pctDiff90 = storage_data$pctDiff90)
-
-#order table with rows of interest at the top 
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_30)") 
-
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_90)") 
-
-
-ftable_Smin <- flextable(table_Smin) #create flextable
-
-#to highlight when approx is not <= near-exact
-rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
-rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
-rownums <- c(rownums30, rownums90)
-
-ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
-ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
-
-ftable_Smin
-```
-
-
- # Table 3: Smin Method Comparison
-
-```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#sort table by the sum of 2 values
-storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
-storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
-storage_data <- sqldf("SELECT a.* FROM storage_data as a 
-                       ORDER BY (a.outside_sum) desc")
-
-table_Storage <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     min_in_pd30 = storage_data$min_in_pd30,
-                     min_in_pd90 = storage_data$min_in_pd90,
-                     outside_pd30 = storage_data$outside_pd30,
-                     outside_pd90 = storage_data$outside_pd90)
-
-ftable_Storage <- flextable(table_Storage) #create flextable
-ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
-
-#to highlight when method is flawed
-rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
-rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
-rownums <- c(rownums30, rownums90)
-
-ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
-
-ftable_Storage
-```
-
-
-# Table 4: Case Studies 
-
-```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_caseStudies <- paste0('TABLE 4: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#get impoundments of interest 
-caseStudies_df <- data.frame() #empty df to hold impoundment objects 
+caseStudies_df <- data.frame()
 
 for (i in 1:length(outlet_list)) {
   caseStudyRow <- storage_data[grep(outlet_list[i], storage_data$riverseg), ]
   caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
-
-
-table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
-                     Riverseg = caseStudies_df$riverseg,
-                     SminL30mg_apx = caseStudies_df$SminL30mg_apx,
-                     SminL30mg_nex = caseStudies_df$SminL30mg_nex,
-                     SminL90mg_apx = caseStudies_df$SminL90mg_apx,
-                     SminL90mg_nex = caseStudies_df$SminL90mg_nex,
-                     outside_pd30 = caseStudies_df$outside_pd30,
-                     outside_pd90 = caseStudies_df$outside_pd90)
-
-ftable_caseStudies <- flextable(table_caseStudies) #create flextable
-ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
-
-ftable_caseStudies
-```
-
-
-
-```{r Processing for Case Study Wsheds, echo=FALSE}
 
 #add special case for Carvins Cove 
   #carvins is a headwater, so we need to pull upstream segments from one seg downstream from carvins 
@@ -820,12 +671,139 @@ for (i in 1:nrow(caseStudies_df)) {
 ```
 
 
-# Table 5: WA in Case Study Watersheds
+<!---BLOCK_LANDSCAPE_START--->
+
+# Table 1: Smin Method Comparison
+
+```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#sort table by the sum of 2 values
+storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
+storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
+storage_data <- sqldf("SELECT a.* FROM storage_data as a 
+                       ORDER BY (a.outside_sum) desc")
+
+table_Storage <- data.frame(Propname = storage_data$propname,
+                     Riverseg = storage_data$riverseg,
+                     SminL30mg_apx = storage_data$SminL30mg_apx,
+                     SminL30mg_nex = storage_data$SminL30mg_nex,
+                     SminL90mg_apx = storage_data$SminL90mg_apx,
+                     SminL90mg_nex = storage_data$SminL90mg_nex,
+                     min_in_pd30 = storage_data$min_in_pd30,
+                     min_in_pd90 = storage_data$min_in_pd90,
+                     outside_pd30 = storage_data$outside_pd30,
+                     outside_pd90 = storage_data$outside_pd90)
+
+ftable_Storage <- flextable(table_Storage) #create flextable
+ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
+
+#to highlight when method is flawed
+rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
+rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
+rownums <- c(rownums30, rownums90)
+
+ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
+
+ftable_Storage
+```
+
+
+# Table 2: Smin Method Discrepancies
+## The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
+
+```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#add % differences
+storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
+storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
+
+table_Smin <- data.frame(Propname = storage_data$propname,
+                     Riverseg = storage_data$riverseg,
+                     SminL30mg_apx = storage_data$SminL30mg_apx,
+                     SminL30mg_nex = storage_data$SminL30mg_nex,
+                     SminL90mg_apx = storage_data$SminL90mg_apx,
+                     SminL90mg_nex = storage_data$SminL90mg_nex,
+                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
+                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
+                     pctDiff30 = storage_data$pctDiff30,
+                     pctDiff90 = storage_data$pctDiff90)
+
+#order table with rows of interest at the top 
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_30)") 
+
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_90)") 
+
+
+ftable_Smin <- flextable(table_Smin) #create flextable
+
+#to highlight when approx is not <= near-exact
+rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
+rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
+rownums <- c(rownums30, rownums90)
+
+ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
+ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
+
+ftable_Smin
+```
+
+# Table 3: Smins that Need to be Updated
+
+```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+
+title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#select rows where vahydro and calculated approx Smins are different 
+df_update <- sqldf("SELECT a.* 
+                    FROM storage_data as a 
+                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
+                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
+
+table_update <- data.frame(Propname = df_update$propname,
+                     Riverseg = df_update$riverseg,
+                     SminL30mg_vah = df_update$SminL30mg_vah,
+                     SminL30mg_apx = df_update$SminL30mg_apx,
+                     SminL90mg_vah= df_update$SminL90mg_vah,
+                     SminL90mg_apx = df_update$SminL90mg_apx)
+
+ftable_update <- flextable(table_update) #create flextable
+ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
+
+ftable_update
+```
+
+
+# Table 4: Case Studies 
+
+```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_caseStudies <- paste0('TABLE 4: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
+                     Riverseg = caseStudies_df$riverseg,
+                     SminL30mg_apx = caseStudies_df$SminL30mg_apx,
+                     SminL30mg_nex = caseStudies_df$SminL30mg_nex,
+                     SminL90mg_apx = caseStudies_df$SminL90mg_apx,
+                     SminL90mg_nex = caseStudies_df$SminL90mg_nex,
+                     outside_pd30 = caseStudies_df$outside_pd30,
+                     outside_pd90 = caseStudies_df$outside_pd90)
+
+ftable_caseStudies <- flextable(table_caseStudies) #create flextable
+ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
+
+ftable_caseStudies
+```
+
+
+# Table 5: Case Study Watersheds
 
 ```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:nrow(caseStudies_df)) { 
-  title_table_caseStudyWshed <- paste0('TABLE 5: WA IN CASE STUDY WATERSHEDS. Demand: ', 
+  title_table_caseStudyWshed <- paste0('TABLE 5: CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
                                        ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
   csws_df <- get(paste0('ups_ds_df_', i))
@@ -859,30 +837,49 @@ for (i in 1:nrow(caseStudies_df)) {
 ```
 
 
-# Table 6: Smins that Need to be Updated
+# Table 6: Overall Water Availability Across VA
+## Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
 
 ```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
-title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+#select all segments that have storage locally or upstream (total storage)
+#ensure we check both SminL30 and 90
+df_WA <- sqldf("SELECT a.* 
+               FROM metric_data as a 
+               WHERE Sminl30mg_apx_total IS NOT 0
+               OR Sminl90mg_apx_total IS NOT 0")
 
-#select rows where vahydro and calculated approx Smins are different 
-df_update <- sqldf("SELECT a.* 
-                    FROM storage_data as a 
-                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
-                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
+df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
 
-table_update <- data.frame(Propname = df_update$propname,
-                     Riverseg = df_update$riverseg,
-                     SminL30mg_vah = df_update$SminL30mg_vah,
-                     SminL30mg_apx = df_update$SminL30mg_apx,
-                     SminL90mg_vah= df_update$SminL90mg_vah,
-                     SminL90mg_apx = df_update$SminL90mg_apx)
+df_WA <- sqldf("SELECT a.* FROM df_WA as a 
+                       ORDER BY (a.WA_apx_sum)") #order df with lowest WA at the top 
 
-ftable_update <- flextable(table_update) #create flextable
-ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
+table_WA <- data.frame(Propname = df_WA$propname,
+                     Riverseg = df_WA$riverseg,
+                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
+                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
+                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
+                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
+                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
+                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
+                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
+                     SminL30mg_apx = df_WA$SminL30mg_apx_total,
+                     SminL30mg_nex = df_WA$SminL30mg_nex_total,
+                     SminL90mg_apx = df_WA$SminL90mg_apx_total,
+                     SminL90mg_nex = df_WA$SminL90mg_nex_total,
+                     WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
+                     WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
+                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
+                     WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
 
-ftable_update
+ftable_WA <- flextable(table_WA) #create flextable
+ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
+
+ftable_WA
 ```
+
 
 # Graph 1: Water Availability vs Flow 
 
