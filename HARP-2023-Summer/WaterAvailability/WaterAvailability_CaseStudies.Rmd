@@ -380,14 +380,14 @@ for (i in 1:nrow(storage_data)) {
     
     # If approx. and near-exact values are different: 
     # How far outside the low-flow period does the approximate value occur?
-      ## Positive: near-exact Smin happens AFTER the approx. Smin 
-      ## Negative: near-exact Smin happens BEFORE the approx. Smin 
+      ## Negative: near-exact Smin happens AFTER the approx. Smin 
+      ## Positive: near-exact Smin happens BEFORE the approx. Smin 
 
     if (storage_data$min_in_pd30[i] == FALSE) {
-      storage_data$outside_pd30[i] = rownum_nex30yr - rownum_apx30
+      storage_data$outside_pd30[i] = rownum_apx30 - rownum_nex30yr
     }
     if (storage_data$min_in_pd90[i] == FALSE) {
-      storage_data$outside_pd90[i] = rownum_nex90yr - rownum_apx90
+      storage_data$outside_pd90[i] = rownum_apx90 - rownum_nex90yr
     }
     
   }
