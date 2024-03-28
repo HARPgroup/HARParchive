@@ -607,7 +607,6 @@ for (i in 1:nrow(storage_data)) {
 
 
 ```{r Processing for Case Study Wsheds, echo=FALSE}
-
 caseStudies_df <- data.frame()
 
 for (i in 1:length(outlet_list)) {
@@ -620,18 +619,22 @@ for (i in 1:length(outlet_list)) {
 
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
-  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins", "YP2_6390_6330")) { #don't do tradition upstream process for carvins cove or lake anna
+  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
     ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
   if (nrow(ups_segs) > 0) {
-    #ups_segs$ds_impoundment <- imp_df[i, 'propname'] # label row with which impoundment is downstream 
   }
-  #ups_segs <- rbind(ups_segs, metric_data[metric_data$riverseg == imp_df$riverseg[i],]) #add case study segment to upstream dataframe
-  } else { #carvins and lake anna special case
+  
+  } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
     ups_segs <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
   }
+  ups_segs <- rbind(ups_segs[nrow(ups_segs),],ups_segs[1:(nrow(ups_segs)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
+  ups_segs <- ups_segs[nrow(ups_segs):1,]#reverse order to get upstream to downstream
+  ups_segs <- ups_segs[!duplicated(ups_segs), ] #remove duplicate rows
   assign(paste0('ups_df_', i), ups_segs)
 }
+
+#upstream dataframes ordered correctly (upstream -> downstream)
 
 #get downstream segments
 ds_df <- data.frame() 
@@ -650,33 +653,83 @@ for (i in 1:nrow(caseStudies_df)) {
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
   ds_df <- ds_df[!duplicated(ds_df), ]
+  
+  #order df 
+  ds_df$riverseg <- factor(ds_df$riverseg, levels=ds_segs) 
+  ds_df <- ds_df[order(ds_df$riverseg),]
+  
+  #remove last row only for Lake Manassas case study
+  if (caseStudies_df$riverseg[i] == "PL0_5141_5140") {
+    ds_df <- ds_df[1:(nrow(ds_df)-1),] #remove last row 
+  }
+  
   assign(paste0('ds_df_', i), ds_df)
 }
 
-#combine upstream and downstream datframes
+
+#combine upstream and downstream dataframes
 for (i in 1:nrow(caseStudies_df)) { 
   assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
 }
 
-#upstream and downstream dataframes are NOT ordered correctly yet (upstream to downstream)
-#order by wd_cumulative first, which should give upstream -> downstream
-for (i in 1:nrow(caseStudies_df)) { 
-  ordered_df <- sqldf(paste0("SELECT a.* FROM ups_ds_df_", i ," as a 
-                       ORDER BY (a.wd_cumulative_mgd)")) 
-  assign(paste0('ups_ds_df_', i), ordered_df)
-}
-
-# then ordering will have to be by rseg naming convention - how can this be done in R?
-
 ```
-
 
 <!---BLOCK_LANDSCAPE_START--->
 
-# Table 1: Smin Method Comparison
+# Water Availability Equation:
+## WA_cpl = Qdemand_cpl - MIF*Qbase_cpl + Smin_cpl/CPL
+### Where CPL = critical period length 
+
+
+# Table 1:Water Availability Equation Breakdown
 
 ```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_Storage <- paste0('TABLE 3: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY EQN BREAKDOWN. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#select all segments that have storage locally or upstream (total storage)
+#ensure we check both SminL30 and 90
+df_WA <- sqldf("SELECT a.* 
+               FROM metric_data as a 
+               WHERE Sminl30mg_apx_total IS NOT 0
+               OR Sminl90mg_apx_total IS NOT 0")
+
+df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
+
+df_WA <- sqldf("SELECT a.* FROM df_WA as a 
+                       ORDER BY (a.WA_apx_sum)") #order df with lowest WA at the top 
+
+table_WA <- data.frame(Propname = df_WA$propname,
+                     Riverseg = df_WA$riverseg,
+                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
+                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
+                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
+                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
+                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
+                     Qavailable_30_cfs = df_WA$Qavailable_30_cfs,
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
+                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
+                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
+                     Qavailable_90_cfs = df_WA$Qavailable_90_cfs,
+                     SminL30mg_apx = df_WA$SminL30mg_apx_total,
+                     SminL30mg_nex = df_WA$SminL30mg_nex_total,
+                     SminL90mg_apx = df_WA$SminL90mg_apx_total,
+                     SminL90mg_nex = df_WA$SminL90mg_nex_total,
+                     WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
+                     WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
+                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
+                     WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
+
+ftable_WA <- flextable(table_WA) #create flextable
+ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
+
+ftable_WA
+```
+
+
+# Table 2: Smin Method Comparison
+
+```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_Storage <- paste0('TABLE 2: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
 storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
@@ -708,12 +761,10 @@ ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #ad
 ftable_Storage
 ```
 
+# Table 3: Smin Method Discrepancies
 
-# Table 2: Smin Method Discrepancies
-## The approximate method should always result in the lowest Smin, less than or equal to the near-exact Smin value. Rows highlighted are where this is not the case. Storage has not been summed by river segment or routed downstream with fn_extract_basin for this table.
-
-```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_Smin <- paste0('TABLE 2: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #add % differences
 storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
@@ -751,11 +802,11 @@ ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add titl
 ftable_Smin
 ```
 
-# Table 3: Smins that Need to be Updated
+# Table 4: Smins that Need to be Updated
 
-```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 
-title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+title_table_update <- paste0('TABLE 4: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #select rows where vahydro and calculated approx Smins are different 
 df_update <- sqldf("SELECT a.* 
@@ -776,11 +827,10 @@ ftable_update <- add_header_lines(ftable_update, values= title_table_update) #ad
 ftable_update
 ```
 
+# Table 5: Case Studies 
 
-# Table 4: Case Studies 
-
-```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_caseStudies <- paste0('TABLE 4: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
                      Riverseg = caseStudies_df$riverseg,
@@ -797,13 +847,12 @@ ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_c
 ftable_caseStudies
 ```
 
+# Table(s) 6: Case Study Watersheds
 
-# Table 5: Case Study Watersheds
-
-```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:nrow(caseStudies_df)) { 
-  title_table_caseStudyWshed <- paste0('TABLE 5: CASE STUDY WATERSHEDS. Demand: ', 
+  title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
                                        ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
   csws_df <- get(paste0('ups_ds_df_', i))
@@ -837,72 +886,33 @@ for (i in 1:nrow(caseStudies_df)) {
 ```
 
 
-# Table 6: Overall Water Availability Across VA
-## Every river segment with storage including that from upstream segments. Storage and Water Availability values are given for both approximate and near-exact methods for calculating Smin
-
-```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#select all segments that have storage locally or upstream (total storage)
-#ensure we check both SminL30 and 90
-df_WA <- sqldf("SELECT a.* 
-               FROM metric_data as a 
-               WHERE Sminl30mg_apx_total IS NOT 0
-               OR Sminl90mg_apx_total IS NOT 0")
-
-df_WA$WA_apx_sum <- df_WA$WA_mgd_30_apx + df_WA$WA_mgd_90_apx #sum WA for ordering purposes 
-
-df_WA <- sqldf("SELECT a.* FROM df_WA as a 
-                       ORDER BY (a.WA_apx_sum)") #order df with lowest WA at the top 
-
-table_WA <- data.frame(Propname = df_WA$propname,
-                     Riverseg = df_WA$riverseg,
-                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
-                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
-                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
-                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
-                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
-                     SminL30mg_apx = df_WA$SminL30mg_apx_total,
-                     SminL30mg_nex = df_WA$SminL30mg_nex_total,
-                     SminL90mg_apx = df_WA$SminL90mg_apx_total,
-                     SminL90mg_nex = df_WA$SminL90mg_nex_total,
-                     WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
-                     WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
-                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
-                     WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
-
-ftable_WA <- flextable(table_WA) #create flextable
-ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
-
-ftable_WA
-```
-
-
-# Graph 1: Water Availability vs Flow 
+# Graph 1: Demand Flow vs Available Flow
 
 ```{r Graph 1.1, echo=FALSE, fig.cap="", fig.id = ""}
+
 #create bar chart showing both WA and Qnsf (L30/90) or Qbaseline
 scale = 1 #scale for transforming first y axis to 2nd
 
 #l30 graph
-plot30 <- ggplot(data = df_WA, aes(x=riverseg)) +
-  geom_bar(aes(y=WA_mgd_30_apx), stat = 'identity', fill = 'blue') +
-  geom_bar(aes(y=l30_Qout_dem), stat = 'identity', fill = 'green') +
-  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L30_Qout')) +
+plot30 <- ggplot(data = ups_ds_df_6, aes(x=riverseg)) +
+  geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
+  geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
+  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'Qavailable (cfs)')) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
   theme(axis.title.x=element_blank()) +
-  ggtitle('WA vs Flow (L30)')
+  ylab('L30 (cfs)') + 
+  scale_fill_manual(name = "Legend", 
+                    label = c("L30", "Qavailable"), 
+                    values = c("blue","green")) +
+  ggtitle('Demand Flow vs Qavailable (L30)') 
 
 plot30
 
 
 #l90 graph
 plot90 <- ggplot(data = df_WA, aes(x=riverseg)) +
-  geom_bar(aes(y=WA_mgd_90_apx), stat = 'identity', fill = 'blue') +
-  geom_bar(aes(y=l90_Qout_dem), stat = 'identity', fill = 'green') +
+  geom_bar(aes(y=WA_mgd_90_apx, fill = 'blue'), stat = 'identity') +
+  geom_bar(aes(y=l90_Qout_dem, fill = 'green'), stat = 'identity') +
   scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout (cfs)')) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
   theme(axis.title.x=element_blank()) +
@@ -927,10 +937,10 @@ write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_',
 write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_imp, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
+write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_Upstream_', 
+write.csv(table_csws, paste0(export_path, 'CaseStudies_table5_Upstream_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
 write.csv(table_update, paste0(export_path, 'CaseStudies_table6_UpdateSmin_', 
@@ -950,10 +960,10 @@ flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_ta
 flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table3_Storage_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
 
-flextable::save_as_image(ftable_imp, path = paste0(export_path, 'CaseStudies_table4_imp_', 
+flextable::save_as_image(table_caseStudies, path = paste0(export_path, 'CaseStudies_table4_imp_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
 
-flextable::save_as_image(ftable_ups, path = paste0(export_path, 'CaseStudies_table5_ups_', 
+flextable::save_as_image(ftable_csws, path = paste0(export_path, 'CaseStudies_table5_ups_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
 
