@@ -669,16 +669,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
   rseg_display <- rseg_display[table_cols] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
   
   #na messages 
-  
-   # nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
- # for (i in 1:nrow(nacols)) {
-   # if (nacols$colSums.is.na.rseg_display......nrow.rseg_display.[i] == TRUE){ #if any column is all na, then return true
-   #   tablemessage2 = TRUE
-   # }
-   # else { #if column is not all na, then return false
-   #   tablemessage2 = FALSE
-   # }
- # }
+   nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
+   tablemessage2 <- any(nacols)
   
   #sorting 
   sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
