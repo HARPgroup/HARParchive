@@ -937,10 +937,10 @@ write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_',
 write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_imp, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
+write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_ups, paste0(export_path, 'CaseStudies_table5_Upstream_', 
+write.csv(table_csws, paste0(export_path, 'CaseStudies_table5_Upstream_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
 write.csv(table_update, paste0(export_path, 'CaseStudies_table6_UpdateSmin_', 
@@ -960,10 +960,10 @@ flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_ta
 flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table3_Storage_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
 
-flextable::save_as_image(ftable_imp, path = paste0(export_path, 'CaseStudies_table4_imp_', 
+flextable::save_as_image(table_caseStudies, path = paste0(export_path, 'CaseStudies_table4_imp_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
 
-flextable::save_as_image(ftable_ups, path = paste0(export_path, 'CaseStudies_table5_ups_', 
+flextable::save_as_image(ftable_csws, path = paste0(export_path, 'CaseStudies_table5_ups_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
 
