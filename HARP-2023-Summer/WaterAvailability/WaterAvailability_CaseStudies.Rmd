@@ -174,12 +174,12 @@ for (i in 1:nrow(storage_data)) {
   object_class <- object_class$propcode
 
   #Get element id
-  token = ds$get_token(rest_pw) #needed for elid function
-  elid <- om_get_model_elementid( #use RomProperty after puling the model instead
-    base_url = site,
-    mid = model$pid
-  )
-  rm(token)
+  elid <- RomProperty$new(ds,list( 
+    featureid = model$pid,
+    propname = 'om_element_connection'
+  ),TRUE)
+  object_class <- elid$propvalue
+
   
   ## This method takes too long for testing purposes until a caching method is found 
   # #Get model info using ds$auth_read to authenticate and grab model info+data
@@ -829,7 +829,7 @@ ftable_update
 
 # Table 5: Case Studies 
 
-```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
