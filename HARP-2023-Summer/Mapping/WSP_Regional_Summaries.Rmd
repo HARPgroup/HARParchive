@@ -403,7 +403,8 @@ if (show_map == TRUE) {
       plot = mapf,
       width = 25,
       height = 20)
-  }
+  } 
+  facils_nogeom <- st_drop_geometry(facils)
 
 } else { #if we don't want to show maps 
   #still need to sort & number data for table even if not mapping 
@@ -538,6 +539,7 @@ ft1 #display flextable
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
      
      display_map <- run_config$riverseg_metrics[[i]]$show_map
+     if (is.null(display_map)) { display_map = FALSE}
      if (display_map == TRUE) {
       display_metric <- run_config$riverseg_metrics[[i]]$metric
       display_column <- run_config$riverseg_metrics[[i]]$column_name
@@ -652,13 +654,57 @@ for (k in 1:length(run_config$riverseg_metrics)){
   display_column <- run_config$riverseg_metrics[[k]]$column_name
   
   # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "faclis_nogeom"
-    if (exists(data_set)) {
-      rseg_display <- get(data_set)
-      } else {
-    message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
-    }
-
+  if (exists(data_set)) {
+    rseg_display <- get(data_set)
+    
+    display_metric <- run_config$riverseg_metrics[[k]]$metric
+    display_title <- run_config$riverseg_metrics[[k]]$run_label
   
+    #metrics, to be suppressed later?
+    rseg_display$Metric <- display_metric 
+    
+    #assemble our table, with the columns in order defined by table_cols
+    rseg_display <- rseg_display[table_cols] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
+    
+    #na messages 
+    
+    nacols <- colSums(is.na(rseg_display)) == nrow(rseg_display)
+    tablemessage2 <- any(nacols) 
+    
+    #sorting 
+    sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+    rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+    
+    
+    #fill blanks with NA
+    rivTables[[k]][rivTables[[k]] == ''] <- NA
+    
+    
+    #defining titles 
+    rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
+    
+    #this chunk is not in use at the moment, based on titles being done in config 
+    if (display_metric=="l30_Qout"){
+        rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
+    } else if (display_metric=="l90_Qout"){
+        rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
+    } else {
+        rivtablelabel <- rivtablemetric
+    }
+    
+    rivtabletitle <- paste0(title_main , ' - ' ,display_title)
+    
+    rivtablenum <- k #for heading numbering 
+    
+    
+    ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
+                       columns = "all", alignment = "left", 
+                       metric = display_metric, origin_type = origin_type,  
+                       origin = origin , tabletitle = rivtabletitle, num=rivtablenum) #flextable function
+    
+    assign(paste0('table', k), ft2, envir = globalenv())
+  
+<<<<<<< HEAD
   display_metric <- run_config$riverseg_metrics[[k]]$metric
   display_title <- run_config$riverseg_metrics[[k]]$run_label
 
@@ -689,23 +735,12 @@ for (k in 1:length(run_config$riverseg_metrics)){
       rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
   } else if (display_metric=="l90_Qout"){
       rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
+=======
+    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+>>>>>>> bd93a4dd02d73411a50ae15097babdb780295b50
   } else {
-      rivtablelabel <- rivtablemetric
+    message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
   }
-  
-  rivtabletitle <- paste0(title_main , ' - ' ,display_title)
-  
-  rivtablenum <- k #for heading numbering 
-  
-  
-  ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
-                     columns = "all", alignment = "left", 
-                     metric = display_metric, origin_type = origin_type,  
-                     origin = origin , tabletitle = rivtabletitle, num=rivtablenum) #flextable function
-  
-  assign(paste0('table', k), ft2, envir = globalenv())
-
-  #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
 }
 ```
 
