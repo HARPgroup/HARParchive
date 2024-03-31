@@ -141,25 +141,12 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
-```{r Smin Calculations, include=FALSE, echo=FALSE}
-storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
-storage_data$SminL90mg_nex <- NA
-
-storage_data$SminL30mg_apx <- NA
-storage_data$SminL90mg_apx <- NA
-
-storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
-storage_data$min_in_pd90 <- NA 
-
-storage_data$outside_pd30 <- NA #empty columns to hold numeric values
-storage_data$outside_pd90 <- NA 
-
+```{r Get rid of waterSupplyElements, echo=FALSE, message=FALSE}
 storage_data$object_class <- NA
+storage_data$elid <- NA
 
 for (i in 1:nrow(storage_data)) {
-  #Get runfile with timeseries data from VAhydro
-
-  #Get model
+    #Get model
   model <- RomProperty$new(ds,list( 
     featureid = storage_data$featureid[i],
     propcode = 'vahydro-1.0',
@@ -171,17 +158,20 @@ for (i in 1:nrow(storage_data)) {
     featureid = model$pid,
     propname = 'object_class'
   ),TRUE)
-  object_class <- object_class$propcode
+  storage_data$object_class[i] <- object_class$propcode
 
   #Get element id
   elid <- RomProperty$new(ds,list( 
     featureid = model$pid,
     propname = 'om_element_connection'
   ),TRUE)
-  object_class <- elid$propvalue
+  storage_data$elid[i] <- elid$propvalue
+}
 
-  
-  ## This method takes too long for testing purposes until a caching method is found 
+storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
+
+
+## Alternative model retrieval, takes much longer
   # #Get model info using ds$auth_read to authenticate and grab model info+data
   # obj_url <- paste(json_obj_url, model$pid, sep="/")
   # model_info <- ds$auth_read(obj_url,  "text/json", "")
@@ -189,9 +179,21 @@ for (i in 1:nrow(storage_data)) {
   # elid <- model_info[[1]]$om_element_connection$value
   # object_class <- model_info[[1]]$object_class
   # storage_data$object_class[i] <- object_class
+```
 
-  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
-  
+
+```{r Smin Calculations, include=FALSE, echo=FALSE, message=FALSE}
+storage_data$SminL30mg_nex <- NA #empty columns to hold  storage values
+storage_data$SminL90mg_nex <- NA
+storage_data$SminL30mg_apx <- NA
+storage_data$SminL90mg_apx <- NA
+storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
+storage_data$min_in_pd90 <- NA 
+storage_data$outside_pd30 <- NA #empty columns to hold numeric values
+storage_data$outside_pd90 <- NA 
+
+for (i in 1:nrow(storage_data)) {
+  dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
   mode(dat) <- 'numeric'
   cols <- names(dat)
   
@@ -208,65 +210,62 @@ for (i in 1:nrow(storage_data)) {
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
   
+  ## Dsiabled -- Sees Lake Anna as without active impoundment 
   #Check if impoundment is active
     #2 ways this is done: im_off and imp_enabled 
     #imp_off used in waterSupplyModelNode and hydroImpoundment
     #imp_enabled used in waterSupplyElement
-  imp_off = 1
-  imp_enabled = FALSE
-  
+  imp_off = 0 #default to active impoundment
+  # imp_enabled = TRUE
+
   if ("imp_off" %in% cols) {
       imp_off <- as.integer(median(dat$imp_off))
   }
-  if (imp_off == 1) { #check if imp_off exists, if not:
-    if("impoundment" %in% cols) {
-      imp_enabled = TRUE
-      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
-    }
-  } else if (imp_off == 0) {
-    paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
-  }
-    
-  if (imp_enabled == FALSE & imp_off == 1) {
-    paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Diabled')
-  }
   
-  
-#### Only do Storage calculation if impoundment is active 
-  if (imp_enabled == TRUE | imp_off == 0) {
+  # if (imp_off == 1) { #check if imp_off exists, if not:
+  #   if("impoundment" %in% cols) {
+  #     imp_enabled = TRUE
+  #     paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
+  #   }
+  # } else if (imp_off == 0) {
+  #   paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
+  # }
+  # 
+  # if (imp_enabled == FALSE & imp_off == 1) {
+  #   paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
+  # }
+
+
+#### Only do Storage calculation if impoundment is active
+  if (imp_off == 0) {
  
     #Different names for storage and Q values based on object_class:
-    if (object_class == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
-      
+    if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
       #storage col already named "Storage"
       Qcol <- "Qin" #from hydroImpoundment.R: flows <- zoo(dat$Qin, order.by = index(dat));
-      
-    } else if (object_class == "waterSupplyModelNode") {
-      
+    } else if (storage_data$object_class[i] == "waterSupplyModelNode") {
       dat$Storage <- dat$impoundment_Storage #from waterSupplyModelNode.R: colname = "impoundment_Storage"  
       Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
       
-    } else if (object_class == "waterSupplyElement") {
-      
-      # Storage col could be a couple different names 
-      if("local_impoundment_Storage" %in% cols) {
-        storagecol <- "local_impoundment_Storage"
-      }
-      if("impoundment_Storage" %in% cols) {
-        storagecol <- "impoundment_Storage"
-      }
-      dat$Storage <- dat[,storagecol]
-      if ('Qintake' %in% cols) {
-        Qcol <- "Qintake" 
-      } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
-        Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
-      }
+   # } else if (object_class == "waterSupplyElement") { #disabled waterSupplyElements, too much variation
+    #   
+    #   # Storage col could be a couple different names 
+    #   if("local_impoundment_Storage" %in% cols) {
+    #     storagecol <- "local_impoundment_Storage"
+    #   }
+    #   if("impoundment_Storage" %in% cols) {
+    #     storagecol <- "impoundment_Storage"
+    #   }
+    #   dat$Storage <- dat[,storagecol]
+    #   if ('Qintake' %in% cols) {
+    #     Qcol <- "Qintake" 
+    #   } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
+    #     Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
+    #   }
       
     } else { #object_class is something else
-      
       dat$Storage <- dat$impoundment_Storage
       Qcol <- "Qout" #Qout is the default
-      
     }
      
     #find l30 and l90 years based on Qcol
@@ -565,15 +564,10 @@ metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) -
   mif_coef*(metric_data$l90_Qout_base / 1.547) + 
   (metric_data$SminL90mg_nex_total / 90), digits = 3)
 
-
-```
-
-```{r Add Qavailable to DataFrame, echo = FALSE}
 #add Qavailable for each L30 and L90 to the metric dataframe 
 # Qavailable = Qdemand - MIF*Qbaseline
 metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - mif_coef*metric_data$l30_Qout_base), digits = 3)
 metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - mif_coef*metric_data$l90_Qout_base), digits = 3)
-
 
 ```
 
@@ -592,7 +586,6 @@ for (i in 1:nrow(storage_data)) {
       storage_data$unequal_30[i] <- TRUE
     } 
   }
-  
   if (storage_data$SminL90mg_apx[i] != storage_data$SminL90mg_nex[i]) { #if values don't match
     if (storage_data$min_in_pd90[i] == TRUE) { #but we're saying the values occur at the same time 
       storage_data$unequal_90[i] <- TRUE
@@ -604,7 +597,6 @@ for (i in 1:nrow(storage_data)) {
 }
 
 ```
-
 
 ```{r Processing for Case Study Wsheds, echo=FALSE}
 caseStudies_df <- data.frame()
@@ -634,12 +626,9 @@ for (i in 1:nrow(caseStudies_df)) {
   assign(paste0('ups_df_', i), ups_segs)
 }
 
-#upstream dataframes ordered correctly (upstream -> downstream)
 
-#get downstream segments
+#get downstream segments: 3 segments downstream of each case study segment
 ds_df <- data.frame() 
-
-#get 3 segments downstream of each case study segment
 for (i in 1:nrow(caseStudies_df)) { 
   ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg)
   ds_segs <- c(ds_seg1)
@@ -665,7 +654,6 @@ for (i in 1:nrow(caseStudies_df)) {
   
   assign(paste0('ds_df_', i), ds_df)
 }
-
 
 #combine upstream and downstream dataframes
 for (i in 1:nrow(caseStudies_df)) { 
@@ -724,7 +712,6 @@ ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title
 
 ftable_WA
 ```
-
 
 # Table 2: Smin Method Comparison
 
