@@ -196,7 +196,7 @@ for (i in 1:nrow(storage_data)) {
     featureid = model$pid,
     propname = 'om_element_connection'
   ),TRUE)
-  object_class <- elid$propvalue
+  elid <- elid$propvalue
 
   
   ## This method takes too long for testing purposes until a caching method is found 
