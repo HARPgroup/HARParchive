@@ -107,8 +107,8 @@ github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
 #Get all riversegments for reference
-rsegs <- fn_download_read(url = paste(site,"/vahydro_riversegs_nogeom_export",sep = ""),
-                          filetype = "csv", zip = FALSE) 
+rsegs <- ds$auth_read(uri = paste0(site,"/vahydro_riversegs_nogeom_export")) 
+                      
 #Only care about the river segment ids, we won't need the rest of the file.
 #We will only use those rsegs that follow the standard format vahydrosw_wshed_XXX_XXXX_XXXX
 #First, find only those riversegments that begin with vahydrosw_wshed followed by
@@ -196,7 +196,7 @@ for (i in 1:nrow(storage_data)) {
     featureid = model$pid,
     propname = 'om_element_connection'
   ),TRUE)
-  object_class <- elid$propvalue
+  elid <- elid$propvalue
 
   
   ## This method takes too long for testing purposes until a caching method is found 
@@ -533,16 +533,62 @@ metric_data$SminL90mg_nex_total <- NA
 #calculation of cumulative storage below
 metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 
+
+#Find all outlet watersheds in VA. These are designated as those river segments
+#that flow into river segment 0001. So, use regular expression to find river
+#segments that end in "_0001"
+outletWatersheds <- rsegs$riverseg[grepl("_0001$",rsegs$riverseg)]
+#Sort by river segment ID for convenience
+outletWatersheds <- outletWatersheds[order(outletWatersheds)]
+
+#A simple function that gets all upstream segments of a given river segment
+#(end_seg) and then note the downstream most segment as "outletseg" in the
+#output data frame
+getUpstreamSegs <- function(cia_data_frame,end_seg){
+  print(paste0("Processing ",end_seg))
+  upstreamSegs <- fn_extract_basin(cia_data_frame,end_seg)
+  upstreamSegs$blankColumn <- end_seg
+  names(upstreamSegs) <- c("riverseg","outletseg")
+  return(upstreamSegs)
+}
+#Use mapply of getUpstreamSegs on rsegs and outletWatersheds to get a list of
+#data frames with the upstream segments of each outletWatershed
+upstreamSegs <- mapply(FUN = getUpstreamSegs,end_seg = outletWatersheds,
+                       MoreArgs = list(cia_data_frame = rsegs),
+                       SIMPLIFY = FALSE,USE.NAMES = FALSE)
+#Combine the data frames in upstreamSegs as one. Use do.call to access each
+#element of list upstreamSegs
+upstreamSegsDF <- do.call(rbind,upstreamSegs)
+
+
+
 for (i in 1:nrow(metric_data)) {
   ups_imp <- data.frame()
+  #Look for XXX_XXXX_0001 as outlet watersheds, run fn_upstream, store results, reference the stored results in fn_upstream for each watershed in metric_data
+  
   #We want to find upstream segments for each riverseg, but 0000_0000 will take
   #forever so lets skip it
   if(!grepl(".*0000_0000",metric_data$riverseg[i])){
-    ups_imp <- fn_extract_basin(rsegs, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
+    #Find the outlet river segment of the full watershed that contains
+    #metric_data$riverseg[i]
+    outletRiverSeg <- upstreamSegsDF$outletseg[
+      which(upstreamSegsDF$riverseg == metric_data$riverseg[i])]
+    
+    #Find all riversegments in the full watershed that contains
+    #metric_data$riverseg[i]
+    thisWatershed <- upstreamSegsDF[upstreamSegsDF$outletseg == outletRiverSeg,]
+    
+    #Get only the riversegments upstream of metric_data$riverseg[i]
+    ups_imp <- fn_extract_basin(thisWatershed,metric_data$riverseg[1])
+    
   }else{
-    print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is a SR start"))
+    #Skip bay segments and SR starts/ends
+    print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is a SR or Bay start/end"))
   }
+  #Easy print message to check progress
+  print(paste0("Running seg number",i,":",metric_data$riverseg[i]))
   
+  #If upstream segments were returned, find associated storage from storage_byseg
   if (nrow(ups_imp) > 0) {
     ups_impsegs <- data.frame(rivseg = ups_imp$riverseg)
     ups_df <- sqldf("select a.*
