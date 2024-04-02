@@ -141,7 +141,23 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
-```{r Get rid of waterSupplyElements, echo=FALSE, message=FALSE}
+```{r Get Complete List of Rsegs, echo=FALSE}
+#Get rsegs 
+df_rsegs <- data.frame(
+  'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
+  'runid' = c(demand_scenario, demand_scenario),
+  'metric' = c('Qout', 'Smin_L30_mg'),
+  'runlabel' = c('Qout','SminL90mg_vah')
+)
+rsegs_data <- om_vahydro_metric_grid(
+  metric = metric, runids = df_rsegs, bundle = 'all', ftype = "all",
+  base_url = paste(site,'entity-model-prop-level-export',sep="/"),
+  ds = ds
+)
+rsegs <- data.frame(riverseg = unique(rsegs_data$riverseg))
+```
+
+```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE}
 storage_data$object_class <- NA
 storage_data$elid <- NA
 
