@@ -141,8 +141,8 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
-```{r Get Complete List of Rsegs, echo=FALSE}
-#Get rsegs 
+```{r Get Rsegs, echo=FALSE}
+#Get rsegs -- doesn't result as intended, 100 less than CB's method
 df_rsegs <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
   'runid' = c(demand_scenario, demand_scenario),
@@ -154,10 +154,30 @@ rsegs_data <- om_vahydro_metric_grid(
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
-rsegs <- data.frame(riverseg = unique(rsegs_data$riverseg))
+rsegs <- data.frame(riverseg = unique(rsegs_data$riverseg), blankColumn = NA)
 ```
 
-```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE}
+```{r Get Rsegs (CB's method)}
+#CB's rseg method (best):
+github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
+github_uri <- paste0(github_base_uri, "/HARParchive/master")
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
+#Get all riversegments for reference
+rsegsCB <- fn_download_read(url = paste(site,"/vahydro_riversegs_nogeom_export",sep = ""),
+                          filetype = "csv", zip = FALSE) 
+#Only care about the river segment ids, we won't need the rest of the file.
+#We will only use those rsegs that follow the standard format vahydrosw_wshed_XXX_XXXX_XXXX
+#First, find only those riversegments that begin with vahydrosw_wshed followed by
+#"_somecharacters_4 digits_4 digits"
+rsegsCB <- rsegsCB$hydrocode[grepl("^vahydrosw_wshed_.+_[0-9]{4}_[0-9]{4}$",rsegsCB$hydrocode)]
+#Now, make a data frame of just the NHDPlus ID e.g. remove the vahydrosw_wshed_. We 
+#have to create at least two columns in this dataset for use in fn_extract_basin()
+rsegsCB <- data.frame(riverseg = gsub("vahydrosw_wshed_","",rsegsCB),
+                    blankColumn = NA)
+```
+
+
+```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE, warning=FALSE}
 storage_data$object_class <- NA
 storage_data$elid <- NA
 
@@ -538,7 +558,11 @@ metric_data$SminL30mg_nex_total <- NA
 metric_data$SminL90mg_nex_total <- NA 
 
 for (i in 1:nrow(metric_data)) {
-  ups_imp <- fn_extract_basin(storage_byseg, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
+  if (!grepl(".*0000_0000",metric_data$riverseg[i])) { #skip outlet segs to save time
+    ups_imp <- fn_extract_basin(rsegsCB, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
+  } else {
+    print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is a SR start"))
+  }
   if (nrow(ups_imp) > 0) {
     ups_impsegs <- data.frame(rivseg = ups_imp$riverseg)
     ups_df <- sqldf("select a.*
