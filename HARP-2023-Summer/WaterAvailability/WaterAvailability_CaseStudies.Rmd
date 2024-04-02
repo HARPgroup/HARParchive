@@ -103,9 +103,6 @@ Column2
 
 
 ```{r Pull Data, echo = FALSE, message=FALSE, warning=FALSE}
-github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
-github_uri <- paste0(github_base_uri, "/HARParchive/master")
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
 #Get all riversegments for reference
 rsegs <- ds$auth_read(uri = paste0(site,"/vahydro_riversegs_nogeom_export")) 
                       
@@ -534,11 +531,19 @@ metric_data$SminL90mg_nex_total <- NA
 metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
 
 
-#Find all outlet watersheds in VA. These are designated as those river segments
-#that flow into river segment 0001. So, use regular expression to find river
-#segments that end in "_0001"
-outletWatersheds <- rsegs$riverseg[grepl("_0001$",rsegs$riverseg)]
-#Sort by river segment ID for convenience
+# Find all outlet watersheds in VA. THese are designated as those segments that
+# flow into segment 0001. So, use reular expression to find river segments that
+# end in "_0001":
+# outletWatersheds <- rsegs$riverseg[grepl("_0001$",rsegs$riverseg)]
+
+#Alternatively, Find all outlet watersheds in VA. These are designated as those
+#river segments that flow into river segment 0001 or 0000. So, use regular
+#expression to find river segments that end in flow into "_0000" or "_0001" and
+#have an ID that has at least one non-zero in it e.g. will not match
+# MN0_0000_0000 but will match MN0_0100_0000 or MN0_0001_0000 
+outletWatersheds <-rsegs$riverseg[grepl(".*_.*[1-9]+.*_000(1|0)$",rsegs$riverseg)]
+
+# Sort by river segment ID for convenience
 outletWatersheds <- outletWatersheds[order(outletWatersheds)]
 
 #A simple function that gets all upstream segments of a given river segment
@@ -551,6 +556,7 @@ getUpstreamSegs <- function(cia_data_frame,end_seg){
   names(upstreamSegs) <- c("riverseg","outletseg")
   return(upstreamSegs)
 }
+
 #Use mapply of getUpstreamSegs on rsegs and outletWatersheds to get a list of
 #data frames with the upstream segments of each outletWatershed
 upstreamSegs <- mapply(FUN = getUpstreamSegs,end_seg = outletWatersheds,
@@ -560,15 +566,12 @@ upstreamSegs <- mapply(FUN = getUpstreamSegs,end_seg = outletWatersheds,
 #element of list upstreamSegs
 upstreamSegsDF <- do.call(rbind,upstreamSegs)
 
-
-
+#For each modeled watershed, find the upstream storage associated with it:
 for (i in 1:nrow(metric_data)) {
   ups_imp <- data.frame()
-  #Look for XXX_XXXX_0001 as outlet watersheds, run fn_upstream, store results, reference the stored results in fn_upstream for each watershed in metric_data
-  
-  #We want to find upstream segments for each riverseg, but 0000_0000 will take
-  #forever so lets skip it
-  if(!grepl(".*0000_0000",metric_data$riverseg[i])){
+  #We want to find upstream segments for each riverseg but we are not interested
+  #in tidal basins or tidally influenced rivers.
+  if(!grepl("0000_0000",metric_data$riverseg[i])){
     #Find the outlet river segment of the full watershed that contains
     #metric_data$riverseg[i]
     outletRiverSeg <- upstreamSegsDF$outletseg[
@@ -578,15 +581,31 @@ for (i in 1:nrow(metric_data)) {
     #metric_data$riverseg[i]
     thisWatershed <- upstreamSegsDF[upstreamSegsDF$outletseg == outletRiverSeg,]
     
-    #Get only the riversegments upstream of metric_data$riverseg[i]
-    ups_imp <- fn_extract_basin(thisWatershed,metric_data$riverseg[1])
-    
+    #If no data was returned, this segment flows directly into a tidal basin and
+    #is likely a southern river or on a fully tidal river. In these cases, we
+    #can use fn_extract_basin on the full list of segments without performance
+    #issues as these are small basins. If this is an outlet watershed, return
+    #the stored list. In all other cases, we can use our stored lists of outlet
+    #basins above to speed up fn_extract_basin()
+    if(nrow(thisWatershed) > 0 &&
+       (outletRiverSeg == metric_data$riverseg[i])){
+      #If this is a watershed outlet, return all of thisWatershed as it
+      #represents the fn_extract_basin() call on the outlet seg
+      ups_imp <- thisWatershed
+    }else if(nrow(thisWatershed) > 0){
+      #Get only the riversegments upstream of metric_data$riverseg[i]
+      ups_imp <- fn_extract_basin(thisWatershed,metric_data$riverseg[i])
+    }else{
+      #Get only the riversegments upstream of metric_data$riverseg[i]. Use the
+      #full list of river segments as this appears to be in a tidal or SR basin
+      ups_imp <- fn_extract_basin(rsegs,metric_data$riverseg[i])
+    }
   }else{
-    #Skip bay segments and SR starts/ends
-    print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is a SR or Bay start/end"))
+    #Skip tiday, bay, and SR ends segments
+    print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
   }
   #Easy print message to check progress
-  print(paste0("Running seg number",i,":",metric_data$riverseg[i]))
+  print(paste0("Running seg number ",i,": ",metric_data$riverseg[i]))
   
   #If upstream segments were returned, find associated storage from storage_byseg
   if (nrow(ups_imp) > 0) {
