@@ -24,10 +24,10 @@ params:
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
   # default files for map's base-layers
-  # regions_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/regions_sf.csv"
-  # counties_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/counties_sf.csv"
-  # cities_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/cities.csv"
-  # roads_file: "C:/aa_HARP/aa_GitHub/Foundational_Data/example_files/roads_sf.csv"
+  regions_file: "C:/HARP/Foundational_Data/example_files/regions_sf.csv"
+  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
+  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
+  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
@@ -443,7 +443,8 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 table <- data.frame(
   Number= facils_table$NUM,
   Facility=facils_table$facility,
-  HydroID = facils_table$Facility_hydroid)
+  HydroID = facils_table$Facility_hydroid, 
+  GWFrac = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
 if (featr_type=="source"){

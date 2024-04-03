@@ -76,8 +76,8 @@ if (overwrite_files==TRUE) {
 }
 
 #----Pull Data----
-#---Facility Data---
-foundatn_mp <- fread(paste0(foundation_location, "/OWS/foundation_datasets/wsp/wsp2020/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+#---Facility Data--- #changed for analysts foundation location
+foundatn_mp <- fread(paste0(foundation_location, "foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
 if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
     foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp_2040_mgy
@@ -109,7 +109,7 @@ if (featr_type=="facility") { #specified model metrics will be pulled @ the faci
     ds=ds
   )
   #pull facility-level geometry to join with model data:
-  f_geo <- fread(paste0(foundation_location , "\\OWS\\foundation_datasets\\wsp\\wsp2020\\facilities_all_geom.csv"))
+  f_geo <- fread(paste0(foundation_location , "facilities_all_geom.csv")) #changed for analysts foundation location
 } 
 #---Watershed/Riverseg Data---
 rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 

@@ -56,7 +56,7 @@ run_sets <- list(
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
         run_label = 'Dry Climate Change WSP L90 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout','runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
         show_map = TRUE
@@ -66,7 +66,7 @@ run_sets <- list(
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_13', 
         run_label = '2040 WSP L30 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         sort_decreasing = FALSE, 
         show_map = TRUE
@@ -76,7 +76,7 @@ run_sets <- list(
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_17', 
         run_label = 'Dry climate Change WSP L30 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
         show_map = TRUE
@@ -86,7 +86,7 @@ run_sets <- list(
         data_set = 'rseg_no_geom',
         column_name='percentDiff_7q10_runid_11_runid_13', 
         run_label = '2040 WSP 7q10 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
         sort_decreasing = FALSE, 
         show_map = TRUE
@@ -118,7 +118,7 @@ run_sets <- list(
         data_set = 'facils_nogeom',
         column_name='wsp2020_2040_mgy', 
         run_label = 'A TEST FOR FACIL FUNCTION', 
-        tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
+        tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'gw_frac','five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
         sort_decreasing = FALSE, 
         show_map= FALSE
       )
