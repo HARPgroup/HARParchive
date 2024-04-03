@@ -23,12 +23,6 @@ params:
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
 
-  # default files for map's base-layers
-  regions_file: "C:/HARP/Foundational_Data/example_files/regions_sf.csv"
-  counties_file: "C:/HARP/Foundational_Data/example_files/counties_sf.csv"
-  cities_file: "C:/HARP/Foundational_Data/example_files/cities.csv"
-  roads_file: "C:/HARP/Foundational_Data/example_files/roads_sf.csv"
-
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
