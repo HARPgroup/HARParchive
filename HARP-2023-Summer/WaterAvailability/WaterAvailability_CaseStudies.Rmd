@@ -159,6 +159,53 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
+```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE, warning=FALSE}
+nrow_all <- nrow(storage_data)
+
+storage_data$object_class <- NA
+storage_data$elid <- NA
+
+for (i in 1:nrow(storage_data)) {
+    #Get model
+  model <- RomProperty$new(ds,list( 
+    featureid = storage_data$featureid[i],
+    propcode = 'vahydro-1.0',
+    entity_type = 'dh_feature'
+  ),TRUE)
+  
+  #Get object class
+  object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
+    featureid = model$pid,
+    propname = 'object_class'
+  ),TRUE)
+  storage_data$object_class[i] <- object_class$propcode
+
+  #Get element id
+  elid <- RomProperty$new(ds,list( 
+    featureid = model$pid,
+    propname = 'om_element_connection'
+  ),TRUE)
+  storage_data$elid[i] <- elid$propvalue
+}
+
+storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
+
+nrow_noWSE <- nrow(storage_data)
+
+nrow_diff <- nrow_all - nrow_noWSE
+
+## Alternative model retrieval, takes much longer
+  # #Get model info using ds$auth_read to authenticate and grab model info+data
+  # obj_url <- paste(json_obj_url, model$pid, sep="/")
+  # model_info <- ds$auth_read(obj_url,  "text/json", "")
+  # model_info <- fromJSON(model_info)
+  # elid <- model_info[[1]]$om_element_connection$value
+  # object_class <- model_info[[1]]$object_class
+  # storage_data$object_class[i] <- object_class
+
+print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
+```
+
 ```{r Smin Calculations, include=FALSE, echo=FALSE}
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
@@ -176,40 +223,7 @@ storage_data$object_class <- NA
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
-
-  #Get model
-  model <- RomProperty$new(ds,list( 
-    featureid = storage_data$featureid[i],
-    propcode = 'vahydro-1.0',
-    entity_type = 'dh_feature'
-  ),TRUE)
-  
-  #Get object class
-  object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
-    featureid = model$pid,
-    propname = 'object_class'
-  ),TRUE)
-  object_class <- object_class$propcode
-
-  #Get element id
-  elid <- RomProperty$new(ds,list( 
-    featureid = model$pid,
-    propname = 'om_element_connection'
-  ),TRUE)
-  elid <- elid$propvalue
-
-  
-  ## This method takes too long for testing purposes until a caching method is found 
-  # #Get model info using ds$auth_read to authenticate and grab model info+data
-  # obj_url <- paste(json_obj_url, model$pid, sep="/")
-  # model_info <- ds$auth_read(obj_url,  "text/json", "")
-  # model_info <- fromJSON(model_info)
-  # elid <- model_info[[1]]$om_element_connection$value
-  # object_class <- model_info[[1]]$object_class
-  # storage_data$object_class[i] <- object_class
-
-  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
-  
+  dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
   mode(dat) <- 'numeric'
   cols <- names(dat)
   
