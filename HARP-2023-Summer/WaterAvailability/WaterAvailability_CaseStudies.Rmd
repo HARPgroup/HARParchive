@@ -209,17 +209,12 @@ print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
 ```{r Smin Calculations, include=FALSE, echo=FALSE}
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
-
 storage_data$SminL30mg_apx <- NA
 storage_data$SminL90mg_apx <- NA
-
 storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
 storage_data$min_in_pd90 <- NA 
-
 storage_data$outside_pd30 <- NA #empty columns to hold numeric values
 storage_data$outside_pd90 <- NA 
-
-storage_data$object_class <- NA
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
@@ -240,65 +235,61 @@ for (i in 1:nrow(storage_data)) {
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
   
+  ## Dsiabled -- Sees Lake Anna as without active impoundment 
   #Check if impoundment is active
     #2 ways this is done: im_off and imp_enabled 
     #imp_off used in waterSupplyModelNode and hydroImpoundment
     #imp_enabled used in waterSupplyElement
-  imp_off = 1
-  imp_enabled = FALSE
-  
+  imp_off = 0 #default to active impoundment
+  # imp_enabled = TRUE
+
   if ("imp_off" %in% cols) {
       imp_off <- as.integer(median(dat$imp_off))
   }
-  if (imp_off == 1) { #check if imp_off exists, if not:
-    if("impoundment" %in% cols) {
-      imp_enabled = TRUE
-      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
-    }
-  } else if (imp_off == 0) {
-    paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
-  }
-    
-  if (imp_enabled == FALSE & imp_off == 1) {
-    paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Diabled')
-  }
   
+  # if (imp_off == 1) { #check if imp_off exists, if not:
+  #   if("impoundment" %in% cols) {
+  #     imp_enabled = TRUE
+  #     paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
+  #   }
+  # } else if (imp_off == 0) {
+  #   paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
+  # }
+  # 
+  # if (imp_enabled == FALSE & imp_off == 1) {
+  #   paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
+  # }
   
-#### Only do Storage calculation if impoundment is active 
-  if (imp_enabled == TRUE | imp_off == 0) {
+#### Only do Storage calculation if impoundment is active
+  if (imp_off == 0) {
  
     #Different names for storage and Q values based on object_class:
-    if (object_class == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
-      
+    if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
       #storage col already named "Storage"
       Qcol <- "Qin" #from hydroImpoundment.R: flows <- zoo(dat$Qin, order.by = index(dat));
-      
-    } else if (object_class == "waterSupplyModelNode") {
-      
+    } else if (storage_data$object_class[i] == "waterSupplyModelNode") {
       dat$Storage <- dat$impoundment_Storage #from waterSupplyModelNode.R: colname = "impoundment_Storage"  
       Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
       
-    } else if (object_class == "waterSupplyElement") {
-      
-      # Storage col could be a couple different names 
-      if("local_impoundment_Storage" %in% cols) {
-        storagecol <- "local_impoundment_Storage"
-      }
-      if("impoundment_Storage" %in% cols) {
-        storagecol <- "impoundment_Storage"
-      }
-      dat$Storage <- dat[,storagecol]
-      if ('Qintake' %in% cols) {
-        Qcol <- "Qintake" 
-      } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
-        Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
-      }
+   # } else if (object_class == "waterSupplyElement") { #disabled waterSupplyElements, too much variation
+    #   
+    #   # Storage col could be a couple different names 
+    #   if("local_impoundment_Storage" %in% cols) {
+    #     storagecol <- "local_impoundment_Storage"
+    #   }
+    #   if("impoundment_Storage" %in% cols) {
+    #     storagecol <- "impoundment_Storage"
+    #   }
+    #   dat$Storage <- dat[,storagecol]
+    #   if ('Qintake' %in% cols) {
+    #     Qcol <- "Qintake" 
+    #   } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
+    #     Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
+    #   }
       
     } else { #object_class is something else
-      
       dat$Storage <- dat$impoundment_Storage
       Qcol <- "Qout" #Qout is the default
-      
     }
      
     #find l30 and l90 years based on Qcol
