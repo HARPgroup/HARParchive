@@ -5,14 +5,15 @@ title: "Water Availability Case Studies"
 output: 
   officedown::rdocx_document:
     mapstyles:
-      Normal: ['First Paragraph']
       
+      Normal: ['First Paragraph']
 params: 
   outlet_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
-  
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -26,6 +27,7 @@ library(officedown)
 library(officer)
 library(jsonlite)
 library(ggplot2)
+library(IHA)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -101,6 +103,22 @@ Column2
 
 
 ```{r Pull Data, echo = FALSE, message=FALSE, warning=FALSE}
+#Get all riversegments for reference
+rsegs <- ds$auth_read(uri = paste0(site,"/vahydro_riversegs_nogeom_export")) 
+                      
+#Only care about the river segment ids, we won't need the rest of the file.
+#We will only use those rsegs that follow the standard format vahydrosw_wshed_XXX_XXXX_XXXX_X
+#First, find only those riversegments that begin with vahydrosw_wshed followed by
+#"_somecharacters_4 digits_4 digits_anything else"
+rsegs <- rsegs$hydrocode[grepl("^vahydrosw_wshed_.+_[0-9]{4}_[0-9]{4}.*$",rsegs$hydrocode)]
+#Now, make a data frame of just the NHDPlus ID e.g. remove the vahydrosw_wshed_. We 
+#have to create at least two columns in this dataset for use in fn_extract_basin()
+rsegs <- data.frame(riverseg = gsub("vahydrosw_wshed_","",rsegs),
+                    blankColumn = NA)
+
+#Find all river segments that are not tidal outlets i.e. not JL7_0000_0000
+rsegs_noTidalOutlet <- rsegs[grepl(".+_.*[1-9]+.*_.*",rsegs$riverseg),]
+
 #Get storage metrics 
 df_storage <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0'),
@@ -178,7 +196,7 @@ for (i in 1:nrow(storage_data)) {
     featureid = model$pid,
     propname = 'om_element_connection'
   ),TRUE)
-  object_class <- elid$propvalue
+  elid <- elid$propvalue
 
   
   ## This method takes too long for testing purposes until a caching method is found 
@@ -199,11 +217,11 @@ for (i in 1:nrow(storage_data)) {
   syear = as.integer(min(dat$year))
   eyear = as.integer(max(dat$year))
   if (syear < (eyear - 2)) {
-    sdate <- as.Date(paste0(syear,"-10-01"))
-    edate <- as.Date(paste0(eyear,"-09-30"))
+    sdate <- as.POSIXct(paste0(syear,"-10-01"))
+    edate <- as.POSIXct(paste0(eyear,"-09-30"))
   } else {
-    sdate <- as.Date(paste0(syear,"-02-01"))
-    edate <- as.Date(paste0(eyear,"-12-31"))
+    sdate <- as.POSIXct(paste0(syear,"-02-01"))
+    edate <- as.POSIXct(paste0(eyear,"-12-31"))
   }
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
@@ -274,11 +292,11 @@ for (i in 1:nrow(storage_data)) {
     loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
     
     l90 <- loflows["90 Day Min"];
-    ndx = which.min(as.numeric(l90[,"90 Day Min"]));
-    l90_Qout = round(loflows[ndx,]$"90 Day Min",6);
-    l90_year = loflows[ndx,]$"year";
-    l90yr_start = as.Date(paste0(l90_year,"-01-01")) #start of l90 year
-    l90yr_end = as.Date(paste0(l90_year,"-12-31")) #end of l90 year
+    ndx <- which.min(as.numeric(l90[,"90 Day Min"]));
+    l90_Qout <- round(loflows[ndx,]$`90 Day Min`,6);
+    l90_year <- loflows[ndx,]$`year`;
+    l90yr_start <- as.POSIXct(paste0(l90_year,"-01-01")) #start of l90 year
+    l90yr_end <- as.POSIXct(paste0(l90_year,"-12-31")) #end of l90 year
     datpd_90yr <- window( #data for the l90 year
       dat,
       start = l90yr_start,
@@ -286,11 +304,11 @@ for (i in 1:nrow(storage_data)) {
     )
     
     l30 <- loflows["30 Day Min"];
-    ndx = which.min(as.numeric(l30[,"30 Day Min"]));
-    l30_Qout = round(loflows[ndx,]$"30 Day Min",6);
-    l30_year = loflows[ndx,]$"year";
-    l30yr_start = as.Date(paste0(l30_year,"-01-01"))
-    l30yr_end = as.Date(paste0(l30_year,"-12-31"))
+    ndx <- which.min(as.numeric(l30[,"30 Day Min"]));
+    l30_Qout <- round(loflows[ndx,]$`30 Day Min`,6);
+    l30_year <- loflows[ndx,]$`year`;
+    l30yr_start <- as.POSIXct(paste0(l30_year,"-01-01"))
+    l30yr_end <- as.POSIXct(paste0(l30_year,"-12-31"))
     datpd_30yr <- window(
       dat,
       start = l30yr_start,
@@ -325,10 +343,10 @@ for (i in 1:nrow(storage_data)) {
     rownum_end90 <- rownum_start90 + 89
     
     #start  and end dates for low flow periods
-    l30pd_start <- as.Date(row.names(l30yr_flows[rownum_start30, ]))
-    l90pd_start <- as.Date(row.names(l90yr_flows[rownum_start90, ]))
-    l30pd_end <- as.Date(row.names(l30yr_df[rownum_end30, ]))
-    l90pd_end <- as.Date(row.names(l90yr_df[rownum_end90, ]))
+    l30pd_start <- as.POSIXct(row.names(l30yr_flows[rownum_start30, ]))
+    l90pd_start <- as.POSIXct(row.names(l90yr_flows[rownum_start90, ]))
+    l30pd_end <- as.POSIXct(row.names(l30yr_df[rownum_end30, ]))
+    l90pd_end <- as.POSIXct(row.names(l90yr_df[rownum_end90, ]))
     
     #end rownum cant be greater than length of data 
     # if (rownum_end90 > nrow(l90yr_df)) {
@@ -382,7 +400,6 @@ for (i in 1:nrow(storage_data)) {
     # How far outside the low-flow period does the approximate value occur?
       ## Negative: near-exact Smin happens AFTER the approx. Smin 
       ## Positive: near-exact Smin happens BEFORE the approx. Smin 
-
     if (storage_data$min_in_pd30[i] == FALSE) {
       storage_data$outside_pd30[i] = rownum_apx30 - rownum_nex30yr
     }
@@ -395,6 +412,10 @@ for (i in 1:nrow(storage_data)) {
 
 #when a min value is repeated, ex. 100s across all storage vals, our method is flawed
   #this causes FALSEs and # of days to show up where we should have TRUE and 0 days 
+#COB: This is interesting. In theory, we could have an identical minimum value occur in 
+  #two different parts of the year. It's pretty unlikely, but possible. Theoretically, we
+  #could capture this by looking at the difference between e.g. rownum_nex90yr - rownum_apx90
+  #We should see that this falls within 90 days, I think
 storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
 
 for (i in 1:nrow(storage_data)) {
@@ -413,24 +434,9 @@ for (i in 1:nrow(storage_data)) {
 
 ```{r Smin Method Comparison, echo=FALSE, message=FALSE, warning=FALSE}
 #Compare approx and near exact Smin values. Approx should always be <= near exact 
-storage_data$apx_lessthan_nex_30 <- NA #empty columns to hold true/false
-storage_data$apx_lessthan_nex_90 <- NA 
-
-for (i in 1:nrow(storage_data)) { 
-  if (storage_data$SminL30mg_apx[i] <= storage_data$SminL30mg_nex[i]) { #if approx value is <= near exact
-    storage_data$apx_lessthan_nex_30[i] = TRUE
-  } else {
-    storage_data$apx_lessthan_nex_30[i] = FALSE
-  }
+storage_data$apx_lessthan_nex_30 <- storage_data$SminL30mg_apx <= storage_data$SminL30mg_nex
+storage_data$apx_lessthan_nex_90 <- storage_data$SminL90mg_apx <= storage_data$SminL90mg_nex
   
-  if (storage_data$SminL90mg_apx[i] <= storage_data$SminL90mg_nex[i]) { #if approx value is <= near exact
-    storage_data$apx_lessthan_nex_90[i] = TRUE
-  } else {
-    storage_data$apx_lessthan_nex_90[i] = FALSE
-  }    
-  
-}
-
 ```
 
 ```{r Sum Storage by Riverseg, echo=FALSE, message=FALSE, warning=FALSE}
@@ -499,7 +505,7 @@ metric_data <- sqldf('SELECT a.*, b.SminL30mg_apx_local, b.SminL90mg_apx_local, 
 #Join baseline scenario data onto demand scenario & storage data 
 metric_data <- sqldf('SELECT a.*, b.l30_Qout_base, b.l90_Qout_base
                    FROM metric_data as a
-                   LEFT OUTER JOIN baseline_data as b
+                   LEFT JOIN baseline_data as b
                    ON (a.riverseg = b.riverseg)')
 
 #Join cumulative demand to storage data for inclusion in tables 
@@ -522,8 +528,27 @@ metric_data$SminL90mg_apx_total <- NA
 metric_data$SminL30mg_nex_total <- NA 
 metric_data$SminL90mg_nex_total <- NA 
 
+#Replace NA data with 0s. We need to do this prior to calculating upstream
+#storage since any value minus NA is NA in R, which would mess with our
+#calculation of cumulative storage below
+metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
+
+#For each modeled watershed, find the upstream storage associated with it:
 for (i in 1:nrow(metric_data)) {
-  ups_imp <- fn_extract_basin(storage_byseg, metric_data$riverseg[i]) #find if any upstream segments have an impoundment within
+  #Easy print message to check progress
+  print(paste0("Running seg number ",i,": ",metric_data$riverseg[i]))
+  ups_imp <- data.frame()
+  #We want to find upstream segments for each riverseg but we are not interested
+  #in tidal basins or tidally influenced rivers.
+  if(!grepl("0000_0000",metric_data$riverseg[i])){
+     #Get upstream segments only for riverseg[i] in metric_data
+     ups_imp <- fn_extract_basin(rsegs,metric_data$riverseg[i])
+  }else{
+    #Skip tiday, bay, and SR ends segments
+    print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
+  }
+  
+  #If upstream segments were returned, find associated storage from storage_byseg
   if (nrow(ups_imp) > 0) {
     ups_impsegs <- data.frame(rivseg = ups_imp$riverseg)
     ups_df <- sqldf("select a.*
@@ -546,7 +571,7 @@ for (i in 1:nrow(metric_data)) {
 
 ## Reminder: Perform unit conversions when plugging values into WA equation 
 # mgd = cfs / 1.547
-metric_data[is.na(metric_data)] <- 0 #replace NA values with 0
+
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
