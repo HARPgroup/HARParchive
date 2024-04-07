@@ -664,8 +664,6 @@ for (i in 1:nrow(caseStudies_df)) {
   assign(paste0('ups_df_', i), ups_segs)
 }
 
-#upstream dataframes ordered correctly (upstream -> downstream)
-
 #get downstream segments
 ds_df <- data.frame() 
 
@@ -688,20 +686,23 @@ for (i in 1:nrow(caseStudies_df)) {
   ds_df$riverseg <- factor(ds_df$riverseg, levels=ds_segs) 
   ds_df <- ds_df[order(ds_df$riverseg),]
   
-  #remove last row only for Lake Manassas case study
+  #remove last row for Lake Manassas to end above Occoquan reservoir
   if (caseStudies_df$riverseg[i] == "PL0_5141_5140") {
     ds_df <- ds_df[1:(nrow(ds_df)-1),] #remove last row 
+  }
+  
+  #remove last 2 rows for Carvins Cove to end just below Roanoke
+  if (caseStudies_df$riverseg[i] == "OR3_7740_8271_carvins") {
+    ds_df <- ds_df[1:(nrow(ds_df)-2),] #remove last row 
   }
   
   assign(paste0('ds_df_', i), ds_df)
 }
 
-
 #combine upstream and downstream dataframes
 for (i in 1:nrow(caseStudies_df)) { 
   assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
 }
-
 ```
 
 <!---BLOCK_LANDSCAPE_START--->
