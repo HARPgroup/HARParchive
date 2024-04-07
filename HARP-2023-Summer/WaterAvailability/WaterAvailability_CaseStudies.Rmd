@@ -159,25 +159,14 @@ baseline_data <- om_vahydro_metric_grid(
 )
 ```
 
-```{r Smin Calculations, include=FALSE, echo=FALSE}
-storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
-storage_data$SminL90mg_nex <- NA
-
-storage_data$SminL30mg_apx <- NA
-storage_data$SminL90mg_apx <- NA
-
-storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
-storage_data$min_in_pd90 <- NA 
-
-storage_data$outside_pd30 <- NA #empty columns to hold numeric values
-storage_data$outside_pd90 <- NA 
+```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE, warning=FALSE}
+nrow_all <- nrow(storage_data)
 
 storage_data$object_class <- NA
+storage_data$elid <- NA
 
 for (i in 1:nrow(storage_data)) {
-  #Get runfile with timeseries data from VAhydro
-
-  #Get model
+    #Get model
   model <- RomProperty$new(ds,list( 
     featureid = storage_data$featureid[i],
     propcode = 'vahydro-1.0',
@@ -189,17 +178,23 @@ for (i in 1:nrow(storage_data)) {
     featureid = model$pid,
     propname = 'object_class'
   ),TRUE)
-  object_class <- object_class$propcode
+  storage_data$object_class[i] <- object_class$propcode
 
   #Get element id
   elid <- RomProperty$new(ds,list( 
     featureid = model$pid,
     propname = 'om_element_connection'
   ),TRUE)
-  elid <- elid$propvalue
+  storage_data$elid[i] <- elid$propvalue
+}
 
-  
-  ## This method takes too long for testing purposes until a caching method is found 
+storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
+
+nrow_noWSE <- nrow(storage_data)
+
+nrow_diff <- nrow_all - nrow_noWSE
+
+## Alternative model retrieval, takes much longer
   # #Get model info using ds$auth_read to authenticate and grab model info+data
   # obj_url <- paste(json_obj_url, model$pid, sep="/")
   # model_info <- ds$auth_read(obj_url,  "text/json", "")
@@ -208,8 +203,22 @@ for (i in 1:nrow(storage_data)) {
   # object_class <- model_info[[1]]$object_class
   # storage_data$object_class[i] <- object_class
 
-  dat <- fn_get_runfile(elid, runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
-  
+print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
+```
+
+```{r Smin Calculations, include=FALSE, echo=FALSE}
+storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
+storage_data$SminL90mg_nex <- NA
+storage_data$SminL30mg_apx <- NA
+storage_data$SminL90mg_apx <- NA
+storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
+storage_data$min_in_pd90 <- NA 
+storage_data$outside_pd30 <- NA #empty columns to hold numeric values
+storage_data$outside_pd90 <- NA 
+
+for (i in 1:nrow(storage_data)) {
+  #Get runfile with timeseries data from VAhydro
+  dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
   mode(dat) <- 'numeric'
   cols <- names(dat)
   
@@ -226,65 +235,61 @@ for (i in 1:nrow(storage_data)) {
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
   
+  ## Dsiabled -- Sees Lake Anna as without active impoundment 
   #Check if impoundment is active
     #2 ways this is done: im_off and imp_enabled 
     #imp_off used in waterSupplyModelNode and hydroImpoundment
     #imp_enabled used in waterSupplyElement
-  imp_off = 1
-  imp_enabled = FALSE
-  
+  imp_off = 0 #default to active impoundment
+  # imp_enabled = TRUE
+
   if ("imp_off" %in% cols) {
       imp_off <- as.integer(median(dat$imp_off))
   }
-  if (imp_off == 1) { #check if imp_off exists, if not:
-    if("impoundment" %in% cols) {
-      imp_enabled = TRUE
-      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
-    }
-  } else if (imp_off == 0) {
-    paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
-  }
-    
-  if (imp_enabled == FALSE & imp_off == 1) {
-    paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Diabled')
-  }
   
+  # if (imp_off == 1) { #check if imp_off exists, if not:
+  #   if("impoundment" %in% cols) {
+  #     imp_enabled = TRUE
+  #     paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
+  #   }
+  # } else if (imp_off == 0) {
+  #   paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
+  # }
+  # 
+  # if (imp_enabled == FALSE & imp_off == 1) {
+  #   paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
+  # }
   
-#### Only do Storage calculation if impoundment is active 
-  if (imp_enabled == TRUE | imp_off == 0) {
+#### Only do Storage calculation if impoundment is active
+  if (imp_off == 0) {
  
     #Different names for storage and Q values based on object_class:
-    if (object_class == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
-      
+    if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
       #storage col already named "Storage"
       Qcol <- "Qin" #from hydroImpoundment.R: flows <- zoo(dat$Qin, order.by = index(dat));
-      
-    } else if (object_class == "waterSupplyModelNode") {
-      
+    } else if (storage_data$object_class[i] == "waterSupplyModelNode") {
       dat$Storage <- dat$impoundment_Storage #from waterSupplyModelNode.R: colname = "impoundment_Storage"  
       Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
       
-    } else if (object_class == "waterSupplyElement") {
-      
-      # Storage col could be a couple different names 
-      if("local_impoundment_Storage" %in% cols) {
-        storagecol <- "local_impoundment_Storage"
-      }
-      if("impoundment_Storage" %in% cols) {
-        storagecol <- "impoundment_Storage"
-      }
-      dat$Storage <- dat[,storagecol]
-      if ('Qintake' %in% cols) {
-        Qcol <- "Qintake" 
-      } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
-        Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
-      }
+   # } else if (object_class == "waterSupplyElement") { #disabled waterSupplyElements, too much variation
+    #   
+    #   # Storage col could be a couple different names 
+    #   if("local_impoundment_Storage" %in% cols) {
+    #     storagecol <- "local_impoundment_Storage"
+    #   }
+    #   if("impoundment_Storage" %in% cols) {
+    #     storagecol <- "impoundment_Storage"
+    #   }
+    #   dat$Storage <- dat[,storagecol]
+    #   if ('Qintake' %in% cols) {
+    #     Qcol <- "Qintake" 
+    #   } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
+    #     Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
+    #   }
       
     } else { #object_class is something else
-      
       dat$Storage <- dat$impoundment_Storage
       Qcol <- "Qout" #Qout is the default
-      
     }
      
     #find l30 and l90 years based on Qcol
@@ -659,8 +664,6 @@ for (i in 1:nrow(caseStudies_df)) {
   assign(paste0('ups_df_', i), ups_segs)
 }
 
-#upstream dataframes ordered correctly (upstream -> downstream)
-
 #get downstream segments
 ds_df <- data.frame() 
 
@@ -683,20 +686,23 @@ for (i in 1:nrow(caseStudies_df)) {
   ds_df$riverseg <- factor(ds_df$riverseg, levels=ds_segs) 
   ds_df <- ds_df[order(ds_df$riverseg),]
   
-  #remove last row only for Lake Manassas case study
+  #remove last row for Lake Manassas to end above Occoquan reservoir
   if (caseStudies_df$riverseg[i] == "PL0_5141_5140") {
     ds_df <- ds_df[1:(nrow(ds_df)-1),] #remove last row 
+  }
+  
+  #remove last 2 rows for Carvins Cove to end just below Roanoke
+  if (caseStudies_df$riverseg[i] == "OR3_7740_8271_carvins") {
+    ds_df <- ds_df[1:(nrow(ds_df)-2),] #remove last row 
   }
   
   assign(paste0('ds_df_', i), ds_df)
 }
 
-
 #combine upstream and downstream dataframes
 for (i in 1:nrow(caseStudies_df)) { 
   assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
 }
-
 ```
 
 <!---BLOCK_LANDSCAPE_START--->
@@ -735,10 +741,10 @@ table_WA <- data.frame(Propname = df_WA$propname,
                      l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
                      l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
                      Qavailable_90_cfs = df_WA$Qavailable_90_cfs,
-                     SminL30mg_apx = df_WA$SminL30mg_apx_total,
-                     SminL30mg_nex = df_WA$SminL30mg_nex_total,
-                     SminL90mg_apx = df_WA$SminL90mg_apx_total,
-                     SminL90mg_nex = df_WA$SminL90mg_nex_total,
+                     SminL30mg_apx_total = df_WA$SminL30mg_apx_total,
+                     SminL30mg_nex_total = df_WA$SminL30mg_nex_total,
+                     SminL90mg_apx_total = df_WA$SminL90mg_apx_total,
+                     SminL90mg_nex_total = df_WA$SminL90mg_nex_total,
                      WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
                      WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
                      WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
@@ -896,8 +902,10 @@ for (i in 1:nrow(caseStudies_df)) {
                       Qavailable_90_cfs = csws_df$Qavailable_90_cfs,
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
+                      SminL30mg_total = csws_df$SminL30mg_apx_total,
                       SminL90mg_local = csws_df$SminL90mg_apx_local,
                       SminL90mg_upstream = csws_df$SminL90mg_apx_ups,
+                      SminL90mg_total = csws_df$SminL90mg_apx_total,
                       WA_mgd_30 = csws_df$WA_mgd_30_apx,
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
@@ -905,97 +913,104 @@ for (i in 1:nrow(caseStudies_df)) {
   ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
   assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
+  write.csv(table_caseStudyWshed, paste0(export_path, 
+                                         'CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                                         table_caseStudies$Riverseg[i], '_', 
+                                         demand_scenario, '_', baseline_scenario, 
+                                         '_', mif_coef, '.csv')) #write table
+  flextable::save_as_image(ftable_csws, path = paste0(export_path, 
+                                                      'CaseStudies_table6.', i, '_CaseStudyWsheds_',
+                                                      table_caseStudies$Riverseg[i], '_',
+                                                      demand_scenario, '_', baseline_scenario,
+                                                      '_', mif_coef, '.png')) #save image of flextable
 }
 
 
 ```
 
+# Plot 1: Demand Flow vs Available Flow for L30
 
-# Graph 1: Demand Flow vs Available Flow
+```{r Create Plot(s) 1, echo=FALSE}
+#plot30_filename <- character()
 
-```{r Graph 1.1, echo=FALSE, fig.cap="", fig.id = ""}
+for (i in 1:nrow(caseStudies_df)) {
+  
+  #get case study name for titling 
+  caseStudyName <- gsub('[0-9]+', '', caseStudies_df$propname[i])
+  caseStudyName <- gsub('[[:punct:] ]+', ' ', caseStudyName)
+  caseStudyName <- gsub('Impoundment', '', caseStudyName)
+  
+  #l30 graph
+  plot30 <- ggplot(data = get(paste0('ups_ds_df_',i)), aes(x=riverseg)) +
+    geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
+    geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
+    theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.title.x=element_blank()) +
+    ylab('cfs') + 
+    scale_fill_manual(name = "Legend", 
+                      label = c("L30", "Qavailable"), 
+                      values = c("blue","green")) +
+    ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudies_df$riverseg[i], ': ', caseStudyName),
+            subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
-#create bar chart showing both WA and Qnsf (L30/90) or Qbaseline
-scale = 1 #scale for transforming first y axis to 2nd
+  plot30
+  
+  assign(paste0('plot30_', i), plot30, envir = globalenv())
+  
+    # plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_plot1.30_',i, '.png')
+    # ggsave(
+    #   filename = plot30_filename[i],
+    #   plot = plot30,
+    #   width = 25,
+    #   height = 20)
+}
 
-#l30 graph
-plot30 <- ggplot(data = ups_ds_df_6, aes(x=riverseg)) +
-  geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
-  geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
-  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'Qavailable (cfs)')) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
-  theme(axis.title.x=element_blank()) +
-  ylab('L30 (cfs)') + 
-  scale_fill_manual(name = "Legend", 
-                    label = c("L30", "Qavailable"), 
-                    values = c("blue","green")) +
-  ggtitle('Demand Flow vs Qavailable (L30)') 
-
-plot30
-
-
-#l90 graph
-plot90 <- ggplot(data = df_WA, aes(x=riverseg)) +
-  geom_bar(aes(y=WA_mgd_90_apx, fill = 'blue'), stat = 'identity') +
-  geom_bar(aes(y=l90_Qout_dem, fill = 'green'), stat = 'identity') +
-  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout (cfs)')) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
-  theme(axis.title.x=element_blank()) +
-  ylab('Water Availability (mgd)') +
-  ggtitle('WA vs Flow (L90)')
-
-plot90
+# knitr::include_graphics(plot30_filename)
+plot30_1
+plot30_2
+plot30_3
+plot30_4
+plot30_5
+plot30_6
 ```
-
-
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
 ```{r Write Tables as CSVs, echo=FALSE}
 
-write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailability_', 
+write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_', 
+write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
+write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
+write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_csws, paste0(export_path, 'CaseStudies_table5_Upstream_', 
+write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
-write.csv(table_update, paste0(export_path, 'CaseStudies_table6_UpdateSmin_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
 
 ```
-
 
 ```{r Save Tables as Images, echo=FALSE}
-flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WA_', 
+flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
-flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_table2_Smin_', 
+flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table2_SminCompare_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table2
 
-flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table3_Storage_', 
+flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_table3_SminError_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
 
-flextable::save_as_image(table_caseStudies, path = paste0(export_path, 'CaseStudies_table4_imp_', 
+flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
 
-flextable::save_as_image(ftable_csws, path = paste0(export_path, 'CaseStudies_table5_ups_', 
+flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
-
-
-
-
-
 
 ```{r tab.cap="", tab.id=""}
 

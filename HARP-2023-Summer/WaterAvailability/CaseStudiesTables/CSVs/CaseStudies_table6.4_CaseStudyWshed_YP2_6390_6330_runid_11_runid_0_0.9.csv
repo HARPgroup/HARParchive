@@ -1,0 +1,5 @@
+"","Propname","Riverseg","wd_cu_mgd","ps_cu_mgd","l30_Qout","l30_Qout_base","l30_Qout_mif","Qavailable_30_cfs","l90_Qout","l90_Qout_base","l90_Qout_mif","Qavailable_90_cfs","SminL30mg_local","SminL30mg_upstream","SminL30mg_total","SminL90mg_local","SminL90mg_upstream","SminL90mg_total","WA_mgd_30","WA_mgd_90"
+"1","North Anna Dam","YP2_6390_6330",0.022,0,20,0,0,20,20,0,0,20,89619.29,0,89619.29,89619.29,0,89619.29,3000.238,1008.698
+"2","North Anna River @ Hart Corner","YP3_6330_6700",0.022,0,24.996,0,0,24.996,31.064,0,0,31.064,0,89619.29,89619.29,0,89619.29,89619.29,3003.467,1015.85
+"3","North Anna River above Little River near Doswell","YP3_6700_6670",7.48,0,12.038,0,0,12.038,18.459,0,0,18.459,0,89619.29,89619.29,0,89619.29,89619.29,2995.091,1007.702
+"4","North Anna River @ Confluence with South Anna","YP3_6670_6720",9.038,3.609,22.309,0,0,22.309,35.235,0,0,35.235,0,89662.941,89662.941,0,89662.954,89662.954,3003.186,1019.031
