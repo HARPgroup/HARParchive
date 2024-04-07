@@ -910,97 +910,104 @@ for (i in 1:nrow(caseStudies_df)) {
   ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
   assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
+  write.csv(table_caseStudyWshed, paste0(export_path, 
+                                         'CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                                         table_caseStudies$Riverseg[i], '_', 
+                                         demand_scenario, '_', baseline_scenario, 
+                                         '_', mif_coef, '.csv')) #write table
+  flextable::save_as_image(ftable_csws, path = paste0(export_path, 
+                                                      'CaseStudies_table6.', i, '_CaseStudyWsheds_',
+                                                      table_caseStudies$Riverseg[i], '_',
+                                                      demand_scenario, '_', baseline_scenario,
+                                                      '_', mif_coef, '.png')) #save image of flextable
 }
 
 
 ```
 
+# Plot 1: Demand Flow vs Available Flow for L30
 
-# Graph 1: Demand Flow vs Available Flow
+```{r Create Plot(s) 1, echo=FALSE}
+#plot30_filename <- character()
 
-```{r Graph 1.1, echo=FALSE, fig.cap="", fig.id = ""}
+for (i in 1:nrow(caseStudies_df)) {
+  
+  #get case study name for titling 
+  caseStudyName <- gsub('[0-9]+', '', caseStudies_df$propname[i])
+  caseStudyName <- gsub('[[:punct:] ]+', ' ', caseStudyName)
+  caseStudyName <- gsub('Impoundment', '', caseStudyName)
+  
+  #l30 graph
+  plot30 <- ggplot(data = get(paste0('ups_ds_df_',i)), aes(x=riverseg)) +
+    geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
+    geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
+    theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.title.x=element_blank()) +
+    ylab('cfs') + 
+    scale_fill_manual(name = "Legend", 
+                      label = c("L30", "Qavailable"), 
+                      values = c("blue","green")) +
+    ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudies_df$riverseg[i], ': ', caseStudyName),
+            subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
-#create bar chart showing both WA and Qnsf (L30/90) or Qbaseline
-scale = 1 #scale for transforming first y axis to 2nd
+  plot30
+  
+  assign(paste0('plot30_', i), plot30, envir = globalenv())
+  
+    # plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_plot1.30_',i, '.png')
+    # ggsave(
+    #   filename = plot30_filename[i],
+    #   plot = plot30,
+    #   width = 25,
+    #   height = 20)
+}
 
-#l30 graph
-plot30 <- ggplot(data = ups_ds_df_6, aes(x=riverseg)) +
-  geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
-  geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
-  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'Qavailable (cfs)')) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
-  theme(axis.title.x=element_blank()) +
-  ylab('L30 (cfs)') + 
-  scale_fill_manual(name = "Legend", 
-                    label = c("L30", "Qavailable"), 
-                    values = c("blue","green")) +
-  ggtitle('Demand Flow vs Qavailable (L30)') 
-
-plot30
-
-
-#l90 graph
-plot90 <- ggplot(data = df_WA, aes(x=riverseg)) +
-  geom_bar(aes(y=WA_mgd_90_apx, fill = 'blue'), stat = 'identity') +
-  geom_bar(aes(y=l90_Qout_dem, fill = 'green'), stat = 'identity') +
-  scale_y_continuous(sec.axis =  sec_axis(trans = ~.*scale, name = 'L90_Qout (cfs)')) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + #rotate x-axis labels
-  theme(axis.title.x=element_blank()) +
-  ylab('Water Availability (mgd)') +
-  ggtitle('WA vs Flow (L90)')
-
-plot90
+# knitr::include_graphics(plot30_filename)
+plot30_1
+plot30_2
+plot30_3
+plot30_4
+plot30_5
+plot30_6
 ```
-
-
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
 ```{r Write Tables as CSVs, echo=FALSE}
 
-write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailability_', 
+write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_Smin, paste0(export_path, 'CaseStudies_table2_Smin_', 
+write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_Storage, paste0(export_path, 'CaseStudies_table3_Storage_', 
+write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table4_Impoundments_', 
+write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_csws, paste0(export_path, 'CaseStudies_table5_Upstream_', 
+write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
-write.csv(table_update, paste0(export_path, 'CaseStudies_table6_UpdateSmin_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
 
 ```
-
 
 ```{r Save Tables as Images, echo=FALSE}
-flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WA_', 
+flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
-flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_table2_Smin_', 
+flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table2_SminCompare_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table2
 
-flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table3_Storage_', 
+flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_table3_SminError_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
 
-flextable::save_as_image(table_caseStudies, path = paste0(export_path, 'CaseStudies_table4_imp_', 
+flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
 
-flextable::save_as_image(ftable_csws, path = paste0(export_path, 'CaseStudies_table5_ups_', 
+flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
-
-
-
-
-
 
 ```{r tab.cap="", tab.id=""}
 
