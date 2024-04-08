@@ -28,11 +28,18 @@ library(officer)
 library(jsonlite)
 library(ggplot2)
 library(IHA)
+library(nhdplusTools)
+library(arcpullr)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
+
+github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
+github_uri <- paste0(github_base_uri, "/HARParchive/master")
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE)
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
 
 options(scipen = 999) #disable scientific notation
 
@@ -157,6 +164,11 @@ baseline_data <- om_vahydro_metric_grid(
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
+
+#Get riversegs with geometry for mapping 
+rsegs_geom_data <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE)
+rsegs_geom_data$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs_geom_data$hydrocode)
+rsegs_geom_data <- rsegs_geom_data[ rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]!="" & !is.na(rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 ```
 
 ```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE, warning=FALSE}
@@ -973,6 +985,52 @@ plot30_4
 plot30_5
 plot30_6
 ```
+
+
+```{r Mapping}
+#map case study watersheds
+for (i in 1:nrow(caseStudies_df)) {
+
+  rsegs_df <- get(paste0('ups_ds_df_', i))
+  
+  #join rseg geometry data 
+  
+  if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
+    rsegs_df <- sqldf('SELECT a.*, b.geom
+                       FROM rsegs_df as a
+                       LEFT JOIN rsegs_geom_data as b
+                       ON (a.riverseg = b.riverseg)')
+  }
+
+  rsegs_df <- sf::st_as_sf(rsegs_df, wkt=fn_geoCol(rsegs_df), crs=4326) #convert to sf
+  
+  #create bbox
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox <- st_buffer(st_as_sfc(st_bbox(rsegs_df)), .02) #slightly past basin
+  bbox <- st_bbox(bbox)
+  
+  #nhd <- nhdplusTools::plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  
+  map <- ggplot(rsegs_df) + geom_sf(mapping = aes(fill = WA_mgd_30_apx)) +
+    scale_fill_gradient(low = "red", high = "green")
+  # + geom_sf(data = nhd$flowline, inherit.aes = FALSE)
+
+  assign(paste0('map', i), map, envir = globalenv())
+}
+
+plot(map1)
+plot(map2)
+plot(map3)
+plot(map4)
+plot(map5)
+plot(map6)
+```
+
+
+
+
+
+
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
