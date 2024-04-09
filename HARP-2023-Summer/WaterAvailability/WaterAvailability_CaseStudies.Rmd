@@ -30,6 +30,7 @@ library(ggplot2)
 library(IHA)
 library(nhdplusTools)
 library(arcpullr)
+library(ggrepel)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -1003,6 +1004,7 @@ for (i in 1:nrow(caseStudies_df)) {
   }
 
   rsegs_df <- sf::st_as_sf(rsegs_df, wkt=fn_geoCol(rsegs_df), crs=4326) #convert to sf
+  rsegs_df <- fn_centroid_coords(rsegs_df)
   
   #create bbox
   sf_use_s2(FALSE) # switch off Spherical geometry
@@ -1012,7 +1014,10 @@ for (i in 1:nrow(caseStudies_df)) {
   #nhd <- nhdplusTools::plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   
   map <- ggplot(rsegs_df) + geom_sf(mapping = aes(fill = WA_mgd_30_apx)) +
-    scale_fill_gradient(low = "red", high = "green")
+    scale_fill_gradient(low = "red", high = "green") +
+      geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 3) +
+      ggtitle(paste0('Water Availability for ', caseStudies_df$riverseg[i]),
+            subtitle = '') 
   # + geom_sf(data = nhd$flowline, inherit.aes = FALSE)
 
   assign(paste0('map', i), map, envir = globalenv())
