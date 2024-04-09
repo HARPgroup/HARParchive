@@ -40,7 +40,8 @@ for(i in 1:length(params)){
   assign(names(params[i]), params[[i]])
 }
 if (is.logical(foundation_path)) {
-  message("You must include the variable 'foundation_path' to point to the location of your data set.")
+  message("No variable 'foundation_path' was passed into the knit parameters. Defaulting to the user config foundation_location, which may be invalid for HARP analysts.")
+  foundation_path <- foundation_location
 }
 
 #note: the variables "github_location" and "export_path" should be defined in config.local
