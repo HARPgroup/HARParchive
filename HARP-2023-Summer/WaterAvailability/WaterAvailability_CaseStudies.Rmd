@@ -684,14 +684,14 @@ ds_df <- data.frame()
 
 #get 3 segments downstream of each case study segment
 for (i in 1:nrow(caseStudies_df)) { 
-  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg)
+  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], rsegs$riverseg)
   ds_segs <- c(ds_seg1)
   if (ds_seg1 != 'NA') {
-    ds_seg2 <- fn_downstream(ds_seg1, metric_data$riverseg)
+    ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2)
   }
   if (ds_seg2 != 'NA') {
-    ds_seg3 <- fn_downstream(ds_seg2, metric_data$riverseg)
+    ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
@@ -925,7 +925,9 @@ for (i in 1:nrow(caseStudies_df)) {
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
   ftable_csws <- flextable(table_caseStudyWshed)
-  ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
+  rownum_cs <- which(csws_df$riverseg == caseStudies_df$riverseg[i]) #highlight case study row
+  ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
+  #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
   assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
   write.csv(table_caseStudyWshed, paste0(export_path, 
