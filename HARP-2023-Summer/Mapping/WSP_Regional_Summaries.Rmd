@@ -632,7 +632,7 @@ ft1 #display flextable
   }
 ```
 
-```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE}
+```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE, eval=FALSE}
 if (show_map == TRUE) {
   knitr::include_graphics(rivmapfilename)
 }
@@ -648,7 +648,6 @@ rseg_no_geom <- st_drop_geometry(rsegs) #copy of rsegs
 
   # base info
 for (k in 1:length(run_config$riverseg_metrics)){
-  
   data_set <- run_config$riverseg_metrics[[k]]$data_set
   table_cols <- unlist(run_config$riverseg_metrics[[k]]$tables_cols)
   display_column <- run_config$riverseg_metrics[[k]]$column_name
@@ -704,7 +703,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     assign(paste0('table', k), ft2, envir = globalenv())
   
-<<<<<<< HEAD
   display_metric <- run_config$riverseg_metrics[[k]]$metric
   display_title <- run_config$riverseg_metrics[[k]]$run_label
 
@@ -735,18 +733,17 @@ for (k in 1:length(run_config$riverseg_metrics)){
       rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
   } else if (display_metric=="l90_Qout"){
       rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-=======
     #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
->>>>>>> bd93a4dd02d73411a50ae15097babdb780295b50
   } else {
     message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
+  }
   }
 }
 ```
 
 ### Table:
 
-```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
+```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
 if (tablemessage2==TRUE) {
   message("A column in the table is completely NA values, 
@@ -763,6 +760,24 @@ for (k in 1:length(rivseg_metric)){
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
 
+### Display Map and Table: 
+```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
+for (k in 1:length(run_config$riverseg_metrics)){
+  #map
+  if (show_map == TRUE) {
+    knitr::include_graphics(rivmapfilename)
+  }
+    #table
+    if (tablemessage2==TRUE) {
+      message("A column in the table is completely NA values, 
+          likely meaning the metric requested is not modeled for this data
+          or the segments are all tidal")
+    }
+    cat(knitr::knit_print(get(paste0('table', k))))
+    cat("\n\n\\pagebreak\n")
+  }
+
+```
 ### Narrative note:
 
 Narrative summarizing highlights from maps/tables
