@@ -999,6 +999,7 @@ plot30_6
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
 #map case study watersheds
+WAmapfilename <- character()
 for (i in 1:nrow(caseStudies_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
@@ -1034,12 +1035,22 @@ for (i in 1:nrow(caseStudies_df)) {
     #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
     #         show.legend=FALSE) + 
     # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
-    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 4) +
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 8) +
     ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
+    theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
   #plot(map)
   
   assign(paste0('map', i), map, envir = globalenv())
+  
+  #save image of map
+  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", caseStudies_df$riverseg[i], ".png", sep="")
+  ggsave(
+    filename = WAmapfilename[i],
+    plot = map,
+    width = 25,
+    height = 20)
+  
 }
 
 ```
