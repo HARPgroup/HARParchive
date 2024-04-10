@@ -663,18 +663,20 @@ for (i in 1:length(outlet_list)) {
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
   if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
-    ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
-  if (nrow(ups_segs) > 0) {
+    ups_segs <- fn_extract_basin(rsegs, caseStudies_df$riverseg[i]) #always extract using rsegs as full riverseg list to get upstream basins
+    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,] #get metric data for upstream segments 
+  if (nrow(ups_data) > 0) {
   }
   
   } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_segs <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
+    ups_segs <- fn_extract_basin(rsegs, ds_seg_carv) #get upstream segments from that downstream seg 
+    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,]
   }
-  ups_segs <- rbind(ups_segs[nrow(ups_segs),],ups_segs[1:(nrow(ups_segs)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
-  ups_segs <- ups_segs[nrow(ups_segs):1,]#reverse order to get upstream to downstream
-  ups_segs <- ups_segs[!duplicated(ups_segs), ] #remove duplicate rows
-  assign(paste0('ups_df_', i), ups_segs)
+  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
+  ups_data <- ups_data[nrow(ups_data):1,]#reverse order to get upstream to downstream
+  ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
+  assign(paste0('ups_df_', i), ups_data)
 }
 
 #get downstream segments
@@ -1030,7 +1032,7 @@ for (i in 1:nrow(caseStudies_df)) {
     #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
     #         show.legend=FALSE) + 
     # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
-    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 2) +
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 4) +
     ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
   #plot(map)
