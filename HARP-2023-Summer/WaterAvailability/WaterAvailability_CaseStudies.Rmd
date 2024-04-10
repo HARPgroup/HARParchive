@@ -28,11 +28,19 @@ library(officer)
 library(jsonlite)
 library(ggplot2)
 library(IHA)
+library(nhdplusTools)
+library(arcpullr)
+library(ggrepel)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
+
+github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
+github_uri <- paste0(github_base_uri, "/HARParchive/master")
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE)
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
 
 options(scipen = 999) #disable scientific notation
 
@@ -157,6 +165,11 @@ baseline_data <- om_vahydro_metric_grid(
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
+
+#Get riversegs with geometry for mapping 
+rsegs_geom_data <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE)
+rsegs_geom_data$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs_geom_data$hydrocode)
+rsegs_geom_data <- rsegs_geom_data[ rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]!="" & !is.na(rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 ```
 
 ```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE, warning=FALSE}
@@ -953,7 +966,7 @@ for (i in 1:nrow(caseStudies_df)) {
     ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudies_df$riverseg[i], ': ', caseStudyName),
             subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
-  plot30
+  #plot30
   
   assign(paste0('plot30_', i), plot30, envir = globalenv())
   
@@ -966,6 +979,9 @@ for (i in 1:nrow(caseStudies_df)) {
 }
 
 # knitr::include_graphics(plot30_filename)
+```
+
+```{r}
 plot30_1
 plot30_2
 plot30_3
@@ -973,6 +989,66 @@ plot30_4
 plot30_5
 plot30_6
 ```
+
+```{r Mapping}
+#create spatial object of all rivsersegs to be trimmed
+rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
+
+#map case study watersheds
+for (i in 1:nrow(caseStudies_df)) {
+
+  rsegs_df <- get(paste0('ups_ds_df_', i))
+  
+  #join rseg geometry data 
+  
+  if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
+    rsegs_df <- sqldf('SELECT a.*, b.geom
+                       FROM rsegs_df as a
+                       LEFT JOIN rsegs_geom_data as b
+                       ON (a.riverseg = b.riverseg)')
+  }
+
+  rsegs_df <- sf::st_as_sf(rsegs_df, wkt=fn_geoCol(rsegs_df), crs=4326) #convert to sf
+  rsegs_df <- fn_centroid_coords(rsegs_df) #add centroid coordinates for labeling 
+  
+  #create bbox around rsegs of interest 
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox_sfc <- st_buffer(st_as_sfc(st_bbox(rsegs_df)), .02) #slightly past basin
+  bbox <- st_bbox(bbox_sfc)
+  bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
+  
+  #nhd <- nhdplusTools::plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  
+  rsegs_bbox <- st_filter(rsegs_all_sf, bbox_sfc)
+  
+  
+  map <- ggplot(rsegs_bbox) + geom_sf() + 
+    geom_sf(data = rsegs_df, mapping = aes(fill = WA_mgd_30_apx)) +
+    scale_fill_gradient(low = "red", high = "green") +
+    # geom_sf(data = nhd$flowline, 
+    #         inherit.aes=FALSE, color= "dodgerblue", 
+    #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
+    #         show.legend=FALSE) + 
+    # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 2) +
+    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
+    coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
+  #plot(map)
+  
+  assign(paste0('map', i), map, envir = globalenv())
+}
+
+```
+
+```{r}
+plot(map1)
+plot(map2)
+plot(map3)
+plot(map4)
+plot(map5)
+plot(map6)
+```
+
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
