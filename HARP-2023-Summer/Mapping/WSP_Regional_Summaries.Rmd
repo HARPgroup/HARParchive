@@ -3,7 +3,11 @@ title: "WSP Regional Summaries"
 author: "HARP Analysts"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
-output: pdf_document #overridden by output_format in render command 
+#overridden by output_format in render command 
+output: 
+  word_document:
+    toc: true
+    number_sections: true
 
 #Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
 #Can edit here or in a render command 
@@ -659,7 +663,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     display_metric <- run_config$riverseg_metrics[[k]]$metric
     display_title <- run_config$riverseg_metrics[[k]]$run_label
-  
+    
     #metrics, to be suppressed later?
     rseg_display$Metric <- display_metric 
     
@@ -685,11 +689,11 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     #this chunk is not in use at the moment, based on titles being done in config 
     if (display_metric=="l30_Qout"){
-        rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
+      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
     } else if (display_metric=="l90_Qout"){
-        rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
+      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
     } else {
-        rivtablelabel <- rivtablemetric
+      rivtablelabel <- rivtablemetric
     }
     
     rivtabletitle <- paste0(title_main , ' - ' ,display_title)
@@ -700,46 +704,45 @@ for (k in 1:length(run_config$riverseg_metrics)){
     ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
-                       origin = origin , tabletitle = rivtabletitle, num=rivtablenum) #flextable function
+                       origin = origin , tabletitle = rivtabletitle,
+                       num=rivtablenum) #flextable function
     
     assign(paste0('table', k), ft2, envir = globalenv())
-  
-<<<<<<< HEAD
-  display_metric <- run_config$riverseg_metrics[[k]]$metric
-  display_title <- run_config$riverseg_metrics[[k]]$run_label
-
-  #metrics, to be suppressed later?
-  rseg_display$Metric <- display_metric 
-  
-  #assemble our table, with the columns in order defined by table_cols
-  rseg_display <- rseg_display[table_cols] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
-  
-  #na messages 
-   nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
-   tablemessage2 <- any(nacols)
-  
-  #sorting 
-  sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-  rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-  
-  
-  #fill blanks with NA
-  rivTables[[k]][rivTables[[k]] == ''] <- NA
-  
-  
-  #defining titles 
-  rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
-  
-  #this chunk is not in use at the moment, based on titles being done in config 
-  if (display_metric=="l30_Qout"){
+    
+    display_metric <- run_config$riverseg_metrics[[k]]$metric
+    display_title <- run_config$riverseg_metrics[[k]]$run_label
+    
+    #metrics, to be suppressed later?
+    rseg_display$Metric <- display_metric 
+    
+    #assemble our table, with the columns in order defined by table_cols
+    rseg_display <- rseg_display[table_cols] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
+    
+    #na messages 
+    nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
+    tablemessage2 <- any(nacols)
+    
+    #sorting 
+    sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+    rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+    
+    
+    #fill blanks with NA
+    rivTables[[k]][rivTables[[k]] == ''] <- NA
+    
+    
+    #defining titles 
+    rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
+    
+    #this chunk is not in use at the moment, based on titles being done in config 
+    if (display_metric=="l30_Qout"){
       rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
-  } else if (display_metric=="l90_Qout"){
+    } else if (display_metric=="l90_Qout"){
       rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-=======
-    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
->>>>>>> bd93a4dd02d73411a50ae15097babdb780295b50
-  } else {
-    message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
+      #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+    } else {
+      message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
+    }
   }
 }
 ```
