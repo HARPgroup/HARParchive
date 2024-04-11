@@ -764,8 +764,12 @@ for (k in 1:length(rivseg_metric)){
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
   #map
+  show_map = run_config$riverseg_metrics[[k]]$show_map
   if (show_map == TRUE) {
-    knitr::include_graphics(rivmapfilename)
+    #fig_md = knitr::include_graphics(rivmapfilename)
+    fig_md = paste(paste0("![](",rivmapfilename[k],")"),"\n")
+  } else {
+    fig_md = ''
   }
     #table
     if (tablemessage2==TRUE) {
@@ -773,6 +777,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
           likely meaning the metric requested is not modeled for this data
           or the segments are all tidal")
     }
+    cat(fig_md)
     cat(knitr::knit_print(get(paste0('table', k))))
     cat("\n\n\\pagebreak\n")
   }
