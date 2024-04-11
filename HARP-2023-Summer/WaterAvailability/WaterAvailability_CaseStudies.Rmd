@@ -994,6 +994,9 @@ plot30_5
 plot30_6
 ```
 
+
+# Map 1: Water Availability for L30
+
 ```{r Mapping}
 #create spatial object of all rivsersegs to be trimmed
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
@@ -1004,8 +1007,37 @@ for (i in 1:nrow(caseStudies_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
   
-  #join rseg geometry data 
+  #custom bins
+  div <- c(0,10,50,100,500,1000,10000)
   
+  map_labs <- c(" <= 0", #less than or equal to first value in pct vector
+                 "0 to 10", #labeling the ranges between each value from pct vector 
+                 "10 to 50",
+                 "50 to 100",
+                 "100 to 500",
+                 "500 to 1000",
+                 " > 1000")
+  
+  #binning based on water availability
+  # binrange <- range(rsegs_df$WA_mgd_30_apx)
+  # midbin <- mean(binrange)
+  # thirdbin <- midbin + ((binrange[2] - midbin)/2)
+  # firstbin <- midbin - ((binrange[2] - midbin)/2)
+  
+  bins_sql <-  paste("SELECT *,
+	                  CASE WHEN WA_mgd_30_apx <= ",div[1]," THEN '1'
+		                WHEN WA_mgd_30_apx >  ",div[1]," AND WA_mgd_30_apx <= ",div[2]," THEN '2'
+		                WHEN WA_mgd_30_apx >  ",div[2]," AND WA_mgd_30_apx <= ",div[3]," THEN '3'
+		                WHEN WA_mgd_30_apx >  ",div[3]," AND WA_mgd_30_apx <= ",div[4]," THEN '4'
+		                WHEN WA_mgd_30_apx >  ",div[4]," AND WA_mgd_30_apx <= ",div[5]," THEN '5'
+		                WHEN WA_mgd_30_apx >  ",div[5]," AND WA_mgd_30_apx <= ",div[6]," THEN '6'
+		                WHEN WA_mgd_30_apx > ",div[6]," THEN '7'
+		                ELSE 'X'
+		                END AS bin
+		                FROM rsegs_df",sep="")
+  rsegs_df <-fn_sqldf_sf(bins_sql)  
+  
+  #join rseg geometry data 
   if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
     rsegs_df <- sqldf('SELECT a.*, b.geom
                        FROM rsegs_df as a
@@ -1028,8 +1060,18 @@ for (i in 1:nrow(caseStudies_df)) {
   
   
   map <- ggplot(rsegs_bbox) + geom_sf() + 
-    geom_sf(data = rsegs_df, mapping = aes(fill = WA_mgd_30_apx)) +
-    scale_fill_gradient(low = "red", high = "green") +
+    geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
+    scale_fill_manual(values = c("firebrick2","darkorange","yellow",
+                                 "white", "yellowgreen", "green3", "dodgerblue"),
+                      breaks = seq(1:7),
+                      labels = map_labs,
+                      limits = as.factor(seq(1:7)),
+                      name = "WA for L30 (mgd)") +
+    # scale_fill_manual(values = rivmap_colors, #from config
+    #                     breaks = rivbreaks,
+    #                     labels = rivmap_labs,
+    #                     limits = as.factor(rivbreaks),
+    #                     name = rseg_leg_title)
     # geom_sf(data = nhd$flowline, 
     #         inherit.aes=FALSE, color= "dodgerblue", 
     #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
@@ -1039,7 +1081,7 @@ for (i in 1:nrow(caseStudies_df)) {
     ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
     theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
-  #plot(map)
+  plot(map)
   
   assign(paste0('map', i), map, envir = globalenv())
   
