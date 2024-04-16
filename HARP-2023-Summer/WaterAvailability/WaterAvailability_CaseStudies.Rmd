@@ -690,18 +690,20 @@ for (i in 1:length(outlet_list)) {
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
   if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
-    ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
-  if (nrow(ups_segs) > 0) {
+    ups_segs <- fn_extract_basin(rsegs, caseStudies_df$riverseg[i]) #always extract using rsegs as full riverseg list to get upstream basins
+    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,] #get metric data for upstream segments 
+  if (nrow(ups_data) > 0) {
   }
   
   } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_segs <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
+    ups_segs <- fn_extract_basin(rsegs, ds_seg_carv) #get upstream segments from that downstream seg 
+    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,]
   }
-  ups_segs <- rbind(ups_segs[nrow(ups_segs),],ups_segs[1:(nrow(ups_segs)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
-  ups_segs <- ups_segs[nrow(ups_segs):1,]#reverse order to get upstream to downstream
-  ups_segs <- ups_segs[!duplicated(ups_segs), ] #remove duplicate rows
-  assign(paste0('ups_df_', i), ups_segs)
+  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
+  ups_data <- ups_data[nrow(ups_data):1,]#reverse order to get upstream to downstream
+  ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
+  assign(paste0('ups_df_', i), ups_data)
 }
 
 #get downstream segments
@@ -709,14 +711,14 @@ ds_df <- data.frame()
 
 #get 3 segments downstream of each case study segment
 for (i in 1:nrow(caseStudies_df)) { 
-  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg)
+  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], rsegs$riverseg)
   ds_segs <- c(ds_seg1)
   if (ds_seg1 != 'NA') {
-    ds_seg2 <- fn_downstream(ds_seg1, metric_data$riverseg)
+    ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2)
   }
   if (ds_seg2 != 'NA') {
-    ds_seg3 <- fn_downstream(ds_seg2, metric_data$riverseg)
+    ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
@@ -962,7 +964,9 @@ for (i in 1:nrow(caseStudies_df)) {
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
   ftable_csws <- flextable(table_caseStudyWshed)
-  ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
+  rownum_cs <- which(csws_df$riverseg == caseStudies_df$riverseg[i]) #highlight case study row
+  ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
+  #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
   assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
   write.csv(table_caseStudyWshed, paste0(export_path, 
@@ -1029,17 +1033,50 @@ plot30_5
 plot30_6
 ```
 
+
+# Map 1: Water Availability for L30
+
 ```{r Mapping}
 #create spatial object of all rivsersegs to be trimmed
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
 #map case study watersheds
+WAmapfilename <- character()
 for (i in 1:nrow(caseStudies_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
   
-  #join rseg geometry data 
+  #custom bins
+  div <- c(0,10,50,100,500,1000,10000)
   
+  map_labs <- c(" <= 0", #less than or equal to first value in pct vector
+                 "0 to 10", #labeling the ranges between each value from pct vector 
+                 "10 to 50",
+                 "50 to 100",
+                 "100 to 500",
+                 "500 to 1000",
+                 " > 1000")
+  
+  #binning based on water availability
+  # binrange <- range(rsegs_df$WA_mgd_30_apx)
+  # midbin <- mean(binrange)
+  # thirdbin <- midbin + ((binrange[2] - midbin)/2)
+  # firstbin <- midbin - ((binrange[2] - midbin)/2)
+  
+  bins_sql <-  paste("SELECT *,
+	                  CASE WHEN WA_mgd_30_apx <= ",div[1]," THEN '1'
+		                WHEN WA_mgd_30_apx >  ",div[1]," AND WA_mgd_30_apx <= ",div[2]," THEN '2'
+		                WHEN WA_mgd_30_apx >  ",div[2]," AND WA_mgd_30_apx <= ",div[3]," THEN '3'
+		                WHEN WA_mgd_30_apx >  ",div[3]," AND WA_mgd_30_apx <= ",div[4]," THEN '4'
+		                WHEN WA_mgd_30_apx >  ",div[4]," AND WA_mgd_30_apx <= ",div[5]," THEN '5'
+		                WHEN WA_mgd_30_apx >  ",div[5]," AND WA_mgd_30_apx <= ",div[6]," THEN '6'
+		                WHEN WA_mgd_30_apx > ",div[6]," THEN '7'
+		                ELSE 'X'
+		                END AS bin
+		                FROM rsegs_df",sep="")
+  rsegs_df <-fn_sqldf_sf(bins_sql)  
+  
+  #join rseg geometry data 
   if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
     rsegs_df <- sqldf('SELECT a.*, b.geom
                        FROM rsegs_df as a
@@ -1062,19 +1099,39 @@ for (i in 1:nrow(caseStudies_df)) {
   
   
   map <- ggplot(rsegs_bbox) + geom_sf() + 
-    geom_sf(data = rsegs_df, mapping = aes(fill = WA_mgd_30_apx)) +
-    scale_fill_gradient(low = "red", high = "green") +
+    geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
+    scale_fill_manual(values = c("firebrick2","darkorange","yellow",
+                                 "white", "yellowgreen", "green3", "dodgerblue"),
+                      breaks = seq(1:7),
+                      labels = map_labs,
+                      limits = as.factor(seq(1:7)),
+                      name = "WA for L30 (mgd)") +
+    # scale_fill_manual(values = rivmap_colors, #from config
+    #                     breaks = rivbreaks,
+    #                     labels = rivmap_labs,
+    #                     limits = as.factor(rivbreaks),
+    #                     name = rseg_leg_title)
     # geom_sf(data = nhd$flowline, 
     #         inherit.aes=FALSE, color= "dodgerblue", 
     #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
     #         show.legend=FALSE) + 
     # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
-    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 2) +
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 8) +
     ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
+    theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
-  #plot(map)
+  plot(map)
   
   assign(paste0('map', i), map, envir = globalenv())
+  
+  #save image of map
+  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", caseStudies_df$riverseg[i], ".png", sep="")
+  ggsave(
+    filename = WAmapfilename[i],
+    plot = map,
+    width = 25,
+    height = 20)
+  
 }
 
 ```
