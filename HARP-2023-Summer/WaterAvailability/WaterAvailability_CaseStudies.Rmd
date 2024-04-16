@@ -585,6 +585,19 @@ for (i in 1:nrow(metric_data)) {
 }
 ```
 
+```{r Add Qavailable to DataFrame, echo = FALSE}
+#add Qavailable for each L30 and L90 to the metric dataframe 
+# First, need to evaluate the MIF
+metric_data$l30_Qout_mif <- mif_coef*metric_data$l30_Qout_base
+metric_data$l90_Qout_mif <- mif_coef*metric_data$l90_Qout_base
+# Now, calculate Qavailable 
+# Qavailable = Qdemand - MIF*Qbaseline
+metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - metric_data$l30_Qout_mif), digits = 3)
+metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - metric_data$l90_Qout_mif), digits = 3)
+
+
+```
+
 ```{r Calculate Water Availability, echo = FALSE, message=FALSE, warning=FALSE}
 
 ## Reminder: Perform unit conversions when plugging values into WA equation 
@@ -593,32 +606,46 @@ for (i in 1:nrow(metric_data)) {
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l30_Qout_base / 1.547) + 
+  metric_data$Qavailable_30_cfs / 1.547 + 
   (metric_data$SminL30mg_apx_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l90_Qout_base / 1.547) + 
+  metric_data$Qavailable_90_cfs / 1.547 + 
   (metric_data$SminL30mg_apx_total / 90), digits = 3)
 
 metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l30_Qout_base / 1.547) + 
+  metric_data$Qavailable_30_cfs / 1.547 + 
   (metric_data$SminL30mg_nex_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l90_Qout_base / 1.547) + 
+  metric_data$Qavailable_90_cfs / 1.547 + 
   (metric_data$SminL90mg_nex_total / 90), digits = 3)
 
+# save all these values to REST
+for (i in 1:nrow(metric_data)) {
+  model_metrics <- metric_data[i,]
+  pid = model_metrics$pid 
+  # GETTING SCENARIO PROPERTY FROM VA HYDRO
+  sceninfo <- list(
+    varkey = 'om_scenario',
+    propname = demand_scenario,
+    featureid = pid,
+    entity_type = "dh_properties",
+    bundle = "dh_properties"
+  )
+  scenprop <- RomProperty$new( ds, sceninfo, TRUE)
+  # Warn PROPERTY IF IT IS NOT YET CREATED
+  if (is.na(scenprop$pid) | is.null(scenprop$pid) ) {
+    message("Cannot find run data for ",model_metrics$propname, "scenario", demand_scenario )
+  }
+  
+  # Post l30 available
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qavailable_30_mgd', model_metrics$Qavailable_30_cfs / 1.547, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qavailable_90_mgd', model_metrics$Qavailable_90_cfs / 1.547, ds)
+}
 
 ```
 
-```{r Add Qavailable to DataFrame, echo = FALSE}
-#add Qavailable for each L30 and L90 to the metric dataframe 
-# Qavailable = Qdemand - MIF*Qbaseline
-metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - mif_coef*metric_data$l30_Qout_base), digits = 3)
-metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - mif_coef*metric_data$l90_Qout_base), digits = 3)
-
-
-```
 
 ```{r Smin Comparison Check, echo=FALSE, message=FALSE}
 #for highlighting rows which current Smin comparison method is flawed 
@@ -721,6 +748,18 @@ for (i in 1:nrow(caseStudies_df)) {
 <!---BLOCK_LANDSCAPE_START--->
 
 # Water Availability Equation:
+## Generalized form:
+
+Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL}/CPL$ ; Where:
+* $CPL$ = critical period length, such as 30 days, 90 days, 7 days, etc.
+* $WA_{CPL}$ = mean rate of available water remaining during critical period
+* $Q_{LCPLdem}$ = L90 simulated for a given demand scenario 
+* $Q_{LCPLbase})$ = The L90 simulated in the zero demand scenario (with the same meterology).
+* $S_{minCPL}$ = minimum storage simulated during the L90 period in the demand scenario.
+* $PoF$ = % of flow that must remain in stream
+* Note: $(PoF * Q_{LCPLbase})$ could be rewritted as $Q_{mif}$, where $Q_{mif}$ = minimum instream flow (if mif is NOT a PoF, and is knowable in a single period mean numeric form)
+
+## Abbreviated Form:
 ## WA_cpl = Qdemand_cpl - MIF*Qbase_cpl + Smin_cpl/CPL
 ### Where CPL = critical period length 
 
@@ -744,15 +783,15 @@ df_WA <- sqldf("SELECT a.* FROM df_WA as a
 
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
-                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
-                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
-                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
-                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
+                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 2),
+                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 2),
+                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 1),
+                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 1),
+                     l30_Qout_mif = round((df_WA$l30_Qout_mif), digits = 1),
                      Qavailable_30_cfs = df_WA$Qavailable_30_cfs,
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
-                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 1),
+                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 1),
+                     l90_Qout_mif = round((df_WA$l90_Qout_mif), digits = 1),
                      Qavailable_90_cfs = df_WA$Qavailable_90_cfs,
                      SminL30mg_apx_total = df_WA$SminL30mg_apx_total,
                      SminL30mg_nex_total = df_WA$SminL30mg_nex_total,
@@ -907,11 +946,11 @@ for (i in 1:nrow(caseStudies_df)) {
                       ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
                       l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
                       l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
-                      l30_Qout_mif = round((csws_df$l30_Qout_base*mif_coef), digits = 3),
+                      l30_Qout_mif = round((csws_df$l30_Qout_mif), digits = 3),
                       Qavailable_30_cfs = csws_df$Qavailable_30_cfs,
                       l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
                       l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
-                      l90_Qout_mif = round((csws_df$l90_Qout_base*mif_coef), digits = 3),
+                      l90_Qout_mif = round((csws_df$l90_Qout_mif), digits = 3),
                       Qavailable_90_cfs = csws_df$Qavailable_90_cfs,
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
