@@ -13,6 +13,7 @@ params:
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
   write_Qavailable: FALSE
+  write_tables: ["local", "github"]
 editor_options: 
   chunk_output_type: console
 ---
@@ -997,16 +998,26 @@ for (i in 1:nrow(caseStudies_df)) {
   #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
   assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
-  write.csv(table_caseStudyWshed, paste0(export_path, 
-                                         'CaseStudies_table6.', i, '_CaseStudyWshed_', 
-                                         table_caseStudies$Riverseg[i], '_', 
-                                         demand_scenario, '_', baseline_scenario, 
-                                         '_', mif_coef, '.csv')) #write table
+  
+  if ("local" %in% write_tables) {
+    write.csv(table_caseStudyWshed, paste0(export_path, 
+                                           'CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                                           table_caseStudies$Riverseg[i], '_', 
+                                           demand_scenario, '_', baseline_scenario, 
+                                           '_', mif_coef, '.csv')) #write table locally
+  }
+  
+  if ("github" %in% write_tables) {
+    write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+  }
+  
+  
   flextable::save_as_image(ftable_csws, path = paste0(export_path, 
                                                       'CaseStudies_table6.', i, '_CaseStudyWsheds_',
                                                       table_caseStudies$Riverseg[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
-                                                      '_', mif_coef, '.png')) #save image of flextable
+                                                      '_', mif_coef, '.png')) #save image of flextable locally
 }
 
 
@@ -1077,8 +1088,8 @@ for (i in 1:nrow(caseStudies_df)) {
   #custom bins
   div <- c(0,10,50,100,500,1000,10000)
   
-  map_labs <- c(" <= 0", #less than or equal to first value in pct vector
-                 "0 to 10", #labeling the ranges between each value from pct vector 
+  map_labs <- c(" <= 0", 
+                 "0 to 10", 
                  "10 to 50",
                  "50 to 100",
                  "100 to 500",
@@ -1128,8 +1139,8 @@ for (i in 1:nrow(caseStudies_df)) {
   
   map <- ggplot(rsegs_bbox) + geom_sf() + 
     geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
-    scale_fill_manual(values = c("firebrick2","darkorange","yellow",
-                                 "white", "yellowgreen", "green3", "dodgerblue"),
+    scale_fill_manual(values = c("firebrick2","darkorange",
+                                 "white", "cadetblue1", "deepskyblue", "dodgerblue3", "blue"),
                       breaks = seq(1:7),
                       labels = map_labs,
                       limits = as.factor(seq(1:7)),
@@ -1176,24 +1187,53 @@ plot(map6)
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
-```{r Write Tables as CSVs, echo=FALSE}
-
-write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
+```{r Write CSVs Locally, echo=FALSE}
+#Writing locally to location of export_path
+if ("local" %in% write_tables) {
+  write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
-write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
-write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  }
 
 ```
+
+```{r Write CSVs to GitHub, echo=FALSE}
+#Writng to github using github_location
+if ("github" %in% write_tables) {
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table1_WaterAvailabilityEqn_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table2_SminCompare_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table3_SminError_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4_SminUpdate_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table5_CaseStudies_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+}
+
+
+### need to implement this for case study watershed tables in the loop
+```
+
+
 
 ```{r Save Tables as Images, echo=FALSE}
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
