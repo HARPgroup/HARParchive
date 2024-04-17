@@ -12,6 +12,8 @@ params:
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
+  write_Qavailable: FALSE
+  write_tables: ["local", "github"]
 editor_options: 
   chunk_output_type: console
 ---
@@ -28,11 +30,24 @@ library(officer)
 library(jsonlite)
 library(ggplot2)
 library(IHA)
+library(nhdplusTools)
+library(arcpullr)
+library(ggrepel)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 ds <- RomDataSource$new(site, rest_uname)
 ds$get_token(rest_pw)
+
+github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
+github_uri <- paste0(github_base_uri, "/HARParchive/master")
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE)
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
 
 options(scipen = 999) #disable scientific notation
 
@@ -157,10 +172,15 @@ baseline_data <- om_vahydro_metric_grid(
   base_url = paste(site,'entity-model-prop-level-export',sep="/"),
   ds = ds
 )
+
+#Get riversegs with geometry for mapping 
+rsegs_geom_data <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE)
+rsegs_geom_data$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rsegs_geom_data$hydrocode)
+rsegs_geom_data <- rsegs_geom_data[ rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]!="" & !is.na(rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 ```
 
-```{r Get rid of waterSupplyElements from Storage data, echo=FALSE, message=FALSE, warning=FALSE}
-nrow_all <- nrow(storage_data)
+```{r Get Impoundment Model, Class & Elid, echo=FALSE, message=FALSE, warning=FALSE}
+#nrow_all <- nrow(storage_data)
 
 storage_data$object_class <- NA
 storage_data$elid <- NA
@@ -188,11 +208,13 @@ for (i in 1:nrow(storage_data)) {
   storage_data$elid[i] <- elid$propvalue
 }
 
-storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
+## Currently Disabled -- re-implementing WSEs
+#Remove waterSupplyElement objects
+# storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
+# nrow_noWSE <- nrow(storage_data)
+# nrow_diff <- nrow_all - nrow_noWSE
+# print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
 
-nrow_noWSE <- nrow(storage_data)
-
-nrow_diff <- nrow_all - nrow_noWSE
 
 ## Alternative model retrieval, takes much longer
   # #Get model info using ds$auth_read to authenticate and grab model info+data
@@ -203,7 +225,6 @@ nrow_diff <- nrow_all - nrow_noWSE
   # object_class <- model_info[[1]]$object_class
   # storage_data$object_class[i] <- object_class
 
-print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
 ```
 
 ```{r Smin Calculations, include=FALSE, echo=FALSE}
@@ -215,6 +236,7 @@ storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
 storage_data$min_in_pd90 <- NA 
 storage_data$outside_pd30 <- NA #empty columns to hold numeric values
 storage_data$outside_pd90 <- NA 
+storage_data$imp_off <- NA
 
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
@@ -235,33 +257,54 @@ for (i in 1:nrow(storage_data)) {
   dat <- window(dat, start = sdate, end = edate);
   mode(dat) <- 'numeric' 
   
-  ## Dsiabled -- Sees Lake Anna as without active impoundment 
+
   #Check if impoundment is active
     #2 ways this is done: im_off and imp_enabled 
     #imp_off used in waterSupplyModelNode and hydroImpoundment
     #imp_enabled used in waterSupplyElement
-  imp_off = 0 #default to active impoundment
-  # imp_enabled = TRUE
-
-  if ("imp_off" %in% cols) {
+  
+  #Separate tests for imp_off and imp_enabled 
+  if (storage_data$object_class[i] == "hydroImpoundment" | storage_data$object_class[i] == "waterSupplyModelNode") {
+    imp_off = 0 #default to active impoundment
+    if ("imp_off" %in% cols) {
       imp_off <- as.integer(median(dat$imp_off))
+    }
+    storage_data$imp_off[i] <- imp_off
+    #Message if impoundment is enabled or not 
+    if (imp_off == 0) {
+      paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
+    } else  if (imp_off == 1) {
+      (paste0('imp_off = ', imp_off, ' : Impoundment Disabled'))
+    }
+    
+  } else if (storage_data$object_class[i] == "waterSupplyElement") {
+    # does this have an impoundment sub-comp and is imp_off = 0?
+  # check for local_impoundment, and if so, rename to impoundment for processing
+    if("local_impoundment" %in% cols) {
+      dat$impoundment_use_remain_mg <- dat$local_impoundment_use_remain_mg
+      dat$impoundment_max_usable <- dat$local_impoundment_max_usable
+      dat$impoundment_Qin <- dat$local_impoundment_Qin
+      dat$impoundment_Qout <- dat$local_impoundment_Qout
+      dat$impoundment_demand <- dat$local_impoundment_demand
+      dat$impoundment <- dat$local_impoundment
+      cols <- names(dat)
+    }
+    imp_enabled = FALSE
+    if("impoundment" %in% cols) {
+      imp_enabled = TRUE
+    }
+    
+    if (imp_enabled == TRUE) {
+      storage_data$imp_off[i] <- 0 #Add imp_off val to dataframe based on imp_enabled 
+      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
+    } else if (imp_enabled == FALSE ) {
+      storage_data$imp_off[i] <- 1 #Add imp_off val to dataframe based on imp_enabled 
+      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
+    }
   }
   
-  # if (imp_off == 1) { #check if imp_off exists, if not:
-  #   if("impoundment" %in% cols) {
-  #     imp_enabled = TRUE
-  #     paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
-  #   }
-  # } else if (imp_off == 0) {
-  #   paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
-  # }
-  # 
-  # if (imp_enabled == FALSE & imp_off == 1) {
-  #   paste0('imp_off = ', imp_off, ' and imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
-  # }
-  
-#### Only do Storage calculation if impoundment is active
-  if (imp_off == 0) {
+  #### Only do Storage calculation if impoundment is active
+  if (storage_data$imp_off[i] == 0) {
  
     #Different names for storage and Q values based on object_class:
     if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
@@ -271,21 +314,21 @@ for (i in 1:nrow(storage_data)) {
       dat$Storage <- dat$impoundment_Storage #from waterSupplyModelNode.R: colname = "impoundment_Storage"  
       Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
       
-   # } else if (object_class == "waterSupplyElement") { #disabled waterSupplyElements, too much variation
-    #   
-    #   # Storage col could be a couple different names 
-    #   if("local_impoundment_Storage" %in% cols) {
-    #     storagecol <- "local_impoundment_Storage"
-    #   }
-    #   if("impoundment_Storage" %in% cols) {
-    #     storagecol <- "impoundment_Storage"
-    #   }
-    #   dat$Storage <- dat[,storagecol]
-    #   if ('Qintake' %in% cols) {
-    #     Qcol <- "Qintake" 
-    #   } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
-    #     Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
-    #   }
+   } else if (storage_data$object_class[i] == "waterSupplyElement") {
+
+     # Storage col could be a couple different names
+     if("local_impoundment_Storage" %in% cols) {
+       storagecol <- "local_impoundment_Storage"
+     }
+     if("impoundment_Storage" %in% cols) {
+       storagecol <- "impoundment_Storage"
+     }
+     dat$Storage <- dat[,storagecol]
+     if ('Qintake' %in% cols) {
+       Qcol <- "Qintake"
+     } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
+       Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
+     }
       
     } else { #object_class is something else
       dat$Storage <- dat$impoundment_Storage
@@ -572,6 +615,19 @@ for (i in 1:nrow(metric_data)) {
 }
 ```
 
+```{r Add Qavailable to DataFrame, echo = FALSE}
+#add Qavailable for each L30 and L90 to the metric dataframe 
+# First, need to evaluate the MIF
+metric_data$l30_Qout_mif <- mif_coef*metric_data$l30_Qout_base
+metric_data$l90_Qout_mif <- mif_coef*metric_data$l90_Qout_base
+# Now, calculate Qavailable 
+# Qavailable = Qdemand - MIF*Qbaseline
+metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - metric_data$l30_Qout_mif), digits = 3)
+metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - metric_data$l90_Qout_mif), digits = 3)
+
+
+```
+
 ```{r Calculate Water Availability, echo = FALSE, message=FALSE, warning=FALSE}
 
 ## Reminder: Perform unit conversions when plugging values into WA equation 
@@ -580,32 +636,50 @@ for (i in 1:nrow(metric_data)) {
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l30_Qout_base / 1.547) + 
+  metric_data$Qavailable_30_cfs / 1.547 + 
   (metric_data$SminL30mg_apx_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l90_Qout_base / 1.547) + 
+  metric_data$Qavailable_90_cfs / 1.547 + 
   (metric_data$SminL30mg_apx_total / 90), digits = 3)
 
 metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l30_Qout_base / 1.547) + 
+  metric_data$Qavailable_30_cfs / 1.547 + 
   (metric_data$SminL30mg_nex_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
-  mif_coef*(metric_data$l90_Qout_base / 1.547) + 
+  metric_data$Qavailable_90_cfs / 1.547 + 
   (metric_data$SminL90mg_nex_total / 90), digits = 3)
 
+# save all these values to REST
+if (write_Qavailable == TRUE) {
+  for (i in 1:nrow(metric_data)) {
+    model_metrics <- metric_data[i,]
+    pid = model_metrics$pid 
+    # GETTING SCENARIO PROPERTY FROM VA HYDRO
+    sceninfo <- list(
+      varkey = 'om_scenario',
+      propname = demand_scenario,
+      featureid = pid,
+      entity_type = "dh_properties",
+      bundle = "dh_properties"
+    )
+    scenprop <- RomProperty$new( ds, sceninfo, TRUE)
+    # Warn PROPERTY IF IT IS NOT YET CREATED
+    if (is.na(scenprop$pid) | is.null(scenprop$pid) ) {
+      message("Cannot find run data for ",model_metrics$propname, "scenario", demand_scenario )
+    }
+  
+  # Post l30 available
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qavailable_30_mgd', model_metrics$Qavailable_30_cfs / 1.547, ds)
+  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qavailable_90_mgd', model_metrics$Qavailable_90_cfs / 1.547, ds)
+  
+  }
+  
+}
 
 ```
 
-```{r Add Qavailable to DataFrame, echo = FALSE}
-#add Qavailable for each L30 and L90 to the metric dataframe 
-# Qavailable = Qdemand - MIF*Qbaseline
-metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - mif_coef*metric_data$l30_Qout_base), digits = 3)
-metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - mif_coef*metric_data$l90_Qout_base), digits = 3)
-
-
-```
 
 ```{r Smin Comparison Check, echo=FALSE, message=FALSE}
 #for highlighting rows which current Smin comparison method is flawed 
@@ -650,18 +724,20 @@ for (i in 1:length(outlet_list)) {
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
   if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
-    ups_segs <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i])
-  if (nrow(ups_segs) > 0) {
+    ups_segs <- fn_extract_basin(rsegs, caseStudies_df$riverseg[i]) #always extract using rsegs as full riverseg list to get upstream basins
+    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,] #get metric data for upstream segments 
+  if (nrow(ups_data) > 0) {
   }
   
   } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_segs <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
+    ups_segs <- fn_extract_basin(rsegs, ds_seg_carv) #get upstream segments from that downstream seg 
+    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,]
   }
-  ups_segs <- rbind(ups_segs[nrow(ups_segs),],ups_segs[1:(nrow(ups_segs)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
-  ups_segs <- ups_segs[nrow(ups_segs):1,]#reverse order to get upstream to downstream
-  ups_segs <- ups_segs[!duplicated(ups_segs), ] #remove duplicate rows
-  assign(paste0('ups_df_', i), ups_segs)
+  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
+  ups_data <- ups_data[nrow(ups_data):1,]#reverse order to get upstream to downstream
+  ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
+  assign(paste0('ups_df_', i), ups_data)
 }
 
 #get downstream segments
@@ -669,14 +745,14 @@ ds_df <- data.frame()
 
 #get 3 segments downstream of each case study segment
 for (i in 1:nrow(caseStudies_df)) { 
-  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg)
+  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], rsegs$riverseg)
   ds_segs <- c(ds_seg1)
   if (ds_seg1 != 'NA') {
-    ds_seg2 <- fn_downstream(ds_seg1, metric_data$riverseg)
+    ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2)
   }
   if (ds_seg2 != 'NA') {
-    ds_seg3 <- fn_downstream(ds_seg2, metric_data$riverseg)
+    ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
@@ -708,6 +784,18 @@ for (i in 1:nrow(caseStudies_df)) {
 <!---BLOCK_LANDSCAPE_START--->
 
 # Water Availability Equation:
+## Generalized form:
+
+Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL}/CPL$ ; Where:
+* $CPL$ = critical period length, such as 30 days, 90 days, 7 days, etc.
+* $WA_{CPL}$ = mean rate of available water remaining during critical period
+* $Q_{LCPLdem}$ = L90 simulated for a given demand scenario 
+* $Q_{LCPLbase})$ = The L90 simulated in the zero demand scenario (with the same meteorology).
+* $S_{minCPL}$ = minimum storage simulated during the L90 period in the demand scenario.
+* $PoF$ = % of flow that must remain in stream
+* Note: $(PoF * Q_{LCPLbase})$ could be rewritted as $Q_{mif}$, where $Q_{mif}$ = minimum instream flow (if mif is NOT a PoF, and is knowable in a single period mean numeric form)
+
+## Abbreviated Form:
 ## WA_cpl = Qdemand_cpl - MIF*Qbase_cpl + Smin_cpl/CPL
 ### Where CPL = critical period length 
 
@@ -731,15 +819,15 @@ df_WA <- sqldf("SELECT a.* FROM df_WA as a
 
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
-                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 3),
-                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 3),
-                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 3),
-                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 3),
-                     l30_Qout_mif = round((df_WA$l30_Qout_base*mif_coef), digits = 3),
+                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 2),
+                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 2),
+                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 1),
+                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 1),
+                     l30_Qout_mif = round((df_WA$l30_Qout_mif), digits = 1),
                      Qavailable_30_cfs = df_WA$Qavailable_30_cfs,
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 3),
-                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 3),
-                     l90_Qout_mif = round((df_WA$l90_Qout_base*mif_coef), digits = 3),
+                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 1),
+                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 1),
+                     l90_Qout_mif = round((df_WA$l90_Qout_mif), digits = 1),
                      Qavailable_90_cfs = df_WA$Qavailable_90_cfs,
                      SminL30mg_apx_total = df_WA$SminL30mg_apx_total,
                      SminL30mg_nex_total = df_WA$SminL30mg_nex_total,
@@ -894,11 +982,11 @@ for (i in 1:nrow(caseStudies_df)) {
                       ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
                       l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
                       l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
-                      l30_Qout_mif = round((csws_df$l30_Qout_base*mif_coef), digits = 3),
+                      l30_Qout_mif = round((csws_df$l30_Qout_mif), digits = 3),
                       Qavailable_30_cfs = csws_df$Qavailable_30_cfs,
                       l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
                       l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
-                      l90_Qout_mif = round((csws_df$l90_Qout_base*mif_coef), digits = 3),
+                      l90_Qout_mif = round((csws_df$l90_Qout_mif), digits = 3),
                       Qavailable_90_cfs = csws_df$Qavailable_90_cfs,
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
@@ -910,19 +998,31 @@ for (i in 1:nrow(caseStudies_df)) {
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
   ftable_csws <- flextable(table_caseStudyWshed)
-  ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
+  rownum_cs <- which(csws_df$riverseg == caseStudies_df$riverseg[i]) #highlight case study row
+  ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
+  #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
   assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
-  write.csv(table_caseStudyWshed, paste0(export_path, 
-                                         'CaseStudies_table6.', i, '_CaseStudyWshed_', 
-                                         table_caseStudies$Riverseg[i], '_', 
-                                         demand_scenario, '_', baseline_scenario, 
-                                         '_', mif_coef, '.csv')) #write table
+  
+  if ("local" %in% write_tables) {
+    write.csv(table_caseStudyWshed, paste0(export_path, 
+                                           'CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                                           table_caseStudies$Riverseg[i], '_', 
+                                           demand_scenario, '_', baseline_scenario, 
+                                           '_', mif_coef, '.csv')) #write table locally
+  }
+  
+  if ("github" %in% write_tables) {
+    write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+  }
+  
+  
   flextable::save_as_image(ftable_csws, path = paste0(export_path, 
                                                       'CaseStudies_table6.', i, '_CaseStudyWsheds_',
                                                       table_caseStudies$Riverseg[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
-                                                      '_', mif_coef, '.png')) #save image of flextable
+                                                      '_', mif_coef, '.png')) #save image of flextable locally
 }
 
 
@@ -953,7 +1053,7 @@ for (i in 1:nrow(caseStudies_df)) {
     ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudies_df$riverseg[i], ': ', caseStudyName),
             subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
-  plot30
+  #plot30
   
   assign(paste0('plot30_', i), plot30, envir = globalenv())
   
@@ -966,6 +1066,9 @@ for (i in 1:nrow(caseStudies_df)) {
 }
 
 # knitr::include_graphics(plot30_filename)
+```
+
+```{r}
 plot30_1
 plot30_2
 plot30_3
@@ -974,26 +1077,168 @@ plot30_5
 plot30_6
 ```
 
-<!---BLOCK_LANDSCAPE_STOP--->
 
-```{r Write Tables as CSVs, echo=FALSE}
+# Map 1: Water Availability for L30
 
-write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+```{r Mapping}
+#create spatial object of all rivsersegs to be trimmed
+rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
-write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+#map case study watersheds
+WAmapfilename <- character()
+for (i in 1:nrow(caseStudies_df)) {
 
-write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  rsegs_df <- get(paste0('ups_ds_df_', i))
+  
+  #custom bins
+  div <- c(0,10,50,100,500,1000,10000)
+  
+  map_labs <- c(" <= 0", 
+                 "0 to 10", 
+                 "10 to 50",
+                 "50 to 100",
+                 "100 to 500",
+                 "500 to 1000",
+                 " > 1000")
+  
+  #binning based on water availability
+  # binrange <- range(rsegs_df$WA_mgd_30_apx)
+  # midbin <- mean(binrange)
+  # thirdbin <- midbin + ((binrange[2] - midbin)/2)
+  # firstbin <- midbin - ((binrange[2] - midbin)/2)
+  
+  bins_sql <-  paste("SELECT *,
+	                  CASE WHEN WA_mgd_30_apx <= ",div[1]," THEN '1'
+		                WHEN WA_mgd_30_apx >  ",div[1]," AND WA_mgd_30_apx <= ",div[2]," THEN '2'
+		                WHEN WA_mgd_30_apx >  ",div[2]," AND WA_mgd_30_apx <= ",div[3]," THEN '3'
+		                WHEN WA_mgd_30_apx >  ",div[3]," AND WA_mgd_30_apx <= ",div[4]," THEN '4'
+		                WHEN WA_mgd_30_apx >  ",div[4]," AND WA_mgd_30_apx <= ",div[5]," THEN '5'
+		                WHEN WA_mgd_30_apx >  ",div[5]," AND WA_mgd_30_apx <= ",div[6]," THEN '6'
+		                WHEN WA_mgd_30_apx > ",div[6]," THEN '7'
+		                ELSE 'X'
+		                END AS bin
+		                FROM rsegs_df",sep="")
+  rsegs_df <-fn_sqldf_sf(bins_sql)  
+  
+  #join rseg geometry data 
+  if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
+    rsegs_df <- sqldf('SELECT a.*, b.geom
+                       FROM rsegs_df as a
+                       LEFT JOIN rsegs_geom_data as b
+                       ON (a.riverseg = b.riverseg)')
+  }
 
-write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
-write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  rsegs_df <- sf::st_as_sf(rsegs_df, wkt=fn_geoCol(rsegs_df), crs=4326) #convert to sf
+  rsegs_df <- fn_centroid_coords(rsegs_df) #add centroid coordinates for labeling 
+  
+  #create bbox around rsegs of interest 
+  sf_use_s2(FALSE) # switch off Spherical geometry
+  bbox_sfc <- st_buffer(st_as_sfc(st_bbox(rsegs_df)), .02) #slightly past basin
+  bbox <- st_bbox(bbox_sfc)
+  bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
+  
+  #nhd <- nhdplusTools::plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  
+  rsegs_bbox <- st_filter(rsegs_all_sf, bbox_sfc)
+  
+  
+  map <- ggplot(rsegs_bbox) + geom_sf() + 
+    geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
+    scale_fill_manual(values = c("firebrick2","darkorange",
+                                 "white", "cadetblue1", "deepskyblue", "dodgerblue3", "blue"),
+                      breaks = seq(1:7),
+                      labels = map_labs,
+                      limits = as.factor(seq(1:7)),
+                      name = "WA for L30 (mgd)") +
+    # scale_fill_manual(values = rivmap_colors, #from config
+    #                     breaks = rivbreaks,
+    #                     labels = rivmap_labs,
+    #                     limits = as.factor(rivbreaks),
+    #                     name = rseg_leg_title)
+    # geom_sf(data = nhd$flowline, 
+    #         inherit.aes=FALSE, color= "dodgerblue", 
+    #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
+    #         show.legend=FALSE) + 
+    # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 8) +
+    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
+    theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
+    coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
+  plot(map)
+  
+  assign(paste0('map', i), map, envir = globalenv())
+  
+  #save image of map
+  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", caseStudies_df$riverseg[i], ".png", sep="")
+  ggsave(
+    filename = WAmapfilename[i],
+    plot = map,
+    width = 25,
+    height = 20)
+  
+}
 
 ```
+
+```{r}
+plot(map1)
+plot(map2)
+plot(map3)
+plot(map4)
+plot(map5)
+plot(map6)
+```
+
+
+<!---BLOCK_LANDSCAPE_STOP--->
+
+```{r Write CSVs Locally, echo=FALSE}
+#Writing locally to location of export_path
+if ("local" %in% write_tables) {
+  write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+  write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+
+  }
+
+```
+
+```{r Write CSVs to GitHub, echo=FALSE}
+#Writng to github using github_location
+if ("github" %in% write_tables) {
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table1_WaterAvailabilityEqn_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table2_SminCompare_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table3_SminError_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4_SminUpdate_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table5_CaseStudies_', 
+                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  
+}
+
+
+### need to implement this for case study watershed tables in the loop
+```
+
+
 
 ```{r Save Tables as Images, echo=FALSE}
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
