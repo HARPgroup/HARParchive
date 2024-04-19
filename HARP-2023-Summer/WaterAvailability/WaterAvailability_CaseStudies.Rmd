@@ -19,7 +19,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.cap = TRUE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.cap = TRUE) #set chunk options
 
 library(data.table)
 library(hydrotools)
@@ -117,7 +117,7 @@ Column2
 - Jennings Randolph Lake 
 
 
-```{r Pull Data, echo = FALSE, message=FALSE, warning=FALSE}
+```{r Pull Data}
 #Get all riversegments for reference
 rsegs <- ds$auth_read(uri = paste0(site,"/vahydro_riversegs_nogeom_export")) 
                       
@@ -179,7 +179,19 @@ rsegs_geom_data$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rse
 rsegs_geom_data <- rsegs_geom_data[ rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]!="" & !is.na(rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 ```
 
-```{r Get Impoundment Model, Class & Elid, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Join Metric Data to Full Segment List}
+# metric_data_sql <- sqldf("SELECT a.*, b.riverseg
+#                               FROM metric_data AS a
+#                               LEFT JOIN rsegs AS b
+#                               WHERE (a. riverseg = b.riverseg) ") #results in 569 rows
+
+metric_data <- merge(x = metric_data, y = rsegs, 
+                           by.x="riverseg", by.y="riverseg", all=T) #results in 701 rows
+#merge() used for full joins in Dataframe_Generator.Rmd
+```
+
+
+```{r Get Object Model, Class & Elid}
 #nrow_all <- nrow(storage_data)
 
 storage_data$object_class <- NA
@@ -590,7 +602,7 @@ for (i in 1:nrow(metric_data)) {
   #in tidal basins or tidally influenced rivers.
   if(!grepl("0000_0000",metric_data$riverseg[i])){
      #Get upstream segments only for riverseg[i] in metric_data
-     ups_imp <- fn_extract_basin(rsegs,metric_data$riverseg[i])
+     ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i])
   }else{
     #Skip tiday, bay, and SR ends segments
     print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
@@ -710,7 +722,7 @@ for (i in 1:nrow(storage_data)) {
 ```
 
 
-```{r Processing for Case Study Wsheds, echo=FALSE}
+```{r Processing for Case Study Wsheds}
 caseStudies_df <- data.frame()
 
 for (i in 1:length(outlet_list)) {
@@ -718,24 +730,17 @@ for (i in 1:length(outlet_list)) {
   caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
 
-#add special case for Carvins Cove 
-  #carvins is a headwater, so we need to pull upstream segments from one seg downstream from carvins 
 
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
-  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
-    ups_segs <- fn_extract_basin(rsegs, caseStudies_df$riverseg[i]) #always extract using rsegs as full riverseg list to get upstream basins
-    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,] #get metric data for upstream segments 
-  if (nrow(ups_data) > 0) {
-  }
-  
+  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #for segments not Carvins
+    ups_data <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i]) 
   } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_segs <- fn_extract_basin(rsegs, ds_seg_carv) #get upstream segments from that downstream seg 
-    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,]
+    ups_data <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
   }
-  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
-  ups_data <- ups_data[nrow(ups_data):1,]#reverse order to get upstream to downstream
+  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top to have df ordered ds to us
+  ups_data <- ups_data[nrow(ups_data):1,] #reverse order to get upstream to downstream
   ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
   assign(paste0('ups_df_', i), ups_data)
 }
@@ -751,9 +756,11 @@ for (i in 1:nrow(caseStudies_df)) {
     ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2)
   }
-  if (ds_seg2 != 'NA') {
-    ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
-    ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
+  if (exists("ds_seg2") == TRUE) { 
+    if (ds_seg2 != 'NA') {
+      ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
+      ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
+    }
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
   ds_df <- ds_df[!duplicated(ds_df), ]
@@ -773,6 +780,7 @@ for (i in 1:nrow(caseStudies_df)) {
   }
   
   assign(paste0('ds_df_', i), ds_df)
+  rm(list = ls(pattern = 'ds_seg'))
 }
 
 #combine upstream and downstream dataframes
@@ -1077,7 +1085,6 @@ plot30_5
 plot30_6
 ```
 
-
 # Map 1: Water Availability for L30
 
 ```{r Mapping}
@@ -1180,7 +1187,7 @@ plot(map5)
 plot(map6)
 ```
 
-```{r Basemap Data Retrieval & Processing for fn_mapgen(), echo=FALSE}
+```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
 #move these to parameters when working 
 map_style <- "custom"
 crs_default <- 4326
@@ -1246,7 +1253,7 @@ st_crs(counties) <- crs_default
 st_crs(roads) <- crs_default
 ```
 
-```{r Configure fn_mapgen(), echo=FALSE}
+```{r Configure fn_mapgen(), eval=FALSE}
 rivseg_pct_vect <- c(-20,-10,-2,2,10,20,500) 
 #^last value should be higher than any % difference value expected, since classification is done using <=
 rivbreaks <- seq(1:length(rivseg_pct_vect))
@@ -1264,7 +1271,7 @@ rivmap_labs <- c(" <= 0",
                 " > 1000")
 ```
 
-```{r Labeling for fn_mapgen(), echo=FALSE}
+```{r Labeling for fn_mapgen(), eval=FALSE}
 nhdlabs <- fn_nhd_labs(data=nhd)
 rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
