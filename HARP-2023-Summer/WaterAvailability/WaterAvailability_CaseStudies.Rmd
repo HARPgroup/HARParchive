@@ -19,7 +19,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.cap = TRUE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.cap = TRUE) #set chunk options
 
 library(data.table)
 library(hydrotools)
@@ -117,7 +117,7 @@ Column2
 - Jennings Randolph Lake 
 
 
-```{r Pull Data, echo = FALSE, message=FALSE, warning=FALSE}
+```{r Pull Data}
 #Get all riversegments for reference
 rsegs <- ds$auth_read(uri = paste0(site,"/vahydro_riversegs_nogeom_export")) 
                       
@@ -179,7 +179,13 @@ rsegs_geom_data$riverseg <- gsub(pattern="vahydrosw_wshed_", replacement="", rse
 rsegs_geom_data <- rsegs_geom_data[ rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]!="" & !is.na(rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]) ,] #finds geom column & omits rsegs with blank or NA geometry
 ```
 
-```{r Get Impoundment Model, Class & Elid, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Join Metric Data to Full Segment List}
+metric_data <- merge(x = metric_data, y = rsegs, 
+                           by.x="riverseg", by.y="riverseg", all=T) #results in 701 rows
+#merge() used for full joins in Dataframe_Generator.Rmd
+```
+
+```{r Get Object Model, Class & Elid}
 #nrow_all <- nrow(storage_data)
 
 storage_data$object_class <- NA
@@ -208,14 +214,6 @@ for (i in 1:nrow(storage_data)) {
   storage_data$elid[i] <- elid$propvalue
 }
 
-## Currently Disabled -- re-implementing WSEs
-#Remove waterSupplyElement objects
-# storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
-# nrow_noWSE <- nrow(storage_data)
-# nrow_diff <- nrow_all - nrow_noWSE
-# print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
-
-
 ## Alternative model retrieval, takes much longer
   # #Get model info using ds$auth_read to authenticate and grab model info+data
   # obj_url <- paste(json_obj_url, model$pid, sep="/")
@@ -227,7 +225,7 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-```{r Smin Calculations, include=FALSE, echo=FALSE}
+```{r Smin Calculations}
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
 storage_data$SminL30mg_apx <- NA
@@ -396,14 +394,6 @@ for (i in 1:nrow(storage_data)) {
     l30pd_end <- as.POSIXct(row.names(l30yr_df[rownum_end30, ]))
     l90pd_end <- as.POSIXct(row.names(l90yr_df[rownum_end90, ]))
     
-    #end rownum cant be greater than length of data 
-    # if (rownum_end90 > nrow(l90yr_df)) {
-    #   rownum_end90 = nrow(l90yr_df)
-    # }
-    # if (rownum_end30 > nrow(l30yr_df)) {
-    #   rownum_end30 = nrow(l30yr_df)
-    # }
-    
     #zoos for the drought periods 
     l30pd_flowz <- window(dat, start = l30pd_start, end = l30pd_end)
     l90pd_flowz <- window(dat, start = l90pd_start, end = l90pd_end)
@@ -480,14 +470,14 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-```{r Smin Method Comparison, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Smin Method Comparison}
 #Compare approx and near exact Smin values. Approx should always be <= near exact 
 storage_data$apx_lessthan_nex_30 <- storage_data$SminL30mg_apx <= storage_data$SminL30mg_nex
 storage_data$apx_lessthan_nex_90 <- storage_data$SminL90mg_apx <= storage_data$SminL90mg_nex
   
 ```
 
-```{r Sum Storage by Riverseg, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Sum Storage by Riverseg}
 #Approximate Smin Values 
 
 #Sum approx SminL30 by riverseg
@@ -540,7 +530,7 @@ storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_local, b.SminL90mg_nex_loca
                               WHERE (a. riverseg = b.riverseg) ")
 ```
 
-```{r Join Storage + Metric + Baseline Data, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Join Storage + Metric + Baseline Data}
 #Storage data by riverseg in storage_byseg 
 #Metric data by riverseg in metric_data 
 
@@ -564,7 +554,7 @@ storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
 
 ```
 
-```{r Link Upstream Impoundments, echo = FALSE, message=FALSE, warning=FALSE}
+```{r Link Upstream Storage}
 #Empty columns that will hold storage
 metric_data$SminL30mg_apx_ups <- NA 
 metric_data$SminL90mg_apx_ups <- NA 
@@ -590,7 +580,7 @@ for (i in 1:nrow(metric_data)) {
   #in tidal basins or tidally influenced rivers.
   if(!grepl("0000_0000",metric_data$riverseg[i])){
      #Get upstream segments only for riverseg[i] in metric_data
-     ups_imp <- fn_extract_basin(rsegs,metric_data$riverseg[i])
+     ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i])
   }else{
     #Skip tiday, bay, and SR ends segments
     print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
@@ -615,7 +605,7 @@ for (i in 1:nrow(metric_data)) {
 }
 ```
 
-```{r Add Qavailable to DataFrame, echo = FALSE}
+```{r Add Qavailable to DataFrame}
 #add Qavailable for each L30 and L90 to the metric dataframe 
 # First, need to evaluate the MIF
 metric_data$l30_Qout_mif <- mif_coef*metric_data$l30_Qout_base
@@ -624,15 +614,11 @@ metric_data$l90_Qout_mif <- mif_coef*metric_data$l90_Qout_base
 # Qavailable = Qdemand - MIF*Qbaseline
 metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - metric_data$l30_Qout_mif), digits = 3)
 metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - metric_data$l90_Qout_mif), digits = 3)
-
-
 ```
 
-```{r Calculate Water Availability, echo = FALSE, message=FALSE, warning=FALSE}
-
+```{r Calculate Water Availability}
 ## Reminder: Perform unit conversions when plugging values into WA equation 
 # mgd = cfs / 1.547
-
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
@@ -681,7 +667,7 @@ if (write_Qavailable == TRUE) {
 ```
 
 
-```{r Smin Comparison Check, echo=FALSE, message=FALSE}
+```{r Smin Comparison Check}
 #for highlighting rows which current Smin comparison method is flawed 
 #highlight when TRUE and/or 0 accompanies values that are not equal 
 storage_data$unequal_30 <- NA
@@ -710,7 +696,7 @@ for (i in 1:nrow(storage_data)) {
 ```
 
 
-```{r Processing for Case Study Wsheds, echo=FALSE}
+```{r Processing for Case Study Wsheds}
 caseStudies_df <- data.frame()
 
 for (i in 1:length(outlet_list)) {
@@ -718,24 +704,17 @@ for (i in 1:length(outlet_list)) {
   caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
 
-#add special case for Carvins Cove 
-  #carvins is a headwater, so we need to pull upstream segments from one seg downstream from carvins 
 
 #get upstream segments
 for (i in 1:nrow(caseStudies_df)) { 
-  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #don't do normal upstream process for carvins cove 
-    ups_segs <- fn_extract_basin(rsegs, caseStudies_df$riverseg[i]) #always extract using rsegs as full riverseg list to get upstream basins
-    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,] #get metric data for upstream segments 
-  if (nrow(ups_data) > 0) {
-  }
-  
+  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #for segments not Carvins
+    ups_data <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i]) 
   } else { #carvins special case
     ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_segs <- fn_extract_basin(rsegs, ds_seg_carv) #get upstream segments from that downstream seg 
-    ups_data <- metric_data[metric_data$riverseg %in% ups_segs$riverseg,]
+    ups_data <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
   }
-  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top (outlet) to have df ordered downstream to upstream 
-  ups_data <- ups_data[nrow(ups_data):1,]#reverse order to get upstream to downstream
+  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top to have df ordered ds to us
+  ups_data <- ups_data[nrow(ups_data):1,] #reverse order to get upstream to downstream
   ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
   assign(paste0('ups_df_', i), ups_data)
 }
@@ -751,9 +730,11 @@ for (i in 1:nrow(caseStudies_df)) {
     ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
     ds_segs <- c(ds_seg1, ds_seg2)
   }
-  if (ds_seg2 != 'NA') {
-    ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
-    ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
+  if (exists("ds_seg2") == TRUE) { 
+    if (ds_seg2 != 'NA') {
+      ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
+      ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
+    }
   }
   ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
   ds_df <- ds_df[!duplicated(ds_df), ]
@@ -773,6 +754,7 @@ for (i in 1:nrow(caseStudies_df)) {
   }
   
   assign(paste0('ds_df_', i), ds_df)
+  rm(list = ls(pattern = 'ds_seg'))
 }
 
 #combine upstream and downstream dataframes
@@ -802,7 +784,7 @@ Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL
 
 # Table 1:Water Availability Equation Breakdown
 
-```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 1, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY EQN BREAKDOWN. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #select all segments that have storage locally or upstream (total storage)
@@ -847,7 +829,7 @@ ftable_WA
 
 # Table 2: Smin Method Comparison
 
-```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 2, out.width='100%'}
 title_table_Storage <- paste0('TABLE 2: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
@@ -882,7 +864,7 @@ ftable_Storage
 
 # Table 3: Smin Method Discrepancies
 
-```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 3, out.width='100%'}
 title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #add % differences
@@ -923,7 +905,7 @@ ftable_Smin
 
 # Table 4: Smins that Need to be Updated
 
-```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 4, out.width='100%'}
 
 title_table_update <- paste0('TABLE 4: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
@@ -948,7 +930,7 @@ ftable_update
 
 # Table 5: Case Studies 
 
-```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 5, out.width='100%'}
 title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
@@ -968,7 +950,7 @@ ftable_caseStudies
 
 # Table(s) 6: Case Study Watersheds
 
-```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 6, out.width='100%'}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:nrow(caseStudies_df)) { 
   title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
@@ -1030,7 +1012,7 @@ for (i in 1:nrow(caseStudies_df)) {
 
 # Plot 1: Demand Flow vs Available Flow for L30
 
-```{r Create Plot(s) 1, echo=FALSE}
+```{r Create Plot(s)}
 #plot30_filename <- character()
 
 for (i in 1:nrow(caseStudies_df)) {
@@ -1076,7 +1058,6 @@ plot30_4
 plot30_5
 plot30_6
 ```
-
 
 # Map 1: Water Availability for L30
 
@@ -1180,7 +1161,7 @@ plot(map5)
 plot(map6)
 ```
 
-```{r Basemap Data Retrieval & Processing for fn_mapgen(), echo=FALSE}
+```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
 #move these to parameters when working 
 map_style <- "custom"
 crs_default <- 4326
@@ -1246,7 +1227,7 @@ st_crs(counties) <- crs_default
 st_crs(roads) <- crs_default
 ```
 
-```{r Configure fn_mapgen(), echo=FALSE}
+```{r Configure fn_mapgen(), eval=FALSE}
 rivseg_pct_vect <- c(-20,-10,-2,2,10,20,500) 
 #^last value should be higher than any % difference value expected, since classification is done using <=
 rivbreaks <- seq(1:length(rivseg_pct_vect))
@@ -1264,7 +1245,7 @@ rivmap_labs <- c(" <= 0",
                 " > 1000")
 ```
 
-```{r Labeling for fn_mapgen(), echo=FALSE}
+```{r Labeling for fn_mapgen(), eval=FALSE}
 nhdlabs <- fn_nhd_labs(data=nhd)
 rm(maplabs)
 maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
@@ -1347,7 +1328,7 @@ for (i in 1:nrow(caseStudies_df)) {
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
-```{r Write CSVs Locally, echo=FALSE}
+```{r Write CSVs Locally}
 #Writing locally to location of export_path
 if ("local" %in% write_tables) {
   write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
@@ -1369,7 +1350,7 @@ if ("local" %in% write_tables) {
 
 ```
 
-```{r Write CSVs to GitHub, echo=FALSE}
+```{r Write CSVs to GitHub}
 #Writng to github using github_location
 if ("github" %in% write_tables) {
   write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table1_WaterAvailabilityEqn_', 
@@ -1393,9 +1374,7 @@ if ("github" %in% write_tables) {
 ### need to implement this for case study watershed tables in the loop
 ```
 
-
-
-```{r Save Tables as Images, echo=FALSE}
+```{r Save Tables as Images}
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
