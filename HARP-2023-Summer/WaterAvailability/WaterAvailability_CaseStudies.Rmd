@@ -180,16 +180,10 @@ rsegs_geom_data <- rsegs_geom_data[ rsegs_geom_data[,fn_geoCol(rsegs_geom_data)]
 ```
 
 ```{r Join Metric Data to Full Segment List}
-# metric_data_sql <- sqldf("SELECT a.*, b.riverseg
-#                               FROM metric_data AS a
-#                               LEFT JOIN rsegs AS b
-#                               WHERE (a. riverseg = b.riverseg) ") #results in 569 rows
-
 metric_data <- merge(x = metric_data, y = rsegs, 
                            by.x="riverseg", by.y="riverseg", all=T) #results in 701 rows
 #merge() used for full joins in Dataframe_Generator.Rmd
 ```
-
 
 ```{r Get Object Model, Class & Elid}
 #nrow_all <- nrow(storage_data)
@@ -220,14 +214,6 @@ for (i in 1:nrow(storage_data)) {
   storage_data$elid[i] <- elid$propvalue
 }
 
-## Currently Disabled -- re-implementing WSEs
-#Remove waterSupplyElement objects
-# storage_data <- storage_data[!storage_data$object_class == "waterSupplyElement", ] #remove WSEs
-# nrow_noWSE <- nrow(storage_data)
-# nrow_diff <- nrow_all - nrow_noWSE
-# print(paste0(nrow_diff, ' waterSupplyElement objects removed from analysis'))
-
-
 ## Alternative model retrieval, takes much longer
   # #Get model info using ds$auth_read to authenticate and grab model info+data
   # obj_url <- paste(json_obj_url, model$pid, sep="/")
@@ -239,7 +225,7 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-```{r Smin Calculations, include=FALSE, echo=FALSE}
+```{r Smin Calculations}
 storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
 storage_data$SminL90mg_nex <- NA
 storage_data$SminL30mg_apx <- NA
@@ -408,14 +394,6 @@ for (i in 1:nrow(storage_data)) {
     l30pd_end <- as.POSIXct(row.names(l30yr_df[rownum_end30, ]))
     l90pd_end <- as.POSIXct(row.names(l90yr_df[rownum_end90, ]))
     
-    #end rownum cant be greater than length of data 
-    # if (rownum_end90 > nrow(l90yr_df)) {
-    #   rownum_end90 = nrow(l90yr_df)
-    # }
-    # if (rownum_end30 > nrow(l30yr_df)) {
-    #   rownum_end30 = nrow(l30yr_df)
-    # }
-    
     #zoos for the drought periods 
     l30pd_flowz <- window(dat, start = l30pd_start, end = l30pd_end)
     l90pd_flowz <- window(dat, start = l90pd_start, end = l90pd_end)
@@ -492,14 +470,14 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-```{r Smin Method Comparison, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Smin Method Comparison}
 #Compare approx and near exact Smin values. Approx should always be <= near exact 
 storage_data$apx_lessthan_nex_30 <- storage_data$SminL30mg_apx <= storage_data$SminL30mg_nex
 storage_data$apx_lessthan_nex_90 <- storage_data$SminL90mg_apx <= storage_data$SminL90mg_nex
   
 ```
 
-```{r Sum Storage by Riverseg, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Sum Storage by Riverseg}
 #Approximate Smin Values 
 
 #Sum approx SminL30 by riverseg
@@ -552,7 +530,7 @@ storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_local, b.SminL90mg_nex_loca
                               WHERE (a. riverseg = b.riverseg) ")
 ```
 
-```{r Join Storage + Metric + Baseline Data, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Join Storage + Metric + Baseline Data}
 #Storage data by riverseg in storage_byseg 
 #Metric data by riverseg in metric_data 
 
@@ -576,7 +554,7 @@ storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
 
 ```
 
-```{r Link Upstream Impoundments, echo = FALSE, message=FALSE, warning=FALSE}
+```{r Link Upstream Storage}
 #Empty columns that will hold storage
 metric_data$SminL30mg_apx_ups <- NA 
 metric_data$SminL90mg_apx_ups <- NA 
@@ -627,7 +605,7 @@ for (i in 1:nrow(metric_data)) {
 }
 ```
 
-```{r Add Qavailable to DataFrame, echo = FALSE}
+```{r Add Qavailable to DataFrame}
 #add Qavailable for each L30 and L90 to the metric dataframe 
 # First, need to evaluate the MIF
 metric_data$l30_Qout_mif <- mif_coef*metric_data$l30_Qout_base
@@ -636,15 +614,11 @@ metric_data$l90_Qout_mif <- mif_coef*metric_data$l90_Qout_base
 # Qavailable = Qdemand - MIF*Qbaseline
 metric_data$Qavailable_30_cfs <- round((metric_data$l30_Qout_dem - metric_data$l30_Qout_mif), digits = 3)
 metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - metric_data$l90_Qout_mif), digits = 3)
-
-
 ```
 
-```{r Calculate Water Availability, echo = FALSE, message=FALSE, warning=FALSE}
-
+```{r Calculate Water Availability}
 ## Reminder: Perform unit conversions when plugging values into WA equation 
 # mgd = cfs / 1.547
-
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
@@ -693,7 +667,7 @@ if (write_Qavailable == TRUE) {
 ```
 
 
-```{r Smin Comparison Check, echo=FALSE, message=FALSE}
+```{r Smin Comparison Check}
 #for highlighting rows which current Smin comparison method is flawed 
 #highlight when TRUE and/or 0 accompanies values that are not equal 
 storage_data$unequal_30 <- NA
@@ -810,7 +784,7 @@ Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL
 
 # Table 1:Water Availability Equation Breakdown
 
-```{r Table 1, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 1, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY EQN BREAKDOWN. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #select all segments that have storage locally or upstream (total storage)
@@ -855,7 +829,7 @@ ftable_WA
 
 # Table 2: Smin Method Comparison
 
-```{r Table 2, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 2, out.width='100%'}
 title_table_Storage <- paste0('TABLE 2: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
@@ -890,7 +864,7 @@ ftable_Storage
 
 # Table 3: Smin Method Discrepancies
 
-```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 3, out.width='100%'}
 title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #add % differences
@@ -931,7 +905,7 @@ ftable_Smin
 
 # Table 4: Smins that Need to be Updated
 
-```{r Table 4, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 4, out.width='100%'}
 
 title_table_update <- paste0('TABLE 4: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
@@ -956,7 +930,7 @@ ftable_update
 
 # Table 5: Case Studies 
 
-```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 5, out.width='100%'}
 title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
@@ -976,7 +950,7 @@ ftable_caseStudies
 
 # Table(s) 6: Case Study Watersheds
 
-```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r Table 6, out.width='100%'}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:nrow(caseStudies_df)) { 
   title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
@@ -1038,7 +1012,7 @@ for (i in 1:nrow(caseStudies_df)) {
 
 # Plot 1: Demand Flow vs Available Flow for L30
 
-```{r Create Plot(s) 1, echo=FALSE}
+```{r Create Plot(s)}
 #plot30_filename <- character()
 
 for (i in 1:nrow(caseStudies_df)) {
@@ -1354,7 +1328,7 @@ for (i in 1:nrow(caseStudies_df)) {
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
-```{r Write CSVs Locally, echo=FALSE}
+```{r Write CSVs Locally}
 #Writing locally to location of export_path
 if ("local" %in% write_tables) {
   write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
@@ -1376,7 +1350,7 @@ if ("local" %in% write_tables) {
 
 ```
 
-```{r Write CSVs to GitHub, echo=FALSE}
+```{r Write CSVs to GitHub}
 #Writng to github using github_location
 if ("github" %in% write_tables) {
   write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table1_WaterAvailabilityEqn_', 
@@ -1400,9 +1374,7 @@ if ("github" %in% write_tables) {
 ### need to implement this for case study watershed tables in the loop
 ```
 
-
-
-```{r Save Tables as Images, echo=FALSE}
+```{r Save Tables as Images}
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
