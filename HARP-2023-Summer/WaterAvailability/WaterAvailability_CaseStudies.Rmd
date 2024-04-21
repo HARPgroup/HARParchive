@@ -8,7 +8,8 @@ output:
       
       Normal: ['First Paragraph']
 params: 
-  outlet_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450"]
+  caseStudy_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450", "NR6_8500_7820"]
+  outlet_list: ["PL3_5360_5250", "JU4_7000_7300", "JA5_7480_0001", "YP3_6670_6720", "OR3_7740_8271", "PU4_3970_3890", "NR6_8050_8051"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
@@ -102,19 +103,6 @@ Column2
 <!---BLOCK_MULTICOL_STOP{widths: [3,3], space: 0.2, sep: true}--->
 
 # Water Availability Case Studies 
-
-
-## Case Study Description 
-### A case study is a descriptive example of a particular area (ex. a watershed/region) where water availability is calculated. For that example watershed, we can take a detailed look at the individual calculations and resulting values generated.
-
-
-# Impoundments for case studies:
-- Lake Manassas 
-- Lake Moomaw
-- Lake Chesdin 
-- Lake Anna 
-- Carvin's Cove 
-- Jennings Randolph Lake 
 
 
 ```{r Pull Data}
@@ -666,7 +654,6 @@ if (write_Qavailable == TRUE) {
 
 ```
 
-
 ```{r Smin Comparison Check}
 #for highlighting rows which current Smin comparison method is flawed 
 #highlight when TRUE and/or 0 accompanies values that are not equal 
@@ -695,72 +682,21 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-
 ```{r Processing for Case Study Wsheds}
+#Create datafrane with case study segments 
 caseStudies_df <- data.frame()
 
-for (i in 1:length(outlet_list)) {
-  caseStudyRow <- storage_data[grep(outlet_list[i], storage_data$riverseg), ]
+for (i in 1:length(caseStudy_list)) {
+  caseStudyRow <- storage_data[grep(caseStudy_list[i], storage_data$riverseg), ]
   caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
 
-
-#get upstream segments
-for (i in 1:nrow(caseStudies_df)) { 
-  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #for segments not Carvins
-    ups_data <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i]) 
-  } else { #carvins special case
-    ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_data <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
-  }
-  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top to have df ordered ds to us
-  ups_data <- ups_data[nrow(ups_data):1,] #reverse order to get upstream to downstream
-  ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
-  assign(paste0('ups_df_', i), ups_data)
+#Create dataframes for case study watersheds (upstream from eaxh of outlet_list)
+for (i in 1:length(outlet_list)) {
+  ups_data <- fn_extract_basin(metric_data, outlet_list[i])
+  assign(paste0('ups_ds_df_', i), ups_data)
 }
 
-#get downstream segments
-ds_df <- data.frame() 
-
-#get 3 segments downstream of each case study segment
-for (i in 1:nrow(caseStudies_df)) { 
-  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], rsegs$riverseg)
-  ds_segs <- c(ds_seg1)
-  if (ds_seg1 != 'NA') {
-    ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
-    ds_segs <- c(ds_seg1, ds_seg2)
-  }
-  if (exists("ds_seg2") == TRUE) { 
-    if (ds_seg2 != 'NA') {
-      ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
-      ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
-    }
-  }
-  ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
-  ds_df <- ds_df[!duplicated(ds_df), ]
-  
-  #order df 
-  ds_df$riverseg <- factor(ds_df$riverseg, levels=ds_segs) 
-  ds_df <- ds_df[order(ds_df$riverseg),]
-  
-  #remove last row for Lake Manassas to end above Occoquan reservoir
-  if (caseStudies_df$riverseg[i] == "PL0_5141_5140") {
-    ds_df <- ds_df[1:(nrow(ds_df)-1),] #remove last row 
-  }
-  
-  #remove last 2 rows for Carvins Cove to end just below Roanoke
-  if (caseStudies_df$riverseg[i] == "OR3_7740_8271_carvins") {
-    ds_df <- ds_df[1:(nrow(ds_df)-2),] #remove last row 
-  }
-  
-  assign(paste0('ds_df_', i), ds_df)
-  rm(list = ls(pattern = 'ds_seg'))
-}
-
-#combine upstream and downstream dataframes
-for (i in 1:nrow(caseStudies_df)) { 
-  assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
-}
 ```
 
 <!---BLOCK_LANDSCAPE_START--->
@@ -782,7 +718,7 @@ Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL
 ### Where CPL = critical period length 
 
 
-# Table 1:Water Availability Equation Breakdown
+# Table 1: Water Availability Equation Breakdown
 
 ```{r Table 1, out.width='100%'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY EQN BREAKDOWN. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
@@ -952,10 +888,10 @@ ftable_caseStudies
 
 ```{r Table 6, out.width='100%'}
 #separate flextables for each case study with case study rseg in header 
-for (i in 1:nrow(caseStudies_df)) { 
+for (i in 1:length(caseStudy_list)) { 
   title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
-                                       ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
+                                       ', MIF: ', mif_coef, ', Case Study: ', caseStudy_list)
   csws_df <- get(paste0('ups_ds_df_', i))
   csws_df <- csws_df[!duplicated(csws_df), ]#remove duplicate rows
   table_caseStudyWshed <-   data.frame(Propname = csws_df$propname,
@@ -980,11 +916,11 @@ for (i in 1:nrow(caseStudies_df)) {
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
   ftable_csws <- flextable(table_caseStudyWshed)
-  rownum_cs <- which(csws_df$riverseg == caseStudies_df$riverseg[i]) #highlight case study row
+  rownum_cs <- which(csws_df$riverseg == caseStudy_list[i]) #highlight case study row
   ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
   #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
-  assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
-  print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
+  assign(paste0('ftable_caseStudyWshed_', caseStudy_list[i]), ftable_csws)
+  print(get(paste0('ftable_caseStudyWshed_', caseStudy_list[i])))
   
   if ("local" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(export_path, 
@@ -1010,9 +946,10 @@ for (i in 1:nrow(caseStudies_df)) {
 
 ```
 
-# Plot 1: Demand Flow vs Available Flow for L30
+# Plot 1: Demand Flow vs Available Flow 
+## For L30
 
-```{r Create Plot(s)}
+```{r Create Plot for L30}
 #plot30_filename <- character()
 
 for (i in 1:nrow(caseStudies_df)) {
@@ -1050,7 +987,7 @@ for (i in 1:nrow(caseStudies_df)) {
 # knitr::include_graphics(plot30_filename)
 ```
 
-```{r}
+```{r View L30 Plot}
 plot30_1
 plot30_2
 plot30_3
@@ -1059,7 +996,9 @@ plot30_5
 plot30_6
 ```
 
-# Map 1: Water Availability for L30
+
+# Map 1: Water Availability Map
+## WA for L30
 
 ```{r Mapping}
 #create spatial object of all rivsersegs to be trimmed
