@@ -956,7 +956,7 @@ for (i in 1:length(caseStudy_list)) {
 ## For L30
 
 ```{r Create Plot for L30}
-#plot30_filename <- character()
+plot30_filename <- character()
 
 for (i in 1:nrow(caseStudiesMetrics_df)) {
   
@@ -971,17 +971,18 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   plot30 <- ggplot(data = get(paste0('ups_ds_df_',i)), aes(x=riverseg)) +
     geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
-    theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.text.x = element_text(size = 20, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
     theme(axis.title.x=element_blank()) +
+    theme(legend.text = element_text(size = 25)) +
     ylab('cfs') + 
-    scale_fill_manual(name = "Legend", 
+    scale_fill_manual(name = NULL, 
                       label = c("L30", "Qavailable"), 
                       values = c("blue","green")) +
     theme(
-      plot.title = element_markdown(),
-      plot.subtitle = element_markdown()) +
-    labs(title = paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
-       subtitle = paste0("**", caseStudyName, "**<br>Qavailable = Qdemand - MIF*Qbaseline"))
+      plot.title = element_markdown(size = 40),
+      plot.subtitle = element_markdown(size = 30)) +
+    labs(title = 'Qdemand vs Qavailable (L30)',
+       subtitle = paste0("For ", caseStudyName, "<br> Qavailable = Qdemand - MIF*Qbaseline"))
     # ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
     #         subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
@@ -989,12 +990,12 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   
   assign(paste0('plot30_', i), plot30, envir = globalenv())
   
-    # plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_plot1.30_',i, '.png')
-    # ggsave(
-    #   filename = plot30_filename[i],
-    #   plot = plot30,
-    #   width = 25,
-    #   height = 20)
+    plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_QvsQavail_L30.png')
+    ggsave(
+      filename = plot30_filename[i],
+      plot = plot30,
+      width = 25,
+      height = 20)
 }
 
 # knitr::include_graphics(plot30_filename)
@@ -1110,16 +1111,16 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
     #         inherit.aes=FALSE, fill= "dodgerblue", size=1) + 
     geom_sf(data = rsegs_df[rsegs_df$riverseg == caseStudy_list[i],] ,
             fill = NA, color = "yellow", lwd = 1) + #highlight outline case study segment
-    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = NUM), size = 5) + #label segments 
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = NUM), size = 8) + #label segments 
     ggtitle(paste0('Water Availability (L30) for ', caseStudiesMetrics_df$riverseg[i])) +
-    theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
+    theme(plot.title = element_text(size = 40), legend.text = element_text(size = 25), legend.title = element_text(size = 30)) + 
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE) #set viewing window to bounding box 
   plot(map)
   
   assign(paste0('map', i), map, envir = globalenv())
   
   #save image of map
-  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", caseStudiesMetrics_df$riverseg[i], ".png", sep="")
+  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", i, "_", caseStudiesMetrics_df$riverseg[i], ".png", sep="")
   ggsave(
     filename = WAmapfilename[i],
     plot = map,
@@ -1350,9 +1351,4 @@ flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_
 flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
-
-```{r tab.cap="", tab.id=""}
-
-```
-
 
