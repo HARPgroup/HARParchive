@@ -16,7 +16,7 @@ params:
   write_Qavailable: FALSE
   write_tables: ["local", "github"]
 editor_options: 
-  chunk_output_type: console
+  #chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -902,7 +902,8 @@ for (i in 1:length(caseStudy_list)) {
                                        ', MIF: ', mif_coef, ', Case Study: ', caseStudy_list)
   csws_df <- get(paste0('ups_ds_df_', i))
   csws_df <- csws_df[!duplicated(csws_df), ]#remove duplicate rows
-  table_caseStudyWshed <-   data.frame(Propname = csws_df$propname,
+  table_caseStudyWshed <-   data.frame(Num = csws_df$NUM,
+                      Propname = csws_df$propname,
                       Riverseg = csws_df$riverseg,
                       wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
                       ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
@@ -1003,6 +1004,10 @@ plot30_4
 plot30_5
 plot30_6
 plot30_7
+
+# for (i in 1:length(caseStudy_list)) {
+#   plot(get(paste0('plot30_', i)))
+# }
 ```
 
 ```{r Binning for Mapping Water Availability}
@@ -1081,6 +1086,8 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   bbox <- st_bbox(bbox_sfc)
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   rsegs_bbox <- st_filter(rsegs_all_sf, bbox_sfc)
+  #Get nhd data to map flowlines & waterbodies
+  # nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   
   map <- ggplot(rsegs_bbox) + geom_sf() + 
     geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
@@ -1090,15 +1097,19 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
                       labels = bin_labs,
                       limits = as.factor(seq(1:7)),
                       name = "WA for L30 (mgd)") +
-    # geom_sf(data = nhd$flowline, 
-    #         inherit.aes=FALSE, color= "dodgerblue", 
+    # geom_sf(data = nhd$flowline, #map nhd flowlines
+    #         inherit.aes=FALSE, color= "dodgerblue",
     #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
-    #         show.legend=FALSE) + 
+    #         show.legend=FALSE) +
     # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
-    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 8) +
+    # geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd), #map nhd waterbodies
+    #         inherit.aes=FALSE, fill= "dodgerblue", size=1) + 
+    geom_sf(data = rsegs_df[rsegs_df$riverseg == caseStudy_list[i],] ,
+            fill = NA, color = "yellow", lwd = 1) + #highlight outline case study segment
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = NUM), size = 5) + #label segments 
     ggtitle(paste0('Water Availability (L30) for ', caseStudiesMetrics_df$riverseg[i])) +
     theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
-    coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
+    coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE) #set viewing window to bounding box 
   plot(map)
   
   assign(paste0('map', i), map, envir = globalenv())
@@ -1123,6 +1134,10 @@ plot(map4)
 plot(map5)
 plot(map6)
 plot(map7)
+
+# for (i in 1:length(caseStudy_list)) {
+#   plot(get(paste0('map', i)))
+# }
 ```
 
 ```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
