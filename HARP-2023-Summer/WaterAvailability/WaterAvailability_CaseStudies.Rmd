@@ -16,11 +16,11 @@ params:
   write_Qavailable: FALSE
   write_tables: ["local", "github"]
 editor_options: 
-  #chunk_output_type: console
+  chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.cap = TRUE) #set chunk options
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.cap = TRUE, out.width='100%', out.height = '100%') #set chunk options
 
 library(data.table)
 library(hydrotools)
@@ -34,6 +34,7 @@ library(IHA)
 library(nhdplusTools)
 library(arcpullr)
 library(ggrepel)
+library(ggtext)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -77,8 +78,6 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 ```
 
 
-\newpage
-
 ## Table of contents
 
 <!---BLOCK_TOC--->
@@ -91,16 +90,7 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
 <!---BLOCK_TOC{seq_id: 'fig'}--->
 
-
 \newpage
-
-## Sections
-
-<!---BLOCK_MULTICOL_START--->
-Column1
-`r run_columnbreak()` 
-Column2
-<!---BLOCK_MULTICOL_STOP{widths: [3,3], space: 0.2, sep: true}--->
 
 # Water Availability Case Studies 
 
@@ -227,6 +217,9 @@ storage_data$imp_off <- NA
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
   dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
+  #fn_get_runfile uses print() which is not successfully hidden with chunk options. capture.output is solution for disabiling print() for clean knitting
+  #capture.output(dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE), file = nullfile()) #get timeseries data (zoo), disable print form function
+  
   mode(dat) <- 'numeric'
   cols <- names(dat)
   
@@ -569,6 +562,7 @@ for (i in 1:nrow(metric_data)) {
   if(!grepl("0000_0000",metric_data$riverseg[i])){
      #Get upstream segments only for riverseg[i] in metric_data
      ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i])
+     #capture.output(ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i]), file = nullfile()) #disabling print() output
   }else{
     #Skip tiday, bay, and SR ends segments
     print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
@@ -701,13 +695,13 @@ caseStudiesMetrics_df <- caseStudiesMetrics_df[!duplicated(caseStudiesMetrics_df
 #Create dataframes for case study watersheds (upstream from eaxh of outlet_list)
 for (i in 1:length(outlet_list)) {
   ups_data <- fn_extract_basin(metric_data, outlet_list[i])
+  #capture.output(ups_data <- fn_extract_basin(metric_data, outlet_list[i]), file = nullfile()) #disabling print() output
   ups_data$NUM <- seq(1, nrow(ups_data))#number rows
   assign(paste0('ups_ds_df_', i), ups_data)
 }
 
 ```
 
-<!---BLOCK_LANDSCAPE_START--->
 
 # Water Availability Equation:
 ## Generalized form:
@@ -723,12 +717,13 @@ Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL
 
 ## Abbreviated Form:
 ## WA_cpl = Qdemand_cpl - MIF*Qbase_cpl + Smin_cpl/CPL
-### Where CPL = critical period length 
+### Where CPL = Critical Period Length 
 
+<!---BLOCK_LANDSCAPE_START--->
 
 # Table 1: Water Availability Equation Breakdown
 
-```{r Table 1, out.width='100%'}
+```{r Table 1, results='asis'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY EQN BREAKDOWN. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #select all segments that have storage locally or upstream (total storage)
@@ -766,14 +761,14 @@ table_WA <- data.frame(Propname = df_WA$propname,
 
 ftable_WA <- flextable(table_WA) #create flextable
 ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
-
-ftable_WA
+ftable_WA #view flextable in console
+cat(knitr::knit_print(ftable_WA)) #view flextable in knitted doc
 ```
 
 
 # Table 2: Smin Method Comparison
 
-```{r Table 2, out.width='100%'}
+```{r Table 2}
 title_table_Storage <- paste0('TABLE 2: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
@@ -808,7 +803,7 @@ ftable_Storage
 
 # Table 3: Smin Method Discrepancies
 
-```{r Table 3, out.width='100%'}
+```{r Table 3}
 title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #add % differences
@@ -849,7 +844,7 @@ ftable_Smin
 
 # Table 4: Smins that Need to be Updated
 
-```{r Table 4, out.width='100%'}
+```{r Table 4}
 
 title_table_update <- paste0('TABLE 4: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
@@ -874,7 +869,7 @@ ftable_update
 
 # Table 5: Case Studies 
 
-```{r Table 5, out.width='100%'}
+```{r Table 5}
 title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudiesStorage_df$propname,
@@ -894,7 +889,7 @@ ftable_caseStudies
 
 # Table(s) 6: Case Study Watersheds
 
-```{r Table 6, out.width='100%'}
+```{r Table 6}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:length(caseStudy_list)) { 
   title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
@@ -955,6 +950,8 @@ for (i in 1:length(caseStudy_list)) {
 
 ```
 
+<!---BLOCK_LANDSCAPE_STOP--->
+
 # Plot 1: Demand Flow vs Available Flow 
 ## For L30
 
@@ -968,6 +965,8 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   caseStudyName <- gsub('[[:punct:] ]+', ' ', caseStudyName)
   caseStudyName <- gsub('Impoundment', '', caseStudyName)
   
+  ### Move case study names to subtitle
+  
   #l30 graph
   plot30 <- ggplot(data = get(paste0('ups_ds_df_',i)), aes(x=riverseg)) +
     geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
@@ -978,8 +977,13 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
     scale_fill_manual(name = "Legend", 
                       label = c("L30", "Qavailable"), 
                       values = c("blue","green")) +
-    ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
-            subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
+    theme(
+      plot.title = element_markdown(),
+      plot.subtitle = element_markdown()) +
+    labs(title = paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
+       subtitle = paste0("**", caseStudyName, "**<br>Qavailable = Qdemand - MIF*Qbaseline"))
+    # ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
+    #         subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
   #plot30
   
@@ -996,7 +1000,7 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 # knitr::include_graphics(plot30_filename)
 ```
 
-```{r View L30 Plot}
+```{r View L30 Plot, out.width='100%'}
 plot30_1
 plot30_2
 plot30_3
@@ -1283,7 +1287,6 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 
 ```
 
-<!---BLOCK_LANDSCAPE_STOP--->
 
 ```{r Write CSVs Locally}
 #Writing locally to location of export_path
@@ -1327,11 +1330,11 @@ if ("github" %in% write_tables) {
   
 }
 
-
-### need to implement this for case study watershed tables in the loop
 ```
 
 ```{r Save Tables as Images}
+#disable outputs
+
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
