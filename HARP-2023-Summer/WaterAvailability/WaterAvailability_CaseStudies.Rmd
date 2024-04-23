@@ -8,7 +8,8 @@ output:
       
       Normal: ['First Paragraph']
 params: 
-  outlet_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450"]
+  caseStudy_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450", "NR6_8500_7820"]
+  outlet_list: ["PL3_5360_5250", "JU4_7000_7300", "JA5_7480_0001", "YP3_6670_6720", "OR3_7740_8271", "PU4_3970_3890", "NR6_7960_8050"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
@@ -18,8 +19,8 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.cap = TRUE) #set chunk options
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.cap = TRUE, out.width='100%', out.height = '100%') #set chunk options
 
 library(data.table)
 library(hydrotools)
@@ -33,6 +34,7 @@ library(IHA)
 library(nhdplusTools)
 library(arcpullr)
 library(ggrepel)
+library(ggtext)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -76,8 +78,6 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 ```
 
 
-\newpage
-
 ## Table of contents
 
 <!---BLOCK_TOC--->
@@ -90,31 +90,9 @@ ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 
 <!---BLOCK_TOC{seq_id: 'fig'}--->
 
-
 \newpage
 
-## Sections
-
-<!---BLOCK_MULTICOL_START--->
-Column1
-`r run_columnbreak()` 
-Column2
-<!---BLOCK_MULTICOL_STOP{widths: [3,3], space: 0.2, sep: true}--->
-
 # Water Availability Case Studies 
-
-
-## Case Study Description 
-### A case study is a descriptive example of a particular area (ex. a watershed/region) where water availability is calculated. For that example watershed, we can take a detailed look at the individual calculations and resulting values generated.
-
-
-# Impoundments for case studies:
-- Lake Manassas 
-- Lake Moomaw
-- Lake Chesdin 
-- Lake Anna 
-- Carvin's Cove 
-- Jennings Randolph Lake 
 
 
 ```{r Pull Data}
@@ -239,6 +217,9 @@ storage_data$imp_off <- NA
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
   dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
+  #fn_get_runfile uses print() which is not successfully hidden with chunk options. capture.output is solution for disabiling print() for clean knitting
+  #capture.output(dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE), file = nullfile()) #get timeseries data (zoo), disable print form function
+  
   mode(dat) <- 'numeric'
   cols <- names(dat)
   
@@ -581,6 +562,7 @@ for (i in 1:nrow(metric_data)) {
   if(!grepl("0000_0000",metric_data$riverseg[i])){
      #Get upstream segments only for riverseg[i] in metric_data
      ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i])
+     #capture.output(ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i]), file = nullfile()) #disabling print() output
   }else{
     #Skip tiday, bay, and SR ends segments
     print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
@@ -666,7 +648,6 @@ if (write_Qavailable == TRUE) {
 
 ```
 
-
 ```{r Smin Comparison Check}
 #for highlighting rows which current Smin comparison method is flawed 
 #highlight when TRUE and/or 0 accompanies values that are not equal 
@@ -695,75 +676,32 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-
 ```{r Processing for Case Study Wsheds}
-caseStudies_df <- data.frame()
+#Create datafrane with case study segments 
+caseStudiesMetrics_df <- data.frame()
+caseStudiesStorage_df <- data.frame()
 
+for (i in 1:length(caseStudy_list)) {
+  caseStudyRow_metrics <- metric_data[grep(caseStudy_list[i], metric_data$riverseg), ]
+  caseStudiesMetrics_df <- rbind(caseStudiesMetrics_df, caseStudyRow_metrics)
+  
+  caseStudyRow_storage <- storage_data[grep(caseStudy_list[i], storage_data$riverseg), ]
+  caseStudiesStorage_df <- rbind(caseStudiesStorage_df, caseStudyRow_storage)
+}
+
+#Remove duplicate rows
+caseStudiesMetrics_df <- caseStudiesMetrics_df[!duplicated(caseStudiesMetrics_df), ]
+
+#Create dataframes for case study watersheds (upstream from eaxh of outlet_list)
 for (i in 1:length(outlet_list)) {
-  caseStudyRow <- storage_data[grep(outlet_list[i], storage_data$riverseg), ]
-  caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
+  ups_data <- fn_extract_basin(metric_data, outlet_list[i])
+  #capture.output(ups_data <- fn_extract_basin(metric_data, outlet_list[i]), file = nullfile()) #disabling print() output
+  ups_data$NUM <- seq(1, nrow(ups_data))#number rows
+  assign(paste0('ups_ds_df_', i), ups_data)
 }
 
-
-#get upstream segments
-for (i in 1:nrow(caseStudies_df)) { 
-  if (!caseStudies_df$riverseg[i] %in% c("OR3_7740_8271_carvins")) { #for segments not Carvins
-    ups_data <- fn_extract_basin(metric_data, caseStudies_df$riverseg[i]) 
-  } else { #carvins special case
-    ds_seg_carv <- fn_downstream(caseStudies_df$riverseg[i], metric_data$riverseg) #get 1 segment downstream from carvins 
-    ups_data <- fn_extract_basin(metric_data, ds_seg_carv) #get upstream segments from that downstream seg 
-  }
-  ups_data <- rbind(ups_data[nrow(ups_data),],ups_data[1:(nrow(ups_data)-1),]) #move last row to top to have df ordered ds to us
-  ups_data <- ups_data[nrow(ups_data):1,] #reverse order to get upstream to downstream
-  ups_data <- ups_data[!duplicated(ups_data), ] #remove duplicate rows
-  assign(paste0('ups_df_', i), ups_data)
-}
-
-#get downstream segments
-ds_df <- data.frame() 
-
-#get 3 segments downstream of each case study segment
-for (i in 1:nrow(caseStudies_df)) { 
-  ds_seg1 <- fn_downstream(caseStudies_df$riverseg[i], rsegs$riverseg)
-  ds_segs <- c(ds_seg1)
-  if (ds_seg1 != 'NA') {
-    ds_seg2 <- fn_downstream(ds_seg1, rsegs$riverseg)
-    ds_segs <- c(ds_seg1, ds_seg2)
-  }
-  if (exists("ds_seg2") == TRUE) { 
-    if (ds_seg2 != 'NA') {
-      ds_seg3 <- fn_downstream(ds_seg2, rsegs$riverseg)
-      ds_segs <- c(ds_seg1, ds_seg2, ds_seg3)
-    }
-  }
-  ds_df <- metric_data[metric_data$riverseg %in% ds_segs,]
-  ds_df <- ds_df[!duplicated(ds_df), ]
-  
-  #order df 
-  ds_df$riverseg <- factor(ds_df$riverseg, levels=ds_segs) 
-  ds_df <- ds_df[order(ds_df$riverseg),]
-  
-  #remove last row for Lake Manassas to end above Occoquan reservoir
-  if (caseStudies_df$riverseg[i] == "PL0_5141_5140") {
-    ds_df <- ds_df[1:(nrow(ds_df)-1),] #remove last row 
-  }
-  
-  #remove last 2 rows for Carvins Cove to end just below Roanoke
-  if (caseStudies_df$riverseg[i] == "OR3_7740_8271_carvins") {
-    ds_df <- ds_df[1:(nrow(ds_df)-2),] #remove last row 
-  }
-  
-  assign(paste0('ds_df_', i), ds_df)
-  rm(list = ls(pattern = 'ds_seg'))
-}
-
-#combine upstream and downstream dataframes
-for (i in 1:nrow(caseStudies_df)) { 
-  assign(paste0('ups_ds_df_', i), rbind(get(paste0('ups_df_', i)), get(paste0('ds_df_', i))))
-}
 ```
 
-<!---BLOCK_LANDSCAPE_START--->
 
 # Water Availability Equation:
 ## Generalized form:
@@ -779,12 +717,13 @@ Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL
 
 ## Abbreviated Form:
 ## WA_cpl = Qdemand_cpl - MIF*Qbase_cpl + Smin_cpl/CPL
-### Where CPL = critical period length 
+### Where CPL = Critical Period Length 
 
+<!---BLOCK_LANDSCAPE_START--->
 
-# Table 1:Water Availability Equation Breakdown
+# Table 1: Water Availability Equation Breakdown
 
-```{r Table 1, out.width='100%'}
+```{r Table 1, results='asis'}
 title_table_WA <- paste0('TABLE 1: WATER AVAILABILITY EQN BREAKDOWN. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #select all segments that have storage locally or upstream (total storage)
@@ -822,14 +761,14 @@ table_WA <- data.frame(Propname = df_WA$propname,
 
 ftable_WA <- flextable(table_WA) #create flextable
 ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
-
-ftable_WA
+ftable_WA #view flextable in console
+cat(knitr::knit_print(ftable_WA)) #view flextable in knitted doc
 ```
 
 
 # Table 2: Smin Method Comparison
 
-```{r Table 2, out.width='100%'}
+```{r Table 2}
 title_table_Storage <- paste0('TABLE 2: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #sort table by the sum of 2 values
@@ -864,7 +803,7 @@ ftable_Storage
 
 # Table 3: Smin Method Discrepancies
 
-```{r Table 3, out.width='100%'}
+```{r Table 3}
 title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 #add % differences
@@ -905,7 +844,7 @@ ftable_Smin
 
 # Table 4: Smins that Need to be Updated
 
-```{r Table 4, out.width='100%'}
+```{r Table 4}
 
 title_table_update <- paste0('TABLE 4: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
@@ -930,17 +869,17 @@ ftable_update
 
 # Table 5: Case Studies 
 
-```{r Table 5, out.width='100%'}
+```{r Table 5}
 title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
-table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
-                     Riverseg = caseStudies_df$riverseg,
-                     SminL30mg_apx = caseStudies_df$SminL30mg_apx,
-                     SminL30mg_nex = caseStudies_df$SminL30mg_nex,
-                     SminL90mg_apx = caseStudies_df$SminL90mg_apx,
-                     SminL90mg_nex = caseStudies_df$SminL90mg_nex,
-                     outside_pd30 = caseStudies_df$outside_pd30,
-                     outside_pd90 = caseStudies_df$outside_pd90)
+table_caseStudies <- data.frame(Propname = caseStudiesStorage_df$propname,
+                     Riverseg = caseStudiesStorage_df$riverseg,
+                     SminL30mg_apx = caseStudiesStorage_df$SminL30mg_apx,
+                     SminL30mg_nex = caseStudiesStorage_df$SminL30mg_nex,
+                     SminL90mg_apx = caseStudiesStorage_df$SminL90mg_apx,
+                     SminL90mg_nex = caseStudiesStorage_df$SminL90mg_nex,
+                     outside_pd30 = caseStudiesStorage_df$outside_pd30,
+                     outside_pd90 = caseStudiesStorage_df$outside_pd90)
 
 ftable_caseStudies <- flextable(table_caseStudies) #create flextable
 ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
@@ -950,15 +889,16 @@ ftable_caseStudies
 
 # Table(s) 6: Case Study Watersheds
 
-```{r Table 6, out.width='100%'}
+```{r Table 6}
 #separate flextables for each case study with case study rseg in header 
-for (i in 1:nrow(caseStudies_df)) { 
+for (i in 1:length(caseStudy_list)) { 
   title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
-                                       ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
+                                       ', MIF: ', mif_coef, ', Case Study: ', caseStudy_list)
   csws_df <- get(paste0('ups_ds_df_', i))
   csws_df <- csws_df[!duplicated(csws_df), ]#remove duplicate rows
-  table_caseStudyWshed <-   data.frame(Propname = csws_df$propname,
+  table_caseStudyWshed <-   data.frame(Num = csws_df$NUM,
+                      Propname = csws_df$propname,
                       Riverseg = csws_df$riverseg,
                       wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
                       ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
@@ -980,11 +920,11 @@ for (i in 1:nrow(caseStudies_df)) {
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
   ftable_csws <- flextable(table_caseStudyWshed)
-  rownum_cs <- which(csws_df$riverseg == caseStudies_df$riverseg[i]) #highlight case study row
+  rownum_cs <- which(csws_df$riverseg == caseStudy_list[i]) #highlight case study row
   ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
   #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
-  assign(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i]), ftable_csws)
-  print(get(paste0('ftable_caseStudyWshed_', caseStudies_df$riverseg[i])))
+  assign(paste0('ftable_caseStudyWshed_', caseStudy_list[i]), ftable_csws)
+  print(get(paste0('ftable_caseStudyWshed_', caseStudy_list[i])))
   
   if ("local" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(export_path, 
@@ -1010,56 +950,113 @@ for (i in 1:nrow(caseStudies_df)) {
 
 ```
 
-# Plot 1: Demand Flow vs Available Flow for L30
+<!---BLOCK_LANDSCAPE_STOP--->
 
-```{r Create Plot(s)}
-#plot30_filename <- character()
+# Plot 1: Demand Flow vs Available Flow 
+## For L30
 
-for (i in 1:nrow(caseStudies_df)) {
+```{r Create Plot for L30}
+plot30_filename <- character()
+
+for (i in 1:nrow(caseStudiesMetrics_df)) {
   
   #get case study name for titling 
-  caseStudyName <- gsub('[0-9]+', '', caseStudies_df$propname[i])
+  caseStudyName <- gsub('[0-9]+', '', caseStudiesMetrics_df$propname[i])
   caseStudyName <- gsub('[[:punct:] ]+', ' ', caseStudyName)
   caseStudyName <- gsub('Impoundment', '', caseStudyName)
+  
+  ### Move case study names to subtitle
   
   #l30 graph
   plot30 <- ggplot(data = get(paste0('ups_ds_df_',i)), aes(x=riverseg)) +
     geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
-    theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.text.x = element_text(size = 20, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
     theme(axis.title.x=element_blank()) +
+    theme(legend.text = element_text(size = 25)) +
     ylab('cfs') + 
-    scale_fill_manual(name = "Legend", 
+    scale_fill_manual(name = NULL, 
                       label = c("L30", "Qavailable"), 
                       values = c("blue","green")) +
-    ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudies_df$riverseg[i], ': ', caseStudyName),
-            subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
+    theme(
+      plot.title = element_markdown(size = 40),
+      plot.subtitle = element_markdown(size = 30)) +
+    labs(title = 'Qdemand vs Qavailable (L30)',
+       subtitle = paste0("For ", caseStudyName, "<br> Qavailable = Qdemand - MIF*Qbaseline"))
+    # ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
+    #         subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
   #plot30
   
   assign(paste0('plot30_', i), plot30, envir = globalenv())
   
-    # plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_plot1.30_',i, '.png')
-    # ggsave(
-    #   filename = plot30_filename[i],
-    #   plot = plot30,
-    #   width = 25,
-    #   height = 20)
+    plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_QvsQavail_L30.png')
+    ggsave(
+      filename = plot30_filename[i],
+      plot = plot30,
+      width = 25,
+      height = 20)
 }
 
 # knitr::include_graphics(plot30_filename)
 ```
 
-```{r}
+```{r View L30 Plot, out.width='100%'}
 plot30_1
 plot30_2
 plot30_3
 plot30_4
 plot30_5
 plot30_6
+plot30_7
+
+# for (i in 1:length(caseStudy_list)) {
+#   plot(get(paste0('plot30_', i)))
+# }
 ```
 
-# Map 1: Water Availability for L30
+```{r Binning for Mapping Water Availability}
+#custom bins based on range of WA values
+div <- c(-100,0,10,50,100,500,1000) # 7 divisions used in fn_mapgen()
+bin_labs <- c("< 0", 
+              "0 - 10", 
+              "10 - 50",
+              "50 - 100",
+              "100 - 500",
+              "500 - 1000",
+              " >= 1000")
+  
+bins = as.data.frame(div)
+bins$classid <- index(bins)
+names(bins) <- c("val", "bin")
+
+#add bins to case study watershed dataframes based on 30-day WA
+for (i in 1:nrow(caseStudiesMetrics_df)) {
+  csws_df <- get(paste0('ups_ds_df_', i))
+  
+  entity_classes <- sqldf( #sorting the data into bins based on their range 
+    "select a.NUM, max(b.bin) as bin
+    from csws_df as a 
+    left outer join bins as b 
+    on (a.WA_mgd_30_apx >= b.val) 
+    group by a.NUM" , "csws_df")
+    
+  csws_df <- sqldf( #joining the bins with the metric data 
+    "select a.*, b.bin 
+    from csws_df as a 
+    left outer join entity_classes as b 
+    on a.NUM = b.NUM " , "csws_df")
+  
+  csws_df$bin[is.na(csws_df$bin)] <- "X" # replacing NA values in bin column
+  
+  assign(paste0('ups_ds_df_', i), csws_df)
+}
+```
+
+
+
+# Map 1: Water Availability Map
+## WA for L30
 
 ```{r Mapping}
 #create spatial object of all rivsersegs to be trimmed
@@ -1067,39 +1064,15 @@ rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to 
 
 #map case study watersheds
 WAmapfilename <- character()
-for (i in 1:nrow(caseStudies_df)) {
+for (i in 1:nrow(caseStudiesMetrics_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
-  
-  #custom bins
-  div <- c(0,10,50,100,500,1000,10000)
-  
-  bin_labs <- c(" <= 0", 
-                 "0 to 10", 
-                 "10 to 50",
-                 "50 to 100",
-                 "100 to 500",
-                 "500 to 1000",
-                 " > 1000")
   
   #binning based on water availability
   # binrange <- range(rsegs_df$WA_mgd_30_apx)
   # midbin <- mean(binrange)
   # thirdbin <- midbin + ((binrange[2] - midbin)/2)
   # firstbin <- midbin - ((binrange[2] - midbin)/2)
-  
-  bins_sql <-  paste("SELECT *,
-	                  CASE WHEN WA_mgd_30_apx <= ",div[1]," THEN '1'
-		                WHEN WA_mgd_30_apx >  ",div[1]," AND WA_mgd_30_apx <= ",div[2]," THEN '2'
-		                WHEN WA_mgd_30_apx >  ",div[2]," AND WA_mgd_30_apx <= ",div[3]," THEN '3'
-		                WHEN WA_mgd_30_apx >  ",div[3]," AND WA_mgd_30_apx <= ",div[4]," THEN '4'
-		                WHEN WA_mgd_30_apx >  ",div[4]," AND WA_mgd_30_apx <= ",div[5]," THEN '5'
-		                WHEN WA_mgd_30_apx >  ",div[5]," AND WA_mgd_30_apx <= ",div[6]," THEN '6'
-		                WHEN WA_mgd_30_apx > ",div[6]," THEN '7'
-		                ELSE 'X'
-		                END AS bin
-		                FROM rsegs_df",sep="")
-  rsegs_df <-fn_sqldf_sf(bins_sql)  
   
   #join rseg geometry data 
   if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
@@ -1118,6 +1091,8 @@ for (i in 1:nrow(caseStudies_df)) {
   bbox <- st_bbox(bbox_sfc)
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   rsegs_bbox <- st_filter(rsegs_all_sf, bbox_sfc)
+  #Get nhd data to map flowlines & waterbodies
+  # nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   
   map <- ggplot(rsegs_bbox) + geom_sf() + 
     geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
@@ -1127,21 +1102,25 @@ for (i in 1:nrow(caseStudies_df)) {
                       labels = bin_labs,
                       limits = as.factor(seq(1:7)),
                       name = "WA for L30 (mgd)") +
-    # geom_sf(data = nhd$flowline, 
-    #         inherit.aes=FALSE, color= "dodgerblue", 
+    # geom_sf(data = nhd$flowline, #map nhd flowlines
+    #         inherit.aes=FALSE, color= "dodgerblue",
     #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
-    #         show.legend=FALSE) + 
+    #         show.legend=FALSE) +
     # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
-    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = riverseg), size = 8) +
-    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
-    theme(plot.title = element_text(size = 30), legend.text = element_text(size = 18), legend.title = element_text(size = 22)) + 
-    coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE)
+    # geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd), #map nhd waterbodies
+    #         inherit.aes=FALSE, fill= "dodgerblue", size=1) + 
+    geom_sf(data = rsegs_df[rsegs_df$riverseg == caseStudy_list[i],] ,
+            fill = NA, color = "yellow", lwd = 1) + #highlight outline case study segment
+    geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = NUM), size = 8) + #label segments 
+    ggtitle(paste0('Water Availability (L30) for ', caseStudiesMetrics_df$riverseg[i])) +
+    theme(plot.title = element_text(size = 40), legend.text = element_text(size = 25), legend.title = element_text(size = 30)) + 
+    coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE) #set viewing window to bounding box 
   plot(map)
   
   assign(paste0('map', i), map, envir = globalenv())
   
   #save image of map
-  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", caseStudies_df$riverseg[i], ".png", sep="")
+  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", i, "_", caseStudiesMetrics_df$riverseg[i], ".png", sep="")
   ggsave(
     filename = WAmapfilename[i],
     plot = map,
@@ -1159,6 +1138,11 @@ plot(map3)
 plot(map4)
 plot(map5)
 plot(map6)
+plot(map7)
+
+# for (i in 1:length(caseStudy_list)) {
+#   plot(get(paste0('map', i)))
+# }
 ```
 
 ```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
@@ -1228,21 +1212,18 @@ st_crs(roads) <- crs_default
 ```
 
 ```{r Configure fn_mapgen(), eval=FALSE}
-rivseg_pct_vect <- c(-20,-10,-2,2,10,20,500) 
-#^last value should be higher than any % difference value expected, since classification is done using <=
+rivseg_pct_vect <- c(0,10,50,100,500,1000,10000) #last value should be higher than any value expected, since classification is done using <=
+rseg_leg_title <- "Water Availability for L30 (mgd)"  
+rivmap_labs <- c("0 - 10", 
+              "10 - 50", 
+              "50 - 100",
+              "100 - 500",
+              "500 - 1000",
+              "1000 - 10000",
+              " >= 10000")
 rivbreaks <- seq(1:length(rivseg_pct_vect))
 rivmap_colors <- c("firebrick2","darkorange","#FFCC99",
                    "white","palegreen","limegreen","green4") #colors for fills 
-
-rivseg_pct_vect <- c(0,10,50,100,500,1000,10000)
-rseg_leg_title <- "Water Availability for L30 (mgd)"  
-rivmap_labs <- c(" <= 0", 
-                "0 to 10", 
-                "10 to 50",
-                "50 to 100",
-                "100 to 500",
-                "500 to 1000",
-                " > 1000")
 ```
 
 ```{r Labeling for fn_mapgen(), eval=FALSE}
@@ -1258,28 +1239,9 @@ source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #lo
 div <- rivseg_pct_vect
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
-for (i in 1:nrow(caseStudies_df)) {
+for (i in 1:nrow(caseStudiesMetrics_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
-  
-  #binning based on water availability
-  # binrange <- range(rsegs_df$WA_mgd_30_apx)
-  # midbin <- mean(binrange)
-  # thirdbin <- midbin + ((binrange[2] - midbin)/2)
-  # firstbin <- midbin - ((binrange[2] - midbin)/2)
-  
-  bins_sql <-  paste("SELECT *,
-	                  CASE WHEN WA_mgd_30_apx <= ",div[1]," THEN '1'
-		                WHEN WA_mgd_30_apx >  ",div[1]," AND WA_mgd_30_apx <= ",div[2]," THEN '2'
-		                WHEN WA_mgd_30_apx >  ",div[2]," AND WA_mgd_30_apx <= ",div[3]," THEN '3'
-		                WHEN WA_mgd_30_apx >  ",div[3]," AND WA_mgd_30_apx <= ",div[4]," THEN '4'
-		                WHEN WA_mgd_30_apx >  ",div[4]," AND WA_mgd_30_apx <= ",div[5]," THEN '5'
-		                WHEN WA_mgd_30_apx >  ",div[5]," AND WA_mgd_30_apx <= ",div[6]," THEN '6'
-		                WHEN WA_mgd_30_apx > ",div[6]," THEN '7'
-		                ELSE 'X'
-		                END AS bin
-		                FROM rsegs_df",sep="")
-  rsegs_df <-fn_sqldf_sf(bins_sql)  
   
   #join rseg geometry data 
   if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
@@ -1316,7 +1278,7 @@ for (i in 1:nrow(caseStudies_df)) {
   #mp_layer: ^
   
   map <- fn_mapgen(mapnum = 2, featr_type = "facility", origin_type = "basin",
-                   style = styles[[map_style]], metric = "WA_mgd_30_apx", origin = caseStudies_df$riverseg[i],
+                   style = styles[[map_style]], metric = "WA_mgd_30_apx", origin = caseStudiesMetrics_df$riverseg[i],
                    bbox = bbox, segs = rsegs_df, counties = counties, roads = roads, nhd = nhd, maplabs = maplabs, 
                    mp_layer = mp_layer, metric_unit = "mgd", maptitle = "WA for L30")
 
@@ -1326,7 +1288,6 @@ for (i in 1:nrow(caseStudies_df)) {
 
 ```
 
-<!---BLOCK_LANDSCAPE_STOP--->
 
 ```{r Write CSVs Locally}
 #Writing locally to location of export_path
@@ -1370,11 +1331,11 @@ if ("github" %in% write_tables) {
   
 }
 
-
-### need to implement this for case study watershed tables in the loop
 ```
 
 ```{r Save Tables as Images}
+#disable outputs
+
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
@@ -1390,9 +1351,4 @@ flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_
 flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
 ```
-
-```{r tab.cap="", tab.id=""}
-
-```
-
 
