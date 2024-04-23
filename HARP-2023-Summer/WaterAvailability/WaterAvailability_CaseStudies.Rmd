@@ -1058,7 +1058,7 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 # Map 1: Water Availability Map
 ## WA for L30
 
-```{r Mapping}
+```{r Mapping without fn_mapgen(), eval=FALSE}
 #create spatial object of all rivsersegs to be trimmed
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
@@ -1131,7 +1131,7 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 
 ```
 
-```{r View Maps}
+```{r View Maps, eval=FALSE}
 plot(map1)
 plot(map2)
 plot(map3)
@@ -1145,7 +1145,7 @@ plot(map7)
 # }
 ```
 
-```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
+```{r Basemap Data Retrieval & Processing for fn_mapgen()}
 #move these to parameters when working 
 map_style <- "custom"
 crs_default <- 4326
@@ -1192,8 +1192,6 @@ roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #prim
                   value=TRUE)) #finds where last char is a number (thus omitting names followed by Byp, Alt, etc.)
 roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
 names(roads) <- gsub("RTTYP", "CLASS", names(roads)) #re-name class column -> needed for fn_labelprep() in the RMD
-#nhd 
-nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
 #regions
 regions_split <- split(counties, counties$Region) #creates a list containing a sf data frame per each region, which all contain the county polygons corresponding to that region
 for(i in 1:length(regions_split)){ #merge counties into one polygon for each region
@@ -1211,32 +1209,19 @@ st_crs(counties) <- crs_default
 st_crs(roads) <- crs_default
 ```
 
-```{r Configure fn_mapgen(), eval=FALSE}
-rivseg_pct_vect <- c(0,10,50,100,500,1000,10000) #last value should be higher than any value expected, since classification is done using <=
+```{r Configure fn_mapgen()}
+rivseg_pct_vect <- div #last value should be higher than any value expected, since classification is done using <=
 rseg_leg_title <- "Water Availability for L30 (mgd)"  
-rivmap_labs <- c("0 - 10", 
-              "10 - 50", 
-              "50 - 100",
-              "100 - 500",
-              "500 - 1000",
-              "1000 - 10000",
-              " >= 10000")
+rivmap_labs <- bin_labs
 rivbreaks <- seq(1:length(rivseg_pct_vect))
 rivmap_colors <- c("firebrick2","darkorange","#FFCC99",
                    "white","palegreen","limegreen","green4") #colors for fills 
 ```
 
-```{r Labeling for fn_mapgen(), eval=FALSE}
-nhdlabs <- fn_nhd_labs(data=nhd)
-rm(maplabs)
-maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
-```
-
-```{r Mapping with fn_mapgen(), eval=FALSE}
+```{r Mapping with fn_mapgen()}
 #disabled with eval=FALSE until up and running 
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
 
-div <- rivseg_pct_vect
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
 for (i in 1:nrow(caseStudiesMetrics_df)) {
@@ -1259,7 +1244,14 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   bbox_sfc <- st_buffer(st_as_sfc(st_bbox(rsegs_df)), .02) #slightly past basin
   bbox <- st_bbox(bbox_sfc)
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
-  nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE) #get nhd data
+  
+  #processing labels for mapping 
+  nhdlabs <- fn_nhd_labs(data=nhd)
+  if (exists("maplabs") == TRUE) {
+    rm(maplabs) #need to remove maplabs if it exists before recreation 
+  }
+  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
   
   #mp_layer placeholder
   #cols required: lat, long, bin, NUM, 
@@ -1285,6 +1277,8 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 }
 #recent: Error in `scale_linewidth()`:`breaks` and `labels` have different lengths. line ~230
 
+#Error in scale$guide == "none" : 
+#  comparison (==) is possible only for atomic and list types
 
 ```
 

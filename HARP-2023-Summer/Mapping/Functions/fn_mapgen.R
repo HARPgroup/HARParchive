@@ -27,7 +27,7 @@ source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_filter_map.R"),
 # mapnum = 2; style = styles[[map_style]]; metric = rivseg_metric[i]; segs = rsegs_sf
 
 #For testing with Water Availability Case Studies:
-#mapnum = 2; featr_type = "facility"; origin_type = "basin"; style = styles[[map_style]]; metric = "WA_mgd_30_apx"; origin = caseStudies_df$riverseg[i]; bbox = bbox; segs = rsegs_df; counties = counties; roads = roads; nhd = nhd; maplabs = maplabs; mp_layer = mp_layer; metric_unit = "mgd"; maptitle = "WA for L30"
+#mapnum = 2; featr_type = "facility"; origin_type = "basin"; style = styles[[map_style]]; metric = "WA_mgd_30_apx"; origin = caseStudiesMetrics_df$riverseg[i]; bbox = bbox; segs = rsegs_df; counties = counties; roads = roads; nhd = nhd; maplabs = maplabs; mp_layer = mp_layer; metric_unit = "mgd"; maptitle = "WA for L30"
 
 fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
                        nhd, maplabs, mp_layer, metric_unit, maptitle) { 
@@ -225,7 +225,7 @@ fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bb
                           breaks= c("county","watershed"),
                           labels= c("County","Basin"),
                           name= "Borders"
-      ) + #error happens here 
+      ) + 
       scale_linewidth(range= range(c(textsize[6],4.5)),
                       breaks= c(2.5,textsize[6]),
                       labels= c("County","Basin"),
