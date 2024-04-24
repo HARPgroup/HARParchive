@@ -684,14 +684,14 @@ for (k in 1:length(run_config$riverseg_metrics)){
     rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
 
-    rivtablenum <- k #for heading numbering 
+    rivtablenum <- k + 1 #for heading numbering, use 1 + rivtablenum since we already printed a table
   
     
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
                        origin = origin , tabletitle = rivtabletitle,
-                       num=rivtablenum) #flextable function
+                       num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
     
     assign(paste0('table', k), ft2, envir = globalenv())
   

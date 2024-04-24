@@ -3,7 +3,11 @@
 library(flextable)
 
 #create function
-fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metric, origin, tabletitle, num) { 
+fn_tablegen <- function(
+    featr_type, table, columns, alignment, 
+    origin_type, metric, origin, tabletitle, num,
+    highlight_col = FALSE, highlight_limit = -10
+  ) { 
   #featr_type: either 'facility' (map 1) or 'riverseg' (map 2)
   #table: data frame to be transformed into a flextable 
   #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
@@ -35,10 +39,8 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
   # this should be removed in favor of the same type of styling used in maps whereby
   # we create a color ramp (regular, and yellow) and set a column with the style to use
   # in the input table.  But for now we keep this.
-  if (data_set == 'rseg_no_geom')  { #only do this for rseg maps not facil maps 
-    if ('percentDiff' %in% names(ft$body$dataset)) {
-      ft <- flextable::bg(ft, i = ft$body$dataset$`percentDiff` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
-    }
+  if (highlight_col %in% names(ft$body$dataset)) {
+    ft <- flextable::bg(ft, i = ft$body$dataset[,highlight_col] < as.numeric(highlight_limit), bg = "yellow") #background color for flextable
   }
   
   #num <- grep(metric, rivseg_metric, value=FALSE)
