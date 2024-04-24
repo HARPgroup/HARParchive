@@ -87,7 +87,7 @@ source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #lo
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
+source(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
 

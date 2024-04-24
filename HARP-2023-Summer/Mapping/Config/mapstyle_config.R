@@ -114,11 +114,11 @@ run_sets <- list(
       ), 
       list(
         data_set = 'facils_nogeom',
-        metric='wsp2020_2040_mgy', #replace with unmet demand req 
-        data_set = 'facils_nogeom',
-        column_name='wsp2020_2040_mgy', 
+        metric='unmet30_mgd', #replace with unmet demand req 
+        column_name='runid_11_unmet30_mgd', 
         run_label = 'A TEST FOR FACIL FUNCTION', 
-        tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'gw_frac','five_yr_avg', 'runid_11_wd_mgd', 'runid_13_wd_mgd', 'wsp2020_2040_mgy'),
+        tables_cols = c('facility', 'Facility_hydroid', 'runid_11_unmet30_mgd'),
+        #tables_cols = c('facility', 'Facility_hydroid', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_decreasing = FALSE, 
         show_map= FALSE
       )
