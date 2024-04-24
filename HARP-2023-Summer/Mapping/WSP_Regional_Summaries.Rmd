@@ -681,21 +681,11 @@ for (k in 1:length(run_config$riverseg_metrics)){
     #defining titles 
     rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
-    #this chunk is not in use at the moment, based on titles being done in config 
-    if (display_metric=="l30_Qout"){
-      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
-    } else if (display_metric=="l90_Qout"){
-      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-    } else {
-      rivtablelabel <- rivtablemetric
-    }
-    
-    rivtabletitle <- paste0(title_main , ' - ' ,display_title)
-    
+
     rivtablenum <- k #for heading numbering 
+  
     
-    
-    ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
+    ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
                        origin = origin , tabletitle = rivtabletitle,
