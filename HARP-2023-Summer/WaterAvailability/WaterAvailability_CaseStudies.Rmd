@@ -35,6 +35,7 @@ library(nhdplusTools)
 library(arcpullr)
 library(ggrepel)
 library(ggtext)
+library(png)
 
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
@@ -217,9 +218,6 @@ storage_data$imp_off <- NA
 for (i in 1:nrow(storage_data)) {
   #Get runfile with timeseries data from VAhydro
   dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
-  #fn_get_runfile uses print() which is not successfully hidden with chunk options. capture.output is solution for disabiling print() for clean knitting
-  #capture.output(dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE), file = nullfile()) #get timeseries data (zoo), disable print form function
-  
   mode(dat) <- 'numeric'
   cols <- names(dat)
   
@@ -562,7 +560,6 @@ for (i in 1:nrow(metric_data)) {
   if(!grepl("0000_0000",metric_data$riverseg[i])){
      #Get upstream segments only for riverseg[i] in metric_data
      ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i])
-     #capture.output(ups_imp <- fn_extract_basin(metric_data,metric_data$riverseg[i]), file = nullfile()) #disabling print() output
   }else{
     #Skip tiday, bay, and SR ends segments
     print(paste0("Skipping segment ",metric_data$riverseg[i]," as it is tidal or  end segment"))
@@ -676,26 +673,39 @@ for (i in 1:nrow(storage_data)) {
 
 ```
 
-```{r Processing for Case Study Wsheds}
-#Create datafrane with case study segments 
-caseStudiesMetrics_df <- data.frame()
-caseStudiesStorage_df <- data.frame()
+```{r Case Studies Dataframe}
+## Case Studies Dataframe
+caseStudies_df <- data.frame()
 
 for (i in 1:length(caseStudy_list)) {
-  caseStudyRow_metrics <- metric_data[grep(caseStudy_list[i], metric_data$riverseg), ]
-  caseStudiesMetrics_df <- rbind(caseStudiesMetrics_df, caseStudyRow_metrics)
-  
-  caseStudyRow_storage <- storage_data[grep(caseStudy_list[i], storage_data$riverseg), ]
-  caseStudiesStorage_df <- rbind(caseStudiesStorage_df, caseStudyRow_storage)
+  caseStudyRow <- metric_data[grep(caseStudy_list[i], metric_data$riverseg), ] #get row from metric data for case study
+  caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
+}
+
+#Add columns analyzing storage/Smin methods to case study dataframe
+for (i in 1:length(caseStudy_list)) { 
+  if (caseStudy_list[i] %in% storage_data$riverseg) { #need to check if the case study exists in the storage dataframe first
+    caseStudies_df$min_in_pd30[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "min_in_pd30"]
+    caseStudies_df$min_in_pd90[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "min_in_pd90"]
+    caseStudies_df$outside_pd30[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "outside_pd30"]
+    caseStudies_df$outside_pd90[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "outside_pd90"]
+  } else { #if it doesn't exist, fill with NA -- means sge not run with updated summary containing Smin routine yet
+    caseStudies_df$min_in_pd30[i] <- NA
+    caseStudies_df$min_in_pd90[i] <- NA
+    caseStudies_df$outside_pd30[i] <- NA
+    caseStudies_df$outside_pd90[i] <- NA
+  }
 }
 
 #Remove duplicate rows
-caseStudiesMetrics_df <- caseStudiesMetrics_df[!duplicated(caseStudiesMetrics_df), ]
+caseStudies_df <- caseStudies_df[!duplicated(caseStudies_df), ]
+```
 
-#Create dataframes for case study watersheds (upstream from eaxh of outlet_list)
+
+```{r Case Study Watersheds Dataframes}
+#Create dataframes for case study watersheds (upstream from each of outlet_list)
 for (i in 1:length(outlet_list)) {
   ups_data <- fn_extract_basin(metric_data, outlet_list[i])
-  #capture.output(ups_data <- fn_extract_basin(metric_data, outlet_list[i]), file = nullfile()) #disabling print() output
   ups_data$NUM <- seq(1, nrow(ups_data))#number rows
   assign(paste0('ups_ds_df_', i), ups_data)
 }
@@ -872,17 +882,18 @@ ftable_update
 ```{r Table 5}
 title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
-table_caseStudies <- data.frame(Propname = caseStudiesStorage_df$propname,
-                     Riverseg = caseStudiesStorage_df$riverseg,
-                     SminL30mg_apx = caseStudiesStorage_df$SminL30mg_apx,
-                     SminL30mg_nex = caseStudiesStorage_df$SminL30mg_nex,
-                     SminL90mg_apx = caseStudiesStorage_df$SminL90mg_apx,
-                     SminL90mg_nex = caseStudiesStorage_df$SminL90mg_nex,
-                     outside_pd30 = caseStudiesStorage_df$outside_pd30,
-                     outside_pd90 = caseStudiesStorage_df$outside_pd90)
+table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
+                     Riverseg = caseStudies_df$riverseg,
+                     SminL30mg_apx = caseStudies_df$SminL30mg_apx_local,
+                     SminL30mg_nex = caseStudies_df$SminL30mg_nex_local,
+                     SminL90mg_apx = caseStudies_df$SminL90mg_apx_local,
+                     SminL90mg_nex = caseStudies_df$SminL90mg_nex_local,
+                     outside_pd30 = caseStudies_df$outside_pd30,
+                     outside_pd90 = caseStudies_df$outside_pd90)
 
 ftable_caseStudies <- flextable(table_caseStudies) #create flextable
 ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
+ftable_caseStudies <- add_footer_row(ftable_caseStudies, top = TRUE, values = "Note: Local storage shown", colwidths = length(colnames(table_caseStudies))) #add footer
 
 ftable_caseStudies
 ```
@@ -958,10 +969,10 @@ for (i in 1:length(caseStudy_list)) {
 ```{r Create Plot for L30}
 plot30_filename <- character()
 
-for (i in 1:nrow(caseStudiesMetrics_df)) {
+for (i in 1:nrow(caseStudies_df)) {
   
   #get case study name for titling 
-  caseStudyName <- gsub('[0-9]+', '', caseStudiesMetrics_df$propname[i])
+  caseStudyName <- gsub('[0-9]+', '', caseStudies_df$propname[i])
   caseStudyName <- gsub('[[:punct:] ]+', ' ', caseStudyName)
   caseStudyName <- gsub('Impoundment', '', caseStudyName)
   
@@ -1031,7 +1042,7 @@ bins$classid <- index(bins)
 names(bins) <- c("val", "bin")
 
 #add bins to case study watershed dataframes based on 30-day WA
-for (i in 1:nrow(caseStudiesMetrics_df)) {
+for (i in 1:nrow(caseStudies_df)) {
   csws_df <- get(paste0('ups_ds_df_', i))
   
   entity_classes <- sqldf( #sorting the data into bins based on their range 
@@ -1053,8 +1064,6 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 }
 ```
 
-
-
 # Map 1: Water Availability Map
 ## WA for L30
 
@@ -1064,7 +1073,7 @@ rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to 
 
 #map case study watersheds
 WAmapfilename <- character()
-for (i in 1:nrow(caseStudiesMetrics_df)) {
+for (i in 1:nrow(caseStudies_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
   
@@ -1092,9 +1101,9 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
   rsegs_bbox <- st_filter(rsegs_all_sf, bbox_sfc)
   #Get nhd data to map flowlines & waterbodies
-  # nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE) 
   
-  map <- ggplot(rsegs_bbox) + geom_sf() + 
+  map <- ggplot(rsegs_bbox) + geom_sf(fill = "grey") + #map all segments within bbox as background
     geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
     scale_fill_manual(values = c("firebrick2","darkorange",
                                  "white", "cadetblue1", "deepskyblue", "dodgerblue3", "blue"),
@@ -1102,17 +1111,17 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
                       labels = bin_labs,
                       limits = as.factor(seq(1:7)),
                       name = "WA for L30 (mgd)") +
-    # geom_sf(data = nhd$flowline, #map nhd flowlines
-    #         inherit.aes=FALSE, color= "dodgerblue",
-    #         mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
-    #         show.legend=FALSE) +
-    # scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
-    # geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd), #map nhd waterbodies
-    #         inherit.aes=FALSE, fill= "dodgerblue", size=1) + 
+    geom_sf(data = nhd$flowline, #map nhd flowlines
+            inherit.aes=FALSE, color= "dodgerblue",
+            mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
+            show.legend=FALSE) +
+    scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
+    geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd), #map nhd waterbodies
+            inherit.aes=FALSE, fill= "dodgerblue", size=1) +
     geom_sf(data = rsegs_df[rsegs_df$riverseg == caseStudy_list[i],] ,
-            fill = NA, color = "yellow", lwd = 1) + #highlight outline case study segment
+            fill = NA, color = "red", lwd = 2) + #highlight outline case study segment
     geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = NUM), size = 8) + #label segments 
-    ggtitle(paste0('Water Availability (L30) for ', caseStudiesMetrics_df$riverseg[i])) +
+    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
     theme(plot.title = element_text(size = 40), legend.text = element_text(size = 25), legend.title = element_text(size = 30)) + 
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE) #set viewing window to bounding box 
   plot(map)
@@ -1120,7 +1129,7 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   assign(paste0('map', i), map, envir = globalenv())
   
   #save image of map
-  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", i, "_", caseStudiesMetrics_df$riverseg[i], ".png", sep="")
+  WAmapfilename[i] <- paste(export_path, "WAcaseStudiesMap_", i, "_", caseStudies_df$riverseg[i], ".png", sep="")
   ggsave(
     filename = WAmapfilename[i],
     plot = map,
@@ -1131,19 +1140,40 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
 
 ```
 
-```{r View Maps}
-plot(map1)
-plot(map2)
-plot(map3)
-plot(map4)
-plot(map5)
-plot(map6)
-plot(map7)
+```{r View Maps, eval=FALSE}
+#Get map PNGs and assign unique names for viewing
+for (i in 1:nrow(caseStudies_df)) {
+  map_img <- readPNG(WAmapfilename[i]) #pull saved PNG from local storage
+  assign(paste0('map_img', i), map_img, envir = globalenv())
+}
+
+#View maps; much faster to just view PNGs by finding and opening file in local export_path 
+grid.raster(map_img1) #view PNG of map - takes a few seconds for map to show up after function runs 
+grid.raster(map_img2)
+grid.raster(map_img3)
+grid.raster(map_img4)
+grid.raster(map_img5)
+grid.raster(map_img6)
+grid.raster(map_img7)
+
+
+## Does NOT work when maps are created with nhd data; they're saved to export_path so view them from there instead
+# plot(map1)
+# plot(map2)
+# plot(map3)
+# plot(map4)
+# plot(map5)
+# plot(map6)
+# plot(map7)
 
 # for (i in 1:length(caseStudy_list)) {
 #   plot(get(paste0('map', i)))
 # }
 ```
+
+
+# End Functional RMD (besides writing/saving chunks at the end)
+
 
 ```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
 #move these to parameters when working 
@@ -1239,7 +1269,7 @@ source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #lo
 div <- rivseg_pct_vect
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
 
-for (i in 1:nrow(caseStudiesMetrics_df)) {
+for (i in 1:nrow(caseStudies_df)) {
 
   rsegs_df <- get(paste0('ups_ds_df_', i))
   
@@ -1278,7 +1308,7 @@ for (i in 1:nrow(caseStudiesMetrics_df)) {
   #mp_layer: ^
   
   map <- fn_mapgen(mapnum = 2, featr_type = "facility", origin_type = "basin",
-                   style = styles[[map_style]], metric = "WA_mgd_30_apx", origin = caseStudiesMetrics_df$riverseg[i],
+                   style = styles[[map_style]], metric = "WA_mgd_30_apx", origin = caseStudies_df$riverseg[i],
                    bbox = bbox, segs = rsegs_df, counties = counties, roads = roads, nhd = nhd, maplabs = maplabs, 
                    mp_layer = mp_layer, metric_unit = "mgd", maptitle = "WA for L30")
 
