@@ -26,45 +26,27 @@ fn_tablegen <- function(featr_type, table, columns, alignment, origin_type, metr
   }
   
   ft <- theme_vanilla(ft)
-  #autonum1 <- run_autonum(seq_id = "tab", pre_label = "Table ", bkm = "anytable")
-  #autonum1 <- run_autonum(seq_id = "table", pre_label="Table", post_label = ': ') # number the table, bkm (bookmark) is important as the cross-referencing is done using the bookmark
-  #ft <- set_caption(ft, caption= "Test", autonum =autonum1)
+  ft <- autofit(ft)
+  ft <- width(ft, j=1, width = 1.5)
+  ft <- width(ft, width = 1)
+  ft <- align(ft, align = alignment, part = "all")
   
-  
-  if (featr_type == 'facility') { #facility tables need more editing then riverseg at the moment, this is subject to change 
-    
-    ft <- void(ft, j=1, part = "header") #remove name of 1st column in facil/source tables, which will always be the # for the facil/source
-    ft <- width(ft, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
-    ft <- width(ft, j=1, width = 0.5)
-    ft <- width(ft, j=2, width = 0.8)
-    ft <- align(ft, align = alignment, part = "all")
-    ft <- add_header_lines(ft, values= "Table 1.1") #add subtite
-    ft <- add_header_lines(ft, values= tabletitle) #add title 
-    ft <- fontsize(ft, i=1, size=14, part = "header") #inc size of title
-    
-  } else if (featr_type == 'riverseg') {
-    
-    ft <- autofit(ft)
-    ft <- width(ft, j=1, width = 1.5)
-    ft <- width(ft, j=2, width = 1)
-    ft <- width(ft, j=4, width = 1)
-    ft <- width(ft, j=5, width = 1)
-    ft <- align(ft, align = alignment, part = "all")
-    
-    #highlight when precent diff is below highlight limit(defined in config)
-    
-    if (data_set == 'rseg_no_geom')  { #only do this for rseg maps not facil maps 
-    ft <- flextable::bg(ft, i = ft$body$dataset$`percentDiff` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
+  #highlight when precent diff is below highlight limit(defined in config)
+  # this should be removed in favor of the same type of styling used in maps whereby
+  # we create a color ramp (regular, and yellow) and set a column with the style to use
+  # in the input table.  But for now we keep this.
+  if (data_set == 'rseg_no_geom')  { #only do this for rseg maps not facil maps 
+    if ('percentDiff' %in% names(ft$body$dataset)) {
+      ft <- flextable::bg(ft, i = ft$body$dataset$`percentDiff` < as.numeric(rseg_highlight_limit), bg = "yellow") #background color for flextable
     }
-    
-   
-    #num <- grep(metric, rivseg_metric, value=FALSE)
-    ft <- add_header_lines(ft, values= paste0("Table 2.", num)) #add subtite
-    
-    #ft <- add_header_lines(ft, values= numname) #add subtite
-    ft <- add_header_lines(ft, values= tabletitle) #add title 
-    ft <- fontsize(ft, i=1, size=14, part = "header") #inc size of title
   }
+  
+  #num <- grep(metric, rivseg_metric, value=FALSE)
+  ft <- add_header_lines(ft, values= paste0("Table ", num)) #add subtite
+  
+  #ft <- add_header_lines(ft, values= numname) #add subtite
+  ft <- add_header_lines(ft, values= tabletitle) #add title 
+  ft <- fontsize(ft, i=1, size=14, part = "header") #inc size of title
   return(ft)
 }
 
