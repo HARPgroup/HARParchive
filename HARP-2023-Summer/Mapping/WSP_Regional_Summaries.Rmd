@@ -512,7 +512,9 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
                    origin_type = origin_type, metric = rivseg_metric[i], 
-                   origin = origin, tabletitle = title_main ) #execute flextable function
+                   origin = origin, tabletitle = title_main, num = "1.1" ) #execute flextable function
+ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
+ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
 
 ```
 
@@ -694,7 +696,11 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     rivtablenum <- k #for heading numbering 
     
-    
+    if (data_set == 'facils_nogeom') {
+      featr_type <- "facility"
+    } else {
+      featr_type <- "riverseg"
+    }
     ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
