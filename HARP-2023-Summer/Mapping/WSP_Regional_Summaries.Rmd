@@ -696,11 +696,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     rivtablenum <- k #for heading numbering 
     
-    if (data_set == 'facils_nogeom') {
-      featr_type <- "facility"
-    } else {
-      featr_type <- "riverseg"
-    }
     ft2 <- fn_tablegen(featr_type = "riverseg", table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
