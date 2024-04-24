@@ -8,8 +8,8 @@ output:
       
       Normal: ['First Paragraph']
 params: 
-  caseStudy_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450", "NR6_8500_7820"]
-  outlet_list: ["PL3_5360_5250", "JU4_7000_7300", "JA5_7480_0001", "YP3_6670_6720", "OR3_7740_8271", "PU4_3970_3890", "NR6_7960_8050"]
+  caseStudy_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450"]
+  outlet_list: ["PL3_5360_5250", "JU4_7000_7300", "JA5_7480_0001", "YP3_6670_6720", "OR3_7740_8271", "PU4_3970_3890"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
@@ -963,6 +963,43 @@ for (i in 1:length(caseStudy_list)) {
 
 <!---BLOCK_LANDSCAPE_STOP--->
 
+```{r Case Study Names}
+#Get case study names for plot and map titling 
+#get case study names for titling 
+for (i in 1:length(caseStudy_list)) {
+  #can we also display the impoundment-specific name from thee storage data?
+  caseStudyName_rseg <- gsub('[0-9]+', '', caseStudies_df$propname[i])
+  caseStudyName_rseg <- gsub('[[:punct:] ]+', ' ', caseStudyName_rseg)
+  caseStudyName_rseg <- gsub('Impoundment', '', caseStudyName_rseg)
+  
+  caseStudyName_storage <- gsub('[0-9]+', '', storage_data[storage_data$riverseg == caseStudy_list[i], "propname"])
+  caseStudyName_storage <- gsub('[[:punct:] ]+', ' ', caseStudyName_storage)
+  caseStudyName_storage <- gsub('Impoundment', '', caseStudyName_storage)
+  
+  #remove 1 name if they're duplicated 
+   if (length(caseStudyName_storage) != 0) { 
+     if (caseStudyName_storage == caseStudyName_rseg) {
+      caseStudyName_storage <- character()
+      }
+    }
+   
+  
+  if (length(caseStudyName_storage) != 0) {
+    caseStudyName <- paste0(caseStudyName_storage, " / ", caseStudyName_rseg)
+  } else {
+    caseStudyName <- caseStudyName_rseg
+  }
+  
+  caseStudyName <- trimws(caseStudyName, which = "both")#remove leading space 
+  
+  assign(paste0('caseStudyName', i), caseStudyName)
+}
+
+
+```
+
+
+
 # Plot 1: Demand Flow vs Available Flow 
 ## For L30
 
@@ -970,13 +1007,6 @@ for (i in 1:length(caseStudy_list)) {
 plot30_filename <- character()
 
 for (i in 1:nrow(caseStudies_df)) {
-  
-  #get case study name for titling 
-  caseStudyName <- gsub('[0-9]+', '', caseStudies_df$propname[i])
-  caseStudyName <- gsub('[[:punct:] ]+', ' ', caseStudyName)
-  caseStudyName <- gsub('Impoundment', '', caseStudyName)
-  
-  ### Move case study names to subtitle
   
   #l30 graph
   plot30 <- ggplot(data = get(paste0('ups_ds_df_',i)), aes(x=riverseg)) +
@@ -987,13 +1017,13 @@ for (i in 1:nrow(caseStudies_df)) {
     theme(legend.text = element_text(size = 25)) +
     ylab('cfs') + 
     scale_fill_manual(name = NULL, 
-                      label = c("L30", "Qavailable"), 
+                      label = c("Qdemand", "Qavailable"), 
                       values = c("blue","green")) +
     theme(
       plot.title = element_markdown(size = 40),
       plot.subtitle = element_markdown(size = 30)) +
     labs(title = 'Qdemand vs Qavailable (L30)',
-       subtitle = paste0("For ", caseStudyName, "<br> Qavailable = Qdemand - MIF*Qbaseline"))
+       subtitle = paste0("For ", get(paste0('caseStudyName',i)), "<br> Qavailable = Qdemand - MIF*Qbaseline"))
     # ggtitle(paste0('Qdemand vs Qavailable (L30) for ', caseStudiesMetrics_df$riverseg[i], ': ', caseStudyName),
     #         subtitle = 'Qavailable = Qdemand - MIF*Qbaseline') 
 
@@ -1019,7 +1049,6 @@ plot30_3
 plot30_4
 plot30_5
 plot30_6
-plot30_7
 
 # for (i in 1:length(caseStudy_list)) {
 #   plot(get(paste0('plot30_', i)))
@@ -1068,8 +1097,10 @@ for (i in 1:nrow(caseStudies_df)) {
 ## WA for L30
 
 ```{r Mapping}
+crs_default <- 4326
+
 #create spatial object of all rivsersegs to be trimmed
-rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
+rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs =  crs_default) #convert to sf
 
 #map case study watersheds
 WAmapfilename <- character()
@@ -1102,8 +1133,16 @@ for (i in 1:nrow(caseStudies_df)) {
   rsegs_bbox <- st_filter(rsegs_all_sf, bbox_sfc)
   #Get nhd data to map flowlines & waterbodies
   nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE) 
+  nhd$flowline <- fn_centroid_coords(nhd$flowline, geom_col = "geometry", crs = crs_default) #add centroid coordinates for labeling streams & rivers
+  flowlines_large <- nhd$flowline[nhd$flowline$StreamOrde > 3, ]
+  flowline_labs <- data.frame(name = flowlines_large$gnis_name,
+                              geometry = flowlines_large$geometry,
+                              lng = flowlines_large$lng,
+                              lat = flowlines_large$lat)
+  flowline_labs <- flowline_labs[!duplicated(flowline_labs$name), ]
   
-  map <- ggplot(rsegs_bbox) + geom_sf(fill = "grey") + #map all segments within bbox as background
+  
+  map <- ggplot(rsegs_bbox) + geom_sf() + #map all segments within bbox as background
     geom_sf(data = rsegs_df, mapping = aes(fill = as.factor(bin))) +
     scale_fill_manual(values = c("firebrick2","darkorange",
                                  "white", "cadetblue1", "deepskyblue", "dodgerblue3", "blue"),
@@ -1121,8 +1160,14 @@ for (i in 1:nrow(caseStudies_df)) {
     geom_sf(data = rsegs_df[rsegs_df$riverseg == caseStudy_list[i],] ,
             fill = NA, color = "red", lwd = 2) + #highlight outline case study segment
     geom_text_repel(data = rsegs_df, aes(x=lng, y=lat, label = NUM), size = 8) + #label segments 
-    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i])) +
-    theme(plot.title = element_text(size = 40), legend.text = element_text(size = 25), legend.title = element_text(size = 30)) + 
+    geom_text_repel(data = flowline_labs,
+                    aes(x=lng, y=lat, label = name), size = 6)  + #label large rivers 
+    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i]), 
+            subtitle = get(paste0('caseStudyName',i))) +
+    theme(plot.title = element_text(size = 40),
+          plot.subtitle = element_text(size = 20),
+          legend.text = element_text(size = 25), 
+          legend.title = element_text(size = 30)) + 
     coord_sf(xlim = bbox_points$long, ylim = bbox_points$lat, expand = FALSE) #set viewing window to bounding box 
   plot(map)
   
