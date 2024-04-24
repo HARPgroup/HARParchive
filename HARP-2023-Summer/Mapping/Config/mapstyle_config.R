@@ -117,7 +117,7 @@ run_sets <- list(
         metric='unmet30_mgd', #replace with unmet demand req 
         column_name='runid_11_unmet30_mgd', 
         run_label = 'A TEST FOR FACIL FUNCTION', 
-        tables_cols = c('facility', 'Facility_hydroid', 'runid_11_unmet30_mgd'),
+        tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd'),
         #tables_cols = c('facility', 'Facility_hydroid', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_decreasing = FALSE, 
         show_map= FALSE
