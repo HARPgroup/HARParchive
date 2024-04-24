@@ -81,15 +81,17 @@ show_map <- params$show_map
 ```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
-github_uri <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
+if (!exists("HARParchive_location")){
+  HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
+  
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
 
 # legend_titling() --> Generate user-understandable legend titles
 ## Kept up here as a function so that it's easy to add if-statements when user-input options expand
@@ -151,10 +153,10 @@ if (is.null(run_config)) {
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-regions_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
-counties_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
-cities_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/cities.csv')
-roads_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
+regions_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+counties_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+cities_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/cities.csv')
+roads_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
 facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
