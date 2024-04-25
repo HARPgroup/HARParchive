@@ -600,20 +600,16 @@ metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - metric_data$l
 # mgd = cfs / 1.547
 
 #4 total WA values: L30 and L90 for each approx and near exact storage 
-metric_data$WA_mgd_30_apx = round((metric_data$l30_Qout_dem / 1.547) - 
-  metric_data$Qavailable_30_cfs / 1.547 + 
+metric_data$WA_mgd_30_apx = round((metric_data$Qavailable_30_cfs / 1.547) + 
   (metric_data$SminL30mg_apx_total / 30), digits = 3)
 
-metric_data$WA_mgd_90_apx = round((metric_data$l90_Qout_dem / 1.547) - 
-  metric_data$Qavailable_90_cfs / 1.547 + 
+metric_data$WA_mgd_90_apx = round((metric_data$Qavailable_90_cfs / 1.547) + 
   (metric_data$SminL30mg_apx_total / 90), digits = 3)
 
-metric_data$WA_mgd_30_nex = round((metric_data$l30_Qout_dem / 1.547) - 
-  metric_data$Qavailable_30_cfs / 1.547 + 
+metric_data$WA_mgd_30_nex = round((metric_data$Qavailable_30_cfs / 1.547) + 
   (metric_data$SminL30mg_nex_total / 30), digits = 3)
 
-metric_data$WA_mgd_90_nex = round((metric_data$l90_Qout_dem / 1.547) - 
-  metric_data$Qavailable_90_cfs / 1.547 + 
+metric_data$WA_mgd_90_nex = round((metric_data$Qavailable_90_cfs / 1.547) + 
   (metric_data$SminL90mg_nex_total / 90), digits = 3)
 
 # save all these values to REST
