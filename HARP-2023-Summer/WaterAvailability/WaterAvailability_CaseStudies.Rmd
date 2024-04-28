@@ -1309,6 +1309,29 @@ for (i in 1:nrow(caseStudies_df)) {
 
 ```
 
+```{r View Case Study Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
+for (i in 1:length(caseStudy_list)){
+  #L30 map
+  fig_L30 = paste(paste0("![](",WAmapfilename30[i],")"),"\n")
+  cat(fig_L30)
+  
+  #L30 table
+  cat(knitr::knit_print(get(paste0('ftable_cswsL30_', i))))
+  cat("\n\n\\pagebreak\n")
+  
+  #L90 map
+  fig_L30 = paste(paste0("![](",WAmapfilename90[i],")"),"\n")
+  cat(fig_L30)
+  
+  #L90 table
+  cat(knitr::knit_print(get(paste0('ftable_cswsL90_', i))))
+  cat("\n\n\\pagebreak\n")
+  
+}
+
+```
+
+
 ```{r Write CSVs Locally}
 #Writing locally to location of export_path
 if ("local" %in% write_tables) {
