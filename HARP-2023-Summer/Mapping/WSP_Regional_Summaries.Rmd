@@ -250,7 +250,7 @@ if (show_map == TRUE) {
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 if (show_map == TRUE) {
   rm(maplabs)
-  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
+  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"), "maplabs")
 }
 ```
 

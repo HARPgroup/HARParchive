@@ -32,6 +32,7 @@ metric_names <- data.frame(read_metric_name, new_metric_name)
 # adapt this to permit us to store pre-configured sets
 # run_set is parameter to use in WSP_Regional_Summaries.Rmd
 
+#----Run Sets----
 # run_sets: complex, allows us to render with fewer arguments to Rmarkdown
 # format:
 # wsp_run_set <- list(
@@ -159,7 +160,7 @@ run_sets <- list(
 )
 )
 
-#NHD flowline & waterbody classification & substitution:
+#----NHD flowline & waterbody classification & substitution:----
 #flowlines:
 nhd_rivname_pattern <- c('North Fork','South Fork','East Fork','West Fork','Middle Fork','North Branch','South Branch') #pattern to be replaced in NHD river/stream names 
 nhd_rivname_replacements <- c('NF','SF','EF','WF','MF','NB','SB') #replacements                    
@@ -181,6 +182,13 @@ metrc_ramps = list(
   water_available_mgd = c(0, 1, 5, 10, 20, 50, 100)
 )
 
+#----Basemap URL----
+# location of data for the map background. 
+# these are inputs for fn_basemap(), located in fns_mapgen.R
+map_server <- "https://gismaps.vdem.virginia.gov/arcgis/rest/services" 
+map_layer = "Download/LandCover_Downloads/MapServer/0" #VA LandCover -> very sparse
+
+#--
 styles <- list()
 #----Custom Aesthetics:----
 styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow","tidal"),

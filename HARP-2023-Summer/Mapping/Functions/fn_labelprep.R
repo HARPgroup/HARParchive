@@ -11,10 +11,10 @@ source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_centroid_coords
 ## maplabs <- fn_labelprep(data=list(...,nhd), classes=c(...,"nhd"))
 ## maplabs <- fn_labelprep(data=list(counties$sf, cities, roads, nhd), classes=c("county","city","road","nhd"))
 
-fn_labelprep <- function(data, classes){
-# Create a list "maplabs" to append final output to, if it doesn't already exist
-  if(!exists("maplabs", ".GlobalEnv")){
-    maplabs <- list()
+fn_labelprep <- function(data, classes, label_storage_name){
+  # Create a list titled with label_storage_name to append final output to, if it doesn't already exist
+  if(!exists(label_storage_name, ".GlobalEnv", mode="list")){
+    assign(label_storage_name, list() )
   }
 
 # Begin iteration through all data sets supplied to function
