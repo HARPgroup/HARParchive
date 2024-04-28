@@ -285,22 +285,21 @@ for (i in 1:nrow(storage_data)) {
  
     #Different names for storage and Q values based on object_class:
     if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
-      #storage col already named "Storage"
+      storagecol <- "use_remain_mg"
       Qcol <- "Qin" #from hydroImpoundment.R: flows <- zoo(dat$Qin, order.by = index(dat));
     } else if (storage_data$object_class[i] == "waterSupplyModelNode") {
-      dat$Storage <- dat$impoundment_Storage #from waterSupplyModelNode.R: colname = "impoundment_Storage"  
+      storagecol <- "impoundment_use_remain_mg"
       Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
-      
    } else if (storage_data$object_class[i] == "waterSupplyElement") {
 
      # Storage col could be a couple different names
      if("local_impoundment_Storage" %in% cols) {
-       storagecol <- "local_impoundment_Storage"
+       storagecol <- "local_impoundment_use_remain_mg"
      }
      if("impoundment_Storage" %in% cols) {
-       storagecol <- "impoundment_Storage"
+       storagecol <- "impoundment_use_remain_mg"
      }
-     dat$Storage <- dat[,storagecol]
+     
      if ('Qintake' %in% cols) {
        Qcol <- "Qintake"
      } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
@@ -308,10 +307,13 @@ for (i in 1:nrow(storage_data)) {
      }
       
     } else { #object_class is something else
-      dat$Storage <- dat$impoundment_Storage
+      storagecol <- "impoundment_use_remain_mg"
       Qcol <- "Qout" #Qout is the default
     }
      
+    dat$Storage <- dat[,storagecol] #Storage col now represents usable storage
+    ## All Storage is now in units of mg 
+    
     #find l30 and l90 years based on Qcol
     flows <- zoo(dat[,Qcol], order.by = index(dat)); 
     loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
@@ -383,15 +385,15 @@ for (i in 1:nrow(storage_data)) {
     
     #Near-Exact Smin 
       #Lowest storage within the low flow periods 
-      #Storage needs to be converted from acre-feet to million gallons
-    storage_data$SminL30mg_nex[i] <- round((min(l30pd_df$Storage) / 3.069), digits = 3)
-    storage_data$SminL90mg_nex[i] <- round((min(l90pd_df$Storage) / 3.069), digits = 3)
+      #Storage column in units of million gallons (set to usable storage (mg) variable earlier in script)
+    storage_data$SminL30mg_nex[i] <- round(min(l30pd_df$Storage), digits = 3)
+    storage_data$SminL90mg_nex[i] <- round(min(l90pd_df$Storage), digits = 3)
     
     #Approximate Smin 
       #Lowest storage within the low flow years 
-      #Storage needs to be converted from acre-feet to million gallons
-    storage_data$SminL30mg_apx[i] <- round((min(l30yr_df$Storage) / 3.069), digits = 3)
-    storage_data$SminL90mg_apx[i] <- round((min(l90yr_df$Storage) / 3.069), digits = 3)
+      #Storage column in units of million gallons (set to usable storage (mg) variable earlier in script)
+    storage_data$SminL30mg_apx[i] <- round(min(l30yr_df$Storage), digits = 3)
+    storage_data$SminL90mg_apx[i] <- round(min(l90yr_df$Storage), digits = 3)
     
     #get row numbers where near-exact Smin happens within low flow period 
     rownum_nex30 <- which.min(l30pd_df$Storage) 
