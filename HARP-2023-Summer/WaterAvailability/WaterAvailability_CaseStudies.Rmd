@@ -15,6 +15,8 @@ params:
   mif_coef: [0.9]
   write_Qavailable: FALSE
   write_tables: ["local", "github"]
+  crs_default: 4326
+  
 editor_options: 
   chunk_output_type: console
 ---
@@ -573,10 +575,10 @@ for (i in 1:nrow(metric_data)) {
     ups_df <- sqldf("select a.*
                     from storage_byseg as a
                     where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
-    metric_data$SminL30mg_apx_ups[i] <- sum(ups_df$SminL30mg_apx_local) - metric_data$SminL30mg_apx_local[i]
-    metric_data$SminL90mg_apx_ups[i] <- sum(ups_df$SminL90mg_apx_local) - metric_data$SminL90mg_apx_local[i]
-    metric_data$SminL30mg_nex_ups[i] <- sum(ups_df$SminL30mg_nex_local) - metric_data$SminL30mg_nex_local[i]
-    metric_data$SminL90mg_nex_ups[i] <- sum(ups_df$SminL90mg_nex_local) - metric_data$SminL90mg_nex_local[i]
+    metric_data$SminL30mg_apx_ups[i] <- round(sum(ups_df$SminL30mg_apx_local) - metric_data$SminL30mg_apx_local[i], digits = 3)
+    metric_data$SminL90mg_apx_ups[i] <- round(sum(ups_df$SminL90mg_apx_local) - metric_data$SminL90mg_apx_local[i], digits = 3)
+    metric_data$SminL30mg_nex_ups[i] <- round(sum(ups_df$SminL30mg_nex_local) - metric_data$SminL30mg_nex_local[i], digits = 3)
+    metric_data$SminL90mg_nex_ups[i] <- round(sum(ups_df$SminL90mg_nex_local) - metric_data$SminL90mg_nex_local[i], digits = 3)
   }
   #add upstream and local storage to get total storage, which will be used in WA equation 
   metric_data$SminL30mg_apx_total[i] <- metric_data$SminL30mg_apx_local[i] + metric_data$SminL30mg_apx_ups[i]
@@ -928,7 +930,7 @@ ftable_caseStudies <- add_footer_row(ftable_caseStudies, top = TRUE, values = "N
 ftable_caseStudies
 ```
 
-# Table(s) 6: Case Study Watersheds
+# Table 6: Case Study Watersheds
 
 ```{r Table 6}
 #separate flextables for each case study with case study rseg in header 
@@ -976,8 +978,10 @@ for (i in 1:length(caseStudy_list)) {
   }
   
   if ("github" %in% write_tables) {
-    write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6.', i, '_CaseStudyWshed_', 
-                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+    write.csv(table_caseStudyWshed, paste0(github_location, 
+                                           '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6.', i, 
+                                           '_CaseStudyWshed_', table_caseStudies$Riverseg[i], '_', demand_scenario, '_', 
+                                           baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
   }
   
   
@@ -991,11 +995,10 @@ for (i in 1:length(caseStudy_list)) {
 
 ```
 
-# L30/L90 Specific Case Study Watershed Tables 
+# Table 7: L30/L90 Specific Case Study Watershed Tables 
 
 ```{r L30/L90 Case Study Watershed Tables}
-#for displaying alongside water availability maps, not saved 
-
+#to be displayed with WA maps 
 
 for (i in 1:length(caseStudy_list)) { 
   csws_df <- get(paste0('caseStudy_wshed_df_', i))
@@ -1044,6 +1047,43 @@ for (i in 1:length(caseStudy_list)) {
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, j = colnum_csL90 , bg = "yellow") #highlight WA column 
   assign(paste0('ftable_cswsL90_', i), ftable_cswsL90)
   
+  #save both tables 
+  
+  if ("local" %in% write_tables) {
+    write.csv(table_cswsL30, paste0(export_path, 
+                                           'CaseStudies_table7.', i, '_CaseStudyWshed_L30_', 
+                                           table_caseStudies$Riverseg[i], '_', 
+                                           demand_scenario, '_', baseline_scenario, 
+                                           '_', mif_coef, '.csv')) #write table locally
+    write.csv(table_cswsL90, paste0(export_path, 
+                                           'CaseStudies_table7.', i, '_CaseStudyWshed_L90_', 
+                                           table_caseStudies$Riverseg[i], '_', 
+                                           demand_scenario, '_', baseline_scenario, 
+                                           '_', mif_coef, '.csv')) #write table locally
+  }
+  
+  if ("github" %in% write_tables) {
+    write.csv(table_cswsL30, paste0(github_location, 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table7.', i, '_CaseStudyWshed_L30_', 
+                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+    write.csv(table_cswsL90, paste0(github_location, 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table7.', i, '_CaseStudyWshed_L90_', 
+                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+  }
+  
+  
+  flextable::save_as_image(ftable_cswsL30, path = paste0(export_path, 
+                                                      'CaseStudies_table7.', i, '_CaseStudyWshed_L30_',
+                                                      table_caseStudies$Riverseg[i], '_',
+                                                      demand_scenario, '_', baseline_scenario,
+                                                      '_', mif_coef, '.png')) #save image of flextable locally
+  
+  flextable::save_as_image(ftable_cswsL90, path = paste0(export_path, 
+                                                      'CaseStudies_table7.', i, '_CaseStudyWshed_L90_',
+                                                      table_caseStudies$Riverseg[i], '_',
+                                                      demand_scenario, '_', baseline_scenario,
+                                                      '_', mif_coef, '.png')) #save image of flextable locally
+  
 }
 
 ```
@@ -1053,7 +1093,6 @@ for (i in 1:length(caseStudy_list)) {
 
 
 # Plot 1: Demand Flow vs Available Flow 
-## For L30
 
 ```{r Create Q available Plots for L30/L90}
 plot30_filename <- character()
@@ -1138,11 +1177,8 @@ names(bins) <- c("val", "bin")
 ```
 
 # Map 1: Water Availability Map
-## WA for L30
 
 ```{r Mapping Water Availability for L30 & L90}
-crs_default <- 4326 #move to params
-
 #create spatial object of all rivsersegs to be trimmed
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs =  crs_default) #convert to sf
 
@@ -1320,8 +1356,8 @@ for (i in 1:length(caseStudy_list)){
   cat("\n\n\\pagebreak\n")
   
   #L90 map
-  fig_L30 = paste(paste0("![](",WAmapfilename90[i],")"),"\n")
-  cat(fig_L30)
+  fig_L90 = paste(paste0("![](",WAmapfilename90[i],")"),"\n")
+  cat(fig_L90)
   
   #L90 table
   cat(knitr::knit_print(get(paste0('ftable_cswsL90_', i))))
