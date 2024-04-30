@@ -23,10 +23,14 @@
 
 #Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used 
 #Human-readable metric names- add here any new metric names being used and their readable version
-read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
+read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd",
+                      "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd", 'runid_11_l90_Qout', "runid_13_l90_Qout", "runid_17_l90_Qout", 'runid_11_l30_Qout','runid_13_l30_Qout', 'runid_17_l30_Qout', 
+                      'runid_11_7q10','runid_13_7q10', 'runid_17_7q10', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg')
 new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
                      'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
-                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
+                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", 
+                     "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)", "2020 Demand Scenario-L90", "2040 Demand Scenario-L90", "Dry Climate 2040- L90", "2020 Demand Scenario- L30", "2040 Demand Scenario- L30", 
+                     "Dry Climate 2040- L30", "2020 Demand Scenario- 7q10", "2040 Demand Scenario- 7q10", "Dry Climate 2040- 7q10", "2020 Demand- Min Storage L30", "2040 Demand- Min Storage L30")
 metric_names <- data.frame(read_metric_name, new_metric_name)
 
 # adapt this to permit us to store pre-configured sets
@@ -49,7 +53,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
         sort_decreasing = FALSE,
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
         metric='l90_Qout', 
@@ -59,7 +64,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout','runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
         metric='l30_Qout', 
@@ -69,7 +75,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         sort_decreasing = FALSE, 
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
         metric='l30_Qout', 
@@ -79,7 +86,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
         metric='7q10', 
@@ -89,7 +97,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
         sort_decreasing = FALSE, 
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
@@ -100,25 +109,27 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
         sort_col = 'percentDiff_7q10_runid_11_runid_17',
         sort_decreasing = FALSE,
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
-        metric='Smin_L30_mg', 
+        metric='Smin_L30_mg',
         data_set = 'rseg_no_geom',
-        column_name='runid_13_Smin_L30_mg', 
-        run_label = 'Minimum Storage', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'), 
+        column_name='runid_13_Smin_L30_mg',
+        run_label = 'Minimum Storage',
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_13'),
         sort_col = 'runid_13_Smin_L30_mg',
-        sort_decreasing = TRUE, 
-        show_map = TRUE
-      ), 
+        sort_decreasing = TRUE,
+        show_map = TRUE, 
+        digit = 2
+      ),
       list(
         data_set = 'facils_nogeom',
-        metric='unmet30_mgd', #replace with unmet demand req 
-        column_name='runid_11_unmet30_mgd', 
-        run_label = 'Highest 30-day Potential Unmet Demand', 
+        metric='unmet30_mgd', #replace with unmet demand req
+        column_name='runid_11_unmet30_mgd',
+        run_label = 'Highest 30-day Potential Unmet Demand',
         tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
-        sort_decreasing = FALSE, 
+        sort_decreasing = FALSE,
         show_map= FALSE
       )
   ),
@@ -132,7 +143,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_l30_Qout', 'runid_601_l30_Qout', 'percentDiff_l30_Qout_runid_0_runid_601'),
         sort_col = 'percentDiff_l30_Qout_runid_401_runid_601',
         sort_decreasing = FALSE, 
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
         data_set = 'rseg_no_geom',
@@ -142,7 +154,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_7q10', 'runid_601_7q10', 'percentDiff_7q10_runid_0_runid_601'),
         sort_col = 'percentDiff_7q10_runid_401_runid_601',
         sort_decreasing = FALSE, 
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       ),
       list(
         data_set = 'rseg_no_geom',
@@ -152,7 +165,8 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_Smin_L30_mg', 'runid_601_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_0_runid_601'),
         sort_col = 'runid_601_Smin_L30_mg',
         sort_decreasing = TRUE, 
-        show_map = TRUE
+        show_map = TRUE, 
+        digit = 2
       )
     )
   )

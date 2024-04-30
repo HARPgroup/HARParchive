@@ -11,7 +11,7 @@ library(ggspatial)
 library(ggrepel)
 library(geosphere)
 library(arcpullr)
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_filter_map.R"),local = TRUE) 
+source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_filter_map.R"),local = TRUE)
 
 ## nhd layer will be pulled and processed before function is called but filtering of flowlines to plot will be done within this function 
 ## bbox should come in with format of named list of coords: xmin, ymin, xmax, ymax

@@ -86,15 +86,11 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
 
 -   **origin**: name of the region, locality, or rivseg, make sure to use correct naming
 
-    -   **rivseg**: river segment ID of basin to be mapped, for map type basin
+-   **rivseg**: river segment ID of basin to be mapped, for map type basin
 
-    -   **locality**: locality/county of interest, for map type locality
+-   **locality**: locality/county of interest, for map type locality
 
-    -   
-
-        ```         
-        **region**: region of interest, must match a region name in <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv>
-        ```
+-   **region**: region of interest, must match a region name in <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv>
 
 -   **Possible regions** :`BigSandy_UpperTennessee_1`, `BigSandy_UpperTennessee_2`, `Chowan_1`, `Chowan_2`, `Eastern_Shore`, `MiddleJames_1`, `MiddleJames_2`, `MiddleJames_3`, `NewRiver_1`, `NewRiver_2`, `NorthernCoastalPlain_1`, `NorthernCoastalPlain_2`, `NorthernCoastalPlain_3`, `NorthernPiedmont_1`, `NorthernPiedmont_2`, `NorthernVirginia`, `Roanoke_1`, `Roanoke_2`, `Roanoke_3`, `Shenandoah_1`, `Shenandoah_2`, `SoutheastVirginia`, `UpperJames_1`, `UpperJames_2`, `York_James_1`, `York_James_2`
 
@@ -117,6 +113,8 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
 -   **metric_feat**: non-modeled metric name
 
     -   *Possible Metrics*: `wsp2020_2040_mgy`
+
+-   **foundation_path**: use to access the foundation files in your local machine if needed
 
 -   **rivseg_metric**: drought metric for riverseg maps, can list multiple, use c()
 
@@ -157,7 +155,7 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
 
 ### General Info
 
-This RMD pulls in the csv files created in `Dataframe_Generator.R` and forms them into the desired maps and tables. The final output of this document is the desired Markdown file for the users input.
+This RMD pulls in the csv files created in `Dataframe_Generator.R` and forms them into the desired maps and tables. The final output of this document is the desired Markdown file for the users input. This document also heavily uses mapstyle_config.
 
 ### Render
 
@@ -241,6 +239,9 @@ format:
     -   tables_cols: this is what columns are desired in the tables presented, such as c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout', 'runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
     -   sort_col: this is what column will be sorted by in the table, such as 'percentDiff_l30_Qout_runid_11_runid_13',
     -   sort_decreasing: this is TRUE if sorting by decreasing and FALSE if sorting by increasing
+    -   data_set = use 'rseg_no_geom' for metrics that use rseg data. Use 'facils_nogeom' for metrics that use facil data, like unmet demand. 
+    -   show_map = 'TRUE' when mapping for rseg data, 'FALSE' when mapping for facil data or unmet demand
+    -   digit = the decimals you want to round that table to 
 
 -   Everything in custom aesthetics can be adjusted, if not changed, then defaults (below custom) will be used
 
@@ -267,7 +268,7 @@ format:
 
 ### Riversegmaps_config
 
-to edit later(might end up merging into mapstyle)
+Creates the coloring for different percentages on the map as well as the highlight level for the tables. 
 
 # Example Renders
 

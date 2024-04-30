@@ -84,6 +84,7 @@ show_map <- params$show_map
 if (!exists("HARParchive_location")){
   HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
   
+
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
@@ -153,10 +154,11 @@ if (is.null(run_config)) {
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-regions_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
-counties_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
-cities_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/cities.csv')
-roads_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
+## ELLA EDIT TO RUN
+regions_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+counties_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+cities_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/cities.csv')
+roads_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
 facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
@@ -661,12 +663,20 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     display_metric <- run_config$riverseg_metrics[[k]]$metric
     display_title <- run_config$riverseg_metrics[[k]]$run_label
+    digit <- run_config$riverseg_metrics[[k]]$digit
     
     #metrics, to be suppressed later?
     rseg_display$Metric <- display_metric 
     
     #assemble our table, with the columns in order defined by table_cols
     rseg_display <- rseg_display[table_cols] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
+    
+    #rounding
+    numeric <- names(rseg_display[, sapply(rseg_display, is.numeric)])
+    
+    for (x in 1:length(numeric)) {
+    rseg_display[,numeric[x]]<- round(rseg_display[,numeric[x]], digit)
+    }
     
     #na messages 
     
@@ -681,6 +691,18 @@ for (k in 1:length(run_config$riverseg_metrics)){
     #fill blanks with NA
     rivTables[[k]][rivTables[[k]] == ''] <- NA
     
+      for (i in 1:length(table_cols)) {
+  for (x in 1:nrow(metric_names)){
+    if (table_cols[i]==metric_names$read_metric_name[x])
+    {
+      names(rivTables[[k]])[names(rivTables[[k]]) == table_cols[i]] <- metric_names$new_metric_name[x]
+    }
+    else
+    {
+      next
+    }
+  }
+}
     
     #defining titles 
     rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
@@ -692,7 +714,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
-                       origin = origin , tabletitle = rivtabletitle,
+                       origin = origin , tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
     
     assign(paste0('table', k), ft2, envir = globalenv())
@@ -717,6 +739,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
   
   #fill blanks with NA
   rivTables[[k]][rivTables[[k]] == ''] <- NA
+  
+  #Human Readable Names- edit in mapstyle config 
   
   
   #defining titles 
