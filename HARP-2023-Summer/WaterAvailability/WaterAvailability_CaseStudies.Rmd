@@ -1007,21 +1007,34 @@ for (i in 1:length(caseStudy_list)) {
   table_cswsL30 <-   data.frame(Num = csws_df$NUM,
                       Propname = csws_df$propname,
                       Riverseg = csws_df$riverseg,
-                      wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
-                      ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
-                      l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
-                      l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
-                      l30_Qout_mif = round((csws_df$l30_Qout_mif), digits = 3),
-                      Qavailable_30_cfs = csws_df$Qavailable_30_cfs,
+                      wd_cumulative_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
+                      ps_cumulative_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
+                      l30_Qout_mgd = round((csws_df$l30_Qout_dem / 1.547), digits = 3),
+                      l30_Qout_base_mgd = round((csws_df$l30_Qout_base / 1.547), digits = 3),
+                      l30_Qout_mif_mgd = round((csws_df$l30_Qout_mif/ 1.547), digits = 3),
+                      Qavailable_30_mgd = round(csws_df$Qavailable_30_cfs / 1.547, digits = 3),
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
                       SminL30mg_total = csws_df$SminL30mg_apx_total,
                       WA_mgd_30 = csws_df$WA_mgd_30_apx)
 
+  #Human readable column names 
+  names(table_cswsL30)[names(table_cswsL30) == "Num"] <- "#"
+  names(table_cswsL30)[names(table_cswsL30) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+  names(table_cswsL30)[names(table_cswsL30) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+  names(table_cswsL30)[names(table_cswsL30) == "l30_Qout_mgd"] <- "Lowest 30-Day Demand Flow (mgd)"
+  names(table_cswsL30)[names(table_cswsL30) == "l30_Qout_base_mgd"] <- "Lowest 30-Day Base Flow (mgd)"
+  names(table_cswsL30)[names(table_cswsL30) == "l30_Qout_mif_mgd"] <- "Min. Instream Flow (mgd)"
+  names(table_cswsL30)[names(table_cswsL30) == "Qavailable_30_mgd"] <- "Available Flow (mgd)"
+  names(table_cswsL30)[names(table_cswsL30) == "SminL30mg_local"] <- "Local Storage (mg)"
+  names(table_cswsL30)[names(table_cswsL30) == "SminL30mg_upstream"] <- "Upstream Storage (mg)"
+  names(table_cswsL30)[names(table_cswsL30) == "SminL30mg_total"] <- "Total Storage (mg)"
+  names(table_cswsL30)[names(table_cswsL30) == "WA_mgd_30"] <- "Water Availability (mgd)"
+  
   ftable_cswsL30 <- flextable(table_cswsL30)
   rownum_csL30 <- which(csws_df$riverseg == caseStudy_list[i]) #get rownum for case study
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, i = rownum_csL30 , bg = "yellow") #highlight case study row
-  colnum_csL30 <- which(colnames(table_cswsL30) == "WA_mgd_30") #get col number for WA
+  colnum_csL30 <- which(colnames(table_cswsL30) == "Water Availability (mgd)") #get col number for WA
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, j = colnum_csL30 , bg = "yellow") #highlight WA column 
   assign(paste0('ftable_cswsL30_', i), ftable_cswsL30)
   
@@ -1029,21 +1042,35 @@ for (i in 1:length(caseStudy_list)) {
   table_cswsL90 <-   data.frame(Num = csws_df$NUM,
                       Propname = csws_df$propname,
                       Riverseg = csws_df$riverseg,
-                      wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
-                      ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
-                      l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
-                      l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
-                      l90_Qout_mif = round((csws_df$l90_Qout_mif), digits = 3),
-                      Qavailable_90_cfs = csws_df$Qavailable_90_cfs,
+                      wd_cumulative_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
+                      ps_cumulative_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
+                      l90_Qout_mgd = round((csws_df$l90_Qout_dem / 1.547), digits = 3),
+                      l90_Qout_base_mgd = round((csws_df$l90_Qout_base / 1.547), digits = 3),
+                      l90_Qout_mif_mgd = round((csws_df$l90_Qout_mif / 1.547), digits = 3),
+                      Qavailable_90_mgd = round(csws_df$Qavailable_90_cfs / 1.547, digits = 3),
                       SminL90mg_local = csws_df$SminL90mg_apx_local,
                       SminL90mg_upstream = csws_df$SminL90mg_apx_ups,
                       SminL90mg_total = csws_df$SminL90mg_apx_total,
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
-
+  
+  
+  #Human readable column names 
+  names(table_cswsL90)[names(table_cswsL90) == "Num"] <- "#"
+  names(table_cswsL90)[names(table_cswsL90) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+  names(table_cswsL90)[names(table_cswsL90) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+  names(table_cswsL90)[names(table_cswsL90) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand Flow (mgd)"
+  names(table_cswsL90)[names(table_cswsL90) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
+  names(table_cswsL90)[names(table_cswsL90) == "l90_Qout_mif_mgd"] <- "Min. Instream Flow (mgd)"
+  names(table_cswsL90)[names(table_cswsL90) == "Qavailable_90_mgd"] <- "Available Flow (mgd)"
+  names(table_cswsL90)[names(table_cswsL90) == "SminL90mg_local"] <- "Local Storage (mg)"
+  names(table_cswsL90)[names(table_cswsL90) == "SminL90mg_upstream"] <- "Upstream Storage (mg)"
+  names(table_cswsL90)[names(table_cswsL90) == "SminL90mg_total"] <- "Total Storage (mg)"
+  names(table_cswsL90)[names(table_cswsL90) == "WA_mgd_90"] <- "Water Availability (mgd)"
+  
   ftable_cswsL90 <- flextable(table_cswsL90)
   rownum_csL90 <- which(csws_df$riverseg == caseStudy_list[i]) #get rownum for case study
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, i = rownum_csL90 , bg = "yellow") #highlight case study row
-  colnum_csL90 <- which(colnames(table_cswsL90) == "WA_mgd_90") #get col number for WA
+  colnum_csL90 <- which(colnames(table_cswsL90) == "Water Availability (mgd)") #get col number for WA
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, j = colnum_csL90 , bg = "yellow") #highlight WA column 
   assign(paste0('ftable_cswsL90_', i), ftable_cswsL90)
   
@@ -1234,13 +1261,13 @@ for (i in 1:nrow(caseStudies_df)) {
   
   ## L30 map of Water Availability
   map30 <- ggplot(rsegs_bbox) + geom_sf() + #map all segments within bbox as background
-    geom_sf(data = rsegs_sf, mapping = aes(fill = as.factor(bin))) +
+    geom_sf(data = rsegs_sf, mapping = aes(fill = as.factor(bin)), color = "black", lwd = 1) +
     scale_fill_manual(values = c("firebrick2","darkorange",
                                  "white", "cadetblue1", "deepskyblue", "dodgerblue3", "blue"),
                       breaks = seq(1:7),
                       labels = bin_labs,
                       limits = as.factor(seq(1:7)),
-                      name = "WA for L30 (mgd)") +
+                      name = "Water Availability (mgd)") +
     geom_sf(data = nhd$flowline, #map nhd flowlines
             inherit.aes=FALSE, color= "dodgerblue",
             mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
@@ -1303,13 +1330,13 @@ for (i in 1:nrow(caseStudies_df)) {
   rsegs_sf <- fn_centroid_coords(rsegs_sf) #add centroid coordinates for labeling 
 
   map90 <- ggplot(rsegs_bbox) + geom_sf() + #map all segments within bbox as background
-    geom_sf(data = rsegs_sf, mapping = aes(fill = as.factor(bin))) +
+    geom_sf(data = rsegs_sf, mapping = aes(fill = as.factor(bin)), color = "black", lwd = 1) +
     scale_fill_manual(values = c("firebrick2","darkorange",
                                  "white", "cadetblue1", "deepskyblue", "dodgerblue3", "blue"),
                       breaks = seq(1:7),
                       labels = bin_labs,
                       limits = as.factor(seq(1:7)),
-                      name = "WA for L90 (mgd)") +
+                      name = "Water Availability (mgd)") +
     geom_sf(data = nhd$flowline, #map nhd flowlines
             inherit.aes=FALSE, color= "dodgerblue",
             mapping=aes(lwd=nhd$flowline$StreamOrde), #line thickness based on stream order
