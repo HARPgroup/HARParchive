@@ -705,7 +705,13 @@ caseStudies_df <- caseStudies_df[!duplicated(caseStudies_df), ]
 #Create dataframes for case study watersheds (upstream from each of outlet_list)
 for (i in 1:length(outlet_list)) {
   ups_data <- fn_extract_basin(metric_data, outlet_list[i])
-  ups_data$NUM <- seq(1, nrow(ups_data))#number rows
+  if (outlet_list[i] == "OR3_7740_8271") { #order Carvins / Upper Roanoke Wshed by cumulative withdrawal due to old naming conventions 
+    ups_data <- sqldf( #ordering the data using sqldf 
+     "SELECT ups_data.*  
+     FROM ups_data
+     ORDER BY wd_cumulative_mgd ASC") 
+  }
+  ups_data$NUM <- seq(1, nrow(ups_data)) #number rows
   assign(paste0('caseStudy_wshed_df_', i), ups_data)
 }
 
