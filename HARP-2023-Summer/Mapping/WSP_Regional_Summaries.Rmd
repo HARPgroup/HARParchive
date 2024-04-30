@@ -154,11 +154,10 @@ if (is.null(run_config)) {
 ```
 
 ```{r Load Data, echo=FALSE, warning=FALSE, results='hide'}
-## ELLA EDIT TO RUN
-regions_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
-counties_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
-cities_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/cities.csv')
-roads_file <- paste0(github_uri, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
+regions_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+counties_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+cities_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/cities.csv')
+roads_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/roads_sf.csv')
 
 facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
