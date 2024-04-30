@@ -20,7 +20,7 @@ fn_tablegen <- function(
     font.size = 8, background.color = "white", 
     na_str = "NA", nan_str = "NA", #padding = 1, 
     table.layout = 'fixed', tabcolsep = 1.5,
-    fonts_ignore = T, big.mark = "", decimal.mark = ".", digits = 4 ) #fonts_ignore applies when knitting as pdf 
+    fonts_ignore = T, big.mark = "", decimal.mark = ".", digits = 2) #fonts_ignore applies when knitting as pdf 
   
   if (columns == "all") { #columns param in function is all meaning keep columns as normal
     ft <- flextable(table)
@@ -31,7 +31,7 @@ fn_tablegen <- function(
   
   ft <- theme_vanilla(ft)
   ft <- autofit(ft)
-  ft <- width(ft, j=1, width = 1.5)
+  ft <- width(ft, j=1, width = 1)
   ft <- width(ft, width = 1)
   ft <- align(ft, align = alignment, part = "all")
   
