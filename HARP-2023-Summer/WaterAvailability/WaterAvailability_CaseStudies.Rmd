@@ -1132,23 +1132,25 @@ plot30_filename <- character()
 plot90_filename <- character()
 
 for (i in 1:nrow(caseStudies_df)) {
-  
+ 
   #L30 graph
-  plot30 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x=riverseg)) +
+  plot30 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x= reorder(riverseg, NUM))) +
     geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
-    theme(axis.text.x = element_text(size = 20, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.text.x = element_text(size = 25, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
     theme(axis.title.x=element_blank()) +
-    theme(legend.text = element_text(size = 25)) +
+    theme(axis.title.y=element_text(size = 20)) +
+    theme(legend.text = element_text(size = 35)) +
     ylab('cfs') + 
     scale_fill_manual(name = NULL, 
-                      label = c("Qdemand", "Qavailable"), 
+                      label = c("Demand Flow", "Available Flow"), 
                       values = c("blue","green")) +
+    theme(legend.position="bottom") +
     theme(
-      plot.title = element_markdown(size = 40),
-      plot.subtitle = element_markdown(size = 30)) +
-    labs(title = 'Qdemand vs Qavailable (L30)',
-       subtitle = paste0("For ", get(paste0('caseStudyName',i)), "<br> Qavailable = Qdemand - MIF*Qbaseline"))
+      plot.title = element_markdown(size = 60),
+      plot.subtitle = element_markdown(size = 40)) +
+    labs(title = 'Available vs Demand Flow (30-day)',
+       subtitle = paste0("For ", get(paste0('caseStudyName',i)), " <br> Available Flow = Demand Flow - Min. Instream Flow"))
     
     assign(paste0('plot30_', i), plot30, envir = globalenv())
   
@@ -1162,21 +1164,23 @@ for (i in 1:nrow(caseStudies_df)) {
     
     
   #L90 graph
-  plot90 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x=riverseg)) +
+ plot90 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x= reorder(riverseg, NUM))) +
     geom_bar(aes(y=l90_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_90_cfs, fill = 'green'), stat = 'identity') +
-    theme(axis.text.x = element_text(size = 20, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.text.x = element_text(size = 25, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
     theme(axis.title.x=element_blank()) +
-    theme(legend.text = element_text(size = 25)) +
+    theme(axis.title.y=element_text(size = 20)) +
+    theme(legend.text = element_text(size = 35)) +
     ylab('cfs') + 
     scale_fill_manual(name = NULL, 
-                      label = c("Qdemand", "Qavailable"), 
+                      label = c("Demand Flow", "Available Flow"), 
                       values = c("blue","green")) +
+    theme(legend.position="right") +
     theme(
-      plot.title = element_markdown(size = 40),
-      plot.subtitle = element_markdown(size = 30)) +
-    labs(title = 'Qdemand vs Qavailable (L90)',
-       subtitle = paste0("For ", get(paste0('caseStudyName',i)), "<br> Qavailable = Qdemand - MIF*Qbaseline"))
+      plot.title = element_markdown(size = 60),
+      plot.subtitle = element_markdown(size = 40)) +
+    labs(title = 'Available vs Demand Flow (90-day)',
+       subtitle = paste0("For ", get(paste0('caseStudyName',i)), " <br> Available Flow = Demand Flow - Min. Instream Flow"))
     
     assign(paste0('plot90_', i), plot90, envir = globalenv())
   
@@ -1283,11 +1287,10 @@ for (i in 1:nrow(caseStudies_df)) {
             inherit.aes=FALSE, fill= "dodgerblue", size=1) +
     geom_sf(data = rsegs_sf[rsegs_sf$riverseg == caseStudy_list[i],] ,
             fill = NA, color = "red", lwd = 2) + #highlight outline case study segment
-    geom_text_repel(data = rsegs_sf, aes(x=lng, y=lat, label = NUM), size = 8) + #label segments 
+    geom_text_repel(data = rsegs_sf, aes(x=lng, y=lat, label = NUM), size = 9) + #label segments 
     geom_text_repel(data = flowline_labs,
                     aes(x=lng, y=lat, label = name), size = 6)  + #label large rivers 
-    ggtitle(paste0('Water Availability (L30) for ', caseStudies_df$riverseg[i]), 
-            subtitle = get(paste0('caseStudyName',i))) +
+    ggtitle(paste0('Water Availability (30-Day) for ', get(paste0('caseStudyName',i)))) +
     theme(plot.title = element_text(size = 40),
           plot.subtitle = element_text(size = 20),
           legend.text = element_text(size = 25), 
@@ -1352,11 +1355,10 @@ for (i in 1:nrow(caseStudies_df)) {
             inherit.aes=FALSE, fill= "dodgerblue", size=1) +
     geom_sf(data = rsegs_sf[rsegs_sf$riverseg == caseStudy_list[i],] ,
             fill = NA, color = "red", lwd = 2) + #highlight outline case study segment
-    geom_text_repel(data = rsegs_sf, aes(x=lng, y=lat, label = NUM), size = 8) + #label segments 
+    geom_text_repel(data = rsegs_sf, aes(x=lng, y=lat, label = NUM), size = 9) + #label segments 
     geom_text_repel(data = flowline_labs,
                     aes(x=lng, y=lat, label = name), size = 6)  + #label large rivers 
-    ggtitle(paste0('Water Availability (L90) for ', caseStudies_df$riverseg[i]), 
-            subtitle = get(paste0('caseStudyName',i))) +
+    ggtitle(paste0('Water Availability (90-day) for ', get(paste0('caseStudyName',i)))) +
     theme(plot.title = element_text(size = 40),
           plot.subtitle = element_text(size = 20),
           legend.text = element_text(size = 25), 
