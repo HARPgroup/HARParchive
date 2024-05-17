@@ -8,7 +8,6 @@ output:
       
       Normal: ['First Paragraph']
 params: 
-  caseStudy_list: ["PL0_5141_5140", "JU3_6900_6950", "JA5_7480_0001", "YP2_6390_6330", "OR3_7740_8271_carvins", "PU3_4451_4450"]
   outlet_list: ["PL3_5360_5250", "JU4_7000_7300", "JA5_7480_0001", "YP3_6670_6720", "OR3_7740_8271", "PU4_3970_3890"]
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
@@ -677,18 +676,18 @@ for (i in 1:nrow(storage_data)) {
 ## Case Studies Dataframe
 caseStudies_df <- data.frame()
 
-for (i in 1:length(caseStudy_list)) {
-  caseStudyRow <- metric_data[grep(caseStudy_list[i], metric_data$riverseg), ] #get row from metric data for case study
+for (i in 1:length(outlet_list)) {
+  caseStudyRow <- metric_data[grep(outlet_list[i], metric_data$riverseg), ] #get row from metric data for case study
   caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
 
 #Add columns analyzing storage/Smin methods to case study dataframe
-for (i in 1:length(caseStudy_list)) { 
-  if (caseStudy_list[i] %in% storage_data$riverseg) { #need to check if the case study exists in the storage dataframe first
-    caseStudies_df$min_in_pd30[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "min_in_pd30"]
-    caseStudies_df$min_in_pd90[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "min_in_pd90"]
-    caseStudies_df$outside_pd30[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "outside_pd30"]
-    caseStudies_df$outside_pd90[i] <- storage_data[storage_data$riverseg == caseStudy_list[i], "outside_pd90"]
+for (i in 1:length(outlet_list)) { 
+  if (outlet_list[i] %in% storage_data$riverseg) { #need to check if the case study exists in the storage dataframe first
+    caseStudies_df$min_in_pd30[i] <- storage_data[storage_data$riverseg == outlet_list[i], "min_in_pd30"]
+    caseStudies_df$min_in_pd90[i] <- storage_data[storage_data$riverseg == outlet_list[i], "min_in_pd90"]
+    caseStudies_df$outside_pd30[i] <- storage_data[storage_data$riverseg == outlet_list[i], "outside_pd30"]
+    caseStudies_df$outside_pd90[i] <- storage_data[storage_data$riverseg == outlet_list[i], "outside_pd90"]
   } else { #if it doesn't exist, fill with NA -- means sge not run with updated summary containing Smin routine yet
     caseStudies_df$min_in_pd30[i] <- NA
     caseStudies_df$min_in_pd90[i] <- NA
@@ -717,16 +716,16 @@ for (i in 1:length(outlet_list)) {
 
 ```
 
-```{r Case Study Names}
+```{r Case Study Names, eval=FALSE}
 #Get case study names for plot and map titling 
 #get case study names for titling 
-for (i in 1:length(caseStudy_list)) {
+for (i in 1:length(outlet_list)) {
   #can we also display the impoundment-specific name from thee storage data?
   caseStudyName_rseg <- gsub('[0-9]+', '', caseStudies_df$propname[i])
   caseStudyName_rseg <- gsub('[[:punct:] ]+', ' ', caseStudyName_rseg)
   caseStudyName_rseg <- gsub('Impoundment', '', caseStudyName_rseg)
   
-  caseStudyName_storage <- gsub('[0-9]+', '', storage_data[storage_data$riverseg == caseStudy_list[i], "propname"])
+  caseStudyName_storage <- gsub('[0-9]+', '', storage_data[storage_data$riverseg == outlet_list[i], "propname"])
   caseStudyName_storage <- gsub('[[:punct:] ]+', ' ', caseStudyName_storage)
   caseStudyName_storage <- gsub('Impoundment', '', caseStudyName_storage)
   
@@ -940,10 +939,10 @@ ftable_caseStudies
 
 ```{r Table 6}
 #separate flextables for each case study with case study rseg in header 
-for (i in 1:length(caseStudy_list)) { 
+for (i in 1:length(outlet_list)) { 
   title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
-                                       ', MIF: ', mif_coef, ', Case Study: ', caseStudy_list)
+                                       ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
   csws_df <- get(paste0('caseStudy_wshed_df_', i))
   csws_df <- csws_df[!duplicated(csws_df), ]#remove duplicate rows
   table_caseStudyWshed <-   data.frame(Num = csws_df$NUM,
@@ -969,16 +968,16 @@ for (i in 1:length(caseStudy_list)) {
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
   ftable_csws <- flextable(table_caseStudyWshed)
-  rownum_cs <- which(csws_df$riverseg == caseStudy_list[i]) #highlight case study row
+  rownum_cs <- which(csws_df$riverseg == outlet_list[i]) #highlight case study row
   ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
   #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
-  assign(paste0('ftable_caseStudyWshed_', caseStudy_list[i]), ftable_csws)
-  print(get(paste0('ftable_caseStudyWshed_', caseStudy_list[i])))
+  assign(paste0('ftable_caseStudyWshed_', outlet_list[i]), ftable_csws)
+  print(get(paste0('ftable_caseStudyWshed_', outlet_list[i])))
   
   if ("local" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(export_path, 
                                            'CaseStudies_table6.', i, '_CaseStudyWshed_', 
-                                           table_caseStudies$Riverseg[i], '_', 
+                                           outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
   }
@@ -986,14 +985,14 @@ for (i in 1:length(caseStudy_list)) {
   if ("github" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(github_location, 
                                            '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6.', i, 
-                                           '_CaseStudyWshed_', table_caseStudies$Riverseg[i], '_', demand_scenario, '_', 
+                                           '_CaseStudyWshed_', outlet_list[i], '_', demand_scenario, '_', 
                                            baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
   }
   
   
   flextable::save_as_image(ftable_csws, path = paste0(export_path, 
                                                       'CaseStudies_table6.', i, '_CaseStudyWsheds_',
-                                                      table_caseStudies$Riverseg[i], '_',
+                                                      outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
 }
@@ -1006,7 +1005,7 @@ for (i in 1:length(caseStudy_list)) {
 ```{r L30/L90 Case Study Watershed Tables}
 #to be displayed with WA maps 
 
-for (i in 1:length(caseStudy_list)) { 
+for (i in 1:length(outlet_list)) { 
   csws_df <- get(paste0('caseStudy_wshed_df_', i))
   
   #L30 Case Study Watershed Tables
@@ -1038,7 +1037,7 @@ for (i in 1:length(caseStudy_list)) {
   names(table_cswsL30)[names(table_cswsL30) == "WA_mgd_30"] <- "Water Availability (mgd)"
   
   ftable_cswsL30 <- flextable(table_cswsL30)
-  rownum_csL30 <- which(csws_df$riverseg == caseStudy_list[i]) #get rownum for case study
+  rownum_csL30 <- which(csws_df$riverseg == outlet_list[i]) #get rownum for case study
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, i = rownum_csL30 , bg = "yellow") #highlight case study row
   colnum_csL30 <- which(colnames(table_cswsL30) == "Water Availability (mgd)") #get col number for WA
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, j = colnum_csL30 , bg = "yellow") #highlight WA column 
@@ -1074,7 +1073,7 @@ for (i in 1:length(caseStudy_list)) {
   names(table_cswsL90)[names(table_cswsL90) == "WA_mgd_90"] <- "Water Availability (mgd)"
   
   ftable_cswsL90 <- flextable(table_cswsL90)
-  rownum_csL90 <- which(csws_df$riverseg == caseStudy_list[i]) #get rownum for case study
+  rownum_csL90 <- which(csws_df$riverseg == outlet_list[i]) #get rownum for case study
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, i = rownum_csL90 , bg = "yellow") #highlight case study row
   colnum_csL90 <- which(colnames(table_cswsL90) == "Water Availability (mgd)") #get col number for WA
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, j = colnum_csL90 , bg = "yellow") #highlight WA column 
@@ -1085,12 +1084,12 @@ for (i in 1:length(caseStudy_list)) {
   if ("local" %in% write_tables) {
     write.csv(table_cswsL30, paste0(export_path, 
                                            'CaseStudies_table7.', i, '_CaseStudyWshed_L30_', 
-                                           table_caseStudies$Riverseg[i], '_', 
+                                           outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
     write.csv(table_cswsL90, paste0(export_path, 
                                            'CaseStudies_table7.', i, '_CaseStudyWshed_L90_', 
-                                           table_caseStudies$Riverseg[i], '_', 
+                                           outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
   }
@@ -1098,22 +1097,22 @@ for (i in 1:length(caseStudy_list)) {
   if ("github" %in% write_tables) {
     write.csv(table_cswsL30, paste0(github_location, 
                                '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table7.', i, '_CaseStudyWshed_L30_', 
-                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
     write.csv(table_cswsL90, paste0(github_location, 
                                '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table7.', i, '_CaseStudyWshed_L90_', 
-                               table_caseStudies$Riverseg[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
   }
   
   
   flextable::save_as_image(ftable_cswsL30, path = paste0(export_path, 
                                                       'CaseStudies_table7.', i, '_CaseStudyWshed_L30_',
-                                                      table_caseStudies$Riverseg[i], '_',
+                                                      outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
   
   flextable::save_as_image(ftable_cswsL90, path = paste0(export_path, 
                                                       'CaseStudies_table7.', i, '_CaseStudyWshed_L90_',
-                                                      table_caseStudies$Riverseg[i], '_',
+                                                      outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
   
@@ -1131,7 +1130,7 @@ for (i in 1:length(caseStudy_list)) {
 plot30_filename <- character()
 plot90_filename <- character()
 
-for (i in 1:nrow(caseStudies_df)) {
+for (i in 1:length(outlet_list)) {
  
   #L30 graph
   plot30 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x= reorder(riverseg, NUM))) +
@@ -1150,11 +1149,11 @@ for (i in 1:nrow(caseStudies_df)) {
       plot.title = element_markdown(size = 60),
       plot.subtitle = element_markdown(size = 40)) +
     labs(title = 'Available vs Demand Flow (30-day)',
-       subtitle = paste0("For ", get(paste0('caseStudyName',i)), " <br> Available Flow = Demand Flow - Min. Instream Flow"))
+       subtitle = paste0("For ", outlet_list[i], " <br> Available Flow = Demand Flow - Min. Instream Flow"))
     
     assign(paste0('plot30_', i), plot30, envir = globalenv())
   
-    plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_QvsQavail_L30.png')
+    plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_', outlet_list[i], '_QvsQavail_L30.png')
     ggsave( #save image of plot
       filename = plot30_filename[i],
       plot = plot30,
@@ -1180,11 +1179,11 @@ for (i in 1:nrow(caseStudies_df)) {
       plot.title = element_markdown(size = 60),
       plot.subtitle = element_markdown(size = 40)) +
     labs(title = 'Available vs Demand Flow (90-day)',
-       subtitle = paste0("For ", get(paste0('caseStudyName',i)), " <br> Available Flow = Demand Flow - Min. Instream Flow"))
+       subtitle = paste0("For ", outlet_list[i], " <br> Available Flow = Demand Flow - Min. Instream Flow"))
     
     assign(paste0('plot90_', i), plot90, envir = globalenv())
   
-    plot90_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_QvsQavail_L90.png')
+    plot90_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i,'_', outlet_list[i], '_QvsQavail_L90.png')
     ggsave( #save image of plot
       filename = plot90_filename[i],
       plot = plot90,
@@ -1194,7 +1193,6 @@ for (i in 1:nrow(caseStudies_df)) {
     
 }
 
-# knitr::include_graphics(plot30_filename)
 ```
 
 ```{r Binning for Mapping Water Availability}
@@ -1222,7 +1220,7 @@ rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs =  crs_default) #c
 #map case study watersheds
 WAmapfilename30 <- character()
 WAmapfilename90 <- character()
-for (i in 1:nrow(caseStudies_df)) {
+for (i in 1:length(outlet_list)) {
 
   rsegs_df <- get(paste0('caseStudy_wshed_df_', i))
   
@@ -1285,12 +1283,12 @@ for (i in 1:nrow(caseStudies_df)) {
     scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd), #map nhd waterbodies
             inherit.aes=FALSE, fill= "dodgerblue", size=1) +
-    geom_sf(data = rsegs_sf[rsegs_sf$riverseg == caseStudy_list[i],] ,
+    geom_sf(data = rsegs_sf[rsegs_sf$riverseg == outlet_list[i],] ,
             fill = NA, color = "red", lwd = 2) + #highlight outline case study segment
     geom_text_repel(data = rsegs_sf, aes(x=lng, y=lat, label = NUM), size = 9) + #label segments 
     geom_text_repel(data = flowline_labs,
                     aes(x=lng, y=lat, label = name), size = 6)  + #label large rivers 
-    ggtitle(paste0('Water Availability (30-Day) for ', get(paste0('caseStudyName',i)))) +
+    ggtitle(paste0('Water Availability (30-Day) for ', outlet_list[i])) +
     theme(plot.title = element_text(size = 40),
           plot.subtitle = element_text(size = 20),
           legend.text = element_text(size = 25), 
@@ -1301,7 +1299,7 @@ for (i in 1:nrow(caseStudies_df)) {
   assign(paste0('map30', i), map30, envir = globalenv())
   
   #save image of L30 map
-  WAmapfilename30[i] <- paste(export_path, "WAcaseStudiesMapL30_", i, "_", caseStudies_df$riverseg[i], ".png", sep="")
+  WAmapfilename30[i] <- paste(export_path, "WAcaseStudiesMapL30_", i, "_", outlet_list[i], ".png", sep="")
   ggsave(
     filename = WAmapfilename30[i],
     plot = map30,
@@ -1353,12 +1351,12 @@ for (i in 1:nrow(caseStudies_df)) {
     scale_linewidth(range= c(0.1,0.5), guide = FALSE) +
     geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd), #map nhd waterbodies
             inherit.aes=FALSE, fill= "dodgerblue", size=1) +
-    geom_sf(data = rsegs_sf[rsegs_sf$riverseg == caseStudy_list[i],] ,
+    geom_sf(data = rsegs_sf[rsegs_sf$riverseg == outlet_list[i],] ,
             fill = NA, color = "red", lwd = 2) + #highlight outline case study segment
     geom_text_repel(data = rsegs_sf, aes(x=lng, y=lat, label = NUM), size = 9) + #label segments 
     geom_text_repel(data = flowline_labs,
                     aes(x=lng, y=lat, label = name), size = 6)  + #label large rivers 
-    ggtitle(paste0('Water Availability (90-day) for ', get(paste0('caseStudyName',i)))) +
+    ggtitle(paste0('Water Availability (90-day) for ', outlet_list[i])) +
     theme(plot.title = element_text(size = 40),
           plot.subtitle = element_text(size = 20),
           legend.text = element_text(size = 25), 
@@ -1369,7 +1367,7 @@ for (i in 1:nrow(caseStudies_df)) {
   assign(paste0('map90', i), map90, envir = globalenv())
   
   #save image of L30 map
-  WAmapfilename90[i] <- paste(export_path, "WAcaseStudiesMapL90_", i, "_", caseStudies_df$riverseg[i], ".png", sep="")
+  WAmapfilename90[i] <- paste(export_path, "WAcaseStudiesMapL90_", i, "_", outlet_list[i], ".png", sep="")
   ggsave(
     filename = WAmapfilename90[i],
     plot = map90,
@@ -1380,8 +1378,8 @@ for (i in 1:nrow(caseStudies_df)) {
 
 ```
 
-```{r View Case Study Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
-for (i in 1:length(caseStudy_list)){
+```{r View Case Study Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
+for (i in 1:length(outlet_list)){
   #L30 map
   fig_L30 = paste(paste0("![](",WAmapfilename30[i],")"),"\n")
   cat(fig_L30)
