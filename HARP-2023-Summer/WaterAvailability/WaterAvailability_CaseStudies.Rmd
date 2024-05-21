@@ -79,21 +79,6 @@ fp <- fp_par(
 ft <- fp_text(shading.color='#EFEFEF', bold = TRUE)
 ```
 
-
-## Table of contents
-
-<!---BLOCK_TOC--->
-
-## List of tables
-
-<!---BLOCK_TOC{seq_id: 'tab'}--->
-
-## List of figures
-
-<!---BLOCK_TOC{seq_id: 'fig'}--->
-
-\newpage
-
 # Water Availability Case Studies 
 
 
@@ -716,40 +701,6 @@ for (i in 1:length(outlet_list)) {
 
 ```
 
-```{r Case Study Names, eval=FALSE}
-#Get case study names for plot and map titling 
-#get case study names for titling 
-for (i in 1:length(outlet_list)) {
-  #can we also display the impoundment-specific name from thee storage data?
-  caseStudyName_rseg <- gsub('[0-9]+', '', caseStudies_df$propname[i])
-  caseStudyName_rseg <- gsub('[[:punct:] ]+', ' ', caseStudyName_rseg)
-  caseStudyName_rseg <- gsub('Impoundment', '', caseStudyName_rseg)
-  
-  caseStudyName_storage <- gsub('[0-9]+', '', storage_data[storage_data$riverseg == outlet_list[i], "propname"])
-  caseStudyName_storage <- gsub('[[:punct:] ]+', ' ', caseStudyName_storage)
-  caseStudyName_storage <- gsub('Impoundment', '', caseStudyName_storage)
-  
-  #remove 1 name if they're duplicated 
-   if (length(caseStudyName_storage) != 0) { 
-     if (caseStudyName_storage == caseStudyName_rseg) {
-      caseStudyName_storage <- character()
-      }
-    }
-   
-  
-  if (length(caseStudyName_storage) != 0) {
-    caseStudyName <- paste0(caseStudyName_storage, " / ", caseStudyName_rseg)
-  } else {
-    caseStudyName <- caseStudyName_rseg
-  }
-  
-  caseStudyName <- trimws(caseStudyName, which = "both")#remove leading space 
-  
-  assign(paste0('caseStudyName', i), caseStudyName)
-}
-
-```
-
 # Water Availability Equation:
 ## Generalized form:
 
@@ -766,7 +717,7 @@ Generalized Equation: $WA_{CPL} = Q_{LCPLdem} - (PoF * Q_{LCPLbase}) + S_{minCPL
 ## WA_cpl = Qdemand_cpl - MIF*Qbase_cpl + Smin_cpl/CPL
 ### Where CPL = Critical Period Length 
 
-<!---BLOCK_LANDSCAPE_START--->
+
 
 # Table 1: Water Availability Equation Breakdown
 
@@ -1121,9 +1072,6 @@ for (i in 1:length(outlet_list)) {
 ```
 
 
-<!---BLOCK_LANDSCAPE_STOP--->
-
-
 # Plot 1: Demand Flow vs Available Flow 
 
 ```{r Create Q available Plots for L30/L90}
@@ -1378,29 +1326,6 @@ for (i in 1:length(outlet_list)) {
 
 ```
 
-```{r View Case Study Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
-for (i in 1:length(outlet_list)){
-  #L30 map
-  fig_L30 = paste(paste0("![](",WAmapfilename30[i],")"),"\n")
-  cat(fig_L30)
-  
-  #L30 table
-  cat(knitr::knit_print(get(paste0('ftable_cswsL30_', i))))
-  cat("\n\n\\pagebreak\n")
-  
-  #L90 map
-  fig_L90 = paste(paste0("![](",WAmapfilename90[i],")"),"\n")
-  cat(fig_L90)
-  
-  #L90 table
-  cat(knitr::knit_print(get(paste0('ftable_cswsL90_', i))))
-  cat("\n\n\\pagebreak\n")
-  
-}
-
-```
-
-
 ```{r Write CSVs Locally}
 #Writing locally to location of export_path
 if ("local" %in% write_tables) {
@@ -1466,155 +1391,4 @@ flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStu
 
 
 
-
-
-# End Functional RMD
-
-
-
-
-
-```{r Basemap Data Retrieval & Processing for fn_mapgen(), eval=FALSE}
-#move these to parameters when working 
-map_style <- "custom"
-crs_default <- 4326
-
-#Pulling basemap data needed for function 
-cnty_fips <- fread("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data/counties_sf.csv")
-cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_053122.csv')
-roads <- fn_download_read(
-    url="https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/tl_2022_51_prisecroads.zip", 
-    filetype="shp", zip=TRUE) #.shp file for US states & primary roads
-cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/USA_Major_Cities_GIS.csv')
-
-##Process basemap data
-#counties
-cnty_fips$name <- sub(" County", "", cnty_fips$name) # fix any names followed by " County" to match the names of counties in the regions df
-colnames(cnty_fips)[colnames(cnty_fips) == 'Region'] <- 'us_region' # rename Region col in base set to prevent conflict
-cnty_fips <- sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
-                FROM cnty_fips as a
-                LEFT OUTER JOIN cnty_regions as b
-                WHERE (a.name = b.County)
-                ") #add region column to county data; WHERE instead of ON means only counties in regional planning areas are kept
-counties <- cnty_fips[grep(51,cnty_fips$dh_fips),] #remove counties outside of VA using the fips code
-counties <- sf::st_as_sf(counties, wkt = fn_geoCol(counties), crs=4326) #convert to sf based on geometry column found by fn_geoCol()
-#cities
-statemt <- paste("SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,",
-                   "CASE WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
-                   "THEN 'smallTown' 
-                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.5),"AND",quantile(cities$POPULATION, 0.8),
-                   "THEN 'town'
-                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.8),"AND",quantile(cities$POPULATION, 1.0),
-                   "THEN 'city'
-                  ELSE CLASS", 
-                   "END as CLASS",
-                   "FROM cities
-                  WHERE NAME 
-                  NOT IN (select counties.name from counties)",
-                   "AND (cities.ST == 'VA') ", 
-                   "ORDER BY POPULATION DESC", sep=" ") 
-cities <- fn_sqldf_sf(statemt)
-#roads
-roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
-                  & FULLNAME %in% grep("([0-9]+).$", 
-                  roads$FULLNAME, 
-                  value=TRUE)) #finds where last char is a number (thus omitting names followed by Byp, Alt, etc.)
-roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
-names(roads) <- gsub("RTTYP", "CLASS", names(roads)) #re-name class column -> needed for fn_labelprep() in the RMD
-#nhd 
-nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-#regions
-regions_split <- split(counties, counties$Region) #creates a list containing a sf data frame per each region, which all contain the county polygons corresponding to that region
-for(i in 1:length(regions_split)){ #merge counties into one polygon for each region
-  if(i==1){
-    regions <- st_union(regions_split[[i]])
-  }
-  if(i!=1){
-    regions <- rbind( regions, st_union(regions_split[[i]]) )
-  } #note: had to do this in IF statements instead of resetting regions_split[i] <- regions_split[[i]] because keeping it in list form causes st_union() to put geom into sfg format, which causes problems with st_filter() in the rsegs filtering chunk
-}
-regions <- sf::st_as_sf(data.frame(region=names(regions_split), geo=regions, row.names=NULL), crs=crs_default)
-rm(regions_split)
-#Make sure coord systems match 
-st_crs(counties) <- crs_default
-st_crs(roads) <- crs_default
-```
-
-```{r Configure fn_mapgen(), eval=FALSE}
-rivseg_pct_vect <- c(0,10,50,100,500,1000,10000) #last value should be higher than any value expected, since classification is done using <=
-rseg_leg_title <- "Water Availability for L30 (mgd)"  
-rivmap_labs <- c("0 - 10", 
-              "10 - 50", 
-              "50 - 100",
-              "100 - 500",
-              "500 - 1000",
-              "1000 - 10000",
-              " >= 10000")
-rivbreaks <- seq(1:length(rivseg_pct_vect))
-rivmap_colors <- c("firebrick2","darkorange","#FFCC99",
-                   "white","palegreen","limegreen","green4") #colors for fills 
-```
-
-```{r Labeling for fn_mapgen(), eval=FALSE}
-nhdlabs <- fn_nhd_labs(data=nhd)
-rm(maplabs)
-maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
-```
-
-```{r Mapping with fn_mapgen(), eval=FALSE}
-#disabled with eval=FALSE until up and running 
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
-
-div <- rivseg_pct_vect
-rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs=4326) #convert to sf
-
-for (i in 1:nrow(caseStudies_df)) {
-
-  rsegs_df <- get(paste0('caseStudy_wshed_df_', i))
-  
-  #join rseg geometry data 
-  if(!"geom" %in% colnames(rsegs_df)) { #check for geom column first 
-    rsegs_df <- sqldf('SELECT a.*, b.geom
-                       FROM rsegs_df as a
-                       LEFT JOIN rsegs_geom_data as b
-                       ON (a.riverseg = b.riverseg)')
-  }
-
-  rsegs_df <- sf::st_as_sf(rsegs_df, wkt=fn_geoCol(rsegs_df), crs=4326) #convert to sf
-  rsegs_df <- fn_centroid_coords(rsegs_df) #add centroid coordinates for labeling 
-  
-  #create bbox around rsegs of interest 
-  sf_use_s2(FALSE) # switch off Spherical geometry
-  bbox_sfc <- st_buffer(st_as_sfc(st_bbox(rsegs_df)), .02) #slightly past basin
-  bbox <- st_bbox(bbox_sfc)
-  bbox_points <- data.frame(long = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]))
-  nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-  
-  #mp_layer placeholder
-  #cols required: lat, long, bin, NUM, 
-  mp_layer <- data.frame(NUM = 0, lat = NA, long = NA, bin = "X")
-  
-  #segs dataframe needs cols "name" and "bundle"
-  rsegs_df$name <- rsegs_df$riverseg
-  rsegs_df$bundle <- "watershed"
-  
-  #fn_mapgen <- function(mapnum, featr_type, origin_type, style, metric, origin, bbox, segs, counties, roads,
-  #                       nhd, maplabs, mp_layer, metric_unit, maptitle)
-  
-  #Unsure of: mapnum, featr_type, mp_layer 
-  #mapnum: this is closest to map #2
-  #featr_type: mapping facilities or sources is not of interest at the moment, but use facilities for placeholder for simplicity
-  #mp_layer: ^
-  
-  map <- fn_mapgen(mapnum = 2, featr_type = "facility", origin_type = "basin",
-                   style = styles[[map_style]], metric = "WA_mgd_30_apx", origin = caseStudies_df$riverseg[i],
-                   bbox = bbox, segs = rsegs_df, counties = counties, roads = roads, nhd = nhd, maplabs = maplabs, 
-                   mp_layer = mp_layer, metric_unit = "mgd", maptitle = "WA for L30")
-
-}
-#recent: Error in `scale_linewidth()`:`breaks` and `labels` have different lengths. line ~230
-
-
-```
-
-
+# End RMD
