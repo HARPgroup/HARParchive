@@ -18,7 +18,7 @@ ds$get_token(rest_pw)
 argst <- commandArgs(trailingOnly=T)
 pid <- as.integer(argst[1])
 elid <- as.integer(argst[2])
-runid_dem <- as.integer(argst[3]) #demand scenario 
+runid_dem <- as.integer(argst[3]) #demand scenario (ex. 11)
 runid_base <- as.integer(argst[4]) #baseline scenario, default to 0 if none is provided (NA)
 CPL <- as.integer(argst[5]) #critical period length (days)
 PoF <- as.integer(argst[6]) #minimum instream flow coefficient 
@@ -50,8 +50,8 @@ metrics_data <- om_vahydro_metric_grid(
 obj <- metrics_data[metrics_data$pid == pid, ]
 
 #Calculate Qavailable and WA
-obj$Qout_mif <- PoF*obj$lCPL_Qout_base #min instream flow
-obj$Qavailable_cfs <- round((obj$lCPL_Qout_dem - obj$Qout_mif), digits = 3) #avail. flow: Qavailable = Qdemand - MIF*Qbaseline
+obj$Qout_mif <- PoF*obj$lCPL_Qout_base #min instream flow (cfs)
+obj$Qavailable_cfs <- round((obj$lCPL_Qout_dem - obj$Qout_mif), digits = 3) #available flow (cfs): Qavailable = Qdemand - PoF*Qbaseline 
 obj$WA_mgd = round((obj$Qavailable_cfs / 1.547) + (obj$Smin_mg / CPL), digits = 3)
 
 #Get scenario 
@@ -66,4 +66,4 @@ scenprop <- RomProperty$new( ds, sceninfo, TRUE)
 
 #Export metrics to VAhydro
 vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, paste0('Qavailable_', CPL, '_mgd'), obj$Qavailable_cfs / 1.547, ds)
-vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, paste0('Smin_L', CPL, '_mg'), obj$WA_mgd, ds)
+vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, paste0('WA_', CPL, '_mgd'), obj$WA_mgd, ds)
