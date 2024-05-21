@@ -19,16 +19,20 @@ argst <- commandArgs(trailingOnly=T)
 pid <- as.integer(argst[1])
 elid <- as.integer(argst[2])
 runid_dem <- as.integer(argst[3]) #demand scenario 
-runid_base <- as.integer(argst[4]) #baseline scenario, default to 0 if none is provided 
+runid_base <- as.integer(argst[4]) #baseline scenario, default to 0 if none is provided (NA)
 CPL <- as.integer(argst[5]) #critical period length (days)
 PoF <- as.integer(argst[6]) #minimum instream flow coefficient 
 
 #For testing: Lake Pelham
 # pid = 5714522 ; elid = 352006 ; runid_dem = 11 ; runid_base = 0 ; CPL <- 30 ; PoF <- 0.9
 
-demand_scenario <- paste0("runid_", runid_dem)
-baseline_scenario <- paste0("runid_", runid_base)
-
+demand_scenario <- paste0('runid_', runid_dem)
+if (is.na(runid_base) == FALSE) {
+  baseline_scenario <- paste0('runid_', runid_base)
+} else {
+  baseline_scenario <- paste0('runid_0')
+}
+  
 #Pull metrics for WA eqn: Qdemand, Qbase, Smin
 df_metrics <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),
