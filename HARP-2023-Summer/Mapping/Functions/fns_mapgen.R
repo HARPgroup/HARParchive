@@ -220,6 +220,72 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
   return(borders)
 }
 
+# fn_polygonFill <- function(){
+  
+  
+  
+#   
+#   # Rivseg fill based on drought metric % difference for rivseg maps 
+#   if (mapnum == 2) {
+#     map <- map + new_scale("fill") +
+#       geom_sf(data = segs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 ) +
+#       scale_fill_manual(values = rivmap_colors, #from config
+#                         breaks = rivbreaks,
+#                         labels = rivmap_labs,
+#                         limits = as.factor(rivbreaks),
+#                         name = rseg_leg_title) +
+#       theme(legend.spacing.y = unit(0.1, 'cm')) + #adjust spacing of legend 
+#       guides(fill = guide_legend(byrow = TRUE))
+#   }
+#   # Tidal Rivsegs
+#   map <- map + new_scale("fill") +
+#     geom_sf(data = rivsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 1) +
+#     scale_fill_manual(values = colors_sf["tidal",], #color set in config
+#                       breaks = "watershed",
+#                       labels = "Tidal/Unmodeled",
+#                       name = NULL) 
+# }
+
+fn_nhdLines <- function(nhd_plot, style, nhd){
+  nhd_layer <- ggplot2::geom_sf(data = nhd_plot, 
+                 inherit.aes=FALSE, color= style[["color"]][["sf"]]["nhd",], 
+                 mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
+                 show.legend=FALSE)
+  scale_linewidth <- ggplot2::scale_linewidth(range= c(0.4,2), guide = FALSE) 
+  wtbd_layer <- ggplot2::geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
+                       inherit.aes=FALSE, fill= style[["color"]][["sf"]]["nhd",], size=1)
+  nhd_map <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
+              nhd_layer[[1]], nhd_layer[[2]], scale_linewidth, wtbd_layer[[1]], wtbd_layer[[2]])
+  return(nhd_map)
+}
+
+fn_roadsAndCityPoints <- function(roads_plot, style, labels_plot, mp_layer){
+  rd_lines <- geom_sf(data = roads_plot, inherit.aes=FALSE, color= style[["color"]][["sf"]]["roads",], fill=NA, lwd=1, linetype="twodash")
+  city_dots <- geom_point(data = labels_plot[labels_plot$class=="majC"|labels_plot$class=="town",], 
+                          aes(x=lng, y=lat), color= style[["color"]][["sf"]]["citypts",], size=2)
+  #mp labels placeholder to have other labels repel:
+  mp_placeholder <- geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA, size=textsize[4],check_overlap=TRUE)
+  rd_bubbles <- geom_label_repel(data = labels_plot[labels_plot$class == c("I","S","U"), ],
+                   aes(x=lng, y=lat, label=label, 
+                       fontface=fontface, family=fontfam,
+                       color=as.factor(colcode), 
+                       fill=fillcode), 
+                   show.legend=NA,
+                   size=textsize[1],
+                   label.r=0.6, label.size=0.12, 
+                   max.overlaps=4
+                   )
+  scale_colour <- scale_colour_manual(values=style[["color"]][["text"]]["color"], breaks=c(1,2,3), 
+                        labels=c("Interstate","State Route", "US Hwy"), name="Roads") 
+  scale_fill <- scale_fill_manual(values=style[["color"]][["fill"]]["color"], breaks=c(1,2,3), 
+                      labels=c("Interstate","State Route", "US Hwy"), name="Roads")
+  roadsNcitydots <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
+                         rd_lines[[1]], rd_lines[[2]], ggnewscale::new_scale("color"), ggnewscale::new_scale("size"), 
+                         city_dots, mp_placeholder, ggnewscale::new_scale("color"), ggnewscale::new_scale("fill"),
+                         rd_bubbles, scale_colour, scale_fill)
+  return(roadsNcitydots)
+}
+  
 fn_textRepel <- function(labels_plot, textsize, style){
   textcol <- style$color$text$color
   layer <- geom_text_repel(data = labels_plot[!(labels_plot$class == "I" | 
@@ -281,7 +347,10 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                                                   ),
                                   layer_description = "map theme", map = map)
   map <- fn_catchMapErrors(layer = ggplot2::ggtitle(maptitle), layer_description = "map title", map = map)
-  
+  map <- fn_catchMapErrors(layer = fn_nhdLines(nhd_plot, style, nhd),
+                           layer_description = "nhd flowlines and waterbodies", map = map)
+  map <- fn_catchMapErrors(layer = fn_roadsAndCityPoints(roads_plot, style, labels_plot, mp_layer),
+                           layer_description = "road lines, road labels, mp placeholder text, and/or city dots", map = map)
   map <- fn_catchMapErrors(layer = fn_borders(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, style),
                            layer_description = "county, region, and/or rseg borders", map = map)
   map <- fn_catchMapErrors(layer = fn_textRepel(labels_plot, textsize, style),
