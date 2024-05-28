@@ -3,35 +3,29 @@ title: "WSP Regional Summaries"
 author: "HARP Analysts"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
-#overridden by output_format in render command 
 output: 
   word_document:
     toc: true
     number_sections: true
-
-#Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
-#Can edit here or in a render command 
-## More params used during development and testing for user-control -- will be consolidated  
 params: 
-
+  
   origin: ["Roanoake_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  
   featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
-
   rsegs_file: "C:/HARP/Exports/Roanoke_1_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
-
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
   show_map: TRUE #either TRUE or FALSE
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -201,7 +195,7 @@ if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
 if (show_map == TRUE) {
   st_crs(bbox) <- crs_default
   #if (exists("memo_plot_nhdplus")){
-    nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   #} else {
    # nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   #}
@@ -241,8 +235,8 @@ if (show_map == TRUE) {
   wtbd <- fn_sqldf_sf(statemt, "wtbd")
   
   # enseure both datasets have same crs prior to rbind()
-  st_crs(flow) <- crs_default
-  st_crs(wtbd) <- crs_default 
+  flow <- st_transform(flow,crs_default)
+  wtbd <- st_transform(wtbd,crs_default)
   nhd2 <- rbind( flow[,c("gnis_name", "class", "geometry")], wtbd[,c("gnis_name", "class", "geometry")] )
 }
 ```
@@ -298,9 +292,6 @@ if (show_map == TRUE) {
      ORDER BY", ' ', featrs_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
      "facils")
     facils$NUM <- seq(1, nrow(facils))
-   if (i==1) { #data for table will be sorted by the first of featrs_file_map_bubble_column
-     #facils$within <- facils_within
-   } 
     
     metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
                           nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
@@ -355,19 +346,17 @@ if (show_map == TRUE) {
       maplabel <- colname
     }
 
-      #create map title by combining label and title
-      maptitle <- paste0(title_main, ", ", maplabel)
+    #create map title by combining label and title
+    maptitle <- paste0(title_main, ", ", maplabel)
   
-    #suppressWarnings(suppressMessages( 
-      map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
-                  metric = featrs_file_map_bubble_column[i], segs = rsegs,
-                  featr_type = featr_type, origin_type = origin_type, 
-                  origin = origin, bbox = bbox,  
-                  counties = counties, roads = roads, 
-                  nhd = nhd, maplabs = maplabs, 
-                  mp_layer = mp_layer, metric_unit = metric_unit, 
-                  maptitle = maptitle)
-    #))
+    map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
+                     metric = featrs_file_map_bubble_column[i], segs = rsegs,
+                     featr_type = featr_type, origin_type = origin_type, 
+                     origin = origin, bbox = bbox,  
+                     counties = counties, roads = roads, 
+                     nhd = nhd, maplabs = maplabs, 
+                     mp_layer = mp_layer, metric_unit = metric_unit, 
+                     maptitle = maptitle)
     
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
@@ -692,7 +681,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
-                       origin = origin , tabletitle = rivtabletitle,
+                       origin = origin , tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
     
     assign(paste0('table', k), ft2, envir = globalenv())

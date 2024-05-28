@@ -310,8 +310,13 @@ model_data_river <- om_vahydro_metric_grid(
   base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
   ds=ds
 )
-statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
-rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+
+# statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
+# rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+
+rsegs2 <- left_join(rsegs,model_data_river)
+rsegs2 <- sf::st_as_sf(rsegs2, wkt=fn_geoCol(rsegs2), crs=crs_default)
+rsegs <- rsegs2
 
 #----Calculate Rseg Metric % Diff ----
 rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data
@@ -335,6 +340,7 @@ for (j in 2:length(runid_list)) {
 
 #----Write Files----
 st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+
 if(featr_type=="facility"){
   st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 }
