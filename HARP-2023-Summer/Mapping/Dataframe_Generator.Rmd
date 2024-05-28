@@ -274,6 +274,8 @@ if (origin_type=="basin") { #finding upstream riversegs for basin maps
   rsegs <- st_filter(rsegs, counties[counties$hydrocode==origin, ]) #filter basins by locality (if REST is working)
 } else if (origin_type=="region") { #for region level
   rsegs <- st_filter(rsegs, regions[regions$region==origin,]) #filter basins by the region given in params
+  # Consider:
+  # rsegs <- st_filter(rsegs, regions[regions$region==origin,], join="st_within") #filter basins by the region given in params
 }
 #---Sources/featrs---
 #filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
