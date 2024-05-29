@@ -180,7 +180,13 @@ metrc_ramps = list(
   wd_mgy = c(0, 1, 5, 10, 50, 250, 1000, 10000),
   water_available_mgd = c(0, 1, 5, 10, 20, 50, 100)
 )
+#----Basemap URL----
+# location of data for the map background. 
+# these are inputs for fn_basemap(), located in fns_mapgen.R
+map_server <- "https://gismaps.vdem.virginia.gov/arcgis/rest/services" 
+map_layer = "Download/LandCover_Downloads/MapServer/0" #VA LandCover -> very sparse
 
+#--
 styles <- list()
 #----Custom Aesthetics:----
 styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow","tidal"),
