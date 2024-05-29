@@ -660,5 +660,3 @@ for(i in 1:length(styles)){
 }
 # Within either the RMD or the fn_mapgen(), we will join the desired map style configuration 
 ## onto the labels data frame by matching up the "class" columns. 
-
-

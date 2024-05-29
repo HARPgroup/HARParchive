@@ -35,7 +35,7 @@ fn_catchMapErrors <- function(layer, layer_description="blank", map=NA){ #making
   return(map)
 }
 
-fn_labelsAndFilter <- function(labels, bbox_coord_df, nhd, roads, style){ 
+fn_labelsAndFilter <- function(labels, bbox_coord_df, nhd, roads, style, bbox_sf, crs_default){ 
   #combines all text labels into 1 df and associates them w/ aesthetics from mapstyle_config.R
   #filters data to control the amount of map detail based on extent of the map
   
@@ -80,7 +80,19 @@ fn_labelsAndFilter <- function(labels, bbox_coord_df, nhd, roads, style){
     textsize <- c(7,8,10,13,5,1.5)
     labels$segsize <- as.numeric( gsub(1, 0, labels$segsize) ) 
   }
+  #crop data to extent:
+  roads_plot <- sf::st_crop(roads_plot, bbox_sf)
+  # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
+  # labels_plot_sf <- sf::st_crop(labels_plot_sf, bbox_sf)
+  # labels_plot_sf <- sf::st_drop_geometry(labels_plot_sf)
+  # test <- sqldf( #join text aesthetics with sqldf 
+  #   "SELECT labels_plot_sf.*, labels_plot.lat, labels_plot.lng
+  #   FROM labels_plot_sf 
+  #   LEFT OUTER JOIN labels_plot
+  #     on (names(labels_plot_sf) = names(labels_plot))"
+  # )
   
+  #save:
   assign('labels_plot', labels_plot, envir = globalenv())
   assign('nhd_plot', nhd_plot, envir = globalenv())
   assign('roads_plot', roads_plot, envir = globalenv())
@@ -118,7 +130,11 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, style){
   #remove bubbles for MPs with no metric value -- stored with bin = X
   mp_layer <- mp_layer[!mp_layer$bin == "X" , ]
   class(mp_layer$bin) <- "numeric" #make sure bin column is type numeric for sizing data points
-  
+  #text for number labels:
+  num_labels <- geom_text(data = mp_layer, 
+                          aes(lng, lat, label=NUM, fontface="bold"), 
+                          color="black", size=textsize[5], check_overlap=TRUE)
+  #colored bubbles:
   if (featr_type == "facility") {
     layer <- ggplot2::geom_point(data = mp_layer, aes(x = lng, y = lat, 
                                  size = bin), color = style$color$metrics["Surface Water",],
@@ -128,7 +144,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, style){
                                     labels = labs,
                                     limits = lims,
                                     name = legend_title[1])
-    bubbles <- list(layer, scale_size)
+    bubbles <- list(layer, scale_size, num_labels)
   }
   if (featr_type == "source") {
     layer <- ggplot2::geom_point(data = mp_layer, aes(x = lng, y = lat, 
@@ -151,7 +167,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, style){
                                          name= "Source Type",
                                          guide= guide_legend(override.aes=list(size=9))
       )
-      bubbles <- list(layer, scale_size, scale_color)
+      bubbles <- list(layer, scale_size, scale_color, num_labels)
   }
   return(bubbles)
 }
@@ -261,33 +277,37 @@ fn_nhdLines <- function(nhd_plot, style, nhd){
 
 fn_roadsAndCityPoints <- function(roads_plot, style, labels_plot, mp_layer){
   rd_lines <- geom_sf(data = roads_plot, inherit.aes=FALSE, color= style[["color"]][["sf"]]["roads",], fill=NA, lwd=1, linetype="twodash")
-  city_dots <- geom_point(data = labels_plot[labels_plot$class=="majC"|labels_plot$class=="town",], 
+  city_dots <- geom_point(data = labels_plot[labels_plot$class=="city"|labels_plot$class=="town",], 
                           aes(x=lng, y=lat), color= style[["color"]][["sf"]]["citypts",], size=2)
   #mp labels placeholder to have other labels repel:
   mp_placeholder <- geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA, size=textsize[4],check_overlap=TRUE)
   rd_bubbles <- geom_label_repel(data = labels_plot[labels_plot$class == c("I","S","U"), ],
-                   aes(x=lng, y=lat, label=label, 
+                   aes(x=lng, y=lat, label=label,
                        fontface=fontface, family=fontfam,
-                       color=as.factor(colcode), 
-                       fill=fillcode), 
+                       color=as.factor(colcode),
+                       fill=fillcode),
                    show.legend=NA,
                    size=textsize[1],
-                   label.r=0.6, label.size=0.12, 
+                   label.r=0.6, label.size=0.12,
                    max.overlaps=4
                    )
-  scale_colour <- scale_colour_manual(values=style[["color"]][["text"]]["color"], breaks=c(1,2,3), 
-                        labels=c("Interstate","State Route", "US Hwy"), name="Roads") 
-  scale_fill <- scale_fill_manual(values=style[["color"]][["fill"]]["color"], breaks=c(1,2,3), 
+  scale_colour <- scale_colour_manual(values=style[["color"]][["text"]][,"color"], breaks=c(1,2,3),
+                        labels=c("Interstate","State Route", "US Hwy"), name="Roads")
+  scale_fill <- scale_fill_manual(values=style[["color"]][["fill"]][,"color"], breaks=c(1,2,3),
                       labels=c("Interstate","State Route", "US Hwy"), name="Roads")
   roadsNcitydots <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
-                         rd_lines[[1]], rd_lines[[2]], ggnewscale::new_scale("color"), ggnewscale::new_scale("size"), 
-                         city_dots, mp_placeholder, ggnewscale::new_scale("color"), ggnewscale::new_scale("fill"),
+                         rd_lines, ggnewscale::new_scale("color"), ggnewscale::new_scale("size"), 
+                         city_dots, mp_placeholder, 
+                         ggnewscale::new_scale("color"), ggnewscale::new_scale("fill"),
                          rd_bubbles, scale_colour, scale_fill)
   return(roadsNcitydots)
 }
   
-fn_textRepel <- function(labels_plot, textsize, style){
+fn_textRepel <- function(rsegs, labels_plot, textsize, style){
   textcol <- style$color$text$color
+  # Basin Labels (by riverseg ID):
+  basins <- geom_text(data=rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
+  # All Other Text Labels:
   layer <- geom_text_repel(data = labels_plot[!(labels_plot$class == "I" | 
                                                 labels_plot$class == "S" | 
                                                 labels_plot$class == "U"), 
@@ -307,8 +327,8 @@ fn_textRepel <- function(labels_plot, textsize, style){
   scale_color <- scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide="none")
   scale_x_cont <- scale_x_continuous(limits = bbox_coords$lng, expand = c(0, 0))
   scale_y_cont <- scale_y_continuous(limits = bbox_coords$lat, expand = c(0, 0))   
-  textRepel <- list(ggnewscale::new_scale("size"), new_scale("color"), layer, 
-                    scale_size, scale_color, scale_x_cont, scale_y_cont)
+  textRepel <- list(basins, ggnewscale::new_scale("size"), new_scale("color"), 
+                    layer, scale_size, scale_color, scale_x_cont, scale_y_cont)
   return(textRepel)
 }
 
@@ -336,7 +356,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
   
   if (mapnum==2) { class(rsegs$bin) <- "numeric" }
   
-  fn_labelsAndFilter(labels, bbox_coords, nhd, roads, style)
+  fn_labelsAndFilter(labels, bbox_coords, nhd, roads, style, bbox_sf, crs_default)
   
   map <- fn_catchMapErrors(layer = fn_basemap(map_server, map_layer, bbox_coords)) 
   map <- fn_catchMapErrors(layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
@@ -353,8 +373,8 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                            layer_description = "road lines, road labels, mp placeholder text, and/or city dots", map = map)
   map <- fn_catchMapErrors(layer = fn_borders(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, style),
                            layer_description = "county, region, and/or rseg borders", map = map)
-  map <- fn_catchMapErrors(layer = fn_textRepel(labels_plot, textsize, style),
-                           layer_description = "county, river, and/or city text", map = map)
+  map <- fn_catchMapErrors(layer = fn_textRepel(rsegs, labels_plot, textsize, style),
+                          layer_description = "basin IDs, county, river, and/or city text", map = map)
   map <- fn_catchMapErrors(layer = fn_mp_bubbles(mp_layer, metric_unit, featr_type, style),
                            layer_description = "feature metric bubbles", map = map)
   
@@ -376,6 +396,5 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 # bbox_as_sf <- bbox_sf
 #---
 #example usage:
-map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1, 
-          map_server, map_layer, labels=maplabs, nhd, roads, rsegs, map_style, styles)
-  
+# map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1, 
+#           map_server, map_layer, labels=maplabs, nhd, roads, rsegs, map_style, styles)
