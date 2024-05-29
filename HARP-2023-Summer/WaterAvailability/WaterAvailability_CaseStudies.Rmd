@@ -1085,6 +1085,7 @@ for (i in 1:length(outlet_list)) {
     geom_bar(aes(y=l30_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_30_cfs, fill = 'green'), stat = 'identity') +
     theme(axis.text.x = element_text(size = 25, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.text.y = element_text(size = 25)) + #enlarge y axis labels
     theme(axis.title.x=element_blank()) +
     theme(axis.title.y=element_text(size = 20)) +
     theme(legend.text = element_text(size = 35)) +
@@ -1115,6 +1116,7 @@ for (i in 1:length(outlet_list)) {
     geom_bar(aes(y=l90_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_90_cfs, fill = 'green'), stat = 'identity') +
     theme(axis.text.x = element_text(size = 25, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
+    theme(axis.text.y = element_text(size = 25)) + #enlarge y axis labels
     theme(axis.title.x=element_blank()) +
     theme(axis.title.y=element_text(size = 20)) +
     theme(legend.text = element_text(size = 35)) +
