@@ -738,16 +738,16 @@ df_WA <- sqldf("SELECT a.* FROM df_WA as a
 
 table_WA <- data.frame(Propname = df_WA$propname,
                      Riverseg = df_WA$riverseg,
-                     wd_cu_mgd = round(df_WA$wd_cumulative_mgd, digits = 2),
-                     ps_cu_mgd = round(df_WA$ps_cumulative_mgd, digits = 2),
-                     l30_Qout = round(df_WA$l30_Qout_dem, digits = 1),
-                     l30_Qout_base = round(df_WA$l30_Qout_base, digits = 1),
-                     l30_Qout_mif = round((df_WA$l30_Qout_mif), digits = 1),
-                     Qavailable_30_cfs = df_WA$Qavailable_30_cfs,
-                     l90_Qout = round(df_WA$l90_Qout_dem, digits = 1),
-                     l90_Qout_base = round(df_WA$l90_Qout_base, digits = 1),
-                     l90_Qout_mif = round((df_WA$l90_Qout_mif), digits = 1),
-                     Qavailable_90_cfs = df_WA$Qavailable_90_cfs,
+                     wd_cumulative_mgd = round(df_WA$wd_cumulative_mgd, digits = 2),
+                     ps_cumulative_mgd = round(df_WA$ps_cumulative_mgd, digits = 2),
+                     l30_Qout_mgd = round(df_WA$l30_Qout_dem / 1.547, digits = 2),
+                     l30_Qout_base_mgd = round(df_WA$l30_Qout_base / 1.547, digits = 2),
+                     l30_Qout_mif_mgd = round(df_WA$l30_Qout_mif / 1.547, digits = 2),
+                     Qavailable_30_mgd = round(df_WA$Qavailable_30_cfs / 1.547, digits = 2),
+                     l90_Qout_mgd = round(df_WA$l90_Qout_dem / 1.547, digits = 2),
+                     l90_Qout_base_mgd = round(df_WA$l90_Qout_base / 1.547, digits = 2),
+                     l90_Qout_mif_mgd = round(df_WA$l90_Qout_mif / 1.547, digits = 2),
+                     Qavailable_90_mgd = round(df_WA$Qavailable_90_cfs / 1.547, digits = 2),
                      SminL30mg_apx_total = df_WA$SminL30mg_apx_total,
                      SminL30mg_nex_total = df_WA$SminL30mg_nex_total,
                      SminL90mg_apx_total = df_WA$SminL90mg_apx_total,
@@ -757,10 +757,33 @@ table_WA <- data.frame(Propname = df_WA$propname,
                      WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
                      WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
 
-ftable_WA <- flextable(table_WA) #create flextable
+#Table for flextable with human readable column names 
+table_WAhr <- table_WA
+
+#Human readable column names for flextable 
+names(table_WAhr)[names(table_WAhr) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+names(table_WAhr)[names(table_WAhr) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+names(table_WAhr)[names(table_WAhr) == "l30_Qout_mgd"] <- "Lowest 30-Day Demand Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "l30_Qout_base_mgd"] <- "Lowest 30-Day Base Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "l30_Qout_mif_mgd"] <- "30-Day Min. Instream Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "Qavailable_30_mgd"] <- "30-Day Available Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "l90_Qout_mif_mgd"] <- "90-Day Min. Instream Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "Qavailable_90_mgd"] <- "90-Day Available Flow (mgd)"
+names(table_WAhr)[names(table_WAhr) == "SminL30mg_apx_total"] <- "30-Day Total Storage (approx, mg)"
+names(table_WAhr)[names(table_WAhr) == "SminL30mg_nex_total"] <- "30-Day Total Storage (near-exact, mg)"
+names(table_WAhr)[names(table_WAhr) == "SminL90mg_apx_total"] <- "90-Day Total Storage (approx, mg)"
+names(table_WAhr)[names(table_WAhr) == "SminL90mg_nex_total"] <- "90-Day Total Storage (near-exact, mg)"
+names(table_WAhr)[names(table_WAhr) == "WA_mgd_30_apx"] <- "30-Day Water Availability (approx, mgd)"
+names(table_WAhr)[names(table_WAhr) == "WA_mgd_30_nex"] <- "30-Day Water Availability (near-exact, mgd)"
+names(table_WAhr)[names(table_WAhr) == "WA_mgd_90_apx"] <- "90-Day Water Availability (approx, mgd)"
+names(table_WAhr)[names(table_WAhr) == "WA_mgd_90_nex"] <- "90-Day Water Availability (near-exact, mgd)"
+
+
+ftable_WA <- flextable(table_WAhr) #create flextable
 ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
 ftable_WA #view flextable in console
-cat(knitr::knit_print(ftable_WA)) #view flextable in knitted doc
 ```
 
 
@@ -786,7 +809,20 @@ table_Storage <- data.frame(Propname = storage_data$propname,
                      outside_pd30 = storage_data$outside_pd30,
                      outside_pd90 = storage_data$outside_pd90)
 
-ftable_Storage <- flextable(table_Storage) #create flextable
+#Table for flextable with human readable column names 
+table_StorageHr <- table_Storage
+
+#Human readable column names for flextable 
+names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "min_in_pd30"] <- "Storage Methods Equal for 30-Day?"
+names(table_StorageHr)[names(table_StorageHr) == "min_in_pd90"] <- "Storage Methods Equal for 90-Day?"
+names(table_StorageHr)[names(table_StorageHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
+names(table_StorageHr)[names(table_StorageHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
+
+ftable_Storage <- flextable(table_StorageHr) #create flextable
 ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
 
 #to highlight when method is flawed
@@ -794,7 +830,12 @@ rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
 rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
 rownums <- c(rownums30, rownums90)
 
+#quantify occurences of matching Smin method results
+equal_Smins <- sum(storage_data$outside_sum == 0)
+Smin_message <- paste0("Smin methods resulted in matching values ", equal_Smins, " out of ", nrow(storage_data), " occurences")
+
 ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
+ftable_Storage <- flextable::add_footer_lines(ftable_Storage, values = Smin_message) #add footer
 
 ftable_Storage
 ```
@@ -826,8 +867,20 @@ table_Smin <- sqldf("SELECT a.* FROM table_Smin as a
 table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
                        ORDER BY (a.apx_lessthan_nex_90)") 
 
+#Table for flextable with human readable column names 
+table_SminHr <- table_Smin
 
-ftable_Smin <- flextable(table_Smin) #create flextable
+#Human readable column names for flextable 
+names(table_SminHr)[names(table_SminHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
+names(table_SminHr)[names(table_SminHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
+names(table_SminHr)[names(table_SminHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
+names(table_SminHr)[names(table_SminHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
+names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
+names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
+names(table_SminHr)[names(table_SminHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
+names(table_SminHr)[names(table_SminHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
+
+ftable_Smin <- flextable(table_SminHr) #create flextable
 
 #to highlight when approx is not <= near-exact
 rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
