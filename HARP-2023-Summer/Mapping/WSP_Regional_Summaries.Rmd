@@ -14,7 +14,7 @@ output:
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["Roanoke_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["Roanoake_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
@@ -83,8 +83,11 @@ show_map <- params$show_map
 # Make sure github location in config file is properly set 
 if (!exists("HARParchive_location")){
   HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
+
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
-source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+#source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
+
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
@@ -368,8 +371,8 @@ if (show_map == TRUE) {
       #             maptitle = maptitle)
       
       map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                       maptitle, mapnum=1, map_server, map_layer, labels=maplabs, 
-                       nhd, roads, rsegs, map_style, styles)
+                       maptitle, mapnum=1, rseg_leg_title=NULL, map_server, map_layer, maplabs, 
+                       nhd, roads, rsegs, rsegs_sf, map_style, styles)
     
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
@@ -611,15 +614,19 @@ ft1 #display flextable
   
     ##Mapping function
     #suppressWarnings(suppressMessages(
-      map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
-                               metric = display_metric, segs = rsegs_sf,
-                               featr_type = featr_type, origin_type = origin_type, 
-                               origin = origin, bbox = bbox,  
-                               counties = counties, roads = roads, 
-                               nhd = nhd, maplabs = maplabs, 
-                               mp_layer = mp_layer, metric_unit = metric_unit, 
-                               maptitle = rivmaptitle) 
+      # map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
+      #                          metric = display_metric, segs = rsegs_sf,
+      #                          featr_type = featr_type, origin_type = origin_type, 
+      #                          origin = origin, bbox = bbox,  
+      #                          counties = counties, roads = roads, 
+      #                          nhd = nhd, maplabs = maplabs, 
+      #                          mp_layer = mp_layer, metric_unit = metric_unit, 
+      #                          maptitle = rivmaptitle) 
     #))
+    
+    map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
+                       maptitle = rivmaptitle, mapnum=2, rseg_leg_title, map_server, map_layer, 
+                       maplabs, nhd, roads, rsegs, rsegs_sf, map_style, styles)
     
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
@@ -694,7 +701,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
-                       origin = origin , tabletitle = rivtabletitle,
+                       origin = origin , tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
     
     assign(paste0('table', k), ft2, envir = globalenv())
