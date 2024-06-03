@@ -85,7 +85,8 @@ if (!exists("HARParchive_location")){
   HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
   
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
-source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+#source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R"))
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
@@ -359,16 +360,19 @@ if (show_map == TRUE) {
       maptitle <- paste0(title_main, ", ", maplabel)
   
     #suppressWarnings(suppressMessages( 
-      map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
-                  metric = featrs_file_map_bubble_column[i], segs = rsegs,
-                  featr_type = featr_type, origin_type = origin_type, 
-                  origin = origin, bbox = bbox,  
-                  counties = counties, roads = roads, 
-                  nhd = nhd, maplabs = maplabs, 
-                  mp_layer = mp_layer, metric_unit = metric_unit, 
-                  maptitle = maptitle)
+      #map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
+      #            metric = featrs_file_map_bubble_column[i], segs = rsegs,
+      #            featr_type = featr_type, origin_type = origin_type, 
+      #            origin = origin, bbox = bbox,  
+      #            counties = counties, roads = roads, 
+      #            nhd = nhd, maplabs = maplabs, 
+      #            mp_layer = mp_layer, metric_unit = metric_unit, 
+      #            maptitle = maptitle)
     #))
-    
+    map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
+                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server, map_layer, 
+                     maplabs, nhd, roads, rsegs, map_style, styles)
+                       
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
   }
@@ -609,15 +613,18 @@ ft1 #display flextable
   
     ##Mapping function
     #suppressWarnings(suppressMessages(
-      map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
-                               metric = display_metric, segs = rsegs_sf,
-                               featr_type = featr_type, origin_type = origin_type, 
-                               origin = origin, bbox = bbox,  
-                               counties = counties, roads = roads, 
-                               nhd = nhd, maplabs = maplabs, 
-                               mp_layer = mp_layer, metric_unit = metric_unit, 
-                               maptitle = rivmaptitle) 
+      #map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
+      #                         metric = display_metric, segs = rsegs_sf,
+      #                         featr_type = featr_type, origin_type = origin_type, 
+      #                         origin = origin, bbox = bbox,  
+      #                         counties = counties, roads = roads, 
+      #                         nhd = nhd, maplabs = maplabs, 
+      #                         mp_layer = mp_layer, metric_unit = metric_unit, 
+      #                         maptitle = rivmaptitle) 
     #))
+    map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
+                       maptitle = rivmaptitle, mapnum=2, rseg_leg_title, map_server, map_layer, 
+                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style, styles)
     
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
@@ -774,7 +781,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     cat(knitr::knit_print(get(paste0('table', k))))
     cat("\n\n\\pagebreak\n")
   }
-
 ```
 ### Narrative note:
 

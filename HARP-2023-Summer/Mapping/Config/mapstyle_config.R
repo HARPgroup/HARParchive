@@ -32,6 +32,7 @@ metric_names <- data.frame(read_metric_name, new_metric_name)
 # adapt this to permit us to store pre-configured sets
 # run_set is parameter to use in WSP_Regional_Summaries.Rmd
 
+#----Run Sets----
 # run_sets: complex, allows us to render with fewer arguments to Rmarkdown
 # format:
 # wsp_run_set <- list(
@@ -159,7 +160,7 @@ run_sets <- list(
 )
 )
 
-#NHD flowline & waterbody classification & substitution:
+#----NHD flowline & waterbody classification & substitution:----
 #flowlines:
 nhd_rivname_pattern <- c('North Fork','South Fork','East Fork','West Fork','Middle Fork','North Branch','South Branch') #pattern to be replaced in NHD river/stream names 
 nhd_rivname_replacements <- c('NF','SF','EF','WF','MF','NB','SB') #replacements                    
@@ -658,5 +659,3 @@ for(i in 1:length(styles)){
 }
 # Within either the RMD or the fn_mapgen(), we will join the desired map style configuration 
 ## onto the labels data frame by matching up the "class" columns. 
-
-
