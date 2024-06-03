@@ -370,8 +370,8 @@ if (show_map == TRUE) {
       #            maptitle = maptitle)
     #))
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                       maptitle, mapnum=1, rseg_leg_title=NULL, map_server, map_layer, maplabs, 
-                       nhd, roads, rsegs, rsegs_sf, map_style, styles)
+                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server, map_layer, 
+                     maplabs, nhd, roads, rsegs, map_style, styles)
                        
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
@@ -624,7 +624,7 @@ ft1 #display flextable
     #))
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = rivmaptitle, mapnum=2, rseg_leg_title, map_server, map_layer, 
-                       maplabs, nhd, roads, rsegs, rsegs_sf, map_style, styles)
+                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style, styles)
     
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
@@ -781,7 +781,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     cat(knitr::knit_print(get(paste0('table', k))))
     cat("\n\n\\pagebreak\n")
   }
-
 ```
 ### Narrative note:
 

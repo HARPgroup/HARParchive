@@ -108,8 +108,8 @@ fn_basemap <- function(map_server, map_layer, bbox_coord_df){ #generates a basem
   return(basemap)
 }
 
-fn_shadow <- function(rsegs_sf, bbox_sfc, style){ #generates a "reverse fill" layer that will shadow the area outside the basins of interest
-  basin_union <- sf::st_union(rsegs_sf)
+fn_shadow <- function(rsegs, bbox_sfc, style){ #generates a "reverse fill" layer that will shadow the area outside the basins of interest
+  basin_union <- sf::st_union(rsegs)
   nonbasin <- sf::st_difference(bbox_sfc, basin_union) #method of erasing
   sf::st_crs(nonbasin) <- crs_default
   shadow <- ggplot2::geom_sf(data = nonbasin, inherit.aes=FALSE, color=NA, fill = style$color$sf["shadow",], lwd=1 )
@@ -172,13 +172,13 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, style){
   return(bubbles)
 }
 
-fn_borders <- function(rsegs_sf, counties, regions, origin, bbox_sf, crs_default, textsize, style){ #merges all polygon borders into 1 df and associates them w/ aesthetics from mapstyle_config.R
+fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, style){ #merges all polygon borders into 1 df and associates them w/ aesthetics from mapstyle_config.R
   #merging borders into 1 df so they can be on the same legend
   borders <- data.frame(counties[,"name"] , bundle= rep("county", nrow(counties)) )
   names(borders) <- c("name", "geometry", "bundle")
-  sf::st_geometry(rsegs_sf) <- "geometry"
-  sf::st_crs(rsegs_sf) <- crs_default
-  borders <- rbind(borders, data.frame(rsegs_sf[,c("name", "bundle")] )  )
+  sf::st_geometry(rsegs) <- "geometry"
+  sf::st_crs(rsegs) <- crs_default
+  borders <- rbind(borders, data.frame(rsegs[,c("name", "bundle")] )  )
   if (origin_type=="region") {
     region_OI <- regions[regions$region==origin,] #region of interest
     sf::st_geometry(region_OI) <- "geometry"
@@ -236,9 +236,9 @@ fn_borders <- function(rsegs_sf, counties, regions, origin, bbox_sf, crs_default
   return(borders_layer)
 }
 
-fn_polygonFill <- function(rsegs_sf, style, mapnum, rseg_leg_title){
+fn_polygonFill <- function(rsegs, style, mapnum, rseg_leg_title){
   #fill tidal rsegs 
-  rsegTidal <- subset(rsegs_sf, riverseg %in% grep("0000", rsegs_sf$riverseg, value=TRUE)) #PROBLEM w/ DF
+  rsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
   st_crs(rsegTidal) <- crs_default 
   #fix tidal df
   names(rsegTidal)[1:(ncol(rsegTidal)-6)] <- names(rsegTidal)[2:(ncol(rsegTidal)-5)]
@@ -253,8 +253,8 @@ fn_polygonFill <- function(rsegs_sf, style, mapnum, rseg_leg_title){
   
   #rseg fill based on drought metric % difference for rivseg maps:
   if (mapnum == 2) {
-    class(rsegs_sf$bin) <- "numeric"
-    metric_fill <- geom_sf(data = rsegs_sf, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 )
+    class(rsegs$bin) <- "numeric"
+    metric_fill <- geom_sf(data = rsegs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 )
     metric_scale_fill <- scale_fill_manual(values = rivmap_colors, #from config
                                            breaks = rivbreaks,
                                            labels = rivmap_labs,
@@ -341,7 +341,7 @@ fn_textRepel <- function(rsegs, labels_plot, textsize, style){
 
 fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                       maptitle, mapnum, rseg_leg_title, map_server, map_layer, maplabs, nhd, 
-                      roads, rsegs, rsegs_sf, map_style, styles){ #applies results of the above functions to plot the map
+                      roads, rsegs, map_style, styles){ #applies results of the above functions to plot the map
   
   assign('style', envir=.GlobalEnv, styles[[map_style]])
   #getting various bbox formats:
@@ -363,19 +363,19 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                                                   ),
                                   layer_description = "map theme", map = map)
   map <- fn_catchMapErrors(layer = ggplot2::ggtitle(maptitle), layer_description = "map title", map = map)
-  map <- fn_catchMapErrors(layer = fn_polygonFill(rsegs_sf, style, mapnum, rseg_leg_title),
+  map <- fn_catchMapErrors(layer = fn_polygonFill(rsegs, style, mapnum, rseg_leg_title),
                            layer_description = "tidal rseg fill and, if applicable, rivseg metric fill", map = map)
   map <- fn_catchMapErrors(layer = fn_nhdLines(nhd_plot, style, nhd),
                            layer_description = "nhd flowlines and waterbodies", map = map)
   map <- fn_catchMapErrors(layer = fn_roadsAndCityPoints(roads_plot, style, labels_plot, mp_layer),
                            layer_description = "road lines, road labels, mp placeholder text, and/or city dots", map = map)
-  map <- fn_catchMapErrors(layer = fn_borders(rsegs_sf, counties, regions, origin, bbox_sf, crs_default, textsize, style),
+  map <- fn_catchMapErrors(layer = fn_borders(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, style),
                            layer_description = "county, region, and/or rseg borders", map = map)
   map <- fn_catchMapErrors(layer = fn_textRepel(rsegs, labels_plot, textsize, style),
                           layer_description = "basin IDs, county, river, and/or city text", map = map)
   map <- fn_catchMapErrors(layer = fn_mp_bubbles(mp_layer, metric_unit, featr_type, style),
                            layer_description = "feature metric bubbles", map = map)
-  map <- fn_catchMapErrors(layer = fn_shadow(rsegs_sf, bbox_sfc, style),
+  map <- fn_catchMapErrors(layer = fn_shadow(rsegs, bbox_sfc, style),
                            layer_description = "reverse fill shadow", map = map)
   map <- fn_catchMapErrors(layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
@@ -393,4 +393,4 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 #---
 # #example usage:
 # map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1,
-#                   rseg_leg_title=NULL, map_server, map_layer, maplabs, nhd, roads, rsegs, rsegs_sf, map_style, styles)
+#                   rseg_leg_title=NULL, map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)
