@@ -18,11 +18,11 @@ params:
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "C:/aa_HARP/Exports/Roanoke_1_featrs_sf.csv"
+  featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
   featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/Exports/Roanoke_1_rsegs_sf.csv"
+  rsegs_file: "C:/HARP/Exports/Roanoke_1_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
   runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
@@ -83,11 +83,10 @@ show_map <- params$show_map
 # Make sure github location in config file is properly set 
 if (!exists("HARParchive_location")){
   HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
-
+  
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
-#source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
+#source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R"))
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
-
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
@@ -252,7 +251,7 @@ if (show_map == TRUE) {
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 if (show_map == TRUE) {
   rm(maplabs)
-  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"), label_storage_name="maplabs")
+  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 }
 ```
 
@@ -361,19 +360,19 @@ if (show_map == TRUE) {
       maptitle <- paste0(title_main, ", ", maplabel)
   
     #suppressWarnings(suppressMessages( 
-      # map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
-      #             metric = featrs_file_map_bubble_column[i], segs = rsegs,
-      #             featr_type = featr_type, origin_type = origin_type, 
-      #             origin = origin, bbox = bbox,  
-      #             counties = counties, roads = roads, 
-      #             nhd = nhd, maplabs = maplabs, 
-      #             mp_layer = mp_layer, metric_unit = metric_unit, 
-      #             maptitle = maptitle)
-      
-      map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
+      #map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
+      #            metric = featrs_file_map_bubble_column[i], segs = rsegs,
+      #            featr_type = featr_type, origin_type = origin_type, 
+      #            origin = origin, bbox = bbox,  
+      #            counties = counties, roads = roads, 
+      #            nhd = nhd, maplabs = maplabs, 
+      #            mp_layer = mp_layer, metric_unit = metric_unit, 
+      #            maptitle = maptitle)
+    #))
+    map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle, mapnum=1, rseg_leg_title=NULL, map_server, map_layer, maplabs, 
                        nhd, roads, rsegs, rsegs_sf, map_style, styles)
-    
+                       
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
   }
@@ -614,16 +613,15 @@ ft1 #display flextable
   
     ##Mapping function
     #suppressWarnings(suppressMessages(
-      # map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
-      #                          metric = display_metric, segs = rsegs_sf,
-      #                          featr_type = featr_type, origin_type = origin_type, 
-      #                          origin = origin, bbox = bbox,  
-      #                          counties = counties, roads = roads, 
-      #                          nhd = nhd, maplabs = maplabs, 
-      #                          mp_layer = mp_layer, metric_unit = metric_unit, 
-      #                          maptitle = rivmaptitle) 
+      #map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
+      #                         metric = display_metric, segs = rsegs_sf,
+      #                         featr_type = featr_type, origin_type = origin_type, 
+      #                         origin = origin, bbox = bbox,  
+      #                         counties = counties, roads = roads, 
+      #                         nhd = nhd, maplabs = maplabs, 
+      #                         mp_layer = mp_layer, metric_unit = metric_unit, 
+      #                         maptitle = rivmaptitle) 
     #))
-    
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = rivmaptitle, mapnum=2, rseg_leg_title, map_server, map_layer, 
                        maplabs, nhd, roads, rsegs, rsegs_sf, map_style, styles)
@@ -697,7 +695,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
     rivtablenum <- k + 1 #for heading numbering, use 1 + rivtablenum since we already printed a table
   
-    
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
                        columns = "all", alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
