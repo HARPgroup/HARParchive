@@ -912,7 +912,16 @@ table_update <- data.frame(Propname = df_update$propname,
                      SminL90mg_vah= df_update$SminL90mg_vah,
                      SminL90mg_apx = df_update$SminL90mg_apx)
 
-ftable_update <- flextable(table_update) #create flextable
+#Table for flextable with human readable column names 
+table_updateHr <- table_update
+
+#Human readable column names for flextable 
+names(table_updateHr)[names(table_updateHr) == "SminL30mg_vah"] <- "30-Day Storage (VAhydro, mg)"
+names(table_updateHr)[names(table_updateHr) == "SminL30mg_apx"] <- "30-Day Storage (calculated, mg)"
+names(table_updateHr)[names(table_updateHr) == "SminL90mg_vah"] <- "90-Day Storage (VAhydro, mg)"
+names(table_updateHr)[names(table_updateHr) == "SminL90mg_apx"] <- "90-Day Storage (calculated, mg)"
+
+ftable_update <- flextable(table_updateHr) #create flextable
 ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
 
 ftable_update
@@ -932,7 +941,18 @@ table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
                      outside_pd30 = caseStudies_df$outside_pd30,
                      outside_pd90 = caseStudies_df$outside_pd90)
 
-ftable_caseStudies <- flextable(table_caseStudies) #create flextable
+table_caseStudiesHr <- table_caseStudies #table for flextable with human readable column names 
+
+#Human readable column names for flextable 
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
+
+
+ftable_caseStudies <- flextable(table_caseStudiesHr) #create flextable
 ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
 ftable_caseStudies <- add_footer_row(ftable_caseStudies, top = TRUE, values = "Note: Local storage shown", colwidths = length(colnames(table_caseStudies))) #add footer
 
@@ -952,16 +972,16 @@ for (i in 1:length(outlet_list)) {
   table_caseStudyWshed <-   data.frame(Num = csws_df$NUM,
                       Propname = csws_df$propname,
                       Riverseg = csws_df$riverseg,
-                      wd_cu_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
-                      ps_cu_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
-                      l30_Qout = round(csws_df$l30_Qout_dem, digits = 3),
-                      l30_Qout_base = round(csws_df$l30_Qout_base, digits = 3),
-                      l30_Qout_mif = round((csws_df$l30_Qout_mif), digits = 3),
-                      Qavailable_30_cfs = csws_df$Qavailable_30_cfs,
-                      l90_Qout = round(csws_df$l90_Qout_dem, digits = 3),
-                      l90_Qout_base = round(csws_df$l90_Qout_base, digits = 3),
-                      l90_Qout_mif = round((csws_df$l90_Qout_mif), digits = 3),
-                      Qavailable_90_cfs = csws_df$Qavailable_90_cfs,
+                      wd_cumulative_mgd = round(csws_df$wd_cumulative_mgd, digits = 3),
+                      ps_cumulative_mgd = round(csws_df$ps_cumulative_mgd, digits = 3),
+                      l30_Qout_mgd = round(csws_df$l30_Qout_dem / 1.547, digits = 3),
+                      l30_Qout_base_mgd = round(csws_df$l30_Qout_base / 1.547, digits = 3),
+                      l30_Qout_mif_mgd = round(csws_df$l30_Qout_mif / 1.547, digits = 3),
+                      Qavailable_30_mgd = round(csws_df$Qavailable_30_cfs / 1.547, digits = 2),
+                      l90_Qout_mgd = round(csws_df$l90_Qout_dem / 1.547, digits = 3),
+                      l90_Qout_base_mgd = round(csws_df$l90_Qout_base / 1.547, digits = 3),
+                      l90_Qout_mif_mgd = round(csws_df$l90_Qout_mif / 1.547, digits = 3),
+                      Qavailable_90_mgd = round(csws_df$Qavailable_90_cfs / 1.547, digits = 2),
                       SminL30mg_local = csws_df$SminL30mg_apx_local,
                       SminL30mg_upstream = csws_df$SminL30mg_apx_ups,
                       SminL30mg_total = csws_df$SminL30mg_apx_total,
@@ -971,7 +991,29 @@ for (i in 1:length(outlet_list)) {
                       WA_mgd_30 = csws_df$WA_mgd_30_apx,
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
-  ftable_csws <- flextable(table_caseStudyWshed)
+  table_caseStudyWshedHr <- table_caseStudyWshed #table for flextable with human readable column names 
+
+  #Human readable column names for flextable 
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "l30_Qout_mgd"] <- "Lowest 30-Day Demand Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "l30_Qout_base_mgd"] <- "Lowest 30-Day Base Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "l30_Qout_mif_mgd"] <- "30-Day Min. Instream Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "Qavailable_30_mgd"] <- "30-Day Available Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "l90_Qout_mif_mgd"] <- "90-Day Min. Instream Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "Qavailable_90_mgd"] <- "90-Day Available Flow (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "SminL30mg_total"] <- "30-Day Total Storage (mg)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "SminL30mg_local"] <- "30-Day Local Storage (mg)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "SminL30mg_upstream"] <- "30-Day Upstream Storage (mg)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "SminL90mg_total"] <- "90-Day Total Storage (mg)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "SminL90mg_local"] <- "90-Day Local Storage (mg)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "SminL90mg_upstream"] <- "90-Day Upstream Storage (mg)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "WA_mgd_30"] <- "30-Day Water Availability (mgd)"
+  names(table_caseStudyWshedHr)[names(table_caseStudyWshedHr) == "WA_mgd_90"] <- "90-Day Water Availability (mgd)"
+  
+  ftable_csws <- flextable(table_caseStudyWshedHr)
   rownum_cs <- which(csws_df$riverseg == outlet_list[i]) #highlight case study row
   ftable_csws <- flextable::bg(ftable_csws, i = rownum_cs , bg = "yellow") 
   #ftable_csws <- add_header_lines(ftable_csws, values= title_table_caseStudyWshed) #add title 
