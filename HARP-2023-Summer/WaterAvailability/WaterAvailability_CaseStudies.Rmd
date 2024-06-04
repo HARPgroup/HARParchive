@@ -778,25 +778,46 @@ ftable_WA #view flextable in console
 # Table 2: Case Studies 
 
 ```{r Table 2}
-## Note: This should be a WA-focused table rather than storage because we've switched form impoundment segments to outlet segments 
-
 title_table_caseStudies <- paste0('TABLE 2: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
-                     Riverseg = caseStudies_df$riverseg,
-                     SminL30mg_apx = caseStudies_df$SminL30mg_apx_local,
-                     SminL90mg_apx = caseStudies_df$SminL90mg_apx_local)
+                      Riverseg = caseStudies_df$riverseg,
+                      wd_cumulative_mgd = round(caseStudies_df$wd_cumulative_mgd, digits = 2),
+                      ps_cumulative_mgd = round(caseStudies_df$ps_cumulative_mgd, digits = 2),
+                      l30_Qout_mgd = round(caseStudies_df$l30_Qout_dem / 1.547, digits = 2),
+                      l30_Qout_base_mgd = round(caseStudies_df$l30_Qout_base / 1.547, digits = 2),
+                      l30_Qout_mif_mgd = round(caseStudies_df$l30_Qout_mif / 1.547, digits = 2),
+                      Qavailable_30_mgd = round(caseStudies_df$Qavailable_30_cfs / 1.547, digits = 2),
+                      l90_Qout_mgd = round(caseStudies_df$l90_Qout_dem / 1.547, digits = 2),
+                      l90_Qout_base_mgd = round(caseStudies_df$l90_Qout_base / 1.547, digits = 2),
+                      l90_Qout_mif_mgd = round(caseStudies_df$l90_Qout_mif / 1.547, digits = 2),
+                      Qavailable_90_mgd = round(caseStudies_df$Qavailable_90_cfs / 1.547, digits = 2),
+                      SminL30mg_apx_total = caseStudies_df$SminL30mg_apx_total,
+                      SminL90mg_apx_total = caseStudies_df$SminL90mg_apx_total,
+                      WA_mgd_30_apx = caseStudies_df$WA_mgd_30_apx,
+                      WA_mgd_90_apx = caseStudies_df$WA_mgd_90_apx)
 
 table_caseStudiesHr <- table_caseStudies #table for flextable with human readable column names 
 
 #Human readable column names for flextable 
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_apx"] <- "30-Day Storage (mg)"
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_apx"] <- "90-Day Storage (mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "l30_Qout_mgd"] <- "Lowest 30-Day Demand Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "l30_Qout_base_mgd"] <- "Lowest 30-Day Base Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "l30_Qout_mif_mgd"] <- "30-Day Min. Instream Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "Qavailable_30_mgd"] <- "30-Day Available Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "l90_Qout_mif_mgd"] <- "90-Day Min. Instream Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "Qavailable_90_mgd"] <- "90-Day Available Flow (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_apx_total"] <- "30-Day Total Storage (mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_apx_total"] <- "90-Day Total Storage (mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "WA_mgd_30_apx"] <- "30-Day Water Availability (mgd)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "WA_mgd_90_apx"] <- "90-Day Water Availability (mgd)"
 
 
 ftable_caseStudies <- flextable(table_caseStudiesHr) #create flextable
 ftable_caseStudies <- add_header_lines(ftable_caseStudies, values= title_table_caseStudies) #add title 
-ftable_caseStudies <- add_footer_row(ftable_caseStudies, top = TRUE, values = "Note: Local storage shown", colwidths = length(colnames(table_caseStudies))) #add footer
 
 ftable_caseStudies
 ```
