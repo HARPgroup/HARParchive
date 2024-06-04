@@ -1,10 +1,10 @@
-"","Propname","Riverseg","SminL30mg_apx","SminL30mg_nex","SminL90mg_apx","SminL90mg_nex","outside_pd30","outside_pd90"
-"1","Cedar Run above Occoquan Reservoir","PL3_5360_5250",0,0,0,0,NA,NA
-"2","James River","JU4_7000_7300",0,0,0,0,NA,NA
-"3","George F. Brasfield Dam","JA5_7480_0001",6250.413,6336.093,6250.413,6291.567,21,17
-"4","North Anna River @ Confluence with South Anna","YP3_6670_6720",0,0,0,0,NA,NA
-"5","Roanoke River (Roanoke)","OR3_7740_8271",0,0,0,0,NA,NA
-"6","Carvins Cove Reservoir","OR3_7740_8271_carvins",5938.178,6279.773,5411.408,5798.233,NA,NA
-"7","Catawba Creek","OR3_7740_8271_catawba",0,0,0,0,NA,NA
-"8","Tinker Creek","OR3_7740_8271_tinker",0,0,0,0,NA,NA
-"9","Potomac River North Branch","PU4_3970_3890",0,0,0,0,NA,NA
+"","Propname","Riverseg","SminL30mg_apx","SminL90mg_apx"
+"1","Cedar Run above Occoquan Reservoir","PL3_5360_5250",0,0
+"2","James River","JU4_7000_7300",0,0
+"3","George F. Brasfield Dam","JA5_7480_0001",6261.977,6261.977
+"4","North Anna River @ Confluence with South Anna","YP3_6670_6720",0,0
+"5","Roanoke River (Roanoke)","OR3_7740_8271",0,0
+"6","Carvins Cove Reservoir","OR3_7740_8271_carvins",5979.215,5111.033
+"7","Catawba Creek","OR3_7740_8271_catawba",0,0
+"8","Tinker Creek","OR3_7740_8271_tinker",0,0
+"9","Potomac River North Branch","PU4_3970_3890",0,0

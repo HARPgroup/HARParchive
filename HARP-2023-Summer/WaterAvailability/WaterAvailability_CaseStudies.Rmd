@@ -12,8 +12,8 @@ params:
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
-  Smin_analysis: TRUE
-  write_Qavailable: FALSE
+  Smin_analysis: TRUE #to compare Smin calculation methods: approximate and near-exact
+  write_Qavailable: FALSE #to export Qavailable metrics to VAhydro
   write_tables: ["local", "github"]
   crs_default: 4326
   
@@ -152,32 +152,33 @@ metric_data <- merge(x = metric_data, y = rsegs,
 ```
 
 ```{r Get Object Model, Class & Elid}
-#nrow_all <- nrow(storage_data)
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis 
 
-storage_data$object_class <- NA
-storage_data$elid <- NA
-
-for (i in 1:nrow(storage_data)) {
-    #Get model
-  model <- RomProperty$new(ds,list( 
-    featureid = storage_data$featureid[i],
-    propcode = 'vahydro-1.0',
-    entity_type = 'dh_feature'
-  ),TRUE)
+  storage_data$object_class <- NA
+  storage_data$elid <- NA
   
-  #Get object class
-  object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
-    featureid = model$pid,
-    propname = 'object_class'
-  ),TRUE)
-  storage_data$object_class[i] <- object_class$propcode
-
-  #Get element id
-  elid <- RomProperty$new(ds,list( 
-    featureid = model$pid,
-    propname = 'om_element_connection'
-  ),TRUE)
-  storage_data$elid[i] <- elid$propvalue
+  for (i in 1:nrow(storage_data)) {
+      #Get model
+    model <- RomProperty$new(ds,list( 
+      featureid = storage_data$featureid[i],
+      propcode = 'vahydro-1.0',
+      entity_type = 'dh_feature'
+    ),TRUE)
+    
+    #Get object class
+    object_class <- RomProperty$new(ds,list( #get vahydro-1.0 model feature from vahydro
+      featureid = model$pid,
+      propname = 'object_class'
+    ),TRUE)
+    storage_data$object_class[i] <- object_class$propcode
+  
+    #Get element id
+    elid <- RomProperty$new(ds,list( 
+      featureid = model$pid,
+      propname = 'om_element_connection'
+    ),TRUE)
+    storage_data$elid[i] <- elid$propvalue
+  }
 }
 
 ## Alternative model retrieval, takes much longer
@@ -192,256 +193,264 @@ for (i in 1:nrow(storage_data)) {
 ```
 
 ```{r Smin Calculations}
-storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
-storage_data$SminL90mg_nex <- NA
-storage_data$SminL30mg_apx <- NA
-storage_data$SminL90mg_apx <- NA
-storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
-storage_data$min_in_pd90 <- NA 
-storage_data$outside_pd30 <- NA #empty columns to hold numeric values
-storage_data$outside_pd90 <- NA 
-storage_data$imp_off <- NA
+##Only needed for Smin analysis 
+if (Smin_analysis == TRUE) {
 
-for (i in 1:nrow(storage_data)) {
-  #Get runfile with timeseries data from VAhydro
-  dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
-  mode(dat) <- 'numeric'
-  cols <- names(dat)
+  storage_data$SminL30mg_nex <- NA #empty columns to hold near exact storage values
+  storage_data$SminL90mg_nex <- NA
+  storage_data$SminL30mg_apx <- NA
+  storage_data$SminL90mg_apx <- NA
+  storage_data$min_in_pd30 <- NA #empty columns to hold TRUE/FALSE
+  storage_data$min_in_pd90 <- NA 
+  storage_data$outside_pd30 <- NA #empty columns to hold numeric values
+  storage_data$outside_pd90 <- NA 
+  storage_data$imp_off <- NA
   
-  #Trim runfile
-  syear = as.integer(min(dat$year))
-  eyear = as.integer(max(dat$year))
-  if (syear < (eyear - 2)) {
-    sdate <- as.POSIXct(paste0(syear,"-10-01"))
-    edate <- as.POSIXct(paste0(eyear,"-09-30"))
-  } else {
-    sdate <- as.POSIXct(paste0(syear,"-02-01"))
-    edate <- as.POSIXct(paste0(eyear,"-12-31"))
-  }
-  dat <- window(dat, start = sdate, end = edate);
-  mode(dat) <- 'numeric' 
-  
-
-  #Check if impoundment is active
-    #2 ways this is done: im_off and imp_enabled 
-    #imp_off used in waterSupplyModelNode and hydroImpoundment
-    #imp_enabled used in waterSupplyElement
-  
-  #Separate tests for imp_off and imp_enabled 
-  if (storage_data$object_class[i] == "hydroImpoundment" | storage_data$object_class[i] == "waterSupplyModelNode") {
-    imp_off = 0 #default to active impoundment
-    if ("imp_off" %in% cols) {
-      imp_off <- as.integer(median(dat$imp_off))
-    }
-    storage_data$imp_off[i] <- imp_off
-    #Message if impoundment is enabled or not 
-    if (imp_off == 0) {
-      paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
-    } else  if (imp_off == 1) {
-      (paste0('imp_off = ', imp_off, ' : Impoundment Disabled'))
-    }
+  for (i in 1:nrow(storage_data)) {
+    #Get runfile with timeseries data from VAhydro
+    dat <- fn_get_runfile(storage_data$elid[i], runid_dem, site= omsite,  cached = TRUE) #get timeseries data (zoo)
+    mode(dat) <- 'numeric'
+    cols <- names(dat)
     
-  } else if (storage_data$object_class[i] == "waterSupplyElement") {
-    # does this have an impoundment sub-comp and is imp_off = 0?
-  # check for local_impoundment, and if so, rename to impoundment for processing
-    if("local_impoundment" %in% cols) {
-      dat$impoundment_use_remain_mg <- dat$local_impoundment_use_remain_mg
-      dat$impoundment_max_usable <- dat$local_impoundment_max_usable
-      dat$impoundment_Qin <- dat$local_impoundment_Qin
-      dat$impoundment_Qout <- dat$local_impoundment_Qout
-      dat$impoundment_demand <- dat$local_impoundment_demand
-      dat$impoundment <- dat$local_impoundment
-      cols <- names(dat)
+    #Trim runfile
+    syear = as.integer(min(dat$year))
+    eyear = as.integer(max(dat$year))
+    if (syear < (eyear - 2)) {
+      sdate <- as.POSIXct(paste0(syear,"-10-01"))
+      edate <- as.POSIXct(paste0(eyear,"-09-30"))
+    } else {
+      sdate <- as.POSIXct(paste0(syear,"-02-01"))
+      edate <- as.POSIXct(paste0(eyear,"-12-31"))
     }
-    imp_enabled = FALSE
-    if("impoundment" %in% cols) {
-      imp_enabled = TRUE
-    }
+    dat <- window(dat, start = sdate, end = edate);
+    mode(dat) <- 'numeric' 
     
-    if (imp_enabled == TRUE) {
-      storage_data$imp_off[i] <- 0 #Add imp_off val to dataframe based on imp_enabled 
-      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
-    } else if (imp_enabled == FALSE ) {
-      storage_data$imp_off[i] <- 1 #Add imp_off val to dataframe based on imp_enabled 
-      paste0('imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
-    }
-  }
   
-  #### Only do Storage calculation if impoundment is active
-  if (storage_data$imp_off[i] == 0) {
- 
-    #Different names for storage and Q values based on object_class:
-    if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
-      storagecol <- "use_remain_mg"
-      Qcol <- "Qin" #from hydroImpoundment.R: flows <- zoo(dat$Qin, order.by = index(dat));
-    } else if (storage_data$object_class[i] == "waterSupplyModelNode") {
-      storagecol <- "impoundment_use_remain_mg"
-      Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
-   } else if (storage_data$object_class[i] == "waterSupplyElement") {
-
-     # Storage col could be a couple different names
-     if("local_impoundment_Storage" %in% cols) {
-       storagecol <- "local_impoundment_use_remain_mg"
-     }
-     if("impoundment_Storage" %in% cols) {
-       storagecol <- "impoundment_use_remain_mg"
-     }
-     
-     if ('Qintake' %in% cols) {
-       Qcol <- "Qintake"
-     } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
-       Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
-     }
+    #Check if impoundment is active
+      #2 ways this is done: im_off and imp_enabled 
+      #imp_off used in waterSupplyModelNode and hydroImpoundment
+      #imp_enabled used in waterSupplyElement
+    
+    #Separate tests for imp_off and imp_enabled 
+    if (storage_data$object_class[i] == "hydroImpoundment" | storage_data$object_class[i] == "waterSupplyModelNode") {
+      imp_off = 0 #default to active impoundment
+      if ("imp_off" %in% cols) {
+        imp_off <- as.integer(median(dat$imp_off))
+      }
+      storage_data$imp_off[i] <- imp_off
+      #Message if impoundment is enabled or not 
+      if (imp_off == 0) {
+        paste0('imp_off = ', imp_off, ' : Impoundment Enabled')
+      } else  if (imp_off == 1) {
+        (paste0('imp_off = ', imp_off, ' : Impoundment Disabled'))
+      }
       
-    } else { #object_class is something else
-      storagecol <- "impoundment_use_remain_mg"
-      Qcol <- "Qout" #Qout is the default
-    }
-     
-    dat$Storage <- dat[,storagecol] #Storage col now represents usable storage
-    ## All Storage is now in units of mg 
-    
-    #find l30 and l90 years based on Qcol
-    flows <- zoo(dat[,Qcol], order.by = index(dat)); 
-    loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
-    
-    l90 <- loflows["90 Day Min"];
-    ndx <- which.min(as.numeric(l90[,"90 Day Min"]));
-    l90_Qout <- round(loflows[ndx,]$`90 Day Min`,6);
-    l90_year <- loflows[ndx,]$`year`;
-    l90yr_start <- as.POSIXct(paste0(l90_year,"-01-01")) #start of l90 year
-    l90yr_end <- as.POSIXct(paste0(l90_year,"-12-31")) #end of l90 year
-    datpd_90yr <- window( #data for the l90 year
-      dat,
-      start = l90yr_start,
-      end = l90yr_end
-    )
-    
-    l30 <- loflows["30 Day Min"];
-    ndx <- which.min(as.numeric(l30[,"30 Day Min"]));
-    l30_Qout <- round(loflows[ndx,]$`30 Day Min`,6);
-    l30_year <- loflows[ndx,]$`year`;
-    l30yr_start <- as.POSIXct(paste0(l30_year,"-01-01"))
-    l30yr_end <- as.POSIXct(paste0(l30_year,"-12-31"))
-    datpd_30yr <- window(
-      dat,
-      start = l30yr_start,
-      end = l30yr_end
-    )
-  
-    #data for the low flow years
-    l30yr_df <- as.data.frame(datpd_30yr)
-    l90yr_df <- as.data.frame(datpd_90yr)
-    
-    #zoo of Qcol for each l30 and l90 years
-    l30yr_flowz <- window(flows, start = l30yr_start, end = l30yr_end)
-    l90yr_flowz <- window(flows, start = l90yr_start, end = l90yr_end)
-    
-    #zoo to data frame
-    l30yr_flows <- data.frame(Q = l30yr_flowz)
-    l90yr_flows <- data.frame(Q = l90yr_flowz)
-    
-    #use rolling mean to identify each low-flow period
-    rollmean30 = rollmean(l30yr_flows, k=30, fill=NA, align='left') #results in matrix/array
-    rollmean90 = rollmean(l90yr_flows, k=90, fill=NA, align='left')
-    
-    l30yr_flows$rollmean30 <- rollmean30[,1]
-    l90yr_flows$rollmean90 <- rollmean90[,1]
-    
-    #start row numbers for low flow periods
-    rownum_start30 <- which.min(l30yr_flows$rollmean30) #min rolling mean since we used a left alignment
-    rownum_start90 <- which.min(l90yr_flows$rollmean90) 
-    
-    #end row numbers for low flow periods
-    rownum_end30 <- rownum_start30 + 29
-    rownum_end90 <- rownum_start90 + 89
-    
-    #start  and end dates for low flow periods
-    l30pd_start <- as.POSIXct(row.names(l30yr_flows[rownum_start30, ]))
-    l90pd_start <- as.POSIXct(row.names(l90yr_flows[rownum_start90, ]))
-    l30pd_end <- as.POSIXct(row.names(l30yr_df[rownum_end30, ]))
-    l90pd_end <- as.POSIXct(row.names(l90yr_df[rownum_end90, ]))
-    
-    #zoos for the drought periods 
-    l30pd_flowz <- window(dat, start = l30pd_start, end = l30pd_end)
-    l90pd_flowz <- window(dat, start = l90pd_start, end = l90pd_end)
-    
-    #data for low flow periods
-    l30pd_df <- as.data.frame(l30pd_flowz)
-    l90pd_df <- as.data.frame(l90pd_flowz)
-    
-    #Near-Exact Smin 
-      #Lowest storage within the low flow periods 
-      #Storage column in units of million gallons (set to usable storage (mg) variable earlier in script)
-    storage_data$SminL30mg_nex[i] <- round(min(l30pd_df$Storage), digits = 3)
-    storage_data$SminL90mg_nex[i] <- round(min(l90pd_df$Storage), digits = 3)
-    
-    #Approximate Smin 
-      #Lowest storage within the low flow years 
-      #Storage column in units of million gallons (set to usable storage (mg) variable earlier in script)
-    storage_data$SminL30mg_apx[i] <- round(min(l30yr_df$Storage), digits = 3)
-    storage_data$SminL90mg_apx[i] <- round(min(l90yr_df$Storage), digits = 3)
-    
-    #get row numbers where near-exact Smin happens within low flow period 
-    rownum_nex30 <- which.min(l30pd_df$Storage) 
-    rownum_nex90 <- which.min(l90pd_df$Storage)
-
-    #get row numbers where near-exact Smin happens within low flow year 
-    rownum_nex30yr <- rownum_start30 + rownum_nex30 - 1
-    rownum_nex90yr <- rownum_start90 + rownum_nex90 - 1
-
-    #get row numbers where approx Smin happens within low flow year 
-    rownum_apx30 <- which.min(l30yr_df$Storage) 
-    rownum_apx90 <- which.min(l90yr_df$Storage)
-    
-    #test if values occur in the same place
-    match30 <- (as.numeric(rownum_nex30yr) == as.numeric(rownum_apx30))
-    match90 <- (as.numeric(rownum_nex90yr) == as.numeric(rownum_apx90))
-    
-    #add TRUE/FALSE to dataframe
-    storage_data$min_in_pd30[i] <- paste0(match30)
-    storage_data$min_in_pd90[i] <- paste0(match90)
-    
-    # If approx. and near-exact values are different: 
-    # How far outside the low-flow period does the approximate value occur?
-      ## Negative: near-exact Smin happens AFTER the approx. Smin 
-      ## Positive: near-exact Smin happens BEFORE the approx. Smin 
-    if (storage_data$min_in_pd30[i] == FALSE) {
-      storage_data$outside_pd30[i] = rownum_apx30 - rownum_nex30yr
-    }
-    if (storage_data$min_in_pd90[i] == FALSE) {
-      storage_data$outside_pd90[i] = rownum_apx90 - rownum_nex90yr
-    }
-    
-  }
-}
-
-#when a min value is repeated, ex. 100s across all storage vals, our method is flawed
-  #this causes FALSEs and # of days to show up where we should have TRUE and 0 days 
-#COB: This is interesting. In theory, we could have an identical minimum value occur in 
-  #two different parts of the year. It's pretty unlikely, but possible. Theoretically, we
-  #could capture this by looking at the difference between e.g. rownum_nex90yr - rownum_apx90
-  #We should see that this falls within 90 days, I think
-storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
-
-for (i in 1:nrow(storage_data)) {
-  if (storage_data$SminL30mg_apx[i] == storage_data$SminL30mg_nex[i]) {
-    storage_data$min_in_pd30[i] <- TRUE
-    storage_data$outside_pd30[i] <- 0  
-  } 
+    } else if (storage_data$object_class[i] == "waterSupplyElement") {
+      # does this have an impoundment sub-comp and is imp_off = 0?
+    # check for local_impoundment, and if so, rename to impoundment for processing
+      if("local_impoundment" %in% cols) {
+        dat$impoundment_use_remain_mg <- dat$local_impoundment_use_remain_mg
+        dat$impoundment_max_usable <- dat$local_impoundment_max_usable
+        dat$impoundment_Qin <- dat$local_impoundment_Qin
+        dat$impoundment_Qout <- dat$local_impoundment_Qout
+        dat$impoundment_demand <- dat$local_impoundment_demand
+        dat$impoundment <- dat$local_impoundment
+        cols <- names(dat)
+      }
+      imp_enabled = FALSE
+      if("impoundment" %in% cols) {
+        imp_enabled = TRUE
+      }
       
-  if (storage_data$SminL90mg_apx[i] == storage_data$SminL90mg_nex[i]) {
-    storage_data$min_in_pd90[i] <- TRUE
-    storage_data$outside_pd90[i] <- 0
+      if (imp_enabled == TRUE) {
+        storage_data$imp_off[i] <- 0 #Add imp_off val to dataframe based on imp_enabled 
+        paste0('imp_enabled = ', imp_enabled, ' : Impoundment Enabled')
+      } else if (imp_enabled == FALSE ) {
+        storage_data$imp_off[i] <- 1 #Add imp_off val to dataframe based on imp_enabled 
+        paste0('imp_enabled = ', imp_enabled, ' : Impoundment Disabled')
+      }
+    }
+    
+    #### Only do Storage calculation if impoundment is active
+    if (storage_data$imp_off[i] == 0) {
+   
+      #Different names for storage and Q values based on object_class:
+      if (storage_data$object_class[i] == "hydroImpoundment") { #from hydroImpoundment.R: colname = "Storage"
+        storagecol <- "use_remain_mg"
+        Qcol <- "Qin" #from hydroImpoundment.R: flows <- zoo(dat$Qin, order.by = index(dat));
+      } else if (storage_data$object_class[i] == "waterSupplyModelNode") {
+        storagecol <- "impoundment_use_remain_mg"
+        Qcol <- "Qout" #from waterSupplyModelNode.R: flows <- zoo(as.numeric(as.character( dat$Qout )), order.by = index(dat));
+     } else if (storage_data$object_class[i] == "waterSupplyElement") {
+  
+       # Storage col could be a couple different names
+       if("local_impoundment_Storage" %in% cols) {
+         storagecol <- "local_impoundment_use_remain_mg"
+       }
+       if("impoundment_Storage" %in% cols) {
+         storagecol <- "impoundment_use_remain_mg"
+       }
+       
+       if ('Qintake' %in% cols) {
+         Qcol <- "Qintake"
+       } else { #from waterSupplyElement.R: flows <- zoo(as.numeric(as.character( dat$Qintake )), order.by = index(dat));
+         Qcol <- "Qin" #no Qintake in at least 1 case, use Qin instead
+       }
+        
+      } else { #object_class is something else
+        storagecol <- "impoundment_use_remain_mg"
+        Qcol <- "Qout" #Qout is the default
+      }
+       
+      dat$Storage <- dat[,storagecol] #Storage col now represents usable storage
+      ## All Storage is now in units of mg 
+      
+      #find l30 and l90 years based on Qcol
+      flows <- zoo(dat[,Qcol], order.by = index(dat)); 
+      loflows <- group2(flows, year = 'calendar') #vahydro Smin metrics used calendar year method 
+      
+      l90 <- loflows["90 Day Min"];
+      ndx <- which.min(as.numeric(l90[,"90 Day Min"]));
+      l90_Qout <- round(loflows[ndx,]$`90 Day Min`,6);
+      l90_year <- loflows[ndx,]$`year`;
+      l90yr_start <- as.POSIXct(paste0(l90_year,"-01-01")) #start of l90 year
+      l90yr_end <- as.POSIXct(paste0(l90_year,"-12-31")) #end of l90 year
+      datpd_90yr <- window( #data for the l90 year
+        dat,
+        start = l90yr_start,
+        end = l90yr_end
+      )
+      
+      l30 <- loflows["30 Day Min"];
+      ndx <- which.min(as.numeric(l30[,"30 Day Min"]));
+      l30_Qout <- round(loflows[ndx,]$`30 Day Min`,6);
+      l30_year <- loflows[ndx,]$`year`;
+      l30yr_start <- as.POSIXct(paste0(l30_year,"-01-01"))
+      l30yr_end <- as.POSIXct(paste0(l30_year,"-12-31"))
+      datpd_30yr <- window(
+        dat,
+        start = l30yr_start,
+        end = l30yr_end
+      )
+    
+      #data for the low flow years
+      l30yr_df <- as.data.frame(datpd_30yr)
+      l90yr_df <- as.data.frame(datpd_90yr)
+      
+      #zoo of Qcol for each l30 and l90 years
+      l30yr_flowz <- window(flows, start = l30yr_start, end = l30yr_end)
+      l90yr_flowz <- window(flows, start = l90yr_start, end = l90yr_end)
+      
+      #zoo to data frame
+      l30yr_flows <- data.frame(Q = l30yr_flowz)
+      l90yr_flows <- data.frame(Q = l90yr_flowz)
+      
+      #use rolling mean to identify each low-flow period
+      rollmean30 = rollmean(l30yr_flows, k=30, fill=NA, align='left') #results in matrix/array
+      rollmean90 = rollmean(l90yr_flows, k=90, fill=NA, align='left')
+      
+      l30yr_flows$rollmean30 <- rollmean30[,1]
+      l90yr_flows$rollmean90 <- rollmean90[,1]
+      
+      #start row numbers for low flow periods
+      rownum_start30 <- which.min(l30yr_flows$rollmean30) #min rolling mean since we used a left alignment
+      rownum_start90 <- which.min(l90yr_flows$rollmean90) 
+      
+      #end row numbers for low flow periods
+      rownum_end30 <- rownum_start30 + 29
+      rownum_end90 <- rownum_start90 + 89
+      
+      #start  and end dates for low flow periods
+      l30pd_start <- as.POSIXct(row.names(l30yr_flows[rownum_start30, ]))
+      l90pd_start <- as.POSIXct(row.names(l90yr_flows[rownum_start90, ]))
+      l30pd_end <- as.POSIXct(row.names(l30yr_df[rownum_end30, ]))
+      l90pd_end <- as.POSIXct(row.names(l90yr_df[rownum_end90, ]))
+      
+      #zoos for the drought periods 
+      l30pd_flowz <- window(dat, start = l30pd_start, end = l30pd_end)
+      l90pd_flowz <- window(dat, start = l90pd_start, end = l90pd_end)
+      
+      #data for low flow periods
+      l30pd_df <- as.data.frame(l30pd_flowz)
+      l90pd_df <- as.data.frame(l90pd_flowz)
+      
+      #Near-Exact Smin 
+        #Lowest storage within the low flow periods 
+        #Storage column in units of million gallons (set to usable storage (mg) variable earlier in script)
+      storage_data$SminL30mg_nex[i] <- round(min(l30pd_df$Storage), digits = 3)
+      storage_data$SminL90mg_nex[i] <- round(min(l90pd_df$Storage), digits = 3)
+      
+      #Approximate Smin 
+        #Lowest storage within the low flow years 
+        #Storage column in units of million gallons (set to usable storage (mg) variable earlier in script)
+      storage_data$SminL30mg_apx[i] <- round(min(l30yr_df$Storage), digits = 3)
+      storage_data$SminL90mg_apx[i] <- round(min(l90yr_df$Storage), digits = 3)
+      
+      #get row numbers where near-exact Smin happens within low flow period 
+      rownum_nex30 <- which.min(l30pd_df$Storage) 
+      rownum_nex90 <- which.min(l90pd_df$Storage)
+  
+      #get row numbers where near-exact Smin happens within low flow year 
+      rownum_nex30yr <- rownum_start30 + rownum_nex30 - 1
+      rownum_nex90yr <- rownum_start90 + rownum_nex90 - 1
+  
+      #get row numbers where approx Smin happens within low flow year 
+      rownum_apx30 <- which.min(l30yr_df$Storage) 
+      rownum_apx90 <- which.min(l90yr_df$Storage)
+      
+      #test if values occur in the same place
+      match30 <- (as.numeric(rownum_nex30yr) == as.numeric(rownum_apx30))
+      match90 <- (as.numeric(rownum_nex90yr) == as.numeric(rownum_apx90))
+      
+      #add TRUE/FALSE to dataframe
+      storage_data$min_in_pd30[i] <- paste0(match30)
+      storage_data$min_in_pd90[i] <- paste0(match90)
+      
+      # If approx. and near-exact values are different: 
+      # How far outside the low-flow period does the approximate value occur?
+        ## Negative: near-exact Smin happens AFTER the approx. Smin 
+        ## Positive: near-exact Smin happens BEFORE the approx. Smin 
+      if (storage_data$min_in_pd30[i] == FALSE) {
+        storage_data$outside_pd30[i] = rownum_apx30 - rownum_nex30yr
+      }
+      if (storage_data$min_in_pd90[i] == FALSE) {
+        storage_data$outside_pd90[i] = rownum_apx90 - rownum_nex90yr
+      }
+      
+    }
   }
+  
+  #when a min value is repeated, ex. 100s across all storage vals, our method is flawed
+    #this causes FALSEs and # of days to show up where we should have TRUE and 0 days 
+  #COB: This is interesting. In theory, we could have an identical minimum value occur in 
+    #two different parts of the year. It's pretty unlikely, but possible. Theoretically, we
+    #could capture this by looking at the difference between e.g. rownum_nex90yr - rownum_apx90
+    #We should see that this falls within 90 days, I think
+  storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
+  
+  for (i in 1:nrow(storage_data)) {
+    if (storage_data$SminL30mg_apx[i] == storage_data$SminL30mg_nex[i]) {
+      storage_data$min_in_pd30[i] <- TRUE
+      storage_data$outside_pd30[i] <- 0  
+    } 
+        
+    if (storage_data$SminL90mg_apx[i] == storage_data$SminL90mg_nex[i]) {
+      storage_data$min_in_pd90[i] <- TRUE
+      storage_data$outside_pd90[i] <- 0
+    }
+  }
+} else { #if Smins aren't calculated, use VAhydro metrics 
+  storage_data$SminL30mg_apx <- storage_data$SminL30mg_vah
+  storage_data$SminL90mg_apx <- storage_data$SminL90mg_vah
 }
-
 ```
 
 ```{r Smin Method Comparison}
-#Compare approx and near exact Smin values. Approx should always be <= near exact 
-storage_data$apx_lessthan_nex_30 <- storage_data$SminL30mg_apx <= storage_data$SminL30mg_nex
-storage_data$apx_lessthan_nex_90 <- storage_data$SminL90mg_apx <= storage_data$SminL90mg_nex
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis 
+  #Compare approx and near exact Smin values. Approx should always be <= near exact 
+  storage_data$apx_lessthan_nex_30 <- storage_data$SminL30mg_apx <= storage_data$SminL30mg_nex
+  storage_data$apx_lessthan_nex_90 <- storage_data$SminL90mg_apx <= storage_data$SminL90mg_nex
+}
   
 ```
 
@@ -468,45 +477,57 @@ storage_byseg_apx <- sqldf("SELECT a.riverseg, a.SminL30mg_apx_local, b.SminL90m
                               LEFT OUTER JOIN storage_byseg_90_apx AS b
                               WHERE (a. riverseg = b.riverseg) ")
 
-
-#Near-exact Smin Values 
-
-#Sum near-exact SminL30 by riverseg
-storage_byseg_30_nex <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_nex,
-                       SUM(SminL30mg_nex) AS SminL30mg_nex_local
-                       FROM storage_data
-                       GROUP BY riverseg
-                       ")
-
-# #Sum near-exact SminL90 by riverseg
-storage_byseg_90_nex <- sqldf("SELECT storage_data.riverseg, storage_data.SminL90mg_nex,
-                       SUM(SminL90mg_nex) AS SminL90mg_nex_local
-                       FROM storage_data
-                       GROUP BY riverseg
-                       ")
-
-#Join near-exact SminL30 and SminL90 summed storage
-storage_byseg_nex <- sqldf("SELECT a.riverseg, a.SminL30mg_nex_local, b.SminL90mg_nex_local
-                              FROM storage_byseg_30_nex AS a
-                              LEFT OUTER JOIN storage_byseg_90_nex AS b
-                              WHERE (a. riverseg = b.riverseg) ")
-
-#Join Approx and Near-exact Smin values by riverseg
-storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_local, b.SminL90mg_nex_local
-                              FROM storage_byseg_apx AS a
-                              LEFT OUTER JOIN storage_byseg_nex AS b
-                              WHERE (a. riverseg = b.riverseg) ")
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis 
+  #Near-exact Smin Values 
+  
+  #Sum near-exact SminL30 by riverseg
+  storage_byseg_30_nex <- sqldf("SELECT storage_data.riverseg, storage_data.SminL30mg_nex,
+                         SUM(SminL30mg_nex) AS SminL30mg_nex_local
+                         FROM storage_data
+                         GROUP BY riverseg
+                         ")
+  
+  # #Sum near-exact SminL90 by riverseg
+  storage_byseg_90_nex <- sqldf("SELECT storage_data.riverseg, storage_data.SminL90mg_nex,
+                         SUM(SminL90mg_nex) AS SminL90mg_nex_local
+                         FROM storage_data
+                         GROUP BY riverseg
+                         ")
+  
+  #Join near-exact SminL30 and SminL90 summed storage
+  storage_byseg_nex <- sqldf("SELECT a.riverseg, a.SminL30mg_nex_local, b.SminL90mg_nex_local
+                                FROM storage_byseg_30_nex AS a
+                                LEFT OUTER JOIN storage_byseg_90_nex AS b
+                                WHERE (a. riverseg = b.riverseg) ")
+  
+  #Join Approx and Near-exact Smin values by riverseg
+  storage_byseg <- sqldf("SELECT a.*,  b.SminL30mg_nex_local, b.SminL90mg_nex_local
+                                FROM storage_byseg_apx AS a
+                                LEFT OUTER JOIN storage_byseg_nex AS b
+                                WHERE (a. riverseg = b.riverseg) ")
+} else {
+  storage_byseg <- storage_byseg_apx
+}
 ```
 
 ```{r Join Storage + Metric + Baseline Data}
 #Storage data by riverseg in storage_byseg 
 #Metric data by riverseg in metric_data 
 
-#Join storage data onto demand scenario metric data 
-metric_data <- sqldf('SELECT a.*, b.SminL30mg_apx_local, b.SminL90mg_apx_local, b.SminL30mg_nex_local, b.SminL90mg_nex_local
-                   FROM metric_data as a
-                   LEFT OUTER JOIN storage_byseg as b
-                   ON (a.riverseg = b.riverseg)')
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis 
+
+  #Join storage data onto demand scenario metric data 
+  metric_data <- sqldf('SELECT a.*, b.SminL30mg_apx_local, b.SminL90mg_apx_local, b.SminL30mg_nex_local, b.SminL90mg_nex_local
+                     FROM metric_data as a
+                     LEFT OUTER JOIN storage_byseg as b
+                     ON (a.riverseg = b.riverseg)')
+} else {
+  metric_data <- sqldf('SELECT a.*, b.SminL30mg_apx_local, b.SminL90mg_apx_local
+                     FROM metric_data as a
+                     LEFT OUTER JOIN storage_byseg as b
+                     ON (a.riverseg = b.riverseg)')
+}
+
 
 #Join baseline scenario data onto demand scenario & storage data 
 metric_data <- sqldf('SELECT a.*, b.l30_Qout_base, b.l90_Qout_base
@@ -526,13 +547,9 @@ storage_data <- sqldf('SELECT a.*, b.wd_cumulative_mgd
 #Empty columns that will hold storage
 metric_data$SminL30mg_apx_ups <- NA 
 metric_data$SminL90mg_apx_ups <- NA 
-metric_data$SminL30mg_nex_ups <- NA 
-metric_data$SminL90mg_nex_ups <- NA 
-
 metric_data$SminL30mg_apx_total <- NA 
 metric_data$SminL90mg_apx_total <- NA 
-metric_data$SminL30mg_nex_total <- NA 
-metric_data$SminL90mg_nex_total <- NA 
+
 
 #Replace NA data with 0s. We need to do this prior to calculating upstream
 #storage since any value minus NA is NA in R, which would mess with our
@@ -562,14 +579,10 @@ for (i in 1:nrow(metric_data)) {
                     where riverseg in (select rivseg from ups_impsegs)") #get the upstream impoundments 
     metric_data$SminL30mg_apx_ups[i] <- round(sum(ups_df$SminL30mg_apx_local) - metric_data$SminL30mg_apx_local[i], digits = 3)
     metric_data$SminL90mg_apx_ups[i] <- round(sum(ups_df$SminL90mg_apx_local) - metric_data$SminL90mg_apx_local[i], digits = 3)
-    metric_data$SminL30mg_nex_ups[i] <- round(sum(ups_df$SminL30mg_nex_local) - metric_data$SminL30mg_nex_local[i], digits = 3)
-    metric_data$SminL90mg_nex_ups[i] <- round(sum(ups_df$SminL90mg_nex_local) - metric_data$SminL90mg_nex_local[i], digits = 3)
   }
   #add upstream and local storage to get total storage, which will be used in WA equation 
   metric_data$SminL30mg_apx_total[i] <- metric_data$SminL30mg_apx_local[i] + metric_data$SminL30mg_apx_ups[i]
   metric_data$SminL90mg_apx_total[i] <- metric_data$SminL90mg_apx_local[i] + metric_data$SminL90mg_apx_ups[i]
-  metric_data$SminL30mg_nex_total[i] <- metric_data$SminL30mg_nex_local[i] + metric_data$SminL30mg_nex_ups[i]
-  metric_data$SminL90mg_nex_total[i] <- metric_data$SminL90mg_nex_local[i] + metric_data$SminL90mg_nex_ups[i]
 }
 ```
 
@@ -594,12 +607,6 @@ metric_data$WA_mgd_30_apx = round((metric_data$Qavailable_30_cfs / 1.547) +
 
 metric_data$WA_mgd_90_apx = round((metric_data$Qavailable_90_cfs / 1.547) + 
   (metric_data$SminL30mg_apx_total / 90), digits = 3)
-
-metric_data$WA_mgd_30_nex = round((metric_data$Qavailable_30_cfs / 1.547) + 
-  (metric_data$SminL30mg_nex_total / 30), digits = 3)
-
-metric_data$WA_mgd_90_nex = round((metric_data$Qavailable_90_cfs / 1.547) + 
-  (metric_data$SminL90mg_nex_total / 90), digits = 3)
 
 # save all these values to REST
 if (write_Qavailable == TRUE) {
@@ -631,29 +638,32 @@ if (write_Qavailable == TRUE) {
 ```
 
 ```{r Smin Comparison Check}
-#for highlighting rows which current Smin comparison method is flawed 
-#highlight when TRUE and/or 0 accompanies values that are not equal 
-storage_data$unequal_30 <- NA
-storage_data$unequal_90 <- NA
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis 
 
-for (i in 1:nrow(storage_data)) {
-  if (storage_data$SminL30mg_apx[i] != storage_data$SminL30mg_nex[i]) { #if values don't match
-    if (storage_data$min_in_pd30[i] == TRUE) { #but we're saying the values occur at the same time 
-      storage_data$unequal_30[i] <- TRUE
+  #for highlighting rows which current Smin comparison method is flawed 
+  #highlight when TRUE and/or 0 accompanies values that are not equal 
+  storage_data$unequal_30 <- NA
+  storage_data$unequal_90 <- NA
+  
+  for (i in 1:nrow(storage_data)) {
+    if (storage_data$SminL30mg_apx[i] != storage_data$SminL30mg_nex[i]) { #if values don't match
+      if (storage_data$min_in_pd30[i] == TRUE) { #but we're saying the values occur at the same time 
+        storage_data$unequal_30[i] <- TRUE
+      }
+      if (storage_data$outside_pd30[i] == 0) {
+        storage_data$unequal_30[i] <- TRUE
+      } 
     }
-    if (storage_data$outside_pd30[i] == 0) {
-      storage_data$unequal_30[i] <- TRUE
+    
+    if (storage_data$SminL90mg_apx[i] != storage_data$SminL90mg_nex[i]) { #if values don't match
+      if (storage_data$min_in_pd90[i] == TRUE) { #but we're saying the values occur at the same time 
+        storage_data$unequal_90[i] <- TRUE
+      }
+      if (storage_data$outside_pd90[i] == 0) {
+        storage_data$unequal_90[i] <- TRUE
+      } 
     } 
   }
-  
-  if (storage_data$SminL90mg_apx[i] != storage_data$SminL90mg_nex[i]) { #if values don't match
-    if (storage_data$min_in_pd90[i] == TRUE) { #but we're saying the values occur at the same time 
-      storage_data$unequal_90[i] <- TRUE
-    }
-    if (storage_data$outside_pd90[i] == 0) {
-      storage_data$unequal_90[i] <- TRUE
-    } 
-  } 
 }
 
 ```
@@ -667,20 +677,6 @@ for (i in 1:length(outlet_list)) {
   caseStudies_df <- rbind(caseStudies_df, caseStudyRow)
 }
 
-#Add columns analyzing storage/Smin methods to case study dataframe
-for (i in 1:length(outlet_list)) { 
-  if (outlet_list[i] %in% storage_data$riverseg) { #need to check if the case study exists in the storage dataframe first
-    caseStudies_df$min_in_pd30[i] <- storage_data[storage_data$riverseg == outlet_list[i], "min_in_pd30"]
-    caseStudies_df$min_in_pd90[i] <- storage_data[storage_data$riverseg == outlet_list[i], "min_in_pd90"]
-    caseStudies_df$outside_pd30[i] <- storage_data[storage_data$riverseg == outlet_list[i], "outside_pd30"]
-    caseStudies_df$outside_pd90[i] <- storage_data[storage_data$riverseg == outlet_list[i], "outside_pd90"]
-  } else { #if it doesn't exist, fill with NA -- means sge not run with updated summary containing Smin routine yet
-    caseStudies_df$min_in_pd30[i] <- NA
-    caseStudies_df$min_in_pd90[i] <- NA
-    caseStudies_df$outside_pd30[i] <- NA
-    caseStudies_df$outside_pd90[i] <- NA
-  }
-}
 
 #Remove duplicate rows
 caseStudies_df <- caseStudies_df[!duplicated(caseStudies_df), ]
@@ -750,13 +746,9 @@ table_WA <- data.frame(Propname = df_WA$propname,
                      l90_Qout_mif_mgd = round(df_WA$l90_Qout_mif / 1.547, digits = 2),
                      Qavailable_90_mgd = round(df_WA$Qavailable_90_cfs / 1.547, digits = 2),
                      SminL30mg_apx_total = df_WA$SminL30mg_apx_total,
-                     SminL30mg_nex_total = df_WA$SminL30mg_nex_total,
                      SminL90mg_apx_total = df_WA$SminL90mg_apx_total,
-                     SminL90mg_nex_total = df_WA$SminL90mg_nex_total,
                      WA_mgd_30_apx = df_WA$WA_mgd_30_apx,
-                     WA_mgd_30_nex = df_WA$WA_mgd_30_nex,
-                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx,
-                     WA_mgd_90_nex = df_WA$WA_mgd_90_nex)
+                     WA_mgd_90_apx = df_WA$WA_mgd_90_apx)
 
 #Table for flextable with human readable column names 
 table_WAhr <- table_WA
@@ -772,15 +764,10 @@ names(table_WAhr)[names(table_WAhr) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand 
 names(table_WAhr)[names(table_WAhr) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
 names(table_WAhr)[names(table_WAhr) == "l90_Qout_mif_mgd"] <- "90-Day Min. Instream Flow (mgd)"
 names(table_WAhr)[names(table_WAhr) == "Qavailable_90_mgd"] <- "90-Day Available Flow (mgd)"
-names(table_WAhr)[names(table_WAhr) == "SminL30mg_apx_total"] <- "30-Day Total Storage (approx, mg)"
-names(table_WAhr)[names(table_WAhr) == "SminL30mg_nex_total"] <- "30-Day Total Storage (near-exact, mg)"
-names(table_WAhr)[names(table_WAhr) == "SminL90mg_apx_total"] <- "90-Day Total Storage (approx, mg)"
-names(table_WAhr)[names(table_WAhr) == "SminL90mg_nex_total"] <- "90-Day Total Storage (near-exact, mg)"
-names(table_WAhr)[names(table_WAhr) == "WA_mgd_30_apx"] <- "30-Day Water Availability (approx, mgd)"
-names(table_WAhr)[names(table_WAhr) == "WA_mgd_30_nex"] <- "30-Day Water Availability (near-exact, mgd)"
-names(table_WAhr)[names(table_WAhr) == "WA_mgd_90_apx"] <- "90-Day Water Availability (approx, mgd)"
-names(table_WAhr)[names(table_WAhr) == "WA_mgd_90_nex"] <- "90-Day Water Availability (near-exact, mgd)"
-
+names(table_WAhr)[names(table_WAhr) == "SminL30mg_apx_total"] <- "30-Day Total Storage (mg)"
+names(table_WAhr)[names(table_WAhr) == "SminL90mg_apx_total"] <- "90-Day Total Storage (mg)"
+names(table_WAhr)[names(table_WAhr) == "WA_mgd_30_apx"] <- "30-Day Water Availability (mgd)"
+names(table_WAhr)[names(table_WAhr) == "WA_mgd_90_apx"] <- "90-Day Water Availability (mgd)"
 
 ftable_WA <- flextable(table_WAhr) #create flextable
 ftable_WA <- add_header_lines(ftable_WA, values= title_table_WA) #add title 
@@ -798,21 +785,13 @@ title_table_caseStudies <- paste0('TABLE 2: CASE STUDIES. Demand: ', demand_scen
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
                      Riverseg = caseStudies_df$riverseg,
                      SminL30mg_apx = caseStudies_df$SminL30mg_apx_local,
-                     SminL30mg_nex = caseStudies_df$SminL30mg_nex_local,
-                     SminL90mg_apx = caseStudies_df$SminL90mg_apx_local,
-                     SminL90mg_nex = caseStudies_df$SminL90mg_nex_local,
-                     outside_pd30 = caseStudies_df$outside_pd30,
-                     outside_pd90 = caseStudies_df$outside_pd90)
+                     SminL90mg_apx = caseStudies_df$SminL90mg_apx_local)
 
 table_caseStudiesHr <- table_caseStudies #table for flextable with human readable column names 
 
 #Human readable column names for flextable 
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
-names(table_caseStudiesHr)[names(table_caseStudiesHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL30mg_apx"] <- "30-Day Storage (mg)"
+names(table_caseStudiesHr)[names(table_caseStudiesHr) == "SminL90mg_apx"] <- "90-Day Storage (mg)"
 
 
 ftable_caseStudies <- flextable(table_caseStudiesHr) #create flextable
@@ -1032,72 +1011,73 @@ for (i in 1:length(outlet_list)) {
 # Table 5: Smin Method Comparison
 
 ```{r Table 5}
-title_table_Storage <- paste0('TABLE 5: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#add % differences
-storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
-storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
-
-#sort table by the sum of 2 values
-storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
-storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
-storage_data <- sqldf("SELECT a.* FROM storage_data as a 
-                       ORDER BY (a.outside_sum) desc")
-
-table_Storage <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     min_in_pd30 = storage_data$min_in_pd30,
-                     min_in_pd90 = storage_data$min_in_pd90,
-                     outside_pd30 = storage_data$outside_pd30,
-                     outside_pd90 = storage_data$outside_pd90,
-                     pctDiff30 = storage_data$pctDiff30,
-                     pctDiff90 = storage_data$pctDiff90,
-                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
-                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
-
-#Table for flextable with human readable column names 
-table_StorageHr <- table_Storage
-
-#Human readable column names for flextable 
-names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "min_in_pd30"] <- "Storage Methods Equal for 30-Day?"
-names(table_StorageHr)[names(table_StorageHr) == "min_in_pd90"] <- "Storage Methods Equal for 90-Day?"
-names(table_StorageHr)[names(table_StorageHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
-names(table_StorageHr)[names(table_StorageHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
-names(table_StorageHr)[names(table_StorageHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
-names(table_StorageHr)[names(table_StorageHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
-names(table_StorageHr)[names(table_StorageHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
-names(table_StorageHr)[names(table_StorageHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
-
-ftable_Storage <- flextable(table_StorageHr) #create flextable
-ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
-
-#to highlight when method is flawed
-rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
-rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
-rownums <- c(rownums30, rownums90)
-
-#quantify occurences of matching Smin method results
-equal_Smins <- sum(storage_data$outside_sum == 0)
-Smin_message <- paste0("Smin methods resulted in matching values ", equal_Smins, " out of ", nrow(storage_data), " occurences")
-
-ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
-ftable_Storage <- flextable::add_footer_lines(ftable_Storage, values = Smin_message) #add footer
-
-ftable_Storage
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
+  title_table_Storage <- paste0('TABLE 5: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+  
+  #add % differences
+  storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
+  storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
+  
+  #sort table by the sum of 2 values
+  storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
+  storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
+  storage_data <- sqldf("SELECT a.* FROM storage_data as a 
+                         ORDER BY (a.outside_sum) desc")
+  
+  table_Storage <- data.frame(Propname = storage_data$propname,
+                       Riverseg = storage_data$riverseg,
+                       SminL30mg_apx = storage_data$SminL30mg_apx,
+                       SminL30mg_nex = storage_data$SminL30mg_nex,
+                       SminL90mg_apx = storage_data$SminL90mg_apx,
+                       SminL90mg_nex = storage_data$SminL90mg_nex,
+                       min_in_pd30 = storage_data$min_in_pd30,
+                       min_in_pd90 = storage_data$min_in_pd90,
+                       outside_pd30 = storage_data$outside_pd30,
+                       outside_pd90 = storage_data$outside_pd90,
+                       pctDiff30 = storage_data$pctDiff30,
+                       pctDiff90 = storage_data$pctDiff90,
+                       apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
+                       apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
+  
+  #Table for flextable with human readable column names 
+  table_StorageHr <- table_Storage
+  
+  #Human readable column names for flextable 
+  names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
+  names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
+  names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
+  names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
+  names(table_StorageHr)[names(table_StorageHr) == "min_in_pd30"] <- "Storage Methods Equal for 30-Day?"
+  names(table_StorageHr)[names(table_StorageHr) == "min_in_pd90"] <- "Storage Methods Equal for 90-Day?"
+  names(table_StorageHr)[names(table_StorageHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
+  names(table_StorageHr)[names(table_StorageHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
+  names(table_StorageHr)[names(table_StorageHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
+  names(table_StorageHr)[names(table_StorageHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
+  names(table_StorageHr)[names(table_StorageHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
+  names(table_StorageHr)[names(table_StorageHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
+  
+  ftable_Storage <- flextable(table_StorageHr) #create flextable
+  ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
+  
+  #to highlight when method is flawed
+  rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
+  rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
+  rownums <- c(rownums30, rownums90)
+  
+  #quantify occurences of matching Smin method results
+  equal_Smins <- sum(storage_data$outside_sum == 0)
+  Smin_message <- paste0("Smin methods resulted in matching values ", equal_Smins, " out of ", nrow(storage_data), " occurences")
+  
+  ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
+  ftable_Storage <- flextable::add_footer_lines(ftable_Storage, values = Smin_message) #add footer
+  
+  ftable_Storage
+}
 ```
 
 
 ```{r Table 3, eval=FALSE}
-## This has been incorporated into table 5
-
+## This has been incorporated into table 5 so temporarliy disabled the chunk
 title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 
@@ -1148,35 +1128,36 @@ ftable_Smin
 # Table 6: Smins that Need to be Updated
 
 ```{r Table 6}
-
-title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#select rows where vahydro and calculated approx Smins are different 
-df_update <- sqldf("SELECT a.* 
-                    FROM storage_data as a 
-                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
-                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
-
-table_update <- data.frame(Propname = df_update$propname,
-                     Riverseg = df_update$riverseg,
-                     SminL30mg_vah = df_update$SminL30mg_vah,
-                     SminL30mg_apx = df_update$SminL30mg_apx,
-                     SminL90mg_vah= df_update$SminL90mg_vah,
-                     SminL90mg_apx = df_update$SminL90mg_apx)
-
-#Table for flextable with human readable column names 
-table_updateHr <- table_update
-
-#Human readable column names for flextable 
-names(table_updateHr)[names(table_updateHr) == "SminL30mg_vah"] <- "30-Day Storage (VAhydro, mg)"
-names(table_updateHr)[names(table_updateHr) == "SminL30mg_apx"] <- "30-Day Storage (calculated, mg)"
-names(table_updateHr)[names(table_updateHr) == "SminL90mg_vah"] <- "90-Day Storage (VAhydro, mg)"
-names(table_updateHr)[names(table_updateHr) == "SminL90mg_apx"] <- "90-Day Storage (calculated, mg)"
-
-ftable_update <- flextable(table_updateHr) #create flextable
-ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
-
-ftable_update
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
+  title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+  
+  #select rows where vahydro and calculated approx Smins are different 
+  df_update <- sqldf("SELECT a.* 
+                      FROM storage_data as a 
+                      WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
+                      OR Sminl90mg_apx IS NOT Sminl90mg_vah")
+  
+  table_update <- data.frame(Propname = df_update$propname,
+                       Riverseg = df_update$riverseg,
+                       SminL30mg_vah = df_update$SminL30mg_vah,
+                       SminL30mg_apx = df_update$SminL30mg_apx,
+                       SminL90mg_vah= df_update$SminL90mg_vah,
+                       SminL90mg_apx = df_update$SminL90mg_apx)
+  
+  #Table for flextable with human readable column names 
+  table_updateHr <- table_update
+  
+  #Human readable column names for flextable 
+  names(table_updateHr)[names(table_updateHr) == "SminL30mg_vah"] <- "30-Day Storage (VAhydro, mg)"
+  names(table_updateHr)[names(table_updateHr) == "SminL30mg_apx"] <- "30-Day Storage (calculated, mg)"
+  names(table_updateHr)[names(table_updateHr) == "SminL90mg_vah"] <- "90-Day Storage (VAhydro, mg)"
+  names(table_updateHr)[names(table_updateHr) == "SminL90mg_apx"] <- "90-Day Storage (calculated, mg)"
+  
+  ftable_update <- flextable(table_updateHr) #create flextable
+  ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
+  
+  ftable_update
+}
 ```
 
 
@@ -1447,15 +1428,15 @@ if ("local" %in% write_tables) {
                              demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
   #tables 3 and 4 exported when created because of loop structure 
-  
-  write.csv(table_Storage, paste0(export_path, 'CaseStudies_table5_SminComparison_', 
-                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-  
-  write.csv(table_update, paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
-                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+  if (Smin_analysis == TRUE) { #Only needed for Smin analysis   
+    write.csv(table_Storage, paste0(export_path, 'CaseStudies_table5_SminComparison_', 
+                               demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+    
+    write.csv(table_update, paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
+                               demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
   }
-
+}
 ```
 
 ```{r Write CSVs to GitHub}
@@ -1468,34 +1449,32 @@ if ("github" %in% write_tables) {
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
   #tables 3 and 4 exported when created because of loop structure 
-  
-  write.csv(table_Storage, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table5_SminComparison_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-  
-  write.csv(table_update, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6_SminUpdate_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-  
+  if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
+    write.csv(table_Storage, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table5_SminComparison_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+    
+    write.csv(table_update, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6_SminUpdate_', 
+                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
+   }
 }
 
 ```
 
 ```{r Save Tables as Images}
-#disable outputs
-
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
 
 flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table2_CaseStudies_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table2
+                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
 
 #tables 3 and 4 exported when created because of loop structure 
-
-flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table5_SminComparison_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
-
-flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
-
+if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
+  flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table5_SminComparison_', 
+                                                    demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+  
+  flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
+                                                    demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+}
 
 ```
 

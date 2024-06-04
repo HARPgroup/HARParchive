@@ -1,6 +1,6 @@
 "","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 90-Day Demand Flow (mgd)","Lowest 90-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
-"1",1,"T. Nelson Elliott Dam","PL0_5141_5140",11.903,0,3.716,3.271,2.944,0.772,2384.126,0,2384.126,36.806
+"1",1,"T. Nelson Elliott Dam","PL0_5141_5140",11.903,0,3.716,3.271,2.944,0.772,2982.969,0,2982.969,43.447
 "2",2,"Cedar Run at Elk Run Road","PL1_5370_5470",1.142,0,4.423,4.645,4.181,0.242,0,0,0,0.242
-"3",3,"Broad Run at Confluence with Cedar Run","PL2_5140_5360",13.012,0,6.749,7.897,7.107,-0.357,0,2384.126,2384.126,35.676
+"3",3,"Broad Run at Confluence with Cedar Run","PL2_5140_5360",13.012,0,6.749,7.897,7.107,-0.357,0,2982.969,2982.969,42.317
 "4",4,"Cedar Run above Confluence with Broad Run","PL2_5470_5360",1.142,0.937,9.06,7.725,6.952,2.107,0,0,0,2.107
-"5",5,"Cedar Run above Occoquan Reservoir","PL3_5360_5250",14.154,0.937,18.542,18.096,16.286,2.255,0,2384.126,2384.126,38.289
+"5",5,"Cedar Run above Occoquan Reservoir","PL3_5360_5250",14.154,0.937,18.542,18.096,16.286,2.255,0,2982.969,2982.969,44.93
