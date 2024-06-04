@@ -91,7 +91,7 @@ source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_table
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
-source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
+#source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
 
 # legend_titling() --> Generate user-understandable legend titles
@@ -271,11 +271,11 @@ Including how to use this doc per regulatory requirement. Include note that wate
 facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
-#create title based on origin & type
+#create human-readable title based on origin & type
 if (origin_type == "basin") {
   title_main <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
 } else if (origin_type == "locality") {
-  title_main <- paste0(origin, " Locality")
+  title_main <- paste0(counties[["name"]][counties[["dh_fips"]]==origin]," Locality")
 } else if (origin_type == "region") {
   origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
   title_main <- paste0( gsub("_", " ", origin_readable) , " Region")
@@ -285,7 +285,8 @@ if (origin_type == "basin") {
 if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
     #legend_title <- paste0(featrs_file_map_bubble_column[i])
-    legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
+    #legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
+    legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     
     #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
     if ((featrs_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
@@ -340,21 +341,24 @@ if (show_map == TRUE) {
     
     rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default)
     
-    colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+    # colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
+    # 
+    # ## Create title for the map
+    #   #first create label for metric
+    # if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
+    #   maplabel <- gsub("five_yr_avg", "5 Year Avg (MGY)", colname)
+    # } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
+    #   maplabel <- gsub("wd_mgd", "Withdraw (MGD)", colname)
+    # } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
+    #   maplabel <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', colname)
+    # } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
+    #   maplabel <- gsub("ps_mgd", "Point Source (MGD)", colname)
+    # } else {
+    #   maplabel <- colname
+    # }
+    ##instead:
+    maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     
-    ## Create title for the map
-      #first create label for metric
-    if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
-      maplabel <- gsub("five_yr_avg", "5 Year Avg (MGY)", colname)
-    } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
-      maplabel <- gsub("wd_mgd", "Withdraw (MGD)", colname)
-    } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
-      maplabel <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', colname)
-    } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
-      maplabel <- gsub("ps_mgd", "Point Source (MGD)", colname)
-    } else {
-      maplabel <- colname
-    }
 
       #create map title by combining label and title
       maptitle <- paste0(title_main, ", ", maplabel)
@@ -553,7 +557,7 @@ ft1 #display flextable
       display_title <- run_config$riverseg_metrics[[i]]$run_label
     
      rseg_leg_title <- legend_titling(display_metric, runid_list)
-    
+
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
     if (display_metric=="l30_Qout"){
@@ -662,7 +666,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
   table_cols <- unlist(run_config$riverseg_metrics[[k]]$tables_cols)
   display_column <- run_config$riverseg_metrics[[k]]$column_name
   
-  # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "faclis_nogeom"
+  # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "facils_nogeom"
   if (exists(data_set)) {
     rseg_display <- get(data_set)
     

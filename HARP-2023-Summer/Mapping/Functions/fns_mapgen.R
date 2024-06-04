@@ -2,7 +2,10 @@
 ##fn_mapgen() is the final call used in WSP_Regional_Summaries.Rmd, and it calls these modular functions within it.
 #Load required libraries
 library(ggplot2)
+library(geosphere)
+library(arcpullr)
 library(ggnewscale)
+library(ggrepel)
 library(mgsub)
 library(sf)
 library(ggspatial)
@@ -55,7 +58,7 @@ fn_labelsAndFilter <- function(labels=maplabs, bbox_coord_df, nhd, roads, style,
   
   #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
   #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
-  distance <-  distHaversine(bbox_coord_df) / 1609.34 #distHaversine() defaults to meters, so convert to miles
+  distance <-  geosphere::distHaversine(bbox_coord_df) / 1609.34 #distHaversine() defaults to meters, so convert to miles
   
   roads_plot <- roads
   if (distance > 300) {
@@ -101,8 +104,8 @@ fn_labelsAndFilter <- function(labels=maplabs, bbox_coord_df, nhd, roads, style,
 
 fn_basemap <- function(map_server, map_layer, bbox_coord_df){ #generates a basemap
   map_url <- paste(map_server,map_layer,sep ="/")
-  mapdata <- get_spatial_layer(map_url)
-  mapdata <- st_crop(mapdata, c(xmin= min(bbox_coord_df$lng), ymin = min(bbox_coord_df$lat), 
+  mapdata <- arcpullr::get_spatial_layer(map_url)
+  mapdata <- sf::st_crop(mapdata, c(xmin= min(bbox_coord_df$lng), ymin = min(bbox_coord_df$lat), 
                                 xmax = max(bbox_coord_df$lng), ymax = max(bbox_coord_df$lat))) #crop to our extent 
   basemap <- ggplot2::geom_sf(data = mapdata)
   return(basemap)
@@ -131,7 +134,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, style){
   mp_layer <- mp_layer[!mp_layer$bin == "X" , ]
   class(mp_layer$bin) <- "numeric" #make sure bin column is type numeric for sizing data points
   #text for number labels:
-  num_labels <- geom_text(data = mp_layer, 
+  num_labels <- ggplot2::geom_text(data = mp_layer, 
                           aes(lng, lat, label=NUM, fontface="bold"), 
                           color="black", size=textsize[5], check_overlap=TRUE)
   #colored bubbles:
@@ -244,8 +247,8 @@ fn_polygonFill <- function(rsegs, style, mapnum, rseg_leg_title){
   names(rsegTidal)[1:(ncol(rsegTidal)-6)] <- names(rsegTidal)[2:(ncol(rsegTidal)-5)]
   rsegTidal[ncol(rsegTidal)-5] <- NULL
   #create tidal map layer
-  tidal <- geom_sf(data = rsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 1)
-  tidal_scale_fill <- scale_fill_manual(values = style$color$sf["tidal",], #color set in config
+  tidal <- ggplot2::geom_sf(data = rsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 1)
+  tidal_scale_fill <- ggplot2::scale_fill_manual(values = style$color$sf["tidal",], #color set in config
                                         breaks = "watershed",
                                         labels = "Tidal/Unmodeled",
                                         name = NULL)
@@ -254,15 +257,15 @@ fn_polygonFill <- function(rsegs, style, mapnum, rseg_leg_title){
   #rseg fill based on drought metric % difference for rivseg maps:
   if (mapnum == 2) {
     class(rsegs$bin) <- "numeric"
-    metric_fill <- geom_sf(data = rsegs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 )
-    metric_scale_fill <- scale_fill_manual(values = rivmap_colors, #from config
+    metric_fill <- ggplot2::geom_sf(data = rsegs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 )
+    metric_scale_fill <- ggplot2::scale_fill_manual(values = rivmap_colors, #from config
                                            breaks = rivbreaks,
                                            labels = rivmap_labs,
                                            limits = as.factor(rivbreaks),
                                            name = rseg_leg_title)
-    metric_legend <- theme(legend.spacing.y = unit(0.1, 'cm')) #adjust spacing of legend 
+    metric_legend <- ggplot2::theme(legend.spacing.y = unit(0.1, 'cm')) #adjust spacing of legend 
     rseg_fill <- list(ggnewscale::new_scale("fill"), metric_fill, metric_scale_fill,
-                      guides(fill = guide_legend(byrow = TRUE)),
+                      ggplot2::guides(fill = guide_legend(byrow = TRUE)),
                       ggnewscale::new_scale("fill"), tidal, tidal_scale_fill)
   }
   return(rseg_fill)
@@ -282,12 +285,12 @@ fn_nhdLines <- function(nhd_plot, style, nhd){
 }
 
 fn_roadsAndCityPoints <- function(roads_plot, style, labels_plot, mp_layer){
-  rd_lines <- geom_sf(data = roads_plot, inherit.aes=FALSE, color= style[["color"]][["sf"]]["roads",], fill=NA, lwd=1, linetype="twodash")
-  city_dots <- geom_point(data = labels_plot[labels_plot$class=="city"|labels_plot$class=="town",], 
+  rd_lines <- ggplot2::geom_sf(data = roads_plot, inherit.aes=FALSE, color= style[["color"]][["sf"]]["roads",], fill=NA, lwd=1, linetype="twodash")
+  city_dots <- ggplot2::geom_point(data = labels_plot[labels_plot$class=="city"|labels_plot$class=="town",], 
                           aes(x=lng, y=lat), color= style[["color"]][["sf"]]["citypts",], size=2)
   #mp labels placeholder to have other labels repel:
-  mp_placeholder <- geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA, size=textsize[4],check_overlap=TRUE)
-  rd_bubbles <- geom_label_repel(data = labels_plot[labels_plot$class == c("I","S","U"), ],
+  mp_placeholder <- ggplot2::geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA, size=textsize[4],check_overlap=TRUE)
+  rd_bubbles <- ggrepel::geom_label_repel(data = labels_plot[labels_plot$class == c("I","S","U"), ],
                    aes(x=lng, y=lat, label=label,
                        fontface=fontface, family=fontfam,
                        color=as.factor(colcode),
@@ -297,9 +300,9 @@ fn_roadsAndCityPoints <- function(roads_plot, style, labels_plot, mp_layer){
                    label.r=0.6, label.size=0.12,
                    max.overlaps=4
                    )
-  scale_colour <- scale_colour_manual(values=style[["color"]][["text"]][,"color"], breaks=c(1,2,3),
+  scale_colour <- ggplot2::scale_colour_manual(values=style[["color"]][["text"]][,"color"], breaks=c(1,2,3),
                         labels=c("Interstate","State Route", "US Hwy"), name="Roads")
-  scale_fill <- scale_fill_manual(values=style[["color"]][["fill"]][,"color"], breaks=c(1,2,3),
+  scale_fill <- ggplot2::scale_fill_manual(values=style[["color"]][["fill"]][,"color"], breaks=c(1,2,3),
                       labels=c("Interstate","State Route", "US Hwy"), name="Roads")
   roadsNcitydots <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
                          rd_lines, ggnewscale::new_scale("color"), ggnewscale::new_scale("size"), 
@@ -312,9 +315,9 @@ fn_roadsAndCityPoints <- function(roads_plot, style, labels_plot, mp_layer){
 fn_textRepel <- function(rsegs, labels_plot, textsize, style){
   textcol <- style$color$text$color
   # Basin Labels (by riverseg ID):
-  basins <- geom_text(data=rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
+  basins <- ggplot2::geom_text(data=rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
   # All Other Text Labels:
-  layer <- geom_text_repel(data = labels_plot[!(labels_plot$class == "I" | 
+  layer <- ggrepel::geom_text_repel(data = labels_plot[!(labels_plot$class == "I" | 
                                                 labels_plot$class == "S" | 
                                                 labels_plot$class == "U"), 
                                               ], #labels other than roads
@@ -329,11 +332,11 @@ fn_textRepel <- function(rsegs, labels_plot, textsize, style){
                     force= 40, direction="both",
                     min.segment.length=0.5
         )
-  scale_size <- scale_size(range= range(textsize[2:4]), breaks= textsize[2:4]) 
-  scale_color <- scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide="none")
-  scale_x_cont <- scale_x_continuous(limits = bbox_coords$lng, expand = c(0, 0))
-  scale_y_cont <- scale_y_continuous(limits = bbox_coords$lat, expand = c(0, 0))   
-  textRepel <- list(basins, ggnewscale::new_scale("size"), new_scale("color"), 
+  scale_size <- ggplot2::scale_size(range= range(textsize[2:4]), breaks= textsize[2:4]) 
+  scale_color <- ggplot2::scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide="none")
+  scale_x_cont <- ggplot2::scale_x_continuous(limits = bbox_coords$lng, expand = c(0, 0))
+  scale_y_cont <- ggplot2::scale_y_continuous(limits = bbox_coords$lat, expand = c(0, 0))   
+  textRepel <- list(basins, ggnewscale::new_scale("size"), ggnewscale::new_scale("color"), 
                     layer, scale_size, scale_color, scale_x_cont, scale_y_cont)
   return(textRepel)
 }
