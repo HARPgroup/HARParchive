@@ -20,13 +20,13 @@
 # NHD: Whichever flowlines were kept for the extent, scaled by streamOrde ; Waterbodies
 # Polygons: Counties, Reverse fill of basin, Riverseg borders
 #- - - - - - - - - - - 
+#Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used
 
-#Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used 
-#Human-readable metric names- add here any new metric names being used and their readable version
+#----Human-readable metric names: add here any new metric names being used and their readable version----
 read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
 new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
                      'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
-                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use(MGY)', 'Withdraws(MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
+                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use (MGY)', 'Withdraws (MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
 metric_names <- data.frame(read_metric_name, new_metric_name)
 
 # adapt this to permit us to store pre-configured sets
@@ -159,6 +159,25 @@ run_sets <- list(
   )
 )
 )
+
+#----Rivseg Maps Customization----
+#For riverseg drought metric maps 
+rivseg_pct_vect <- c(-20,-10,-2,2,10,20,500) #vector of values for rivseg drought maps
+#^last value should be higher than any % difference value expected, since classification is done using <=
+rivbreaks <- seq(1:length(rivseg_pct_vect))
+rivmap_colors <- c("firebrick2","darkorange","#FFCC99",
+                   "white","palegreen","limegreen","green4") #colors for fills based on % diff 
+#^needs to be same length as rivseg_pct_vect
+rivmap_labs <- c(" <= -20", #less than or equal to first value in pct vector
+                 "-20 to -10", #labeling the ranges between each value from pct vector 
+                 "-10 to -2",
+                 "-2 to +2",
+                 "+2 to +10",
+                 "+10 to +20",
+                 " > +20") #last label should be greater than 2nd-to-last value in pct vector 
+#^needs to be same length as rivseg_pct_vect
+
+rseg_highlight_limit <- -10 #sets upper limit of % difference for highlighting values/rows in the riverseg table
 
 #----NHD flowline & waterbody classification & substitution:----
 #flowlines:
