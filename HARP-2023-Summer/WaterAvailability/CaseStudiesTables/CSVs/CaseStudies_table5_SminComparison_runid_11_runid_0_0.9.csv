@@ -1,0 +1,77 @@
+"","Propname","Riverseg","SminL30mg_apx","SminL30mg_nex","SminL90mg_apx","SminL90mg_nex","min_in_pd30","min_in_pd90","outside_pd30","outside_pd90","pctDiff30","pctDiff90","apx_lessthan_nex_30","apx_lessthan_nex_90"
+"1","Lake Philpott & Dam","OD2_8560_8630",15043.625,16722.474,15043.625,16666.352,"FALSE","FALSE",513,505,-10.04,-9.74,TRUE,TRUE
+"2","Cobbs Creek Reservoir","JL6_6742_6740",7901.107,9780.009,7901.107,9780.009,"FALSE","FALSE",-247,-247,-19.21,-19.21,TRUE,TRUE
+"3","Hunting Run","RU5_6033_6030",2395.135,2725.564,2395.135,2568.959,"FALSE","FALSE",178,118,-12.12,-6.77,TRUE,TRUE
+"4","White Run Reservoir","RU2_6091_6090",851.68,861.423,858.308,864.802,"FALSE","FALSE",-126,90,-1.13,-0.75,TRUE,TRUE
+"5","Sugar Hollow","JL2_6445_6440",0.293,0.293,0.295,0.475,"TRUE","FALSE",0,205,0,-37.89,TRUE,TRUE
+"6","Bath County Pump Store - Upper","JU1_6591_6590",11469.22,11572.81,11457.43,11531.66,"FALSE","FALSE",65,77,-0.9,-0.64,TRUE,TRUE
+"7","Ni River Reservoir","YM2_6122_6120",588.616,1032.755,862.852,862.852,"FALSE","TRUE",136,0,-43.01,0,TRUE,TRUE
+"8","Carvins Cove Reservoir","OR3_7740_8271_carvins",5938.178,6279.773,5411.408,5798.233,"FALSE","FALSE",63,73,-5.44,-6.67,TRUE,TRUE
+"9","Ragged Mountain","JL4_6521_6520",1415.842,1419.826,1340.723,1397.332,"FALSE","FALSE",29,98,-0.28,-4.05,TRUE,TRUE
+"10","0. Impoundment:Western Branch Dam","JB2_7800_0001",6433.909,6439.715,6423.951,6423.951,"FALSE","TRUE",-108,0,-0.09,0,TRUE,TRUE
+"11","Spring Hollow Reservoir","OR2_8130_7900_spring_hollow",2939.112,3123.459,2390.359,2568.776,"FALSE","FALSE",-62,34,-5.9,-6.95,TRUE,TRUE
+"12","0. Impoundment","OR4_8271_8120",290494.6,295903.6,290494.6,290976.1,"FALSE","FALSE",49,29,-1.83,-0.17,TRUE,TRUE
+"13","0. Impoundment: Lake Manassas","PL0_5141_5140",3243.021,3561.973,2384.126,2700.988,"FALSE","FALSE",34,34,-8.95,-11.73,TRUE,TRUE
+"14","Rocky Pen Run","RU5_6031_6030",3323.956,3518.294,3323.956,3441.965,"FALSE","FALSE",36,23,-5.52,-3.43,TRUE,TRUE
+"15","Motts Run","RU5_6032_6030",1220.536,1220.536,986.945,1098.56,"TRUE","FALSE",0,55,0,-10.16,TRUE,TRUE
+"16","Jennings Randolph Lake","PU3_4451_4450",25746.2,26931.23,25746.2,25746.2,"FALSE","TRUE",41,0,-4.4,0,TRUE,TRUE
+"17","0. Impoundment - Lake Chesdin","JA5_7480_0001",6250.413,6336.093,6250.413,6291.567,"FALSE","FALSE",21,17,-1.35,-0.65,TRUE,TRUE
+"18","0. Impoundment: Little Creek Reservoir","JB0_7051_0001",6914.544,6958.57,6914.544,6914.544,"FALSE","TRUE",38,0,-0.63,0,TRUE,TRUE
+"19","0. Impoundment: Savage River Reservoir","PU1_4190_4300",1555.578,1566.261,259.519,962.969,"FALSE","FALSE",1,33,-0.68,-73.05,TRUE,TRUE
+"20","REPLACED 0. Impoundment - Hunting Run Reservoir","RU4_6040_6030",2760.87,2761.409,2614.995,2619.58,"FALSE","FALSE",7,15,-0.02,-0.18,TRUE,TRUE
+"21","Beaver Creek - VAHydro 1.0","JL1_6562_6560",426.097,433.108,426.097,426.097,"FALSE","TRUE",14,0,-1.62,0,TRUE,TRUE
+"22","0. Lake Anna: Dominion Power","YP2_6390_6330",89557.51,90178.01,89557.51,89557.51,"FALSE","TRUE",13,0,-0.69,0,TRUE,TRUE
+"23","South Rivanna River Reservoir","JL2_6441_6520",453.102,492.622,453.102,453.102,"FALSE","TRUE",13,0,-8.02,0,TRUE,TRUE
+"24","AMHERST COUNTY SERVICE AREA - LANUM WTP:Harris Creek","JL6_7441_7440",154.351,160.399,167.009,167.009,"FALSE","TRUE",10,0,-3.77,0,TRUE,TRUE
+"25","0. Impoundment: Lake Mead/Lake Kilby","JB1_8090_0001",3634.536,3640.37,3634.536,3634.536,"FALSE","TRUE",7,0,-0.16,0,TRUE,TRUE
+"26","Blue Ridge Shadows Golf Club:Shenandoah River","PS5_4381_4380",0.899,0.915,1.503,1.503,"FALSE","TRUE",1,0,-1.75,0,TRUE,TRUE
+"27","0. Impoundment: Swift Creek Lake","JA2_7290_0001",3819.329,3819.754,3915.315,3915.315,"FALSE","TRUE",1,0,-0.01,0,TRUE,TRUE
+"28","Lake Pelham: Mountain Run","RU4_5642_5640",543.182,543.182,537.754,537.754,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"29","Greensville County Raw Water Reservoir and Intake:Nottoway River","MN3_7930_8010",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"30","0. Impoundment: Lake Moomaw","JU3_6900_6950",19276.88,19276.88,19276.88,19276.88,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"31","0. Impoundment - Motts Run Reservoir","RU5_6030_0001",1290.697,1290.697,1271.03,1271.03,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"32","0. Impoundment: Chickahominy Lake/Walkers Dam","JB3_7053_0001",1720.465,1720.465,1720.465,1720.465,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"33","Buck Mountain Creek","JL2_6447_6440",468.208,468.208,468.208,468.208,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"34","Ivy Creek","JL2_6442_6441",468.208,468.208,468.208,468.208,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"35","Little Back Creek","JU2_6602_6600",29.316,29.316,29.316,29.316,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"36","0. Impoundment - Back Creek Lower Dam","JU1_6590_6600",7912.425,7912.425,7912.425,7912.425,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"37","0. Impoundment: Kerr Lake","OR7_8470_8490",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"38","0. Impoundment: Occoquan Reservoir","PL3_5250_0001",7330.222,7330.222,7160.587,7160.587,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"39","Black Creek Reservoir","JL1_7202_7200",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"40","Yarmouth Creek @ Cranstons Mill Pond","JB0_7055_7054",151.015,151.015,151.016,151.016,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"41","0. Impoundment: Mt. Storm Lake","PU1_4840_4760",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"42","Beaverdam Swamp @ Reservoir Dam","YL0_7012_7010",1929.896,1929.896,1944.587,1944.587,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"43","Mill Creek @ Meadows Pond","YP3_6672_6670",25.819,25.819,25.832,25.832,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"44","Moormans River","JL2_6440_6441",29.316,29.316,29.316,29.316,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"45","BLACKSBURG COUNTRY CLUB:North and South Fork (Confluence) Roanoke River","OR2_8020_8130",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"46","James River @ Fall Line Richmond","JL7_7070_0001",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"47","FAIRY STONE STATE PARK WTP:Philpott Dam","OD2_8560_8630",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"48","Fairystone Wildlife Management Area:Philpott Dam","OD2_8560_8630",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"49","DALTON FARMS:Philpott Dam","OD2_8560_8630",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"50","WOOLWINE PLANT:Philpott Dam","OD2_8560_8630",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"51","Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"52","UPPER SMITH RIVER WTP:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"53","MARTINSVILLE WTP:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"54","F.C. DUMAINE PLANT WTP:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"55","BASSETT PLANT:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"56","STANLEYTOWN PLANT:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"57","MARTINSVILLE PLANT:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"58","Henry (Community Water System):Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"59","Henry (Agriculture):Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"60","Henry (Large Self-Supplied User):Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"61","BASSETT DIVISION:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"62","Heritage Golf Club :Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"63","MARTINSVILLE WTP:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"64","Fieldale Plant:Smith River below Philpott","OD3_8630_8720",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"65","Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"66","MARROWBONE WTP:Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"67","FOREST PARK COUNTRY CLUB, INC.:Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"68","Martinsville (Large Self-Supplied User):Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"69","Martinsville (Agriculture):Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"70","Martinsville (Community Water System):Smith River below Martinsville VA","0",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"71","MARTINSVILLE WTP:Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"72","Eden:Smith River below Martinsville VA","OD3_8720_8900",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"73","Leatherwood Creek","OD3_8720_8900_leatherwood",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"74","MARTINSVILLE WTP:Leatherwood Creek","OD3_8720_8900_leatherwood",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"75","CHATMOSS COUNTRY CLUB:Leatherwood Creek","OD3_8720_8900_leatherwood",0,0,0,0,"TRUE","TRUE",0,0,0,0,TRUE,TRUE
+"76","LAKE CAROLINE:Mattaponi River","YM3_6430_6620",182.736,182.736,182.736,182.736,"TRUE","TRUE",0,0,0,0,TRUE,TRUE

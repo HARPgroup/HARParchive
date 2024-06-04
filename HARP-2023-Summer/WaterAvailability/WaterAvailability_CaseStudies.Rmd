@@ -12,6 +12,7 @@ params:
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
+  Smin_analysis: TRUE
   write_Qavailable: FALSE
   write_tables: ["local", "github"]
   crs_default: 4326
@@ -787,150 +788,12 @@ ftable_WA #view flextable in console
 ```
 
 
-# Table 2: Smin Method Comparison
+# Table 2: Case Studies 
 
 ```{r Table 2}
-title_table_Storage <- paste0('TABLE 2: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+## Note: This should be a WA-focused table rather than storage because we've switched form impoundment segments to outlet segments 
 
-#sort table by the sum of 2 values
-storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
-storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
-storage_data <- sqldf("SELECT a.* FROM storage_data as a 
-                       ORDER BY (a.outside_sum) desc")
-
-table_Storage <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     min_in_pd30 = storage_data$min_in_pd30,
-                     min_in_pd90 = storage_data$min_in_pd90,
-                     outside_pd30 = storage_data$outside_pd30,
-                     outside_pd90 = storage_data$outside_pd90)
-
-#Table for flextable with human readable column names 
-table_StorageHr <- table_Storage
-
-#Human readable column names for flextable 
-names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
-names(table_StorageHr)[names(table_StorageHr) == "min_in_pd30"] <- "Storage Methods Equal for 30-Day?"
-names(table_StorageHr)[names(table_StorageHr) == "min_in_pd90"] <- "Storage Methods Equal for 90-Day?"
-names(table_StorageHr)[names(table_StorageHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
-names(table_StorageHr)[names(table_StorageHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
-
-ftable_Storage <- flextable(table_StorageHr) #create flextable
-ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
-
-#to highlight when method is flawed
-rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
-rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
-rownums <- c(rownums30, rownums90)
-
-#quantify occurences of matching Smin method results
-equal_Smins <- sum(storage_data$outside_sum == 0)
-Smin_message <- paste0("Smin methods resulted in matching values ", equal_Smins, " out of ", nrow(storage_data), " occurences")
-
-ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
-ftable_Storage <- flextable::add_footer_lines(ftable_Storage, values = Smin_message) #add footer
-
-ftable_Storage
-```
-
-# Table 3: Smin Method Discrepancies
-
-```{r Table 3}
-title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#add % differences
-storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
-storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
-
-table_Smin <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
-                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
-                     pctDiff30 = storage_data$pctDiff30,
-                     pctDiff90 = storage_data$pctDiff90)
-
-#order table with rows of interest at the top 
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_30)") 
-
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_90)") 
-
-#Table for flextable with human readable column names 
-table_SminHr <- table_Smin
-
-#Human readable column names for flextable 
-names(table_SminHr)[names(table_SminHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
-names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
-names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
-names(table_SminHr)[names(table_SminHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
-names(table_SminHr)[names(table_SminHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
-
-ftable_Smin <- flextable(table_SminHr) #create flextable
-
-#to highlight when approx is not <= near-exact
-rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
-rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
-rownums <- c(rownums30, rownums90)
-
-ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
-ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
-
-ftable_Smin
-```
-
-# Table 4: Smins that Need to be Updated
-
-```{r Table 4}
-
-title_table_update <- paste0('TABLE 4: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-#select rows where vahydro and calculated approx Smins are different 
-df_update <- sqldf("SELECT a.* 
-                    FROM storage_data as a 
-                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
-                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
-
-table_update <- data.frame(Propname = df_update$propname,
-                     Riverseg = df_update$riverseg,
-                     SminL30mg_vah = df_update$SminL30mg_vah,
-                     SminL30mg_apx = df_update$SminL30mg_apx,
-                     SminL90mg_vah= df_update$SminL90mg_vah,
-                     SminL90mg_apx = df_update$SminL90mg_apx)
-
-#Table for flextable with human readable column names 
-table_updateHr <- table_update
-
-#Human readable column names for flextable 
-names(table_updateHr)[names(table_updateHr) == "SminL30mg_vah"] <- "30-Day Storage (VAhydro, mg)"
-names(table_updateHr)[names(table_updateHr) == "SminL30mg_apx"] <- "30-Day Storage (calculated, mg)"
-names(table_updateHr)[names(table_updateHr) == "SminL90mg_vah"] <- "90-Day Storage (VAhydro, mg)"
-names(table_updateHr)[names(table_updateHr) == "SminL90mg_apx"] <- "90-Day Storage (calculated, mg)"
-
-ftable_update <- flextable(table_updateHr) #create flextable
-ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
-
-ftable_update
-```
-
-# Table 5: Case Studies 
-
-```{r Table 5}
-title_table_caseStudies <- paste0('TABLE 5: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+title_table_caseStudies <- paste0('TABLE 2: CASE STUDIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
 
 table_caseStudies <- data.frame(Propname = caseStudies_df$propname,
                      Riverseg = caseStudies_df$riverseg,
@@ -959,12 +822,12 @@ ftable_caseStudies <- add_footer_row(ftable_caseStudies, top = TRUE, values = "N
 ftable_caseStudies
 ```
 
-# Table 6: Case Study Watersheds
+# Table 3: Case Study Watersheds
 
-```{r Table 6}
+```{r Table 3}
 #separate flextables for each case study with case study rseg in header 
 for (i in 1:length(outlet_list)) { 
-  title_table_caseStudyWshed <- paste0('TABLE 6: CASE STUDY WATERSHEDS. Demand: ', 
+  title_table_caseStudyWshed <- paste0('TABLE 3: CASE STUDY WATERSHEDS. Demand: ', 
                                        demand_scenario, ', Baseline: ', baseline_scenario, 
                                        ', MIF: ', mif_coef, ', Case Study: ', outlet_list)
   csws_df <- get(paste0('caseStudy_wshed_df_', i))
@@ -1022,7 +885,7 @@ for (i in 1:length(outlet_list)) {
   
   if ("local" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(export_path, 
-                                           'CaseStudies_table6.', i, '_CaseStudyWshed_', 
+                                           'CaseStudies_table3.', i, '_CaseStudyWshed_', 
                                            outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
@@ -1030,14 +893,14 @@ for (i in 1:length(outlet_list)) {
   
   if ("github" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(github_location, 
-                                           '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6.', i, 
+                                           '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table3.', i, 
                                            '_CaseStudyWshed_', outlet_list[i], '_', demand_scenario, '_', 
                                            baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
   }
   
   
   flextable::save_as_image(ftable_csws, path = paste0(export_path, 
-                                                      'CaseStudies_table6.', i, '_CaseStudyWsheds_',
+                                                      'CaseStudies_table3.', i, '_CaseStudyWsheds_',
                                                       outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
@@ -1046,9 +909,9 @@ for (i in 1:length(outlet_list)) {
 
 ```
 
-# Table 7: L30/L90 Specific Case Study Watershed Tables 
+# Table 4: L30/L90 Specific Case Study Watershed Tables 
 
-```{r L30/L90 Case Study Watershed Tables}
+```{r Table 4: L30/L90 Case Study Watershed Tables}
 #to be displayed with WA maps 
 
 for (i in 1:length(outlet_list)) { 
@@ -1129,12 +992,12 @@ for (i in 1:length(outlet_list)) {
   
   if ("local" %in% write_tables) {
     write.csv(table_cswsL30, paste0(export_path, 
-                                           'CaseStudies_table7.', i, '_CaseStudyWshed_L30_', 
+                                           'CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
                                            outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
     write.csv(table_cswsL90, paste0(export_path, 
-                                           'CaseStudies_table7.', i, '_CaseStudyWshed_L90_', 
+                                           'CaseStudies_table4.', i, '_CaseStudyWshed_L90_', 
                                            outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
@@ -1142,22 +1005,22 @@ for (i in 1:length(outlet_list)) {
   
   if ("github" %in% write_tables) {
     write.csv(table_cswsL30, paste0(github_location, 
-                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table7.', i, '_CaseStudyWshed_L30_', 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
                                outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
     write.csv(table_cswsL90, paste0(github_location, 
-                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table7.', i, '_CaseStudyWshed_L90_', 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L90_', 
                                outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
   }
   
   
   flextable::save_as_image(ftable_cswsL30, path = paste0(export_path, 
-                                                      'CaseStudies_table7.', i, '_CaseStudyWshed_L30_',
+                                                      'CaseStudies_table4.', i, '_CaseStudyWshed_L30_',
                                                       outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
   
   flextable::save_as_image(ftable_cswsL90, path = paste0(export_path, 
-                                                      'CaseStudies_table7.', i, '_CaseStudyWshed_L90_',
+                                                      'CaseStudies_table4.', i, '_CaseStudyWshed_L90_',
                                                       outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
@@ -1165,6 +1028,157 @@ for (i in 1:length(outlet_list)) {
 }
 
 ```
+
+# Table 5: Smin Method Comparison
+
+```{r Table 5}
+title_table_Storage <- paste0('TABLE 5: SMIN METHOD COMPARISON. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#add % differences
+storage_data$pctDiff30 <- round((100.0 * (storage_data$SminL30mg_apx - storage_data$SminL30mg_nex) / storage_data$SminL30mg_nex), digits = 2)
+storage_data$pctDiff90 <- round((100.0 * (storage_data$SminL90mg_apx - storage_data$SminL90mg_nex) / storage_data$SminL90mg_nex), digits = 2)
+
+#sort table by the sum of 2 values
+storage_data[is.na(storage_data)] <- 0 #replace NA values with 0
+storage_data$outside_sum <- abs(storage_data$outside_pd30) + abs(storage_data$outside_pd90)
+storage_data <- sqldf("SELECT a.* FROM storage_data as a 
+                       ORDER BY (a.outside_sum) desc")
+
+table_Storage <- data.frame(Propname = storage_data$propname,
+                     Riverseg = storage_data$riverseg,
+                     SminL30mg_apx = storage_data$SminL30mg_apx,
+                     SminL30mg_nex = storage_data$SminL30mg_nex,
+                     SminL90mg_apx = storage_data$SminL90mg_apx,
+                     SminL90mg_nex = storage_data$SminL90mg_nex,
+                     min_in_pd30 = storage_data$min_in_pd30,
+                     min_in_pd90 = storage_data$min_in_pd90,
+                     outside_pd30 = storage_data$outside_pd30,
+                     outside_pd90 = storage_data$outside_pd90,
+                     pctDiff30 = storage_data$pctDiff30,
+                     pctDiff90 = storage_data$pctDiff90,
+                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
+                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90)
+
+#Table for flextable with human readable column names 
+table_StorageHr <- table_Storage
+
+#Human readable column names for flextable 
+names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
+names(table_StorageHr)[names(table_StorageHr) == "min_in_pd30"] <- "Storage Methods Equal for 30-Day?"
+names(table_StorageHr)[names(table_StorageHr) == "min_in_pd90"] <- "Storage Methods Equal for 90-Day?"
+names(table_StorageHr)[names(table_StorageHr) == "outside_pd30"] <- "Days Separating 30-Day Storage Methods"
+names(table_StorageHr)[names(table_StorageHr) == "outside_pd90"] <- "Days Separating 90-Day Storage Methods"
+names(table_StorageHr)[names(table_StorageHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
+names(table_StorageHr)[names(table_StorageHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
+names(table_StorageHr)[names(table_StorageHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
+names(table_StorageHr)[names(table_StorageHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
+
+ftable_Storage <- flextable(table_StorageHr) #create flextable
+ftable_Storage <- add_header_lines(ftable_Storage, values= title_table_Storage) #add title 
+
+#to highlight when method is flawed
+rownums30 <- which(storage_data$unequal_30 == TRUE, arr.ind = TRUE) #get rows
+rownums90 <- which(storage_data$unequal_90 == TRUE, arr.ind = TRUE) 
+rownums <- c(rownums30, rownums90)
+
+#quantify occurences of matching Smin method results
+equal_Smins <- sum(storage_data$outside_sum == 0)
+Smin_message <- paste0("Smin methods resulted in matching values ", equal_Smins, " out of ", nrow(storage_data), " occurences")
+
+ftable_Storage <- flextable::bg(ftable_Storage, i = rownums , bg = "yellow") #add row highlight
+ftable_Storage <- flextable::add_footer_lines(ftable_Storage, values = Smin_message) #add footer
+
+ftable_Storage
+```
+
+
+```{r Table 3, eval=FALSE}
+## This has been incorporated into table 5
+
+title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+
+table_Smin <- data.frame(Propname = storage_data$propname,
+                     Riverseg = storage_data$riverseg,
+                     SminL30mg_apx = storage_data$SminL30mg_apx,
+                     SminL30mg_nex = storage_data$SminL30mg_nex,
+                     SminL90mg_apx = storage_data$SminL90mg_apx,
+                     SminL90mg_nex = storage_data$SminL90mg_nex,
+                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
+                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
+                     pctDiff30 = storage_data$pctDiff30,
+                     pctDiff90 = storage_data$pctDiff90)
+
+#order table with rows of interest at the top 
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_30)") 
+
+table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
+                       ORDER BY (a.apx_lessthan_nex_90)") 
+
+#Table for flextable with human readable column names 
+table_SminHr <- table_Smin
+
+#Human readable column names for flextable 
+names(table_SminHr)[names(table_SminHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
+names(table_SminHr)[names(table_SminHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
+names(table_SminHr)[names(table_SminHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
+names(table_SminHr)[names(table_SminHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
+names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
+names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
+names(table_SminHr)[names(table_SminHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
+names(table_SminHr)[names(table_SminHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
+
+ftable_Smin <- flextable(table_SminHr) #create flextable
+
+#to highlight when approx is not <= near-exact
+rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
+rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
+rownums <- c(rownums30, rownums90)
+
+ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
+ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
+
+ftable_Smin
+```
+
+# Table 6: Smins that Need to be Updated
+
+```{r Table 6}
+
+title_table_update <- paste0('TABLE 6: SMINS NEEDING UPDATE. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
+
+#select rows where vahydro and calculated approx Smins are different 
+df_update <- sqldf("SELECT a.* 
+                    FROM storage_data as a 
+                    WHERE Sminl30mg_apx IS NOT Sminl30mg_vah
+                    OR Sminl90mg_apx IS NOT Sminl90mg_vah")
+
+table_update <- data.frame(Propname = df_update$propname,
+                     Riverseg = df_update$riverseg,
+                     SminL30mg_vah = df_update$SminL30mg_vah,
+                     SminL30mg_apx = df_update$SminL30mg_apx,
+                     SminL90mg_vah= df_update$SminL90mg_vah,
+                     SminL90mg_apx = df_update$SminL90mg_apx)
+
+#Table for flextable with human readable column names 
+table_updateHr <- table_update
+
+#Human readable column names for flextable 
+names(table_updateHr)[names(table_updateHr) == "SminL30mg_vah"] <- "30-Day Storage (VAhydro, mg)"
+names(table_updateHr)[names(table_updateHr) == "SminL30mg_apx"] <- "30-Day Storage (calculated, mg)"
+names(table_updateHr)[names(table_updateHr) == "SminL90mg_vah"] <- "90-Day Storage (VAhydro, mg)"
+names(table_updateHr)[names(table_updateHr) == "SminL90mg_apx"] <- "90-Day Storage (calculated, mg)"
+
+ftable_update <- flextable(table_updateHr) #create flextable
+ftable_update <- add_header_lines(ftable_update, values= title_table_update) #add title 
+
+ftable_update
+```
+
 
 
 # Plot 1: Demand Flow vs Available Flow 
@@ -1421,24 +1435,25 @@ for (i in 1:length(outlet_list)) {
 
 ```
 
+# Save files
+
 ```{r Write CSVs Locally}
 #Writing locally to location of export_path
 if ("local" %in% write_tables) {
   write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
-  write.csv(table_Storage, paste0(export_path, 'CaseStudies_table2_SminCompare_', 
+  write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table2_CaseStudies_', 
                              demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
-  write.csv(table_Smin, paste0(export_path, 'CaseStudies_table3_SminError_', 
+  #tables 3 and 4 exported when created because of loop structure 
+  
+  write.csv(table_Storage, paste0(export_path, 'CaseStudies_table5_SminComparison_', 
                              demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
-  write.csv(table_update, paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
+  write.csv(table_update, paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
                              demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
-  write.csv(table_caseStudies, paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
-                             demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-
   }
 
 ```
@@ -1449,16 +1464,15 @@ if ("github" %in% write_tables) {
   write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
-  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table2_SminCompare_', 
+  write.csv(table_caseStudies, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table2_CaseStudies_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
-  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table3_SminError_', 
+  #tables 3 and 4 exported when created because of loop structure 
+  
+  write.csv(table_Storage, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table5_SminComparison_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
-  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4_SminUpdate_', 
-                           demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
-  
-  write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table5_CaseStudies_', 
+  write.csv(table_update, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table6_SminUpdate_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
 }
@@ -1471,17 +1485,18 @@ if ("github" %in% write_tables) {
 flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table1
 
-flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table2_SminCompare_', 
+flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table2_CaseStudies_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table2
 
-flextable::save_as_image(ftable_Smin, path = paste0(export_path, 'CaseStudies_table3_SminError_', 
+#tables 3 and 4 exported when created because of loop structure 
+
+flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table5_SminComparison_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table3
 
-flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table4_SminUpdate_', 
+flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
                                                   demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table4
 
-flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table5_CaseStudies_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #table5
+
 ```
 
 
