@@ -1005,29 +1005,39 @@ for (i in 1:length(outlet_list)) {
                                            outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
                                            '_', mif_coef, '.csv')) #write table locally
-  }
-  
-  if ("github" %in% write_tables) {
-    write.csv(table_cswsL30, paste0(github_location, 
-                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
-                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
-    write.csv(table_cswsL90, paste0(github_location, 
-                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L90_', 
-                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
-  }
-  
-  
-  flextable::save_as_image(ftable_cswsL30, path = paste0(export_path, 
+    
+    flextable::save_as_image(ftable_cswsL30, path = paste0(export_path, 
                                                       'CaseStudies_table4.', i, '_CaseStudyWshed_L30_',
                                                       outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
   
-  flextable::save_as_image(ftable_cswsL90, path = paste0(export_path, 
+    flextable::save_as_image(ftable_cswsL90, path = paste0(export_path, 
                                                       'CaseStudies_table4.', i, '_CaseStudyWshed_L90_',
                                                       outlet_list[i], '_',
                                                       demand_scenario, '_', baseline_scenario,
                                                       '_', mif_coef, '.png')) #save image of flextable locally
+    
+     }
+  
+  if ("github" %in% write_tables) {
+    write.csv(table_cswsL30, paste0(github_location, 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
+                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+    
+    write.csv(table_cswsL90, paste0(github_location, 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L90_', 
+                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
+    
+    flextable::save_as_image(ftable_cswsL30, path = paste0(github_location, 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
+                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #save image of flextable to Github
+    
+    flextable::save_as_image(ftable_cswsL90, path = paste0(github_location, 
+                               '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table4.', i, '_CaseStudyWshed_L90_', 
+                               outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) #save image of flextable to Github
+    
+  }
   
 }
 
@@ -1529,7 +1539,6 @@ if ("github" %in% write_tables) {
 
 
 ```
-
 
 
 # End RMD
