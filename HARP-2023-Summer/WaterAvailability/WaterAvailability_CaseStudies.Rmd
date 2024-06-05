@@ -888,24 +888,28 @@ for (i in 1:length(outlet_list)) {
                                            'CaseStudies_table3.', i, '_CaseStudyWshed_', 
                                            outlet_list[i], '_', 
                                            demand_scenario, '_', baseline_scenario, 
-                                           '_', mif_coef, '.csv')) #write table locally
-  }
+                                           '_', mif_coef, '.csv')) #write csv locally
+    
+    flextable::save_as_image(ftable_csws, path = paste0(export_path, 
+                                                      'CaseStudies_table3.', i, '_CaseStudyWsheds_',
+                                                      outlet_list[i], '_',
+                                                      demand_scenario, '_', baseline_scenario,
+                                                      '_', mif_coef, '.png')) #save image of flextable locally
+    
+    }
   
   if ("github" %in% write_tables) {
     write.csv(table_caseStudyWshed, paste0(github_location, 
                                            '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table3.', i, 
                                            '_CaseStudyWshed_', outlet_list[i], '_', demand_scenario, '_', 
-                                           baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
-  }
+                                           baseline_scenario, '_', mif_coef, '.csv')) #write csv to GitHub
   
-  
-  flextable::save_as_image(ftable_csws, path = paste0(export_path, 
-                                                      'CaseStudies_table3.', i, '_CaseStudyWsheds_',
-                                                      outlet_list[i], '_',
-                                                      demand_scenario, '_', baseline_scenario,
-                                                      '_', mif_coef, '.png')) #save image of flextable locally
+    flextable::save_as_image(ftable_csws, path = paste0(github_location, 
+                                           '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table3.', i, 
+                                           '_CaseStudyWshed_', outlet_list[i], '_', demand_scenario, '_', 
+                                           baseline_scenario, '_', mif_coef, '.png')) #save image of flextable locally
+    }
 }
-
 
 ```
 
@@ -1482,20 +1486,47 @@ if ("github" %in% write_tables) {
 ```
 
 ```{r Save Tables as Images}
-flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
-
-flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table2_CaseStudies_', 
-                                                  demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
-
-#tables 3 and 4 exported when created because of loop structure 
-if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
-  flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table5_SminComparison_', 
+if ("local" %in% write_tables) {
+  #save flextable images locally 
+  flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                     demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
   
-  flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
+  flextable::save_as_image(ftable_caseStudies, path = paste0(export_path, 'CaseStudies_table2_CaseStudies_', 
                                                     demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+  
+  #tables 3 and 4 exported when created because of loop structure 
+  if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
+    flextable::save_as_image(ftable_Storage, path = paste0(export_path, 'CaseStudies_table5_SminComparison_', 
+                                                      demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+    
+    flextable::save_as_image(ftable_update, path = paste0(export_path, 'CaseStudies_table6_SminUpdate_', 
+                                                      demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+  }
 }
+
+if ("github" %in% write_tables) { 
+  #save flextable images to Github 
+  flextable::save_as_image(ftable_WA, path = paste0(github_location, 
+                                                    '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table1_WaterAvailabilityEqn_',
+                                                    demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+  
+  flextable::save_as_image(ftable_caseStudies, path = paste0(github_location, 
+                                                    '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table2_CaseStudies_',
+                                                    demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png'))
+  #tables 3 and 4 exported when created because of loop structure 
+  if (Smin_analysis == TRUE) { #Only needed for Smin analysis  
+    flextable::save_as_image(ftable_Storage, path = paste0(github_location, 
+                                                    '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table5_SminComparison_',
+                                                    demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
+  
+    flextable::save_as_image(ftable_update, path = paste0(github_location, 
+                                                    '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table6_SminUpdate_',
+                                                    demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png'))
+    
+  
+  }
+}
+
 
 ```
 
