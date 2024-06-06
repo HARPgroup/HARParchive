@@ -55,6 +55,7 @@ fn_labelsAndFilter <- function(labels=maplabs, bbox_coord_df, nhd, roads, style,
       on (labels.class = text_aes.class)"
   )
   class(labels$bg.r) = "numeric"
+  #labels <- labels[!is.na(labels$label),] #rm labels without a label name
   
   #Find distance of diagonal of bbox in miles -- for filtering what will be plotted
   #distance used instead of 'extent' because DEQ vocab has extent synonymous w bbox  
@@ -85,15 +86,6 @@ fn_labelsAndFilter <- function(labels=maplabs, bbox_coord_df, nhd, roads, style,
   }
   #crop data to extent:
   roads_plot <- sf::st_crop(roads_plot, bbox_sf)
-  # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
-  # labels_plot_sf <- sf::st_crop(labels_plot_sf, bbox_sf)
-  # labels_plot_sf <- sf::st_drop_geometry(labels_plot_sf)
-  # test <- sqldf( #join text aesthetics with sqldf 
-  #   "SELECT labels_plot_sf.*, labels_plot.lat, labels_plot.lng
-  #   FROM labels_plot_sf 
-  #   LEFT OUTER JOIN labels_plot
-  #     on (names(labels_plot_sf) = names(labels_plot))"
-  # )
   
   #save:
   assign('labels_plot', labels_plot, envir = globalenv())
@@ -390,10 +382,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 } 
 
 #--!!for testing only!!--
-# textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
 # mapnum <- 1
-# bbox_as_sf <- bbox_sf
-#---
 # #example usage:
-# map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1,
+# map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=2,
 #                   rseg_leg_title=NULL, map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)

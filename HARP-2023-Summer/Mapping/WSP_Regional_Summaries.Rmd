@@ -251,7 +251,8 @@ if (show_map == TRUE) {
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 if (show_map == TRUE) {
   rm(maplabs)
-  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
+  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs),
+                          classes=c("county","city","road","nhd"))
 }
 ```
 
@@ -813,3 +814,30 @@ Narrative summarizing highlights from maps/tables
 repeat above for localities
 
 # Region Appendix:
+
+```{r Generate Errors Summary, echo=FALSE, eval=FALSE}
+#if there are any mapping errors or other messages to the user, output a separate file containing them
+allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
+allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
+
+maperrors <- data.frame(envir_name=character(0),maptitle=character(0),errors=character(0))
+for(i in 1:length(allmaps)){
+  if(!is.null(allmaps[[i]][["errors"]])){
+    maperrors <- rbind(maperrors,
+                       data.frame(envir_name = names(allmaps[i]),
+                                  maptitle = allmaps[[i]][["labels"]][["title"]],
+                                  errors = allmaps[[i]][["errors"]]
+                                  )
+                       )
+  }
+}
+
+if(nrow(maperrors)!=0){
+  tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("envir_name","maptitle"),
+                          i = ~ duplicated(maperrors$envir_name),
+                          value = as_paragraph('')
+                          )
+  tbl_maperrors <- set_table_properties(ft_1, layout = "autofit")
+}
+
+```
