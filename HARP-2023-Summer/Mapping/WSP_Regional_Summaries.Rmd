@@ -361,10 +361,10 @@ if (show_map == TRUE) {
 
     #create map title by combining label and title
     maptitle <- paste0(title_main, ", ", maplabel)
-  
+    map_style_set <- styles[[map_style]]
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                      maptitle, mapnum=1, rseg_leg_title=NULL, map_server, base_layer, 
-                     maplabs, nhd, roads, rsegs, map_style, styles)
+                     maplabs, nhd, roads, rsegs, map_style_set)
                        
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
