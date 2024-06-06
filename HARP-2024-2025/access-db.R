@@ -1,11 +1,12 @@
 library("RPostgres")
 library("sqldf")
-library("RPostgreSQL")
-require("RPostgreSQL")
+# RpostgreSQL is an older version?
+# library("RPostgreSQL")
+# require("RPostgreSQL")
 # this completes installing packages
 
 # now start creating connection
-
+# Works with RpostgreSQL
 con <- dbConnect(
   dbDriver("PostgreSQL"),
   dbname = "drupal.dh03",
@@ -14,6 +15,15 @@ con <- dbConnect(
   user = readline("DB User Name: "),
   password =  getPass::getPass("REST Password: ")
 )
+# works with only Rpostgres
+con <- dbConnect(
+  RPostgres::Postgres(),
+  dbname = "drupal.dh03",
+  host = "deq1.bse.vt.edu",
+  port = 5431,
+  user = readline("DB User Name: "),
+  password =  getPass::getPass("REST Password: ")
+  )
 
 # this completes creating connection
 
@@ -32,6 +42,31 @@ where mcov.hydrocode = 'cbp6_met_coverage'
 and extract(month from to_timestamp(met.tstime)) = 5
 order by met.tstime", connection = con)
 
+
+# Inventory
+inv_met <- sqldf("select extract(year from to_timestamp(met.tstime)) as year,
+min(to_timestamp(met.tstime)) as start_date,
+max(to_timestamp(met.tstime)) as end_date,
+count(*)
+from (
+  select met.tstime,
+  (ST_SummaryStatsAgg(met.rast, 1, TRUE)).mean as precip_in
+  from dh_feature as mcov
+  left outer join dh_variabledefinition as v
+  on (
+    v.varkey = 'nldas2_obs_hourly'
+  )
+  left outer join dh_timeseries_weather as met
+  on (
+    mcov.hydroid = met.featureid and met.varid = v.hydroid
+    and met.entity_type = 'dh_feature'
+  )
+  where mcov.hydrocode = 'cbp6_met_coverage'
+  and met.rast is not null
+  group by met.tstime
+) as met
+group by extract(year from to_timestamp(met.tstime))
+order by extract(year from to_timestamp(met.tstime))", connection = con)
 
 # get all the tables from connection
 
