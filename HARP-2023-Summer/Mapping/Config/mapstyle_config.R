@@ -204,7 +204,7 @@ metrc_ramps = list(
 # location of data for the map background. 
 # these are inputs for fn_basemap(), located in fns_mapgen.R
 map_server <- "https://gismaps.vdem.virginia.gov/arcgis/rest/services" 
-map_layer = "Download/LandCover_Downloads/MapServer/0" #VA LandCover -> very sparse
+base_layer = "Download/LandCover_Downloads/MapServer/0" #VA LandCover -> very sparse
 
 #--
 styles <- list()
