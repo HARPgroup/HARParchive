@@ -15,8 +15,10 @@ da <- gage_info$drain_area_va
 usgs_data <- memo_readNWISdv(gageid,'00060')
 usgs_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)), month(as.Date(usgs_data$Date)), day(as.Date(usgs_data$Date)) )
 
+
 comp_data <- sqldf(
   "select a.obs_date, a.precip_in as prism_p_in, 
+  a.yr, a.mo, a.da,
   b.precip_in as daymet_p_in, c.X_00060_00003 as usgs_cfs
   from prism_data as a
   left outer join daymet_data as b 
@@ -33,3 +35,66 @@ comp_data <- sqldf(
   )
   "
 )
+# lag days
+comp_data$dataset_day <- index(comp_data) 
+comp_data <- sqldf(
+  "select a.*, b.usgs_cfs as nextday_usgs_cfs, 
+  b.usgs_cfs - a.usgs_cfs as nextday_d_cfs
+  from comp_data as a
+  left outer join comp_data as b 
+  on (
+    a.dataset_day = (b.dataset_day - 1)
+  )
+  order by a.dataset_day"
+)
+
+# Add a cfs Precip 
+# acre-feet/day = 3.07 MGD
+# cfs = 1.57 MGD
+# DAsqmi * 640 ac/sqmi * p_in_per_day / 12.0 = Precip ac-ft/day
+# P acft/day / 3.07 = P mgd
+# P mgd * 1.572 = P cfs
+# 1.572 * (DAsqmi * 640.0 * p_in / 12.0) / 3.07 
+comp_data$prism_p_cfs <- 1.572 * (da * 640.0 * comp_data$prism_p_in / 12.0) / 3.07 
+comp_data$daymet_p_cfs <- 1.572 * (da * 640.0 * comp_data$daymet_p_in / 12.0) / 3.07 
+
+mod_prism <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data)
+summary(mod_prism)
+
+mod_daymet <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data)
+summary(mod_daymet)
+
+
+mod_prism_jan <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+summary(mod_prism_jan)
+
+mod_daymet_jan <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+summary(mod_daymet_jan)
+plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs)
+
+
+mod_prism_jan_nd <- lm(nextday_usgs_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+summary(mod_prism_jan_nd)
+
+# next day change in flow versus todays P
+mod_prism_jan_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+summary(mod_prism_jan_ndd)
+plot(mod_prism_jan_ndd$model$nextday_d_cfs ~ mod_prism_jan_ndd$model$prism_p_cfs)
+mod_prism_jan_ndd$model
+# next day change in flow versus todays P daymet
+mod_daymet_jan_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+summary(mod_daymet_jan_ndd)
+plot(mod_daymet_jan_ndd$model$nextday_d_cfs ~ mod_daymet_jan_ndd$model$daymet_p_cfs)
+mod_daymet_jan_ndd$model
+
+# only compare against change in flows on the day after it rained
+# *** DAYMET
+mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
+summary(mod_daymet_jan_nz_ndd)
+plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
+mod_daymet_jan_nz_ndd$model
+# *** PRISM
+mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
+summary(mod_prism_jan_nz_ndd)
+plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
+mod_prism_jan_nz_ndd$model
