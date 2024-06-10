@@ -135,33 +135,55 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   #Need to prevent errors from zero flow. Added 0.0001 to all flow values, this is the tolerance
   #of the MPM method used
   ext<-".png"
-  transients<-data.frame(rising=numeric(length(colnames(stormsep))-3),RsqR=NA,falling=NA,RsqF=NA,durAll=NA,durF=NA,durR=NA)
-  for (i in 4:length(colnames(stormsep))){
-    storm<-stormsep[!is.na(stormsep[,i]),c(1,i)]#Find the storm of interest
-    maxtime<-storm[storm[,2]==max(storm[,2]),1]#Look for where the max is
-    rising<-storm[storm[,1]<=maxtime,]#Separate rising and falling limbs
-    falling<-storm[storm[,1]>=maxtime,]
-    modelR<-lm(log(rising[,2]+0.0001)~seq(1,length(rising[,1])))#Create an exponential regression for the rising limb
-    transients$rising[i-3]<-summary(modelR)$coefficients[2]#Store exponential coefficient and 
-    transients$RsqR[i-3]<-summary(modelR)$adj.r.squared#adjusted r squared values
-    modelF<-lm(log(falling[,2]+0.0001)~seq(1,length(falling[,1])))#Create an exponential regression for the falling limb
-    transients$falling[i-3]<-summary(modelF)$coefficients[2]
-    transients$RsqF[i-3]<-summary(modelF)$adj.r.squared
-    transients$durAll[i-3]<-length(storm$timestamp)#Finds duration of the storm, rising and falling limbs combined
-    transients$durF[i-3]<-length(rising$timestamp)#Finds duration of the rising limb
-    transients$durR[i-3]<-length(falling$timestamp)#Finds duration of the falling limb
+  transients <- data.frame(rising=numeric(length(stormsep)),
+                         RsqR=NA,falling=NA,RsqF=NA,durAll=NA,durF=NA,durR=NA)
+  for (i in 1:length(stormsep)){
+    #Find the storm of interest
+    storm <- stormsep[[i]]
+    #remove nas:
+    storm <- storm[!is.na(storm[,2]),]
+    #Look for where the max is
+    maxtime <- storm[storm[,2] == max(storm[,2]),1]
+    
+    #Separate rising and falling limbs
+    rising <- storm[storm[,1] <= maxtime,]
+    falling <- storm[storm[,1] >= maxtime,]
+    
+    #Create an exponential regression for the rising limb
+    modelR <- lm(log(rising[,2] + 0.0001) ~ seq(1,length(rising[,1])))
+    #Store exponential coefficient and adjusted r squared values
+    transients$rising[i] <- summary(modelR)$coefficients[2]
+    transients$RsqR[i] <- summary(modelR)$adj.r.squared
+    
+    #Create an exponential regression for the falling limb
+    modelF <- lm(log(falling[,2] + 0.0001) ~ seq(1,length(falling[,1])))
+    transients$falling[i] <- summary(modelF)$coefficients[2]
+    transients$RsqF[i] <- summary(modelF)$adj.r.squared
+    #Finds duration of the storm, rising and falling limbs combined
+    transients$durAll[i] <- length(storm$timestamp)
+    #Finds duration of the rising limb
+    transients$durF[i] <- length(rising$timestamp)
+    #Finds duration of the falling limb
+    transients$durR[i] <- length(falling$timestamp)
+    
     #Plot the storm and the fitted rising and falling limbs and store them in designated path
-    if(plt==T){
-      png(paste0(path,"storm",i,ext),width=1820,height=760)
+    if(plt == T){
+      png(paste0(path,"storm",i,ext), width=1820,height=760)
       par(mar=c(5,6,2,4))
-      plot(storm[,1],storm[,2],type='l',xlab='Date',ylab='Flow (cfs)',lwd=2,cex.axis=2,cex.lab=2)
-      lines(storm[storm[,1]<=maxtime,1],exp(fitted(modelR)),col='blue',lwd=2)
-      lines(storm[storm[,1]>=maxtime,1],exp(fitted(modelF)),col='red',lwd=2)
-      abline(h=brk,lty=3,lwd=2)
+      plot(storm[,1], storm[,2], type='l',
+           xlab='Date', ylab='Flow (cfs)',
+           lwd=2, cex.axis=2, cex.lab=2)
+      lines(storm[storm[,1] <= maxtime,1],
+            exp(fitted(modelR)),
+            col = 'blue',lwd = 2)
+      lines(storm[storm[,1] >= maxtime,1],
+            exp(fitted(modelF)),
+            col = 'red', lwd = 2)
+      abline(h = brk,lty = 3,lwd = 2)
       dev.off()
     }
   }
   #rm(maxtime,storm,rising,falling,modelR,modelF,i,ext,fxn_locations)
-  out<-list(Storms=stormsep,Stats=transients)
+  out <- list(Storms=stormsep,Stats=transients)
   return(out)
 }
