@@ -24,7 +24,7 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   
   #Add timestamp to the baseflow separation for convenience by creating a
   #dataframe
-  baseQ <- data.frame(timestamp = timeIn, baseQ = baseQ)
+  baseQ <- data.frame(timestamp = timeIn, baseQ = baseQ,flow = inflow)
   
   #Find mins/maxes of three consecutive points such that the extreme is in the
   #middle. These represent potential local mins and maxes
@@ -65,12 +65,12 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   brk <- brk * 1.1
   
   #Quick plot to visualize baseflow relative to brk
-  # mindex <- which(timeIn == "2021-01-01")
-  # maxdex <- which(timeIn == "2022-12-31")
-  # seqdex <- seq(mindex,maxdex)
-  # plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
-  # lines(timeIn[seqdex],rep(brk,length(seqdex)),col = "blue",lwd = 2)
-  # lines(baseQ$timestamp[seqdex],baseQ$baseQ[seqdex],col = "red",lwd = 2)
+  mindex <- which(timeIn == "2021-10-01")
+  maxdex <- which(timeIn == "2022-12-31")
+  seqdex <- seq(mindex,maxdex)
+  plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
+  lines(timeIn[seqdex],rep(brk,length(seqdex)),col = "blue",lwd = 2)
+  lines(baseQ$timestamp[seqdex],baseQ$baseQ[seqdex],col = "red",lwd = 2)
   
   #Next step is to isolate storms. This can be accomplished by taking a minimum
   #and the next point to fall below baseline flow, brk. Each storm is checked to
@@ -100,7 +100,7 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
     #If there is a point at baseflow before next minimum, use it instead to
     #prevent over elongated tails. We just need to ensure it takes place before
     #the next minima, is over brk, and occurs after maxtime
-    endAlt <- (baseQ$timestamp[baseQ$baseQ < brk & 
+    endAlt <- (baseQ$timestamp[baseQ$flow < brk & 
                                  baseQ$timestamp >= x[i] & 
                                  baseQ$timestamp < x[i+1] & 
                                  baseQ$timestamp > maxtime])[1]
@@ -117,10 +117,12 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
       flow = stormflow
     )
     #data frame of whole time series
-    store<-data.frame(timestamp = baseQ$timestamp, flow = NA)
+    store <- data.frame(timestamp = baseQ$timestamp, flow = NA,baseflow = NA)
     #Fills in only flow data during storm, leaving rest as NA
     store$flow[store$timestamp >= storm[1] & 
                  store$timestamp <= storm[2]] <- stormdat$flow
+    store$baseflow[store$timestamp >= storm[1] & 
+                     store$timestamp <= storm[2]] <- stormdat$baseQ
     
     #If maximum exceeds limit, add it to the stormsep list:
     if(max(store$flow, na.rm = T) > (1.5 * brk)){
@@ -129,12 +131,12 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   }
   
   #Now plot each storm and fit exponential curves to rising and falling limbs
-  #Store coefficients and statistics for each curve into a data frame, looking at 
-  #shape of curve and the adjusted R square values. Store each storm as a PNG graph
-  #in the designated area.
-  #Need to prevent errors from zero flow. Added 0.0001 to all flow values, this is the tolerance
-  #of the MPM method used
-  ext<-".png"
+  #Store coefficients and statistics for each curve into a data frame, looking
+  #at shape of curve and the adjusted R square values. Store each storm as a PNG
+  #graph in the designated area. Need to prevent errors from zero flow. Added
+  #0.0001 to all flow values. This WILL RESULT IN BIAS
+  ext <- ".png"
+  #Empty data frame to store statistics
   transients <- data.frame(rising=numeric(length(stormsep)),
                          RsqR=NA,falling=NA,RsqF=NA,durAll=NA,durF=NA,durR=NA)
   for (i in 1:length(stormsep)){
@@ -145,11 +147,13 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
     #Look for where the max is
     maxtime <- storm[storm[,2] == max(storm[,2]),1]
     
-    #Separate rising and falling limbs
+    #Separate rising and falling limbs based on maxtime e.g. the rising limb is
+    #all values leading up to maxtime
     rising <- storm[storm[,1] <= maxtime,]
     falling <- storm[storm[,1] >= maxtime,]
     
-    #Create an exponential regression for the rising limb
+    #Create an exponential regression for the rising limb to roughly fit the
+    #rising limb based on an "ideal" hydrograph
     modelR <- lm(log(rising[,2] + 0.0001) ~ seq(1,length(rising[,1])))
     #Store exponential coefficient and adjusted r squared values
     transients$rising[i] <- summary(modelR)$coefficients[2]
@@ -159,6 +163,7 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
     modelF <- lm(log(falling[,2] + 0.0001) ~ seq(1,length(falling[,1])))
     transients$falling[i] <- summary(modelF)$coefficients[2]
     transients$RsqF[i] <- summary(modelF)$adj.r.squared
+    
     #Finds duration of the storm, rising and falling limbs combined
     transients$durAll[i] <- length(storm$timestamp)
     #Finds duration of the rising limb
@@ -166,20 +171,37 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
     #Finds duration of the falling limb
     transients$durR[i] <- length(falling$timestamp)
     
-    #Plot the storm and the fitted rising and falling limbs and store them in designated path
+    #Plot the storm and the fitted rising and falling limbs and store them in
+    #designated path. Include the baseflow and and the baseline flow brk
     if(plt == T){
+      #Set plot output path and dimensions
       png(paste0(path,"storm",i,ext), width=1820,height=760)
-      par(mar=c(5,6,2,4))
-      plot(storm[,1], storm[,2], type='l',
-           xlab='Date', ylab='Flow (cfs)',
-           lwd=2, cex.axis=2, cex.lab=2)
-      lines(storm[storm[,1] <= maxtime,1],
-            exp(fitted(modelR)),
-            col = 'blue',lwd = 2)
-      lines(storm[storm[,1] >= maxtime,1],
-            exp(fitted(modelF)),
-            col = 'red', lwd = 2)
-      abline(h = brk,lty = 3,lwd = 2)
+        #Set plot margines
+        par(mar=c(5,6,2,4))
+        #Plot the storm, making the labels a little thicker and the lines of the
+        #plot and labeling the axes
+        plot(storm[,1], storm[,2], type='l',
+             xlab='Date', ylab='Flow (cfs)',
+             lwd=2, cex.axis=2, cex.lab=2)
+        #Plot the fitted rising limb:
+        lines(storm[storm[,1] <= maxtime,1],
+              exp(fitted(modelR)),
+              col = 'darkblue',lwd = 2)
+        #Plot the fitted falling limb:
+        lines(storm[storm[,1] >= maxtime,1],
+              exp(fitted(modelF)),
+              col = 'darkred', lwd = 2)
+        #Plot the baseflow
+        lines(storm[,1], storm[,3],
+              col = "darkgreen", lwd = 2)
+        #Plot the baseline flow brk as a dashed line via lty = 3
+        abline(h = brk,lty = 3,lwd = 2)
+        #Put a small legend on the plot
+        legend("topleft",c("Flow","Baseflow","Rise Limb","Fall Limb","Baseline"),
+               col = c("black","darkgreen","darkblue","darkred","black"),
+               lty = c(1,1,1,1,3),
+               bty = "n")
+      #Close the plot PNG and output the file
       dev.off()
     }
   }
