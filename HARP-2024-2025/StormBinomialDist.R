@@ -205,7 +205,13 @@ timeIn <- timeIn[seqdex]
   out <- list(Storms=stormsep,Stats=transients)
 return(out)
 
-
+  
+# create plot for binomial distribution
+plot(stormdat$flow,dbinom(stormdat$flow,
+                          size=500,
+                          prob=0.3),
+     type="h",
+     xlim = c(1,500))
 
 
 
