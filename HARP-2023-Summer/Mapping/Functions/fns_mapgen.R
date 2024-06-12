@@ -21,7 +21,7 @@ fn_catchMapErrors <- function(layer, layer_description="blank", map=NULL){ #maki
   }
   errors <- grep("Error", test, ignore.case=TRUE)
   if(length(errors)!=0){#there's an issue with the layer and it will not be added to the map
-    if(is.null){ #aka no basemap yet
+    if(is.null(map)){ #aka no basemap yet
       stop(paste0("Cannot generate maps due to a conflict in the basemap layer. See fns_mapgen.R for more."), call. = FALSE)
     } else{
       if("errors" %in% names(map)){
@@ -29,7 +29,7 @@ fn_catchMapErrors <- function(layer, layer_description="blank", map=NULL){ #maki
       } else{map$errors <- layer_description}
     }
   } else{#no issue with the layer & it will be plotted
-      if(is.null){ #aka no map to add to yet
+      if(is.null(map)){ #aka no map to add to yet
         map <- ggplot2::ggplot() + layer
       }else{
         map <- map + layer
