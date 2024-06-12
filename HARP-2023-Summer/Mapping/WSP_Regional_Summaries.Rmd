@@ -431,11 +431,16 @@ if (show_map == TRUE) {
 
 ```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE,eval = show_map}
 knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
+# if (mapMessage) {
+#   message("The metric requested does not exist for this map.")
+#   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+# }
 if (mapMessage) {
-  message("The metric requested does not exist for this map.")
-  message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
+  messages <- data.frame(pertaining_to= "Map 1",
+                       message=paste0("The metric requested does not exist for this map.\nCheck your syntax/spelling. If correct, then this data has not been measured/modeled."),
+                       var_name= "mapMessage"
+                       )
 }
-
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -534,9 +539,21 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 ### Table:
 
 ```{r View Table 1, echo=FALSE, out.width='100%', message=TRUE}
-if (tableMessage == TRUE) {
-  message("Missing column indicates the metric requested does not exist for this table")
+# if (tableMessage == TRUE) {
+#   message("Missing column indicates the metric requested does not exist for this table")
+# }
+if (tableMessage) {
+  if(!exists("messages")){
+    messages <- data.frame(pertaining_to= "Table 1",
+                       message=paste0("Missing column indicates the metric requested does not exist for this table."), var_name= "tableMessage")
+  }else{
+    messages <- rbind(messages,
+                      data.frame(pertaining_to= "Table 1",
+                       message=paste0("Missing column indicates the metric requested does not exist for this table."), var_name= "tableMessage")
+                      )
+  }
 }
+
 ft1 #display flextable
 ```
 
@@ -733,15 +750,16 @@ for (k in 1:length(run_config$riverseg_metrics)){
   #defining titles 
   rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   
-  #this chunk is not in use at the moment, based on titles being done in config 
+  #--this chunk is not in use at the moment, based on titles being done in config:
   if (display_metric=="l30_Qout"){
       rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
     } else if (display_metric=="l90_Qout"){
       rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
+    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering
   } else {
     message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
   }
+  #--
   }
 }
 ```
@@ -750,17 +768,32 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
-if (tablemessage2==TRUE) {
-  message("A column in the table is completely NA values, 
-          likely meaning the metric requested is not modeled for this data
-          or the segments are all tidal")
+# if (tablemessage2==TRUE) {
+#   message("A column in the table is completely NA values, 
+#           likely meaning the metric requested is not modeled for this data
+#           or the segments are all tidal")
+# }
+if(tablemessage2){
+  if(!exists("messages")){
+    messages <- data.frame(pertaining_to= "Table 2", 
+                            message=paste0("A column in the table is completely NA values,
+                            likely meaning the metric requested is not modeled for this data,
+                            or the segments are all tidal."), var_name= "tablemessage2")
+  }else{
+    messages <- rbind(messages,
+                      data.frame(pertaining_to= "Table 2",
+                       message=paste0("A column in the table is completely NA values, 
+          likely meaning the metric requested is not modeled for this data,
+          or the segments are all tidal."), var_name= "tablemessage2")
+                      )
+  }
 }
+
 for (k in 1:length(rivseg_metric)){
   cat(knitr::knit_print(get(paste0('table', k))))
   cat("\n\n\\pagebreak\n")
   #cat(flextable::flextable_to_rmd(get(paste0('table', k))))
 }
-
 
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
@@ -815,29 +848,56 @@ repeat above for localities
 
 # Region Appendix:
 
-```{r Generate Errors Summary, echo=FALSE, eval=FALSE}
+```{r Generate Errors Summary, echo=FALSE}
 #if there are any mapping errors or other messages to the user, output a separate file containing them
 allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
 allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
 
-maperrors <- data.frame(envir_name=character(0),maptitle=character(0),errors=character(0))
+maperrors <- data.frame(maptitle=character(0), errors=character(0), 
+                        mapnum=character(0), var_name=character(0) )
 for(i in 1:length(allmaps)){
   if(!is.null(allmaps[[i]][["errors"]])){
     maperrors <- rbind(maperrors,
-                       data.frame(envir_name = names(allmaps[i]),
-                                  maptitle = allmaps[[i]][["labels"]][["title"]],
-                                  errors = allmaps[[i]][["errors"]]
+                       data.frame(maptitle = allmaps[[i]][["labels"]][["title"]],
+                                  errors = allmaps[[i]][["errors"]],
+                                  mapnum = allmaps[[i]][["mapnum"]],
+                                  var_name = names(allmaps[i])
                                   )
                        )
   }
 }
 
 if(nrow(maperrors)!=0){
-  tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("envir_name","maptitle"),
-                          i = ~ duplicated(maperrors$envir_name),
+  tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("maptitle","mapnum","var_name"),
+                          i = ~ duplicated(maperrors$var_name),
                           value = as_paragraph('')
                           )
-  tbl_maperrors <- set_table_properties(ft_1, layout = "autofit")
+  tbl_maperrors <- set_table_properties(tbl_maperrors, layout = "autofit")
 }
 
+#other messages:
+if(exists("messages")){
+  tbl_usermessages <- flextable(messages)
+  tbl_usermessages <- set_table_properties(tbl_usermessages, layout = "autofit")
+}
+
+#output to .html:
+if(exists("tbl_maperrors") & exists("tbl_usermessages")){
+  save_as_html(
+    "Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
+    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+  )
+}
+if(exists("tbl_maperrors") & !exists("tbl_usermessages")){
+  save_as_html(
+    "Errors With Mapping:" = tbl_maperrors,
+    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+  )
+}
+if(!exists("tbl_maperrors") & exists("tbl_usermessages")){
+  save_as_html(
+    "Messages to User:" = tbl_usermessages,
+    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+  )
+}
 ```
