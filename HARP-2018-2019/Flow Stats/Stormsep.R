@@ -90,7 +90,7 @@ stormSeparate <- function(timeIn, inflow, plt = T,path = paste0(getwd(),"/")){
   stormsep <- data.frame(timestamp = as.POSIXct(baseQ$timestamp),
                           Baseflow = baseQ$baseQ,
                           QuickFlow = inflow)
-  #stormsep <- list()
+  stormsep <- list()
   
   for (i in 1:(length(x) - 1)){
     #Initial guess at storm endpoints e.g. two local minimums

@@ -262,3 +262,8 @@ for (i in 1:12) {
 barplot(nex_week_ndd_stats$nex_week_dsum.adj.r.squared ~ nex_week_ndd_stats$i)
 summary(mod_week_prism_mon_nz_ndd)
 mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
+
+# Poisson and Binomial Distribution
+
+
+
