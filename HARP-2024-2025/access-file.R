@@ -263,6 +263,37 @@ barplot(nex_week_ndd_stats$nex_week_dsum.adj.r.squared ~ nex_week_ndd_stats$i)
 summary(mod_week_prism_mon_nz_ndd)
 
 
+
+# Weekly change in flow vs last week precip
+
+last_week_data <- sqldf(
+  "select min(week_begin) as week_begin, yr, wk, mo, min(dataset_day_begin) as dataset_day_begin,
+     Lag(daymet_p_in,1) OVER(ORDER BY dataset_day_begin) as lastweek_daymet_p_in, 
+     Lag(daymet_p_cfs,1) OVER(ORDER BY dataset_day_begin) as lastweek_daymet_p_cfs,
+     Lag(prism_p_in,1) OVER(ORDER BY dataset_day_begin) as lastweek_prism_p_in, 
+     Lag(prism_p_cfs,1) OVER(ORDER BY dataset_day_begin) as lastweek_prism_p_cfs,
+     usgs_cfs as usgs_cfs, today_d_cfs as today_d_cfs, 
+     nextday_d_cfs as nextday_d_cfs
+   from week_data
+   group by yr, wk
+   order by yr, wk
+  "
+)
+
+last_week_data = last_week_data[-1,]
+
+
+las_week_ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  las_week_prism_mon_nz_ndd <- lm(usgs_cfs ~ lastweek_prism_p_cfs, data=last_week_data[which((last_week_data$mo == i) & (last_week_data$usgs_cfs > 0)),])
+  las_week_dsum <- summary(las_week_prism_mon_nz_ndd)
+  plot(las_week_prism_mon_nz_ndd$model$usgs_cfs ~ las_week_prism_mon_nz_ndd$model$lastweek_prism_p_cfs)
+  las_week_ndd_stats <- rbind(las_week_ndd_stats, data.frame(i, las_week_dsum$adj.r.squared))
+}
+barplot(las_week_ndd_stats$las_week_dsum.adj.r.squared ~ las_week_ndd_stats$i)
+summary(las_week_prism_mon_nz_ndd)
+
+
 # Poisson and Binomial Distribution
 
 
