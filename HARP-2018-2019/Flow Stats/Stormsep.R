@@ -1,18 +1,23 @@
-# flowData <- read.csv("sampleGageData.csv")
-# inflow <- flowData$Flow
-# timeIn <- as.Date(flowData$Date)
-# mindex <- which(timeIn == "2021-01-01")
-# maxdex <- which(timeIn == "2022-12-31")
-# seqdex <- seq(mindex,maxdex)
-# inflow <- inflow[seqdex]
-# timeIn <- timeIn[seqdex]
+gageid = '01634000'
+flowData <- readNWISdv(gageid,'00060')
+flowData <- flowData %>%
+  rename(flow = X_00060_00003)
+inflow <- flowData$flow
+timeIn <- as.Date(flowData$Date)
+mindex <- which(timeIn == "2021-01-01")
+maxdex <- which(timeIn == "2022-12-31")
+seqdex <- seq(mindex,maxdex)
+inflow <- inflow[seqdex]
+timeIn <- timeIn[seqdex]
+
+stormSeparate(timeIn, inflow, plt = T,path = paste0(getwd(),"/"))
 
 #Input variables are:
 # timeIn = Timestamps associated with streamflow data as vector
 # inflow = Streamflow daily data as vector in cfs
 # plt = Boolean to determine if plots are necessary
 # path = Directory to store plots in. Used if plt is TRUE
-stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
+stormSeparate <- function(timeIn, inflow, plt = T,path = paste0(getwd(),"/")){
   #Call packages required by function if not called already:
   require(grwat)
   require(zoo)
@@ -82,10 +87,10 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   #Get the times associated with minimums that are below baseline flow brk:
   x <- mins$timestamp[mins$mins < brk]
   #A data frame to build with storms in each column
-  # stormsep <- data.frame(timestamp = as.POSIXct(baseQ$timestamp),
-  #                        Baseflow = baseQ$baseQ,
-  #                        QuickFlow = inflow)
-  stormsep <- list()
+  stormsep <- data.frame(timestamp = as.POSIXct(baseQ$timestamp),
+                          Baseflow = baseQ$baseQ,
+                          QuickFlow = inflow)
+  #stormsep <- list()
   
   for (i in 1:(length(x) - 1)){
     #Initial guess at storm endpoints e.g. two local minimums
@@ -128,7 +133,7 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
     if(max(store$flow, na.rm = T) > (1.5 * brk)){
       stormsep[[length(stormsep) + 1]] <- store
     }
-  }
+}
   
   #Now plot each storm and fit exponential curves to rising and falling limbs
   #Store coefficients and statistics for each curve into a data frame, looking
