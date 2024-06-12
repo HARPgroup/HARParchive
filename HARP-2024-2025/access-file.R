@@ -1,16 +1,28 @@
 # Test datasets CSV
 library("sqldf")
 library("dataRetrieval")
+library("lubridate")
 
-gageid = '01634000'
+gageid = '01665500' # Culpepper 01667500, Strasburg 01634000, Ruckersville 01665500
 hydrocode = paste0('usgs_ws_', gageid)
-prism_data <- read.csv("http://deq1.bse.vt.edu:81/files/met/usgs_ws_01634000-prism-2022-2023.csv")
+prism_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/files/met/", hydrocode, "-prism-all.csv"))
 prism_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(prism_data$obs_date)), month(as.Date(prism_data$obs_date)), day(as.Date(prism_data$obs_date)), week(as.Date(prism_data$obs_date)) )
 
-daymet_data <- read.csv("http://deq1.bse.vt.edu:81/files/met/usgs_ws_01634000-daymet-2022-2023.csv")
+daymet_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/files/met/", hydrocode, "-daymet-all.csv"))
 daymet_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(daymet_data$obs_date)), month(as.Date(daymet_data$obs_date)), day(as.Date(daymet_data$obs_date)), week(as.Date(daymet_data$obs_date)) )
+
+nldas2_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/files/met/", hydrocode, "-nldas2-all.csv"))
+nldas2_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(nldas2_data$obs_date)), month(as.Date(nldas2_data$obs_date)), day(as.Date(nldas2_data$obs_date)), week(as.Date(nldas2_data$obs_date)) )
+nldas2_data <- sqldf(
+  "select featureid, min(obs_date) as obs_date, yr, mo, da, 
+     sum(precip_mm) as precip_mm, sum(precip_in) as precip_in
+   from nldas2_data 
+   group by yr, mo, da
+   order by yr, mo, da
+  "
+)
 # USGS
-gage_info <- memo_readNWISsite(gageid)
+gage_info <- readNWISsite(gageid)
 da <- gage_info$drain_area_va
 usgs_data <- memo_readNWISdv(gageid,'00060')
 usgs_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)), month(as.Date(usgs_data$Date)), day(as.Date(usgs_data$Date)) )
@@ -19,7 +31,8 @@ usgs_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)), month(as
 comp_data <- sqldf(
   "select a.obs_date, a.precip_in as prism_p_in, 
   a.yr, a.mo, a.da, a.wk,
-  b.precip_in as daymet_p_in, c.X_00060_00003 as usgs_cfs
+  b.precip_in as daymet_p_in, d.precip_in as nldas2_p_in,
+  c.X_00060_00003 as usgs_cfs
   from prism_data as a
   left outer join daymet_data as b 
   on (
@@ -33,6 +46,13 @@ comp_data <- sqldf(
     and a.mo = c.mo
     and a.da = c.da
   )
+  left outer join nldas2_data as d 
+  on (
+    a.yr = d.yr
+    and a.mo = d.mo
+    and a.da = d.da
+  )
+  order by a.yr, a.mo, a.da
   "
 )
 # lag days
@@ -62,10 +82,12 @@ comp_data <- sqldf(
 # 1.572 * (DAsqmi * 640.0 * p_in / 12.0) / 3.07 
 comp_data$prism_p_cfs <- 1.572 * (da * 640.0 * comp_data$prism_p_in / 12.0) / 3.07 
 comp_data$daymet_p_cfs <- 1.572 * (da * 640.0 * comp_data$daymet_p_in / 12.0) / 3.07 
+comp_data$nldas2_p_cfs <- 1.572 * (da * 640.0 * comp_data$nldas2_p_in / 12.0) / 3.07 
 week_data <- sqldf(
   "select min(obs_date) as week_begin, yr, wk, min(dataset_day) as dataset_day_begin,
      avg(daymet_p_in) as daymet_p_in, avg(daymet_p_cfs) as daymet_p_cfs,
      avg(prism_p_in) as prism_p_in, avg(prism_p_cfs) as prism_p_cfs,
+     avg(nldas2_p_in) as nldas2_p_in, avg(nldas2_p_cfs) as nldas2_p_cfs,
      avg(usgs_cfs) as usgs_cfs, avg(today_d_cfs) as today_d_cfs, 
      avg(nextday_d_cfs) as nextday_d_cfs
    from comp_data
@@ -73,6 +95,7 @@ week_data <- sqldf(
    order by yr, wk
   "
 )
+week_data$mo <- month(week_data$week_begin)
 
 mod_prism <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data)
 summary(mod_prism)
@@ -82,8 +105,10 @@ summary(mod_daymet)
 # Weekly cfs vs P
 mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
 summary(mod_week_prism)
+plot(mod_week_prism$model$usgs_cfs ~ mod_week_prism$model$prism_p_cfs)
 mod_week_daymet <- lm(usgs_cfs ~ daymet_p_cfs, data=week_data)
 summary(mod_week_daymet)
+plot(mod_week_daymet$model$usgs_cfs ~ mod_week_daymet$model$daymet_p_cfs)
 
 
 # January only
@@ -133,3 +158,72 @@ mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((co
 summary(mod_prism_jan_nz_ndd)
 plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
 mod_prism_jan_nz_ndd$model
+
+# only compare against change in flows on the day with increasing flow
+# *** DAYMET
+mod_daymet_jan_nz_cdd <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$nextday_d_cfs > 0)),])
+summary(mod_daymet_jan_nz_cdd)
+plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
+mod_daymet_jan_nz_ndd$model
+# *** PRISM
+mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
+summary(mod_prism_jan_nz_ndd)
+plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
+
+
+# *** PRISM - demo february
+mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 2) & (comp_data$nextday_d_cfs > 0)),])
+summary(mod_prism_mon_nz_ndd)
+plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
+
+
+# do all months and assemble a barplot of R^2
+ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == i) & (comp_data$nextday_d_cfs > 0)),])
+  dsum <- summary(mod_prism_mon_nz_ndd)
+  plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
+  ndd_stats <- rbind(ndd_stats, data.frame(i, dsum$adj.r.squared))
+}
+barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
+
+
+
+# Week
+
+
+# do all months and assemble a barplot of R^2
+nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  # Weekly d cfs vs P
+  mod_weekmo_prism_cfs <- lm(usgs_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i)),])
+  dsum <- summary(mod_weekmo_prism_cfs)
+  plot(mod_weekmo_prism_cfs$model$usgs_cfs ~ mod_weekmo_prism_cfs$model$prism_p_cfs)
+  
+  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
+  #summary(mod_week_daymet_d_cfs)
+  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
+  
+  nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
+}
+barplot(nwd_stats$dsum.adj.r.squared ~ nwd_stats$i, main=paste(gage_info$station_nm ))
+
+
+
+# NLDAS2
+# do all months and assemble a barplot of R^2
+nldaswk_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  # Weekly d cfs vs P
+  mod_weekmo_nldas2_cfs <- lm(usgs_cfs ~ nldas2_p_cfs, data=week_data[which((week_data$mo == i)),])
+  dsum <- summary(mod_weekmo_nldas2_cfs)
+  plot(mod_weekmo_nldas2_cfs$model$usgs_cfs ~ mod_weekmo_nldas2_cfs$model$nldas2_p_cfs)
+  
+  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
+  #summary(mod_week_daymet_d_cfs)
+  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
+  
+  nldaswk_stats <- rbind(nldaswk_stats, data.frame(i, dsum$adj.r.squared))
+}
+barplot(nldaswk_stats$dsum.adj.r.squared ~ nldaswk_stats$i, main=paste(gage_info$station_nm ))
+
