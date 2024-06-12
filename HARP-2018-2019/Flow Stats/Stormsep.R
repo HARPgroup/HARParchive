@@ -1,3 +1,4 @@
+library("tidyverse")
 gageid = '01634000'
 flowData <- readNWISdv(gageid,'00060')
 flowData <- flowData %>%
