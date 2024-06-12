@@ -209,3 +209,8 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   out <- list(Storms=stormsep,Stats=transients)
   return(out)
 }
+
+
+
+
+

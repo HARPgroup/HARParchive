@@ -115,7 +115,7 @@ comp_data$daymet_p_cfs <- 1.572 * (da * 640.0 * comp_data$daymet_p_in / 12.0) / 
 #it via the week variable we added in earlier using lubridate::week.
 #(again, you may have done this previously via dplyr::group_by and summarize)
 week_data <- sqldf(
-  "select min(obs_date) as week_begin, yr, wk, min(dataset_day) as dataset_day_begin,
+  "select min(obs_date) as week_begin, yr, wk, mo, min(dataset_day) as dataset_day_begin,
      avg(daymet_p_in) as daymet_p_in, avg(daymet_p_cfs) as daymet_p_cfs,
      avg(prism_p_in) as prism_p_in, avg(prism_p_cfs) as prism_p_cfs,
      avg(usgs_cfs) as usgs_cfs, avg(today_d_cfs) as today_d_cfs, 
@@ -218,3 +218,38 @@ sbset <- comp_data[comp_data$obs_date <= as.Date("2013-12-31") & comp_data$obs_d
 plot(as.Date(sbset$obs_date),sbset$daymet_p_cfs,type = "l",col = "darkred")
 lines(as.Date(sbset$obs_date),sbset$prism_p_cfs,col= "darkblue")
 lines(as.Date(sbset$obs_date),sbset$usgs_cfs,col= "black",lwd = 2)
+
+
+
+
+# *** PRISM - Flow Change tomorrow, ONLY for days where Flow Change > 0, month of February only
+mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 2) & (comp_data$nextday_d_cfs > 0)),])
+summary(mod_prism_mon_nz_ndd)
+plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
+
+
+# do all months and assemble a barplot of R^2
+ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == i) & (comp_data$nextday_d_cfs > 0)),])
+  dsum <- summary(mod_prism_mon_nz_ndd)
+  plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
+  ndd_stats <- rbind(ndd_stats, data.frame(i, dsum$adj.r.squared))
+}
+barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
+
+
+# do all months and assemble a barplot of R^2
+ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  mod_week_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i) & (week_data$nextday_d_cfs > 0)),])
+  dsum <- summary(mod_prism_mon_nz_ndd)
+  plot(mod_week_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_week_prism_mon_nz_ndd$model$prism_p_cfs)
+  ndd_stats <- rbind(ndd_stats, data.frame(i, dsum$adj.r.squared))
+}
+barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
+summary(mod_week_prism_mon_nz_ndd)
+
+mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
+
+mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
