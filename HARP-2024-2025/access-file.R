@@ -27,12 +27,12 @@ daymet_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(daymet_data$obs_da
 # the dataRetrieval R package which has extensive documentation on the options
 # therewithin. See https://waterdata.usgs.gov/blog/dataretrieval/. Below, we
 # a cached version of the function defined in our config.R file:
-gage_info <- memo_readNWISsite(gageid)
+gage_info <- readNWISsite(gageid)
 #Extract the drainage area of the gage
 da <- gage_info$drain_area_va
 #Get daily, mean streamflow (pcode 000060, see dataRetrieval::parameterCdFile)
 #from the gage specified in gageid
-usgs_data <- memo_readNWISdv(gageid,'00060')
+usgs_data <- readNWISdv(gageid,'00060')
 #Extract date information from the gage using lubridate as above
 usgs_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)),
                                          month(as.Date(usgs_data$Date)),
@@ -239,7 +239,7 @@ for (i in 1:12) {
 barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
 summary(mod_prism_mon_nz_ndd)
 
-# do all months and assemble a barplot of R^2
+# do all months and assemble a barplot of R^2, looking at weekly average
 week_ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
 for (i in 1:12) {
   mod_week_prism_mon_nz_ndd <- lm(usgs_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i) & (week_data$usgs_cfs > 0)),])
@@ -249,9 +249,9 @@ for (i in 1:12) {
 }
 barplot(week_ndd_stats$week_dsum.adj.r.squared ~ week_ndd_stats$i)
 summary(mod_week_prism_mon_nz_ndd)
-mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
 
 
+# do all months and assemble a barplot of R^2, seperated by week, and looking at next day flow
 nex_week_ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
 for (i in 1:12) {
   nex_mod_week_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i) & (week_data$nextday_d_cfs > 0)),])
@@ -261,7 +261,7 @@ for (i in 1:12) {
 }
 barplot(nex_week_ndd_stats$nex_week_dsum.adj.r.squared ~ nex_week_ndd_stats$i)
 summary(mod_week_prism_mon_nz_ndd)
-mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
+
 
 # Poisson and Binomial Distribution
 
