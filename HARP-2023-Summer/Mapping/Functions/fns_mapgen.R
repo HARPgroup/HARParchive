@@ -10,18 +10,18 @@ library(mgsub)
 library(sf)
 library(ggspatial)
 
-fn_catchMapErrors <- function(layer, layer_description="blank", map=NA){ #making the root of an error clear
+fn_catchMapErrors <- function(layer, layer_description="blank", map=NULL){ #making the root of an error clear
   #if layer name needs further description for the error message, input it into 'layer_description' as a character string. 
   #otherwise, the layer's variable name will be used:
   if(layer_description=="blank"){ layer_description <- deparse(substitute(layer)) }
-  if(is.na(map)){ #aka no map to add to yet
+  if(!!is.na(map)){ #aka no map to add to yet
     test <- try(ggplot2::ggplot() + layer, silent=TRUE)
   }else{
     test <- try(map + layer, silent=TRUE)
   }
   errors <- grep("Error", test, ignore.case=TRUE)
   if(length(errors)!=0){#there's an issue with the layer and it will not be added to the map
-    if(is.na(map)){ #aka no basemap yet
+    if(!!is.na(map)){ #aka no basemap yet
       stop(paste0("Cannot generate maps due to a conflict in the basemap layer. See fns_mapgen.R for more."), call. = FALSE)
     } else{
       if("errors" %in% names(map)){
@@ -29,7 +29,7 @@ fn_catchMapErrors <- function(layer, layer_description="blank", map=NA){ #making
       } else{map$errors <- layer_description}
     }
   } else{#no issue with the layer & it will be plotted
-      if(is.na(map)){ #aka no map to add to yet
+      if(!!is.na(map)){ #aka no map to add to yet
         map <- ggplot2::ggplot() + layer
       }else{
         map <- map + layer
