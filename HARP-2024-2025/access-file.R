@@ -237,19 +237,28 @@ for (i in 1:12) {
   ndd_stats <- rbind(ndd_stats, data.frame(i, dsum$adj.r.squared))
 }
 barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
-
+summary(mod_prism_mon_nz_ndd)
 
 # do all months and assemble a barplot of R^2
-ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+week_ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
 for (i in 1:12) {
-  mod_week_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i) & (week_data$nextday_d_cfs > 0)),])
-  dsum <- summary(mod_prism_mon_nz_ndd)
-  plot(mod_week_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_week_prism_mon_nz_ndd$model$prism_p_cfs)
-  ndd_stats <- rbind(ndd_stats, data.frame(i, dsum$adj.r.squared))
+  mod_week_prism_mon_nz_ndd <- lm(usgs_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i) & (week_data$usgs_cfs > 0)),])
+  week_dsum <- summary(mod_week_prism_mon_nz_ndd)
+  plot(mod_week_prism_mon_nz_ndd$model$usgs_cfs ~ mod_week_prism_mon_nz_ndd$model$prism_p_cfs)
+  week_ndd_stats <- rbind(week_ndd_stats, data.frame(i, week_dsum$adj.r.squared))
 }
-barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
+barplot(week_ndd_stats$week_dsum.adj.r.squared ~ week_ndd_stats$i)
 summary(mod_week_prism_mon_nz_ndd)
-
 mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
 
+
+nex_week_ndd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+for (i in 1:12) {
+  nex_mod_week_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i) & (week_data$nextday_d_cfs > 0)),])
+  nex_week_dsum <- summary(nex_mod_week_prism_mon_nz_ndd)
+  plot(nex_mod_week_prism_mon_nz_ndd$model$nextday_d_cfs ~ nex_mod_week_prism_mon_nz_ndd$model$prism_p_cfs)
+  nex_week_ndd_stats <- rbind(nex_week_ndd_stats, data.frame(i, nex_week_dsum$adj.r.squared))
+}
+barplot(nex_week_ndd_stats$nex_week_dsum.adj.r.squared ~ nex_week_ndd_stats$i)
+summary(mod_week_prism_mon_nz_ndd)
 mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
