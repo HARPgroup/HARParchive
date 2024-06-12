@@ -72,26 +72,31 @@ comp_data <- sqldf(
 # please note we will often encourage the use of SQL as we assist in tasks. But
 # all code is acceptable if it is documented and works!
 comp_data$dataset_day <- index(comp_data) 
-#Here, we use a query to link in lagged days. We can now compare how flow
-#compares to the previous day and the next day. You could accomplish something
-#similar in base R via proper indexing e.g.:
-#comp_data$nextday_usgs_cfs <- c(comp_data$usgs_cfs[2:nrow(comp_data)],NA)
-#Coding can always take different paths, we try to find the most efficient but
-#sometimes it's just preference!
-comp_data <- sqldf(
-  "select a.*, b.usgs_cfs as nextday_usgs_cfs, 
-  b.usgs_cfs - a.usgs_cfs as nextday_d_cfs, 
-  a.usgs_cfs - c.usgs_cfs as today_d_cfs
-  from comp_data as a
-  left outer join comp_data as b 
-  on (
-    a.dataset_day = (b.dataset_day - 1)
-  )
-  left outer join comp_data as c 
-  on (
-    a.dataset_day = (c.dataset_day + 1)
-  )
-  order by a.dataset_day"
+#Here, we add in columns to represent tomorrow's flow and the change in flow
+#from today to yesterday and today and tomorrow. This give an indication of how
+#flow is changing. We can do so using R's indexing, simply calling the next rows
+#down where needed
+comp_data$nextday_usgs_cfs <- c(comp_data$usgs_cfs[2:nrow(comp_data)],NA)
+comp_data$nextday_d_cfs <- comp_data$nextday_usgs_cfs - comp_data$usgs_cfs
+comp_data$today_d_cfs <- comp_data$usgs_cfs - c(NA,comp_data$usgs_cfs[1:(nrow(comp_data) - 1)])
+
+#We could alternatively get this via an SQL query that runs just about as
+#quickly! Note the use of the Lag() function and its inputs in the subquery used
+#to pull in yesterdays and todays data
+comp_data2 <- sqldf(
+  "select b.*,
+  b.nextday_usgs_cfs - b.usgs_cfs as nextday_d_cfs,
+  b.usgs_cfs - b.yesterday_usgs_cfs as today_d_cfs
+  FROM (
+    select 
+    a.obs_date, a.prism_p_in,a.yr,a.mo,a.da, a.wk,
+    a.daymet_p_in,a.usgs_cfs,a.dataset_day,
+    Lag(a.usgs_cfs,1) OVER(ORDER BY a.dataset_day) as yesterday_usgs_cfs,
+    Lag(a.usgs_cfs,-1) OVER(ORDER BY a.dataset_day) as nextday_usgs_cfs
+    from comp_data as a
+    order by a.dataset_day
+  ) as b
+  "
 )
 
 # Add a cfs Precip column via the following conversions:
@@ -206,3 +211,10 @@ mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
                            data=comp_data[((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
 summary(mod_prism_jan_nz_ndd)
 plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
+
+
+
+sbset <- comp_data[comp_data$obs_date <= as.Date("2013-12-31") & comp_data$obs_date >= "2003-10-01",]
+plot(as.Date(sbset$obs_date),sbset$daymet_p_cfs,type = "l",col = "darkred")
+lines(as.Date(sbset$obs_date),sbset$prism_p_cfs,col= "darkblue")
+lines(as.Date(sbset$obs_date),sbset$usgs_cfs,col= "black",lwd = 2)
