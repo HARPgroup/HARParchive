@@ -1,0 +1,140 @@
+---
+title: "Baseflow Percentage"
+output: word_document
+date: "2024-06-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dataRetrieval)
+library(tidyverse)
+library(lubridate)
+library(cowplot)
+library(ggplot2)
+library(gridExtra)
+library(webshot2)
+library(kableExtra)
+library(grwat)
+```
+
+
+Load in Data from PRISM and USGS
+```{r}
+site_id <- "01634000"
+parameterCd <- "00060"
+startDate <- "2022-10-01"
+endDate <- "2023-10-01"
+
+gageid = '01634000'
+prism_data <- read.csv("http://deq1.bse.vt.edu:81/files/met/usgs_ws_01634000-prism-2022-2023.csv")
+prism_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(prism_data$obs_date)), month(as.Date(prism_data$obs_date)), day(as.Date(prism_data$obs_date)), week(as.Date(prism_data$obs_date)))
+
+spas <- dataRetrieval::readNWISdv(site_id, parameterCd, startDate, endDate)
+spas <- spas %>%
+  rename(Q = X_00060_00003, Datetime = Date)
+spas$Month <- month(spas$Datetime) # Add month column
+
+```
+
+Data frame with baseflow
+```{r}
+hdata = spas %>%
+  mutate(lynehollick = gr_baseflow(Q, method = 'lynehollick', a = 0.9),
+         boughton = gr_baseflow(Q, method = 'boughton', k = 0.9),
+         jakeman = gr_baseflow(Q, method = 'jakeman', k = 0.9),
+         maxwell = gr_baseflow(Q, method = 'maxwell', k = 0.9)) %>%
+  pivot_longer(lynehollick:maxwell, names_to = 'Method', values_to = 'Qbase')
+
+
+```
+
+
+```{r}
+percentage_data <- hdata |>  mutate(percentage = ((Qbase/Q)*100))
+percentage_data<- percentage_data |>
+  mutate(season = case_when(Month %in% c(12, 1, 2) ~ "Winter",
+                            Month %in% c(3, 4, 5) ~ "Spring",
+                            Month %in% c(6, 7, 8) ~ "Summer",
+                            TRUE ~ "Autumn"))
+```
+
+
+```{r}
+selection <- data.frame(percentage_data[c("percentage", "Method", "season")]) 
+selection |> group_by(Method, season) |> filter(Method == "boughton" | Method == "lynehollick") |> summarytools::descr()
+```
+
+
+```{r}
+
+percentage_data |> group_by(Method) |> ggplot(aes(x=Datetime, y = percentage, color = Method)) + geom_line() +theme_classic()
+
+
+```
+
+
+```{r}
+hdata <- hdata |>
+  mutate(season = case_when(Month %in% c(12, 1, 2) ~ "Winter",
+                            Month %in% c(3, 4, 5) ~ "Spring",
+                            Month %in% c(6, 7, 8) ~ "Summer",
+                            TRUE ~ "Autumn"))
+prism_data<- prism_data |>
+  mutate(season = case_when(mo %in% c(12, 1, 2) ~ "Winter",
+                            mo %in% c(3, 4, 5) ~ "Spring",
+                            mo %in% c(6, 7, 8) ~ "Summer",
+                            TRUE ~ "Autumn"))
+week_period <- c("2023-08-28", "2023-08-27","2023-08-26","2023-08-25","2023-08-24","2023-08-23","2023-08-22","2023-08-21", "2023-08-20" )
+
+prism_data_filtered <- prism_data |> filter(season=="Winter" | season =="Summer") |> filter(yr == "2022" |yr == "2023")
+prism_data_filtered$Date <- as.Date(paste(prism_data_filtered$da, prism_data_filtered$mo, prism_data_filtered$yr), "%d %m %Y")
+hdata_filtered <- hdata |> filter(season=="Winter" | season =="Summer") |> filter(Method == "boughton") 
+```
+
+```{r}
+prism_data_filtered <- data_frame(prism_data_filtered)
+hdata_filtered <- data_frame(hdata_filtered)
+joined_data <- hdata_filtered |> 
+  left_join(prism_data_filtered, by = c("Datetime" = "Date"))
+joined_data <- joined_data |> filter(Datetime %in% week_period)
+```
+
+Boughton Model - High Flow
+```{r}
+p1 <- joined_data |> ggplot() +
+  geom_area(aes(Datetime, Q), fill = 'steelblue', color = 'black') +
+  geom_area(aes(Datetime, Qbase), fill = 'orangered', color = 'black') + 
+   scale_y_continuous(position = "left",
+                     limits = c(0, 150),
+                     expand = c(0,0)) + 
+  labs(y = "Discharge (cfs)",
+       x = "Date",
+       title = "Boughton Model - Low Flow") +
+  theme_minimal() +
+  theme(axis.title.y.left = element_text(hjust = 0.5),
+        legend.position = "center",
+        legend.justification = c(0.5, 0.5),
+        legend.title = element_blank(),
+        plot.title = element_text(hjust=0.5) )
+   
+
+p2 <- ggplot(joined_data) +
+  geom_line(aes(Datetime, precip_in, color = "Precip")) +
+  scale_y_reverse(position = "right",
+                  limits = c(5,0),
+                  breaks = c(0,0.25,0.5),
+                  labels = c(0,0.25,0.5),
+                  expand = c(0,0)) +
+  scale_color_manual(values = c("sienna1")) +
+  labs(y = "Precipitation (in)", x = "") +
+  theme_minimal() +
+  theme(axis.title.y.right = element_text(hjust = 0),
+        legend.position = "bottom",
+        legend.justification = c(0.75, 0.5),
+        legend.title = element_blank())
+aligned_plots <- align_plots(p1, p2, align = "hv", axis = "tblr")
+out <- ggdraw(aligned_plots[[1]]) + draw_plot(aligned_plots[[2]])
+out
+  
+```
+
