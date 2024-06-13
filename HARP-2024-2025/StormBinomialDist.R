@@ -207,11 +207,53 @@ return(out)
 
   
 # create plot for binomial distribution
-plot(stormdat$flow,dbinom(stormdat$flow,
-                          size=500,
-                          prob=0.3),
-     type="h",
-     xlim = c(1,500))
+# binomial dist plot for flow from stormdat (USGS)
+plot(stormdat$flow,dbinom(stormdat$flow,size=500,prob=0.3),type="h",xlim = c(1,500))
+#compare to PRISM data
+#Load data from Baseflowsummary.RMD
+startDate <- min(stormdat$timestamp)
+endDate <- max(stormdat$timestamp)
+
+prism_data <- read.csv("http://deq1.bse.vt.edu:81/files/met/usgs_ws_01634000-prism-2022-2023.csv")
+prism_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(prism_data$obs_date)), 
+                                                month(as.Date(prism_data$obs_date)), 
+                                                day(as.Date(prism_data$obs_date)), 
+                                                week(as.Date(prism_data$obs_date)))
+plot(stormdat$timestamp,stormdat$flow)
+
+#prism_range <- sqldf('select * from prism_data where obs_date between startDate and endDate')
+
+prism_range <- subset(prism_data, obs_date>startDate & obs_date<endDate)
+
+plot(day(prism_range$obs_date),prism_range$precip_mm)
+
+# linear models for both
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
