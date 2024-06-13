@@ -169,7 +169,7 @@ timeIn <- timeIn[seqdex]
     transients$durF[i] <- length(rising$timestamp)
     #Finds duration of the falling limb
     transients$durR[i] <- length(falling$timestamp)
-    
+  
     #Plot the storm and the fitted rising and falling limbs and store them in
     #designated path. Include the baseflow and and the baseline flow brk
       #Set plot output path and dimensions
