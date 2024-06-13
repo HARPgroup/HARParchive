@@ -204,7 +204,7 @@ timeIn <- timeIn[seqdex]
   #rm(maxtime,storm,rising,falling,modelR,modelF,i,ext,fxn_locations)
   out <- list(Storms=stormsep,Stats=transients)
 return(out)
-
+}
   
 # create plot for binomial distribution
 # binomial dist plot for flow from stormdat (USGS)
@@ -227,15 +227,55 @@ prism_range <- subset(prism_data, obs_date>startDate & obs_date<endDate)
 
 plot(day(prism_range$obs_date),prism_range$precip_mm)
 
-# linear models for both
+# Regression models for both
+
+# model for PRISM data
+pplot <- ggplot(data =prism_range,
+                mapping = aes(x=da,
+                              y=precip_mm))+
+  cowplot::theme_cowplot()+
+  geom_point()+
+  xlab("Date")+
+  ylab("Precip (mm)")+
+  geom_smooth(method = "lm",
+              formula = y ~splines::bs(x,degree=4,df=4), 
+              se=FALSE)+
+  labs(title = "PRISM Model")+
+  theme(plot.title = element_text(hjust=0.5))
+pplot
+
+# model for USGS data
+uplot <- ggplot(data=stormdat,
+                mapping = aes(x=timestamp,
+                              y=flow))+
+  cowplot::theme_cowplot()+
+  geom_point()+
+  xlab("Date")+
+  ylab("Flow (cfs)")+
+  geom_smooth(method = "lm",
+              formula = y ~ splines::bs(x,degree=4,df=4), 
+              se=FALSE)+
+  labs(title = "USGS Model")+
+  theme(plot.title = element_text(hjust=0.5))
+uplot
+
+# define number of storms (lambda)
+
+plambda <- as.numeric(length(stormsep))
 
 
+# poisson of storms 
+# probability that more than 5 storms will occur over 2 years
+ppois(5,plambda,lower.tail = FALSE)
+# probability that less than 8 storms will occur over 2 years
+ppois(8,plambda,lower.tail = TRUE)
 
+# Using r pois to plot ... over 40 years (20 periods)
 
+randStorm <- data.frame('data'=rpois(20,plambda))
 
-
-
-
+randStorm |> ggplot()+
+  
 
 
 
