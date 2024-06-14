@@ -176,3 +176,44 @@ mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((co
 summary(mod_prism_mon_nz_ndd)
 plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
 
+#The correlations above are decent. Let's see what the relationship looks like
+#across all months of the year
+# do all months and assemble a barplot of R^2
+plotBin <- R6Class(
+  "plotBin", 
+  public = list(
+    plot = NULL, data=list(), atts=list(),
+    initialize = function(plot = NULL, data = list()){ 
+      self.plot = plot; self.data=data; 
+    }
+  )
+)
+# Week
+mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
+  plot_out <- plotBin$new(data = sample_data)
+  nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+  for (i in 1:12) {
+    mo_data=week_data[which((sample_data[,mo_var] == i)),]
+    weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
+    dsum <- summary(weekmo_data)
+    nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
+  }
+  plot_out$atts[['stats']] <- nwd_stats
+  barplot(
+    nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
+    ylim=c(0,1.0),
+    main=paste("lm(Q ~ P), monthly,",data_name)
+  )
+  plot_out$plot <- recordPlot()
+  return(plot_out)
+}
+nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2")
+nldas2_lm$atts
+
+prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism")
+prism_lm$atts
+prism_lm$plot
+
+daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
+daymet_lm$atts
+daymet_lm$plot
