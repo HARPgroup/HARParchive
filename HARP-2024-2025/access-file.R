@@ -289,55 +289,46 @@ mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
 summary(mod_prism_mon_nz_ndd)
 plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
 
-
 #The correlations above are decent. Let's see what the relationship looks like
 #across all months of the year
-ndd_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
-for (i in 1:nrow(ndd_stats)) {
-  mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
-                             data = comp_data[which((comp_data$mo == i) & (comp_data$nextday_d_cfs > 0)),])
-  dsum <- summary(mod_prism_mon_nz_ndd)
-  ndd_stats$rsquared_a <- dsum$adj.r.squared
-}
-barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
-
-
-
+# do all months and assemble a barplot of R^2
+plotBin <- R6Class(
+  "plotBin", 
+  public = list(
+    plot = NULL, data=list(), atts=list(),
+    initialize = function(plot = NULL, data = list()){ 
+      self.plot = plot; self.data=data; 
+    }
+  )
+)
 # Week
-# do all months and assemble a barplot of R^2
-nwd_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
-for (i in 1:nrow(nwd_stats)) {
-  # Weekly d cfs vs P
-  mod_weekmo_prism_cfs <- lm(usgs_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i)),])
-  dsum <- summary(mod_weekmo_prism_cfs)
-  #plot(mod_weekmo_prism_cfs$model$usgs_cfs ~ mod_weekmo_prism_cfs$model$prism_p_cfs)
-  
-  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
-  #summary(mod_week_daymet_d_cfs)
-  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
-  
-  nwd_stats$rsquared_a <- dsum$adj.r.squared
+mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
+  plot_out <- plotBin$new(data = sample_data)
+  nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+  for (i in 1:12) {
+    mo_data=week_data[which((sample_data[,mo_var] == i)),]
+    weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
+    dsum <- summary(weekmo_data)
+    nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
+  }
+  plot_out$atts[['stats']] <- nwd_stats
+  barplot(
+    nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
+    ylim=c(0,1.0),
+    main=paste("lm(Q ~ P), monthly,",data_name)
+  )
+  plot_out$plot <- recordPlot()
+  return(plot_out)
 }
-barplot(nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
-        main=paste(gage_info$station_nm ), ylim=c(0,1.0))
+nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2")
+nldas2_lm$atts
+nldas2_lm$plot
 
+prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism")
+prism_lm$atts
+prism_lm$plot
 
-
-# NLDAS2
-# do all months and assemble a barplot of R^2
-nldaswk_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
-for (i in 1:12) {
-  # Weekly d cfs vs P
-  mod_weekmo_nldas2_cfs <- lm(usgs_cfs ~ nldas2_p_cfs,
-                              data=week_data[which((week_data$mo == i)),])
-  dsum <- summary(mod_weekmo_nldas2_cfs)
-  #plot(mod_weekmo_nldas2_cfs$model$usgs_cfs ~ mod_weekmo_nldas2_cfs$model$nldas2_p_cfs)
-  
-  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
-  #summary(mod_week_daymet_d_cfs)
-  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
-  nldaswk_stats$rsquared_a <- dsum$adj.r.squared
-}
-barplot(nldaswk_stats$dsum.adj.r.squared ~ nldaswk_stats$i,
-        main=paste(gage_info$station_nm ), ylim=c(0,1.0))
+daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
+daymet_lm$atts
+daymet_lm$plot
 
