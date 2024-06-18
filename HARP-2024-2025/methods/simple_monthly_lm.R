@@ -97,92 +97,12 @@ week_data <- sqldf(
 )
 week_data$mo <- month(week_data$week_begin)
 
-mod_prism <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data)
-summary(mod_prism)
-
-mod_daymet <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data)
-summary(mod_daymet)
-# Weekly cfs vs P
-mod_week_prism <- lm(usgs_cfs ~ prism_p_cfs, data=week_data)
-summary(mod_week_prism)
-plot(mod_week_prism$model$usgs_cfs ~ mod_week_prism$model$prism_p_cfs)
-mod_week_daymet <- lm(usgs_cfs ~ daymet_p_cfs, data=week_data)
-summary(mod_week_daymet)
-plot(mod_week_daymet$model$usgs_cfs ~ mod_week_daymet$model$daymet_p_cfs)
-
-
-# January only
-# PRISM
-mod_prism_jan <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
-summary(mod_prism_jan)
-# daymet
-mod_daymet_jan <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data[which(comp_data$mo == 1),])
-summary(mod_daymet_jan)
-plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs)
-
-# January, next day flow todays precip
-mod_prism_jan_nd <- lm(nextday_usgs_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
-summary(mod_prism_jan_nd)
-
-# next day change in flow versus todays P
-mod_prism_jan_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
-summary(mod_prism_jan_ndd)
-plot(mod_prism_jan_ndd$model$nextday_d_cfs ~ mod_prism_jan_ndd$model$prism_p_cfs)
-mod_prism_jan_ndd$model
-# next day change in flow versus todays P daymet
-mod_daymet_jan_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, data=comp_data[which(comp_data$mo == 1),])
-summary(mod_daymet_jan_ndd)
-plot(mod_daymet_jan_ndd$model$nextday_d_cfs ~ mod_daymet_jan_ndd$model$daymet_p_cfs)
-mod_daymet_jan_ndd$model
-
-# only compare against change in flows on the same day as non-zero rain
-# *** DAYMET
-mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
-summary(mod_daymet_jan_nz_ndd)
-plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
-mod_daymet_jan_nz_ndd$model
-# *** PRISM
-mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
-summary(mod_prism_jan_nz_ndd)
-plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
-mod_prism_jan_nz_ndd$model
-
-# only compare against change in flows on the day after it rained
-# *** DAYMET
-mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
-summary(mod_daymet_jan_nz_ndd)
-plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
-mod_daymet_jan_nz_ndd$model
-# *** PRISM
-mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
-summary(mod_prism_jan_nz_ndd)
-plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
-mod_prism_jan_nz_ndd$model
-
-# only compare against change in flows on the day with increasing flow
-# *** DAYMET
-mod_daymet_jan_nz_cdd <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$nextday_d_cfs > 0)),])
-summary(mod_daymet_jan_nz_cdd)
-plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
-mod_daymet_jan_nz_ndd$model
-# *** PRISM
-mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
-summary(mod_prism_jan_nz_ndd)
-plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
-
-
-# *** PRISM - demo february
-mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs, data=comp_data[which((comp_data$mo == 2) & (comp_data$nextday_d_cfs > 0)),])
-summary(mod_prism_mon_nz_ndd)
-plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
-
-#The correlations above are decent. Let's see what the relationship looks like
-#across all months of the year
+# across all months of the year
 # do all months and assemble a barplot of R^2
 plotBin <- R6Class(
   "plotBin", 
   public = list(
-    plot = NULL, data=list(), atts=list(),
+    plot = NULL, data=list(), atts=list(), r_col='',
     initialize = function(plot = NULL, data = list()){ 
       self.plot = plot; self.data=data; 
     }
@@ -198,12 +118,15 @@ mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
     dsum <- summary(weekmo_data)
     nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
   }
-  plot_out$atts[['stats']] <- nwd_stats
+  plot_out$atts$stats <- nwd_stats
   barplot(
     nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
     ylim=c(0,1.0),
     main=paste("lm(Q ~ P), monthly,",data_name)
   )
+  plot_out$r_col <- paste0('r_', data_name)
+  names(plot_out$atts$stats) <- c('mo', plot_out$r_col)
+  plot_out
   plot_out$plot <- recordPlot()
   return(plot_out)
 }
@@ -219,4 +142,73 @@ daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
 daymet_lm$atts
 daymet_lm$plot
 
-old_dayment_lm = daymet_lm
+all_stats <- cbind(nldas2_lm$atts$stats, prism_lm$atts$stats[,prism_lm$r_col], daymet_lm$atts$stats[,daymet_lm$r_col])
+names(all_stats) <- c('mo', 'r_nldas2', 'r_prism', 'r_daymet')
+all_ratings <- sqldf(
+  "select a.*, 
+   CASE
+     WHEN r_prism > r_nldas2 and r_prism > r_daymet THEN 'prism'
+     WHEN r_nldas2 > r_prism and r_nldas2 > r_daymet THEN 'nldas2'
+     WHEN r_daymet > r_nldas2 and r_daymet > r_prism THEN 'daymet'
+     ELSE 'nldas2'
+   END as best_method
+   from all_stats as a
+   order by mo
+  "
+)
+# assemble a list of the best datasource for this watershed, monthly
+# based on the best fit weekly lm()
+best_fit_catch <- sqldf(
+  "select a.yr, a.mo, a.da, a.wk, b.best_method,
+   CASE 
+     WHEN b.best_method = 'prism' THEN a.prism_p_in
+     WHEN b.best_method = 'daymet' THEN a.daymet_p_in
+     ELSE a.nldas2_p_in
+   END as precip_in
+   from comp_data as a
+   left outer join all_ratings as b
+   on (
+     a.mo = b.mo
+   )
+   order by a.yr, a.mo, a.da
+  "
+)
+
+week_best_fit_catch <- sqldf(
+  "select a.yr, a.mo, a.wk, b.best_method,
+   CASE 
+     WHEN b.best_method = 'prism' THEN a.prism_p_in
+     WHEN b.best_method = 'daymet' THEN a.daymet_p_in
+     ELSE a.nldas2_p_in
+   END as precip_in
+   from week_data as a
+   left outer join all_ratings as b
+   on (
+     a.mo = b.mo
+   )
+   where a.nldas2_p_in is not NULL
+   order by a.yr, a.mo, a.wk
+  "
+)
+write.table(
+  week_best_fit_catch, 
+  paste0(export_path,"/met_weekly_ratings_", gageid, ".csv"), 
+  row.names = FALSE,
+  sep=","
+)
+
+# Now, best_fit_catch has all daily records with an indication of best fit dataset
+# How to regenerate?
+# Maybe we generate a landseg dataset for prism and daymet, 
+# using various disaggregation methods (daily to hourly)
+# then, we can just load all three datasets, and 
+
+
+# How to use SQL in R in a more flexible way than sqldf will permit
+# https://dbi.r-dbi.org/reference/dbAppendTable.html
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+dbCreateTable(con, "dh_timeseries", ds$tsvalues)
+dbWriteTable(con, "dh_timeseries", ds$tsvalues, overwrite = TRUE)
+dbExecute(con, "insert into dh_timeseries(tid, tsvalue, featureid) values (2,4.5,10)")
+dbExecute(con, "select * from dh_timeseries")
+dbReadTable(con, "dh_timeseries")
