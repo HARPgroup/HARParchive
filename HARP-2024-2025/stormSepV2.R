@@ -22,7 +22,8 @@
 # horizontal line regression of baseflow and breaks it down based on all time,
 # water year, calendar year, or month based on user selection
 stormSeparate <- function(timeIn, inflow, 
-                          plt = F,path = paste0(getwd(),"/"),
+                          plt = F,
+                          path = paste0(getwd(),"/"),
                           allMinimaStorms = FALSE,
                           baselineFlowOption = "All"
 ){
@@ -153,6 +154,24 @@ stormSeparate <- function(timeIn, inflow,
       #Store results
       brk[baseQ$Year == i] <- brki
     }
+  }else if(baselineFlowOption == "Month"){
+    #Make dates of the input timesteps:
+    dataDates <- as.Date(timeIn)
+    
+    #Create a vector of the months and years, essentially getting a vector of
+    #all months in the timeIn vector
+    monthYears <- format(dataDates,"%m-%Y")
+    
+    #Create an empty vector the length of the baseQ data frame
+    brk <- numeric(nrow(baseQ))
+    for (i in unique(monthYears)){
+      baseQsubset <- baseQ[monthYears == i,]
+      #Use the subset of the baseflow dataset to get baseline flow, brk
+      brki <- hreg(baseQsubset$baseQ,limit = 1)
+      brki <- brki * 1.1
+      #Store results
+      brk[monthYears == i] <- brki
+    }
   }
   #Add baseline flow to baseQ
   baseQ$baselineQ <- brk
@@ -164,7 +183,7 @@ stormSeparate <- function(timeIn, inflow,
   # plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
   # lines(timeIn[seqdex],brk[seqdex],col = "blue",lwd = 2)
   # lines(baseQ$timestamp[seqdex],baseQ$baseQ[seqdex],col = "red",lwd = 2)
-  
+  # 
   #Next step is to isolate storms. This can be accomplished by taking a minimum
   #and the next point to fall below baseline flow, brk. Each storm is checked to
   #ensure a maximum above some reference level, here 1.5*brk. This eliminates
@@ -198,22 +217,64 @@ stormSeparate <- function(timeIn, inflow,
   stormsep <- list()
   
   for (i in 1:(length(x) - 1)){
+    # if(i==73){browser()}
     endIndex <- 1
     #Initial guess at storm endpoints e.g. two local minimums
     storm <- c(x[i], x[i + endIndex])
     #initial stormflows and the times associated with those flows:
-    stormflow <- inflow[timeIn >= x[i] & timeIn <= x[i + endIndex]]
+    stormflow <- inflow[timeIn >= storm[1] & timeIn <= storm[2]]
+    
+    #When using allMinimaStorms, some minima may be combined. Skip loops that
+    #feature combined storms. So, if at frist storm and nextStorm are January
+    #1st - Jan 10 and Jan 10 - Jan 12, but these are combined into one (Jan 1 -
+    #Jan 12), then we can skip the loop of Jan 10 - Jan 12. First, make sure
+    #there is a storm in stormsep and that this is not the first loop i.e. i !=
+    #1
+    if(i > 1 && length(stormsep) > 0){
+      #Get the previous storm
+      prevStorm <- stormsep[[length(stormsep)]]
+      #Remove the NAs so we only have the timestamps associated with the current
+      #storm
+      prevStorm <- prevStorm[!is.na(prevStorm$flow),]
+      #If the end point of the storm is in the previous storm, skip this
+      #iteration. This storm has already been accounted for.
+      if(storm[2] %in% prevStorm$timestamp){
+        #Skip to next iteration of for loop:
+        next
+      }
+    }
+    
     #If the second minimum flow is practically equal to the next local maximum,
-    #combine with the next storm as there. But only do this if allMinimaStorms
-    #is TRUE since otherwise baselineflow is the cut-off.
-    if(allMinimaStorms){
-      while(!is.na(inflow[i + (endIndex + 1)]) & 
-            stormflow[length(stormflow)] == inflow[i + (endIndex + 1)]){
+    #combine with the next storm as they are likely of the same storm (of
+    #course, this assumes that the timestamps match up which they should in the
+    #current set-up regardless of allMinimaStorms). But only do this if
+    #allMinimaStorms is TRUE since otherwise baselineflow is the cut-off.
+    if(allMinimaStorms & !is.na(x[i + 1 + endIndex])){
+      #Initial guess at storm endpoints e.g. two local minimums
+      nextStorm <- c(x[i + 1], x[i + 1 + endIndex])
+      #initial stormflows and the times associated with those flows:
+      nextStormflow <- inflow[timeIn >= nextStorm[1] & timeIn <= nextStorm[2]]
+      #What is the maximum of this storm event?
+      nextMaxStormFlow <- max(nextStormflow)
+      
+      while(!is.na(nextMaxStormFlow) & 
+            stormflow[length(stormflow)] >= 0.8 * nextMaxStormFlow){
         endIndex <- endIndex + 1
         #Initial guess at storm endpoints e.g. two local minimums
         storm <- c(x[i], x[i + endIndex])
         #initial stormflows and the times associated with those flows:
         stormflow <- inflow[timeIn >= x[i] & timeIn <= x[i + endIndex]]
+        
+        if(!is.na(x[i + 1 + endIndex])){
+          #Initial guess at storm endpoints e.g. two local minimums
+          nextStorm <- c(x[i + endIndex], x[i + 1 + endIndex])
+          #initial stormflows and the times associated with those flows:
+          nextStormflow <- inflow[timeIn >= nextStorm[1] & timeIn <= nextStorm[2]]
+          #What is the maximum of this storm event?
+          nextMaxStormFlow <- max(nextStormflow)
+        }else{
+          nextMaxStormFlow <- NA
+        }
       }
     }
     
