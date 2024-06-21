@@ -30,6 +30,7 @@ stormSeparate <- function(timeIn, inflow,
   #Call packages required by function if not called already:
   require(grwat)
   require(zoo)
+  require(sqldf)
   
   #First, get baseflow associated with inflow. Use defaults of grwat for now
   #which involves three passes and the Lyne-Hollick (1979) hydrograph separation
@@ -315,7 +316,7 @@ stormSeparate <- function(timeIn, inflow,
                      store$timestamp <= storm[2]] <- stormdat$baselineQ
     
     #If maximum exceeds limit, add it to the stormsep list:
-    if(any(store$flow > (1.25 * store$baselineflow),na.rm = TRUE)){
+    if(any(store$flow > (2.0 * store$baselineflow),na.rm = TRUE)){
       stormsep[[length(stormsep) + 1]] <- store
     }
   }
@@ -401,7 +402,8 @@ stormSeparate <- function(timeIn, inflow,
 }
 
 outTest <- stormSeparate(timeIn, inflow,
-                         plt = T,path = paste0(getwd(),"/"),
+                         plt = TRUE,path = paste0(getwd(),"/"),
                          allMinimaStorms = TRUE,
-                         baselineFlowOption = "Climate Year"
+                         baselineFlowOption = "Month"
 )
+length(outTest$Storms)
