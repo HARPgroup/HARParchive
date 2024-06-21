@@ -219,7 +219,7 @@ mod_daymet_jan <- lm(usgs_cfs ~ daymet_p_cfs_nextDay, data=comp_data[(comp_data$
 summary(mod_daymet_jan)
 #Plot the daily data for january and see how the flow relates to the summarized
 #precip data. This is equivalent to comp_data$usgs_cfs and comp_data$daymet_p_cfs
-plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs)
+plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs_nextDay)
 
 # January, next day flow todays precip
 mod_prism_jan_nd <- lm(nextday_usgs_cfs ~ prism_p_cfs,
@@ -401,3 +401,57 @@ plot(as.Date(comp_data$obs_date),
      col = "red",type = "l")
 lines(as.Date(comp_data$obs_date),
       comp_data$usgs_cfs)
+
+
+#Can we learn anything based on what stormSep gives us? e.g. the number of
+#storms that occur in a given week, month, day, etc.?
+#First, create a dataset where USGS flow is not NA
+stormCompData <- comp_data[!is.na(comp_data$usgs_cfs),]
+stormOut<- stormSeparate(as.Date(stormCompData$obs_date),
+                         inflow = stormCompData$usgs_cfs,
+                         plt = FALSE,allMinimaStorms = TRUE,
+                         baselineFlowOption = "Month")
+stormStats <- stormOut$Stats
+stormStats$Year_riseStart <- format(as.Date(stormStats$startDate),"%Y")
+stormStats$Month_riseStart <- format(as.Date(stormStats$startDate),"%m")
+stormStats$WeekYear_riseStart <- format(as.Date(stormStats$startDate),"%Y-%W")
+stormStats$Year_fallStart <- format(as.Date(stormStats$maxDate),"%Y")
+stormStats$Month_fallStart <- format(as.Date(stormStats$maxDate),"%m")
+stormStats$WeekYear_fallStart <- format(as.Date(stormStats$maxDate),"%Y-%W")
+
+#Data frame of all weeks:
+dateSeq <- seq.Date(min(as.Date(stormCompData$obs_date)),
+                    max(as.Date(stormCompData$obs_date)), by = 1)
+dateFrame <- data.frame(dateSeq,WeekYear = format(dateSeq,"%Y-%W"),
+                        MonthYear = format(dateSeq,"%Y-%M"))
+#Join in the volumes when the rise and fall occurs
+test <- sqldf("select dateFrame.*,
+      riseStats.volumeTotalMG_rise,
+      riseStats.volumeAboveBaseQMG_rise,
+      fallStats.volumeTotalMG_fall,
+      fallStats.volumeAboveBaseQMG_fall,
+      (riseStats.volumeTotalMG_rise + fallStats.volumeTotalMG_fall) AS volumeTotalMG
+      
+      FROM (SELECT distinct(WeekYear) FROM dateFrame) as dateFrame
+      
+      LEFT JOIN (
+      SELECT SUM(volumeTotalMG_rise) AS volumeTotalMG_rise,
+        SUM(volumeAboveBaseQMG_rise) AS volumeAboveBaseQMG_rise,
+        WeekYear_riseStart AS WeekYear
+      FROM stormStats
+      GROUP BY WeekYear
+      ) as riseStats
+      ON dateFrame.WeekYear = riseStats.WeekYear
+      
+      LEFT JOIN (
+      SELECT SUM(volumeTotalMG_fall) AS volumeTotalMG_fall,
+        SUM(volumeAboveBaseQMG_fall) AS volumeAboveBaseQMG_fall,
+        WeekYear_fallStart AS WeekYear
+      FROM stormStats
+      GROUP BY WeekYear
+      ) as fallStats
+      ON dateFrame.WeekYear = fallStats.WeekYear
+")
+
+
+stormCompData 

@@ -1,8 +1,8 @@
 # flowData <- dataRetrieval::readNWISdv("01613900",parameterCd = "00060")
-# inflow <- flowData$Flow
+# inflow <- flowData$X_00060_00003
 # timeIn <- as.Date(flowData$Date)
-# mindex <- which(timeIn == "2021-01-01")
-# maxdex <- which(timeIn == "2022-12-31")
+# mindex <- which(timeIn == "2019-01-01")
+# maxdex <- which(timeIn == "2021-12-31")
 # seqdex <- seq(mindex,maxdex)
 # inflow <- inflow[seqdex]
 # timeIn <- timeIn[seqdex]
@@ -307,12 +307,19 @@ stormSeparate <- function(timeIn, inflow,
   #0.0001 to all flow values. This WILL RESULT IN BIAS
   ext <- ".png"
   #Empty data frame to store statistics
-  transients <- data.frame(rising=numeric(length(stormsep)),
-                           RsqR = NA,falling = NA,RsqF = NA,
+  transients <- data.frame(startDate=character(length(stormsep)),
+                           endDate = NA, maxDate = NA,
+                           rising = NA, RsqR = NA, falling = NA, RsqF = NA,
                            durAll = NA,durF = NA,durR = NA,
                            volumeTotalMG = NA,
                            volumeAboveBaseQMG = NA,
-                           volumeAboveBaselineQMG = NA)
+                           volumeAboveBaselineQMG = NA,
+                           volumeTotalMG_rise = NA,
+                           volumeAboveBaseQMG_rise = NA,
+                           volumeAboveBaselineQMG_rise = NA,
+                           volumeTotalMG_fall = NA,
+                           volumeAboveBaseQMG_fall = NA,
+                           volumeAboveBaselineQMG_fall = NA)
   for (i in 1:length(stormsep)){
     #Find the storm of interest
     storm <- stormsep[[i]]
@@ -321,43 +328,79 @@ stormSeparate <- function(timeIn, inflow,
     #Look for where the max is
     maxtime <- storm[storm[,2] == max(storm[,2]),1][1]
     
+    #Store the start and end time of the storm
+    transients$startDate[i] <- format(storm$timestamp[1],"%Y-%m-%d")
+    transients$endDate[i] <- format(storm$timestamp[nrow(storm)],"%Y-%m-%d")
+    transients$maxDate[i] <- format(storm[storm[,2] == max(storm[,2]),1][1],"%Y-%m-%d")
+    
+    #Separate rising and falling limbs based on maxtime e.g. the rising limb is
+    #all values leading up to maxtime
+    rising <- storm[storm[,1] <= maxtime,]
+    falling <- storm[storm[,1] >= maxtime,]
+    
     #What is the volume of the storm streamflow i.e. total volume? First, get
     #the difference in timestamps throughout the storm from one time to the
     #next:
     timeDiff <- difftime(storm$timestamp[2:nrow(storm)], storm$timestamp[1:(nrow(storm) - 1)],
                          units = "secs")
     timeDiff <- as.numeric(timeDiff)
+    #Repeat for rising and falling limbs only:
+    #Rising:
+    timeDiff_rise <- difftime(rising$timestamp[2:nrow(rising)], rising$timestamp[1:(nrow(rising) - 1)],
+                         units = "secs")
+    timeDiff_rise <- as.numeric(timeDiff_rise)
+    #Falling:
+    timeDiff_fall <- difftime(falling$timestamp[2:nrow(falling)], falling$timestamp[1:(nrow(falling) - 1)],
+                         units = "secs")
+    timeDiff_fall <- as.numeric(timeDiff_fall)
     #Using a trapezoidal approach, get the area of each trapezoid to estimate
     #volume of the storm. Use three approaches. Total storm volume, volume above
     #baseflow, volume above baseline flow
     #Total storm flow:
-    trapz_total <- timeDiff * ((storm$flow[1:(nrow(storm) - 1)] + storm$flow[2:nrow(storm)]) / 2)
+    trapzArea <- function(timeDiff,stormFlow){
+      out <- timeDiff * ((stormFlow[1:(length(stormFlow) - 1)] + stormFlow[2:length(stormFlow)]) / 2)
+    }
+    trapz_total <- trapzArea(timeDiff,storm$flow)
     #Only flow above baseflow:
-    trapz_abovebaseQ <- timeDiff * (
-      ((storm$flow[1:(nrow(storm) - 1)] - storm$baseflow[1:(nrow(storm) - 1)]) + 
-         (storm$flow[2:nrow(storm)] - storm$baseflow[2:nrow(storm)])) / 2 
-    )
+    trapz_abovebaseQ <- trapzArea(timeDiff,(storm$flow - storm$baseflow))
     #Only flow above baseline flow. THIS CAN BE NEGATIVE AND THEREFORE
     #UNRELIABLE?:
-    trapz_abovebaselineQ <- timeDiff * (
-      ((storm$flow[1:(nrow(storm) - 1)] - storm$baselineflow[1:(nrow(storm) - 1)]) + 
-         (storm$flow[2:nrow(storm)] - storm$baselineflow[2:nrow(storm)])) / 2 
-    )
+    trapz_abovebaselineQ <- trapzArea(timeDiff,(storm$flow - storm$baselineflow))
+    
+    #Rising/falling storm flow:
+    trapz_total_rise <- trapzArea(timeDiff_rise,rising$flow)
+    trapz_total_fall <- trapzArea(timeDiff_fall,falling$flow)
+    #Only flow above baseflow:
+    trapz_abovebaseQ_rise <- trapzArea(timeDiff_rise,(rising$flow - rising$baseflow))
+    trapz_abovebaseQ_fall <- trapzArea(timeDiff_fall,(falling$flow - falling$baseflow))
+    #Only flow above baseline flow. THIS CAN BE NEGATIVE AND THEREFORE
+    #UNRELIABLE?:
+    trapz_abovebaselineQ_rise <- trapzArea(timeDiff_rise,(rising$flow - rising$baselineflow))
+    trapz_abovebaselineQ_fall <- trapzArea(timeDiff_fall,(falling$flow - falling$baselineflow))
     
     #Total volume is the sum of area of the trapezoids found above converted to
     #MG from CF (1 CF * 12^3 in^3/cf * 231 gal/in^3 * 1 MG/1000000 gal):
     volume_total <- sum(trapz_total) * 12 * 12 * 12 / 231 / 1000000
     volume_abovebaseQ <- sum(trapz_abovebaseQ) * 12 * 12 * 12 / 231 / 1000000
     volume_abovebaselineQ <- sum(trapz_abovebaselineQ) * 12 * 12 * 12 / 231 / 1000000
+    #Rising Limb
+    volume_total_rise <- sum(trapz_total_rise) * 12 * 12 * 12 / 231 / 1000000
+    volume_abovebaseQ_rise <- sum(trapz_abovebaseQ_rise) * 12 * 12 * 12 / 231 / 1000000
+    volume_abovebaselineQ_rise <- sum(trapz_abovebaselineQ_rise) * 12 * 12 * 12 / 231 / 1000000
+    #Falling limb:
+    volume_total_fall <- sum(trapz_total_fall) * 12 * 12 * 12 / 231 / 1000000
+    volume_abovebaseQ_fall <- sum(trapz_abovebaseQ_fall) * 12 * 12 * 12 / 231 / 1000000
+    volume_abovebaselineQ_fall <- sum(trapz_abovebaselineQ_fall) * 12 * 12 * 12 / 231 / 1000000
     #Store results:
     transients$volumeTotalMG[i] <- volume_total
     transients$volumeAboveBaseQMG[i] <- volume_abovebaseQ
     transients$volumeAboveBaselineQMG[i] <- volume_abovebaselineQ
-    
-    #Separate rising and falling limbs based on maxtime e.g. the rising limb is
-    #all values leading up to maxtime
-    rising <- storm[storm[,1] <= maxtime,]
-    falling <- storm[storm[,1] >= maxtime,]
+    transients$volumeTotalMG_rise[i] <- volume_total_rise
+    transients$volumeAboveBaseQMG_rise[i] <- volume_abovebaseQ_rise
+    transients$volumeAboveBaselineQMG_rise[i] <- volume_abovebaselineQ_rise
+    transients$volumeTotalMG_fall[i] <- volume_total_fall
+    transients$volumeAboveBaseQMG_fall[i] <- volume_abovebaseQ_fall
+    transients$volumeAboveBaselineQMG_fall[i] <- volume_abovebaselineQ_fall
     
     #Create an exponential regression for the rising limb to roughly fit the
     #rising limb based on an "ideal" hydrograph
@@ -417,7 +460,7 @@ stormSeparate <- function(timeIn, inflow,
   return(out)
 }
 
-Below function hreg (horizontal regression) will try to fit mulitple
+#Below function hreg (horizontal regression) will try to fit mulitple
 #horizontal lines through subset of data involving every point below that line
 #until best fit is found. This becomes baseline flow, brk
 hreg <- function(x, limit = 1){
@@ -442,7 +485,7 @@ hreg <- function(x, limit = 1){
 }
 
 outTest <- stormSeparate(timeIn, inflow,
-                         plt = TRUE,path = paste0(getwd(),"/"),
+                         plt = FALSE,path = paste0(getwd(),"/"),
                          allMinimaStorms = TRUE,
                          baselineFlowOption = "Month"
 )
