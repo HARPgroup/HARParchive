@@ -1,4 +1,4 @@
-# flowData <- read.csv("sampleGageData.csv")
+# flowData <- dataRetrieval::readNWISdv("01613900",parameterCd = "00060")
 # inflow <- flowData$Flow
 # timeIn <- as.Date(flowData$Date)
 # mindex <- which(timeIn == "2021-01-01")
@@ -60,30 +60,9 @@ stormSeparate <- function(timeIn, inflow,
                       maxes = baseQ$flow[c(FALSE,maxes,FALSE)])
   
   #Need to find mins/maxes below baseline flow. But first baseline flow must be
-  #defined. Below function hreg (horizontal regression) will try to fit mulitple
-  #horizontal lines through subset of data involving every point below that line
-  #until best fit is found. This becomes baseline flow, brk
-  hreg <- function(x, limit = 1){
-    #What is the numeric percentile of x that is of percent limit?
-    lim <- as.numeric(quantile(x,limit))
-    #Give all of x below the percentile of limit:
-    x <- x[x <= lim]
-    #Get all percentiles of x from 0 to 100% by 0.001%:
-    lns <- as.numeric(quantile(x, seq(0,1,0.00001)))
-    #Keep only values above 0
-    lns <- lns[lns != 0]
-    #A vector for mean square error
-    mse <- numeric(length(lns))
-    #For each values in lns, determine the mean square error if this is a
-    #horizontal regression of the data in x
-    for (i in 1:length(lns)){
-      line <- lns[i]
-      mse[i] <- mean((x - line)^2)
-    }
-    #Return the percentile x that created the minimum least square error:
-    return(lns[which.min(mse)])
-  }
-  
+  #defined. hreg() will try to fit mulitple horizontal lines through subset of
+  #data involving every point below that line until best fit is found. This
+  #becomes baseline flow, brk
   #Find the break associated with this run and buffer by 10%. Based the hreg on
   #the timescale selected by the user
   # baselineFlowOption = One of c("Water Year","Month","Calendar Year","All")
@@ -329,7 +308,11 @@ stormSeparate <- function(timeIn, inflow,
   ext <- ".png"
   #Empty data frame to store statistics
   transients <- data.frame(rising=numeric(length(stormsep)),
-                           RsqR=NA,falling=NA,RsqF=NA,durAll=NA,durF=NA,durR=NA)
+                           RsqR = NA,falling = NA,RsqF = NA,
+                           durAll = NA,durF = NA,durR = NA,
+                           volumeTotalMG = NA,
+                           volumeAboveBaseQMG = NA,
+                           volumeAboveBaselineQMG = NA)
   for (i in 1:length(stormsep)){
     #Find the storm of interest
     storm <- stormsep[[i]]
@@ -337,6 +320,39 @@ stormSeparate <- function(timeIn, inflow,
     storm <- storm[!is.na(storm[,2]),]
     #Look for where the max is
     maxtime <- storm[storm[,2] == max(storm[,2]),1][1]
+    
+    #What is the volume of the storm streamflow i.e. total volume? First, get
+    #the difference in timestamps throughout the storm from one time to the
+    #next:
+    timeDiff <- difftime(storm$timestamp[2:nrow(storm)], storm$timestamp[1:(nrow(storm) - 1)],
+                         units = "secs")
+    timeDiff <- as.numeric(timeDiff)
+    #Using a trapezoidal approach, get the area of each trapezoid to estimate
+    #volume of the storm. Use three approaches. Total storm volume, volume above
+    #baseflow, volume above baseline flow
+    #Total storm flow:
+    trapz_total <- timeDiff * ((storm$flow[1:(nrow(storm) - 1)] + storm$flow[2:nrow(storm)]) / 2)
+    #Only flow above baseflow:
+    trapz_abovebaseQ <- timeDiff * (
+      ((storm$flow[1:(nrow(storm) - 1)] - storm$baseflow[1:(nrow(storm) - 1)]) + 
+         (storm$flow[2:nrow(storm)] - storm$baseflow[2:nrow(storm)])) / 2 
+    )
+    #Only flow above baseline flow. THIS CAN BE NEGATIVE AND THEREFORE
+    #UNRELIABLE?:
+    trapz_abovebaselineQ <- timeDiff * (
+      ((storm$flow[1:(nrow(storm) - 1)] - storm$baselineflow[1:(nrow(storm) - 1)]) + 
+         (storm$flow[2:nrow(storm)] - storm$baselineflow[2:nrow(storm)])) / 2 
+    )
+    
+    #Total volume is the sum of area of the trapezoids found above converted to
+    #MG from CF (1 CF * 12^3 in^3/cf * 231 gal/in^3 * 1 MG/1000000 gal):
+    volume_total <- sum(trapz_total) * 12 * 12 * 12 / 231 / 1000000
+    volume_abovebaseQ <- sum(trapz_abovebaseQ) * 12 * 12 * 12 / 231 / 1000000
+    volume_abovebaselineQ <- sum(trapz_abovebaselineQ) * 12 * 12 * 12 / 231 / 1000000
+    #Store results:
+    transients$volumeTotalMG[i] <- volume_total
+    transients$volumeAboveBaseQMG[i] <- volume_abovebaseQ
+    transients$volumeAboveBaselineQMG[i] <- volume_abovebaselineQ
     
     #Separate rising and falling limbs based on maxtime e.g. the rising limb is
     #all values leading up to maxtime
@@ -399,6 +415,30 @@ stormSeparate <- function(timeIn, inflow,
   #rm(maxtime,storm,rising,falling,modelR,modelF,i,ext,fxn_locations)
   out <- list(Storms=stormsep,Stats=transients)
   return(out)
+}
+
+Below function hreg (horizontal regression) will try to fit mulitple
+#horizontal lines through subset of data involving every point below that line
+#until best fit is found. This becomes baseline flow, brk
+hreg <- function(x, limit = 1){
+  #What is the numeric percentile of x that is of percent limit?
+  lim <- as.numeric(quantile(x,limit))
+  #Give all of x below the percentile of limit:
+  x <- x[x <= lim]
+  #Get all percentiles of x from 0 to 100% by 0.1%:
+  lns <- as.numeric(quantile(x, seq(0,1,0.001)))
+  #Keep only values above 0
+  lns <- lns[lns != 0]
+  #A vector for mean square error
+  mse <- numeric(length(lns))
+  #For each values in lns, determine the mean square error if this is a
+  #horizontal regression of the data in x
+  for (i in 1:length(lns)){
+    line <- lns[i]
+    mse[i] <- mean((x - line)^2)
+  }
+  #Return the percentile x that created the minimum least square error:
+  return(lns[which.min(mse)])
 }
 
 outTest <- stormSeparate(timeIn, inflow,
