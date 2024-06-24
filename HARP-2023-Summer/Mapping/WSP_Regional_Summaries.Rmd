@@ -81,6 +81,8 @@ show_map <- params$show_map
 ```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
+github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
+github_uri <- paste0(github_base_uri, "/HARParchive/master")
 if (!exists("HARParchive_location")){
   HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
   
@@ -546,7 +548,7 @@ ft1 #display flextable
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
-
+  map_objects = list()
   rivmapfilename <- character() #empty character var, not a list, to store map names
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
      
@@ -619,8 +621,8 @@ ft1 #display flextable
     ##Mapping function
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = rivmaptitle, mapnum=2, rseg_leg_title, map_server, base_layer, 
-                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style, styles)
-    
+                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style_set)
+    map_objects[[i]] <- map_rivseg
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
   
@@ -824,11 +826,14 @@ repeat above for localities
 #if there are any mapping errors or other messages to the user, output a separate file containing them
 allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
 allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
-
+#allmaps = map_objects
 maperrors <- data.frame(maptitle=character(0), errors=character(0), 
                         mapnum=character(0), var_name=character(0) )
 for(i in 1:length(allmaps)){
   if(!is.null(allmaps[[i]][["errors"]])){
+    if (is.null(allmaps[[i]][["mapnum"]])) {
+      allmaps[[i]][["mapnum"]] = 2
+    }
     maperrors <- rbind(maperrors,
                        data.frame(maptitle = allmaps[[i]][["labels"]][["title"]],
                                   errors = allmaps[[i]][["errors"]],
