@@ -452,6 +452,8 @@ test <- sqldf("select dateFrame.*,
       ) as fallStats
       ON dateFrame.WeekYear = fallStats.WeekYear
 ")
-
+#For each storm, sum precip leading up to it (past 3, 5, 7, and 14 days?). Go
+#through each storm and find the sum of precip of each dataset. Also find past
+#3, 5, 7, and 14 days from storm endpoint including its full duration?
 
 stormCompData 
