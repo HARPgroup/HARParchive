@@ -294,6 +294,8 @@ plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism
 #The correlations above are decent. Let's see what the relationship looks like
 #across all months of the year
 # do all months and assemble a barplot of R^2
+
+# create a class to hold both stats and the plot to make it easier to do comparisons later
 plotBin <- R6Class(
   "plotBin", 
   public = list(
@@ -322,6 +324,7 @@ mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
   plot_out$plot <- recordPlot()
   return(plot_out)
 }
+
 nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2")
 nldas2_lm$atts
 nldas2_lm$plot
@@ -329,6 +332,11 @@ nldas2_lm$plot
 prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism")
 prism_lm$atts
 prism_lm$plot
+
+
+daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
+daymet_lm$atts
+daymet_lm$plot
 
 # NLDAS2
 # do all months and assemble a barplot of R^2
