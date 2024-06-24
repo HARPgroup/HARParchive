@@ -176,13 +176,15 @@ summary(compareNextDayPRISM)$adj.r.squared
 plot(comp_data$daymet_p_cfs[1:(nrow(comp_data) - 1)] ~ 
        comp_data$prism_p_cfs[2:nrow(comp_data)])
 
+#Add a column with the offset daymet data
+comp_data$daymet_p_cfs_nextDay <- c(NA,comp_data$daymet_p_cfs[1:(nrow(comp_data) - 1)])
 
 #Create a simple linear regression of flow and precip with flow as the dependent
 #variable to test if there is a clear and easy relationship between flow and
 #precip. Using the formula notation "~" we can specify the regression as
 #dependent ~ independent variable as long as the data option is specified in the
 #function
-mod_prism <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data)
+mod_prism <- lm(usgs_cfs ~ prism_p_cfs, data = comp_data)
 #Look at the regression paramters. Identify how well the regression performed
 #(spoiler alert, it performed poorly, which makes sense given time of travel and
 #abstraction/storage. We wouldn't want it to be easy!)
@@ -190,7 +192,7 @@ summary(mod_prism)
 
 #Repeated for daymet, running the linear regression between the USGS data and
 #daymet
-mod_daymet <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data)
+mod_daymet <- lm(usgs_cfs ~ daymet_p_cfs, data = comp_data)
 #Evaluate the performance of the regression
 summary(mod_daymet)
 
@@ -210,10 +212,10 @@ plot(mod_week_daymet$model$usgs_cfs ~ mod_week_daymet$model$daymet_p_cfs)
 # Let's repeat the regression anlysis now for ONLY January, which tends to be a
 # wetter month. We start with the daily data. For PRISM:
 # PRISM
-mod_prism_jan <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+mod_prism_jan <- lm(usgs_cfs ~ prism_p_cfs, data=comp_data[(comp_data$mo == 1),])
 summary(mod_prism_jan)
 # daymet
-mod_daymet_jan <- lm(usgs_cfs ~ daymet_p_cfs, data=comp_data[which(comp_data$mo == 1),])
+mod_daymet_jan <- lm(usgs_cfs ~ daymet_p_cfs_nextDay, data=comp_data[(comp_data$mo == 1),])
 summary(mod_daymet_jan)
 #Plot the daily data for january and see how the flow relates to the summarized
 #precip data. This is equivalent to comp_data$usgs_cfs and comp_data$daymet_p_cfs
@@ -221,19 +223,19 @@ plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs)
 
 # January, next day flow todays precip
 mod_prism_jan_nd <- lm(nextday_usgs_cfs ~ prism_p_cfs,
-                       data=comp_data[which(comp_data$mo == 1),])
+                       data=comp_data[(comp_data$mo == 1),])
 summary(mod_prism_jan_nd)
 
 #Repeat regression, but now compare the CHANGE in flow between today and
 #tomorrow with TODAYs precipitation. Again, we stick with just January for now.
 mod_prism_jan_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
-                        data=comp_data[which(comp_data$mo == 1),])
+                        data=comp_data[(comp_data$mo == 1),])
 summary(mod_prism_jan_ndd)
 plot(mod_prism_jan_ndd$model$nextday_d_cfs ~ mod_prism_jan_ndd$model$prism_p_cfs)
 
 # Repeat the above analysis for daymet e.g. the CHANGE in flow b/t today and
 # tomorrow and TODAY's daymet precipitation
-mod_daymet_jan_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs,
+mod_daymet_jan_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs_nextDay,
                          data=comp_data[which(comp_data$mo == 1),])
 summary(mod_daymet_jan_ndd)
 plot(mod_daymet_jan_ndd$model$nextday_d_cfs ~ mod_daymet_jan_ndd$model$daymet_p_cfs)
@@ -242,8 +244,8 @@ plot(mod_daymet_jan_ndd$model$nextday_d_cfs ~ mod_daymet_jan_ndd$model$daymet_p_
 # So, repeat the analysis now only comparing against change in flows on the
 # same day as non-zero rain
 # *** DAYMET
-mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs,
-                            data = comp_data[which((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
+mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs_nextDay,
+                            data = comp_data[((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
 summary(mod_daymet_jan_nz_ndd)
 plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
 # *** PRISM
@@ -256,13 +258,13 @@ plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism
 # precipitation. So, repeate the same ananlysis but now compare to nextday flow
 # difference
 # *** DAYMET
-mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, 
-                            data = comp_data[which((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
+mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs_nextDay, 
+                            data = comp_data[((comp_data$mo == 1) & (comp_data$daymet_p_cfs > 0)),])
 summary(mod_daymet_jan_nz_ndd)
 plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
 # *** PRISM
 mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
-                           data = comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
+                           data = comp_data[((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
 summary(mod_prism_jan_nz_ndd)
 plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
 
@@ -270,13 +272,13 @@ plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism
 # precipitation. But, this time only look for days where there is some change in
 # flow
 # *** DAYMET
-mod_daymet_jan_nz_cdd <- lm(usgs_cfs ~ daymet_p_cfs,
-                            data = comp_data[which((comp_data$mo == 1) & (comp_data$nextday_d_cfs > 0)),])
+mod_daymet_jan_nz_cdd <- lm(nextday_d_cfs ~ daymet_p_cfs_nextDay,
+                            data = comp_data[((comp_data$mo == 1) & (comp_data$nextday_d_cfs > 0)),])
 summary(mod_daymet_jan_nz_cdd)
-plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs)
+plot(mod_daymet_jan_nz_ndd$model$nextday_d_cfs ~ mod_daymet_jan_nz_ndd$model$daymet_p_cfs_nextDay)
 # *** PRISM
 mod_prism_jan_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
-                           data = comp_data[which((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
+                           data = comp_data[((comp_data$mo == 1) & (comp_data$prism_p_cfs > 0)),])
 summary(mod_prism_jan_nz_ndd)
 plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
 
@@ -292,6 +294,7 @@ plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism
 #The correlations above are decent. Let's see what the relationship looks like
 #across all months of the year
 # do all months and assemble a barplot of R^2
+
 # create a class to hold both stats and the plot to make it easier to do comparisons later
 plotBin <- R6Class(
   "plotBin", 
@@ -330,6 +333,79 @@ prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism")
 prism_lm$atts
 prism_lm$plot
 
+
 daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
 daymet_lm$atts
 daymet_lm$plot
+
+# NLDAS2
+# do all months and assemble a barplot of R^2
+nldaswk_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
+for (i in 1:nrow(nldaswk_stats)) {
+  # Weekly d cfs vs P
+  mod_weekmo_nldas2_cfs <- lm(usgs_cfs ~ nldas2_p_cfs,
+                              data=week_data[which((week_data$mo == i)),])
+  dsum <- summary(mod_weekmo_nldas2_cfs)
+  #plot(mod_weekmo_nldas2_cfs$model$usgs_cfs ~ mod_weekmo_nldas2_cfs$model$nldas2_p_cfs)
+  
+  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
+  #summary(mod_week_daymet_d_cfs)
+  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
+  nldaswk_stats$rsquared_a[i] <- dsum$adj.r.squared
+}
+barplot(nldaswk_stats$dsum.adj.r.squared ~ nldaswk_stats$i,
+        main=paste(gage_info$station_nm ), ylim=c(0,1.0))
+daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
+daymet_lm$atts
+daymet_lm$plot
+
+
+#Binomial = Based on x, did Y occur? Looking at weekly rainfall totals, did a
+#storm hydrograph occur? 
+#Poisson = Counts. Based on x, how many times did Y occur? Looking at weekly
+#rainfall totals, how many storms should we have expected to see?
+
+#Are rollowing rainfall sums relevant to this analysis?
+comp_data$rollingSumDaymet <- c(NA,NA,rollapply(comp_data$daymet_p_cfs_nextDay,3,sum,
+                                        align = "left"))
+comp_data$rollingSumPRISM <- c(NA,NA,rollapply(comp_data$prism_p_cfs,3,sum,
+                                          align = "left"))
+comp_data$rollingSumUSGS_prev <- c(NA,NA,rollapply(comp_data$usgs_cfs,3,sum,
+                                         align = "left"))
+comp_data$rollingSumUSGS_next <- c(rollapply(comp_data$usgs_cfs,3,sum,
+                                                   align = "left"),NA,NA)
+rollModelPRISM <- lm(usgs_cfs ~ rollingSumPRISM,data = comp_data)
+summary(rollModelPRISM)
+plot(log10(rollModelPRISM$model))
+#Nope, not really. Maybe only at higher flows, which is when we'd expect
+#correlation. Correlation is improved for next day flow however. What if we look
+#at rolling vs rolling?
+rollModel <- lm(rollingSumUSGS_prev ~ rollingSumPRISM,data = comp_data)
+summary(rollModel)
+
+#What if we increase the rolling duration? At what point do we produce a maximum
+#correlation? We would assume this increases with rolling time period
+rsq <- numeric(180)
+rsq_winter <- numeric(180)
+for(i in 1:180){
+  testData <- comp_data
+  testData$rollingSumPRISM <- c(rep(NA,(i - 1)),rollapply(testData$prism_p_cfs,i,sum,
+                                                 align = "left"))
+  testData$rollingSumUSGS_prev <- c(rep(NA,(i - 1)),rollapply(testData$usgs_cfs,i,sum,
+                                                     align = "left"))
+  rollModeli <- lm(rollingSumUSGS_prev ~ rollingSumPRISM,data = testData)
+  rsq[i] <- summary(rollModeli)$adj.r.squared
+  
+  rollModel_winteri <- lm(rollingSumUSGS_prev ~ rollingSumPRISM,data = testData[testData$mo %in% c(11,12,1,2,3),])
+  rsq_winter[i] <- summary(rollModel_winteri)$adj.r.squared
+}
+
+plot(rsq_winter)
+points(rsq_winter,col = "blue")
+
+
+plot(as.Date(comp_data$obs_date),
+     comp_data$prism_p_cfs,
+     col = "red",type = "l")
+lines(as.Date(comp_data$obs_date),
+      comp_data$usgs_cfs)
