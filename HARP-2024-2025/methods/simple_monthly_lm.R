@@ -132,12 +132,12 @@ mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name, label_name){
   return(plot_out)
 }
 nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2", gageid)
-nldas2_lm$atts
 nldas2_lm$plot
 
 prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism", gageid)
-prism_lm$atts
 prism_lm$plot
+# ex: show the July lm for prism
+summary(prism_lm$atts$lms[[7]])
 
 daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet", gageid)
 daymet_lm$atts
