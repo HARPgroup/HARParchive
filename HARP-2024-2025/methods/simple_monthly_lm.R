@@ -3,15 +3,15 @@ library("sqldf")
 library("dataRetrieval")
 library("lubridate")
 
-gageid = '01665500' # Culpepper 01667500, Strasburg 01634000, Ruckersville 01665500
+gageid = '02031000' # Culpepper 01667500, Strasburg 01634000, Ruckersville 01665500, Mechums 02031000
 hydrocode = paste0('usgs_ws_', gageid)
-prism_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/files/met/", hydrocode, "-prism-all.csv"))
+prism_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/PRISM/out/", hydrocode, "-PRISM-all.csv"))
 prism_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(prism_data$obs_date)), month(as.Date(prism_data$obs_date)), day(as.Date(prism_data$obs_date)), week(as.Date(prism_data$obs_date)) )
 
-daymet_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/files/met/", hydrocode, "-daymet-all.csv"))
+daymet_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/daymet/out/", hydrocode, "-daymet-all.csv"))
 daymet_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(daymet_data$obs_date)), month(as.Date(daymet_data$obs_date)), day(as.Date(daymet_data$obs_date)), week(as.Date(daymet_data$obs_date)) )
 
-nldas2_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/files/met/", hydrocode, "-nldas2-all.csv"))
+nldas2_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/out/", hydrocode, "-nldas2-all.csv"))
 nldas2_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(nldas2_data$obs_date)), month(as.Date(nldas2_data$obs_date)), day(as.Date(nldas2_data$obs_date)), week(as.Date(nldas2_data$obs_date)) )
 nldas2_data <- sqldf(
   "select featureid, min(obs_date) as obs_date, yr, mo, da, 
@@ -109,36 +109,37 @@ plotBin <- R6Class(
   )
 )
 # Week
-mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
+mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name, label_name){
   plot_out <- plotBin$new(data = sample_data)
+  plot_out$atts$lms <- list()
   nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
   for (i in 1:12) {
-    mo_data=week_data[which((sample_data[,mo_var] == i)),]
+    mo_data=sample_data[which((sample_data[,mo_var] == i)),]
     weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
+    plot_out$atts$lms[[i]] <- weekmo_data
     dsum <- summary(weekmo_data)
     nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
   }
   plot_out$atts$stats <- nwd_stats
-  barplot(
+  bp <- barplot(
     nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
     ylim=c(0,1.0),
-    main=paste("lm(Q ~ P), monthly,",data_name)
+    main=paste("lm(Q ~ P), monthly,",data_name,label_name)
   )
   plot_out$r_col <- paste0('r_', data_name)
   names(plot_out$atts$stats) <- c('mo', plot_out$r_col)
-  plot_out
   plot_out$plot <- recordPlot()
   return(plot_out)
 }
-nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2")
-nldas2_lm$atts
+nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2", gageid)
 nldas2_lm$plot
 
-prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism")
-prism_lm$atts
+prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism", gageid)
 prism_lm$plot
+# ex: show the July lm for prism
+summary(prism_lm$atts$lms[[7]])
 
-daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
+daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet", gageid)
 daymet_lm$atts
 daymet_lm$plot
 
