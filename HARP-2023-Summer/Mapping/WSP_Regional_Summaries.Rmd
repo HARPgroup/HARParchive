@@ -859,22 +859,27 @@ if(exists("messages")){
 }
 
 #output to .html:
-if(exists("tbl_maperrors") & exists("tbl_usermessages")){
-  save_as_html(
-    "Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
-    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
-  )
-}
-if(exists("tbl_maperrors") & !exists("tbl_usermessages")){
-  save_as_html(
-    "Errors With Mapping:" = tbl_maperrors,
-    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
-  )
-}
-if(!exists("tbl_maperrors") & exists("tbl_usermessages")){
-  save_as_html(
-    "Messages to User:" = tbl_usermessages,
-    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
-  )
+# test first, as some can't write these html tables without error
+btable <- flextable(as.data.frame(c(1,2,3)))
+twrite_test <- try(save_as_html(btable,path="test.html"), silent=TRUE)
+if (!class(twrite_test) == "try-error") {
+  if(exists("tbl_maperrors") & exists("tbl_usermessages")){
+    save_as_html(
+      "Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
+      path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+    )
+  }
+  if(exists("tbl_maperrors") & !exists("tbl_usermessages")){
+    save_as_html(
+      "Errors With Mapping:" = tbl_maperrors,
+      path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+    )
+  }
+  if(!exists("tbl_maperrors") & exists("tbl_usermessages")){
+    save_as_html(
+      "Messages to User:" = tbl_usermessages,
+      path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+    )
+  }
 }
 ```
