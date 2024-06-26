@@ -387,10 +387,10 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 # #example usage:
 # map_test <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1,
 #                   rseg_leg_title=NULL, map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)
-
-# map_rivseg4 <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-#                          maptitle = paste0(run_config$riverseg_metrics[[4]]$run_label, ", ", 
-#                                            paste0(run_config$riverseg_metrics[[4]]$metric)), 
+# 
+# map_rivseg4 <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type,
+#                          maptitle = paste0(run_config$riverseg_metrics[[4]]$run_label, ", ",
+#                                            paste0(run_config$riverseg_metrics[[4]]$metric)),
 #                          mapnum=2,
-#                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list), 
+#                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list),
 #                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)
