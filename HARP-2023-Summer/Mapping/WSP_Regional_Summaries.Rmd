@@ -81,11 +81,12 @@ show_map <- params$show_map
 ```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide'}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
+github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
+github_uri <- paste0(github_base_uri, "/HARParchive/master")
 if (!exists("HARParchive_location")){
   HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
   
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
-#source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R"))
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
@@ -251,8 +252,7 @@ if (show_map == TRUE) {
 ```{r Prep Text Labels, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 if (show_map == TRUE) {
   rm(maplabs)
-  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs),
-                          classes=c("county","city","road","nhd"))
+  maplabs <- fn_labelprep(data=list(counties, cities, roads, nhdlabs), classes=c("county","city","road","nhd"))
 }
 ```
 
@@ -361,23 +361,13 @@ if (show_map == TRUE) {
     maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     
 
-      #create map title by combining label and title
-      maptitle <- paste0(title_main, ", ", maplabel)
-  
-    #suppressWarnings(suppressMessages( 
-      #map <- fn_mapgen(mapnum = 1, style = styles[[map_style]], 
-      #            metric = featrs_file_map_bubble_column[i], segs = rsegs,
-      #            featr_type = featr_type, origin_type = origin_type, 
-      #            origin = origin, bbox = bbox,  
-      #            counties = counties, roads = roads, 
-      #            nhd = nhd, maplabs = maplabs, 
-      #            mp_layer = mp_layer, metric_unit = metric_unit, 
-      #            maptitle = maptitle)
-    #))
+    #create map title by combining label and title
+    maptitle <- paste0(title_main, ", ", maplabel)
+    map_style_set <- styles[[map_style]]
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server, map_layer, 
-                     maplabs, nhd, roads, rsegs, map_style, styles)
-                       
+                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server, base_layer, 
+                     maplabs, nhd, roads, rsegs, map_style_set)
+                    
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
   }
@@ -435,12 +425,18 @@ knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional insid
 #   message("The metric requested does not exist for this map.")
 #   message("Check your syntax/spelling. If correct, then this data has not been measured/modeled")
 # }
+
+messages <- data.frame(pertaining_to=character(0), message=character(0), 
+                        var_name=character(0) )
 if (mapMessage) {
-  messages <- data.frame(pertaining_to= "Map 1",
-                       message=paste0("The metric requested does not exist for this map.\nCheck your syntax/spelling. If correct, then this data has not been measured/modeled."),
+  messages <- rbind(messages,
+                    data.frame(pertaining_to= "Map 1",
+                              message=paste0("The metric requested does not exist for this map.\nCheck your syntax/spelling. If correct, then this data has not been measured/modeled."),
                        var_name= "mapMessage"
                        )
+                    )
 }
+
 ```
 
 ```{r Create Table 1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -543,15 +539,10 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 #   message("Missing column indicates the metric requested does not exist for this table")
 # }
 if (tableMessage) {
-  if(!exists("messages")){
-    messages <- data.frame(pertaining_to= "Table 1",
-                       message=paste0("Missing column indicates the metric requested does not exist for this table."), var_name= "tableMessage")
-  }else{
-    messages <- rbind(messages,
+ messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 1",
                        message=paste0("Missing column indicates the metric requested does not exist for this table."), var_name= "tableMessage")
                       )
-  }
 }
 
 ft1 #display flextable
@@ -563,7 +554,7 @@ ft1 #display flextable
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
-
+  map_objects = list()
   rivmapfilename <- character() #empty character var, not a list, to store map names
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
      
@@ -574,7 +565,7 @@ ft1 #display flextable
       display_column <- run_config$riverseg_metrics[[i]]$column_name
       display_title <- run_config$riverseg_metrics[[i]]$run_label
     
-     rseg_leg_title <- legend_titling(display_metric, runid_list)
+     # rseg_leg_title <- legend_titling(display_metric, runid_list)
 
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
@@ -634,20 +625,11 @@ ft1 #display flextable
     st_crs(rsegs_sf) <- crs_default
   
     ##Mapping function
-    #suppressWarnings(suppressMessages(
-      #map_rivseg <- fn_mapgen(mapnum = 2, style = styles[[map_style]], 
-      #                         metric = display_metric, segs = rsegs_sf,
-      #                         featr_type = featr_type, origin_type = origin_type, 
-      #                         origin = origin, bbox = bbox,  
-      #                         counties = counties, roads = roads, 
-      #                         nhd = nhd, maplabs = maplabs, 
-      #                         mp_layer = mp_layer, metric_unit = metric_unit, 
-      #                         maptitle = rivmaptitle) 
-    #))
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                       maptitle = rivmaptitle, mapnum=2, rseg_leg_title, map_server, map_layer, 
-                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style, styles)
-    
+                       maptitle = rivmaptitle, mapnum=2, #rseg_leg_title
+                       display_title, map_server, map_layer, 
+                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style_set)
+    map_objects[[i]] <- map_rivseg
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
   
@@ -659,8 +641,8 @@ ft1 #display flextable
       width = 25,
       height = 20)
      } else {
-    print("No map created for this metric")
-}
+      print("No map created for this metric")
+    }
   }
 ```
 
@@ -685,7 +667,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
   display_column <- run_config$riverseg_metrics[[k]]$column_name
   
   # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "facils_nogeom"
-
   if (exists(data_set)) {
     rseg_display <- get(data_set)
     
@@ -694,11 +675,14 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     #metrics, to be suppressed later?
     rseg_display$Metric <- display_metric 
+
     #assemble our table, with the columns in order defined by table_cols
     # cols present
     # Megan: can you insert into error messages if cols_present <> table_cols?
     cols_present <- table_cols[which(table_cols %in% names(rseg_display))]
+    message_nonexisting_cols <- any(table_cols %in% cols_present) # Megan: done!
     rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
+
     
     #na messages 
     
@@ -733,6 +717,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
   #metrics, to be suppressed later?
   rseg_display$Metric <- display_metric 
+
   #assemble our table, with the columns in order defined by table_cols
   rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
   
@@ -752,16 +737,15 @@ for (k in 1:length(run_config$riverseg_metrics)){
   #defining titles 
   rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   
-  #--this chunk is not in use at the moment, based on titles being done in config:
+  # this chunk is not in use at the moment, based on titles being done in config 
   if (display_metric=="l30_Qout"){
       rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
     } else if (display_metric=="l90_Qout"){
       rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering
+    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
   } else {
     message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
   }
-  #--
   }
 }
 ```
@@ -775,20 +759,19 @@ for (k in 1:length(run_config$riverseg_metrics)){
 #           likely meaning the metric requested is not modeled for this data
 #           or the segments are all tidal")
 # }
+if(message_nonexisting_cols){
+  messages <- rbind(messages,
+                      data.frame(pertaining_to= "Table 2",
+                       message=paste0("Not all of the requested columns could be found in the present data. Check mapstyle_config.R and Dataframe_Generator.R render"), var_name= "message_nonexisting_cols")
+                      )
+}
 if(tablemessage2){
-  if(!exists("messages")){
-    messages <- data.frame(pertaining_to= "Table 2", 
-                            message=paste0("A column in the table is completely NA values,
-                            likely meaning the metric requested is not modeled for this data,
-                            or the segments are all tidal."), var_name= "tablemessage2")
-  }else{
-    messages <- rbind(messages,
+  messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 2",
                        message=paste0("A column in the table is completely NA values, 
           likely meaning the metric requested is not modeled for this data,
           or the segments are all tidal."), var_name= "tablemessage2")
                       )
-  }
 }
 
 for (k in 1:length(rivseg_metric)){
@@ -854,11 +837,14 @@ repeat above for localities
 #if there are any mapping errors or other messages to the user, output a separate file containing them
 allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
 allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
-
+#allmaps = map_objects
 maperrors <- data.frame(maptitle=character(0), errors=character(0), 
                         mapnum=character(0), var_name=character(0) )
 for(i in 1:length(allmaps)){
   if(!is.null(allmaps[[i]][["errors"]])){
+    if (is.null(allmaps[[i]][["mapnum"]])) {
+      allmaps[[i]][["mapnum"]] = 2
+    }
     maperrors <- rbind(maperrors,
                        data.frame(maptitle = allmaps[[i]][["labels"]][["title"]],
                                   errors = allmaps[[i]][["errors"]],
@@ -869,37 +855,53 @@ for(i in 1:length(allmaps)){
   }
 }
 
-if(nrow(maperrors)!=0){
-  tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("maptitle","mapnum","var_name"),
-                          i = ~ duplicated(maperrors$var_name),
-                          value = as_paragraph('')
-                          )
-  tbl_maperrors <- set_table_properties(tbl_maperrors, layout = "autofit")
+if(nrow(maperrors)==0){
+  maperrors <- rbind(maperrors, data.frame(maptitle="none", errors="none", 
+                        mapnum="none", var_name="none"))
 }
+tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("maptitle","mapnum","var_name"),
+                        i = ~ duplicated(maperrors$var_name),
+                        value = as_paragraph('')
+                        )
+tbl_maperrors <- set_table_properties(tbl_maperrors, layout = "autofit")
+
 
 #other messages:
-if(exists("messages")){
-  tbl_usermessages <- flextable(messages)
-  tbl_usermessages <- set_table_properties(tbl_usermessages, layout = "autofit")
+if(nrow(messages)==0){
+  messages <- rbind(messages,
+                      data.frame(pertaining_to="none",
+                       message="none", var_name="none")
+                      )
 }
+tbl_usermessages <- flextable(messages)
+tbl_usermessages <- set_table_properties(tbl_usermessages, layout = "autofit")
 
 #output to .html:
-if(exists("tbl_maperrors") & exists("tbl_usermessages")){
-  save_as_html(
-    "Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
+save_as_html("Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
     path = paste0(export_path, origin, "_ErrorsAndMessages.html")
-  )
-}
-if(exists("tbl_maperrors") & !exists("tbl_usermessages")){
-  save_as_html(
-    "Errors With Mapping:" = tbl_maperrors,
-    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
-  )
-}
-if(!exists("tbl_maperrors") & exists("tbl_usermessages")){
-  save_as_html(
-    "Messages to User:" = tbl_usermessages,
-    path = paste0(export_path, origin, "_ErrorsAndMessages.html")
-  )
-}
+    )
+    
+# test first, as some can't write these html tables without error
+#btable <- flextable(as.data.frame(c(1,2,3)))
+#twrite_test <- try(save_as_html(btable,path="test.html"), silent=TRUE)
+#if (!class(twrite_test) == "try-error") {
+#  if(exists("tbl_maperrors") & exists("tbl_usermessages")){
+#    save_as_html(
+#      "Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
+#      path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+#    )
+#  }
+#  if(exists("tbl_maperrors") & !exists("tbl_usermessages")){
+#    save_as_html(
+#      "Errors With Mapping:" = tbl_maperrors,
+#      path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+#    )
+#  }
+#  if(!exists("tbl_maperrors") & exists("tbl_usermessages")){
+#    save_as_html(
+#      "Messages to User:" = tbl_usermessages,
+#      path = paste0(export_path, origin, "_ErrorsAndMessages.html")
+#    )
+#  }
+#}
 ```
