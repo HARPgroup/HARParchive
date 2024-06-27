@@ -6,7 +6,20 @@ basepath='/var/www/R'
 source('/var/www/R/config.R')
 
 #define sets to loop through
-region_set <- c("BigSandy_UpperTennessee_1", "BigSandy_UpperTennessee_2", "Chowan_1", "Chowan_2", "Eastern_Shore", "MiddleJames_1", "MiddleJames_2", "MiddleJames_3", "NewRiver_1", "NewRiver_2", "NorthernCoastalPlain_1", "NorthernCoastalPlain_2", "NorthernCoastalPlain_3", "NorthernPiedmont_1", "NorthernPiedmont_2", "NorthernVirginia", "Roanoke_1", "Roanoke_2", "Roanoke_3", "Shenandoah_1", "Shenandoah_2", "SoutheastVirginia", "UpperJames_1", "UpperJames_2", "York_James_1", "York_James_2")
+region_set <-
+  c(
+    "BigSandy_UpperTennessee_1", "BigSandy_UpperTennessee_2",
+    "Chowan_1", "Chowan_2", 
+    "Eastern_Shore",#ERRORS HERE!
+    "MiddleJames_1", "MiddleJames_2",
+    "MiddleJames_3",
+    "NewRiver_1", "NewRiver_2",
+    "NorthernCoastalPlain_1", "NorthernCoastalPlain_2",
+    "NorthernCoastalPlain_3", "NorthernPiedmont_1", "NorthernPiedmont_2",
+    "NorthernVirginia", "Roanoke_1", "Roanoke_2", "Roanoke_3",
+    "Shenandoah_1", "Shenandoah_2", "SoutheastVirginia",
+    "UpperJames_1", "UpperJames_2", "York_James_1", "York_James_2"
+  )
 
 #lg_all <- read.csv(paste0(github_location,"/Foundational_Data/data/foundation_dataset_mgy.csv"))
 #locality_set <- sqldf('SELECT fips_code FROM lg_all GROUP BY fips_code')

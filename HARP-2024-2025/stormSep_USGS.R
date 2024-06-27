@@ -456,7 +456,8 @@ stormSeparate <- function(timeIn, inflow,
     }
   }
   #rm(maxtime,storm,rising,falling,modelR,modelF,i,ext,fxn_locations)
-  out <- list(Storms=stormsep,Stats=transients)
+  out <- list(Storms = stormsep,Stats = transients,
+              flowData = baseQ)
   return(out)
 }
 
@@ -484,9 +485,12 @@ hreg <- function(x, limit = 1){
   return(lns[which.min(mse)])
 }
 
-outTest <- stormSeparate(timeIn, inflow,
-                         plt = FALSE,path = paste0(getwd(),"/"),
-                         allMinimaStorms = TRUE,
-                         baselineFlowOption = "Month"
-)
-length(outTest$Storms)
+pathOut <- paste0(path,"storm",i,ext)
+
+
+# outTest <- stormSeparate(timeIn, inflow,
+#                          plt = FALSE,path = paste0(getwd(),"/"),
+#                          allMinimaStorms = TRUE,
+#                          baselineFlowOption = "Month"
+# )
+# length(outTest$Storms)

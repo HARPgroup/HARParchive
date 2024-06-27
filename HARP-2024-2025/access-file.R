@@ -46,6 +46,7 @@ nldas2_data <- sqldf(
   "
 )
 
+
 # Get USGS gage data from NWIS, the USGS REST services. We pull this data using
 # the dataRetrieval R package which has extensive documentation on the options
 # therewithin. See https://waterdata.usgs.gov/blog/dataretrieval/. Below, we
@@ -102,6 +103,10 @@ comp_data <- sqldf(
 # please note we will often encourage the use of SQL as we assist in tasks. But
 # all code is acceptable if it is documented and works!
 comp_data$dataset_day <- index(comp_data) 
+
+#Add a column for the date since this is now daily data
+comp_data$date <- as.Date(comp_data$obs_date)
+
 #Here, we add in columns to represent tomorrow's flow and the change in flow
 #from today to yesterday and today and tomorrow. This give an indication of how
 #flow is changing. We can do so using R's indexing, simply calling the next rows
@@ -406,54 +411,199 @@ lines(as.Date(comp_data$obs_date),
 #Can we learn anything based on what stormSep gives us? e.g. the number of
 #storms that occur in a given week, month, day, etc.?
 #First, create a dataset where USGS flow is not NA
-stormCompData <- comp_data[!is.na(comp_data$usgs_cfs),]
-stormOut<- stormSeparate(as.Date(stormCompData$obs_date),
-                         inflow = stormCompData$usgs_cfs,
-                         plt = FALSE,allMinimaStorms = TRUE,
-                         baselineFlowOption = "Month")
-stormStats <- stormOut$Stats
-stormStats$Year_riseStart <- format(as.Date(stormStats$startDate),"%Y")
-stormStats$Month_riseStart <- format(as.Date(stormStats$startDate),"%m")
-stormStats$WeekYear_riseStart <- format(as.Date(stormStats$startDate),"%Y-%W")
-stormStats$Year_fallStart <- format(as.Date(stormStats$maxDate),"%Y")
-stormStats$Month_fallStart <- format(as.Date(stormStats$maxDate),"%m")
-stormStats$WeekYear_fallStart <- format(as.Date(stormStats$maxDate),"%Y-%W")
+source("C:/Users/gcw73279.COV/Desktop/gitBackups/OWS/HARParchive/HARP-2024-2025/stormSep_USGS.R")
 
-#Data frame of all weeks:
-dateSeq <- seq.Date(min(as.Date(stormCompData$obs_date)),
-                    max(as.Date(stormCompData$obs_date)), by = 1)
-dateFrame <- data.frame(dateSeq,WeekYear = format(dateSeq,"%Y-%W"),
-                        MonthYear = format(dateSeq,"%Y-%M"))
-#Join in the volumes when the rise and fall occurs
-test <- sqldf("select dateFrame.*,
-      riseStats.volumeTotalMG_rise,
-      riseStats.volumeAboveBaseQMG_rise,
-      fallStats.volumeTotalMG_fall,
-      fallStats.volumeAboveBaseQMG_fall,
-      (riseStats.volumeTotalMG_rise + fallStats.volumeTotalMG_fall) AS volumeTotalMG
-      
-      FROM (SELECT distinct(WeekYear) FROM dateFrame) as dateFrame
-      
-      LEFT JOIN (
-      SELECT SUM(volumeTotalMG_rise) AS volumeTotalMG_rise,
-        SUM(volumeAboveBaseQMG_rise) AS volumeAboveBaseQMG_rise,
-        WeekYear_riseStart AS WeekYear
-      FROM stormStats
-      GROUP BY WeekYear
-      ) as riseStats
-      ON dateFrame.WeekYear = riseStats.WeekYear
-      
-      LEFT JOIN (
-      SELECT SUM(volumeTotalMG_fall) AS volumeTotalMG_fall,
-        SUM(volumeAboveBaseQMG_fall) AS volumeAboveBaseQMG_fall,
-        WeekYear_fallStart AS WeekYear
-      FROM stormStats
-      GROUP BY WeekYear
-      ) as fallStats
-      ON dateFrame.WeekYear = fallStats.WeekYear
-")
+stormCompData <- comp_data[!is.na(comp_data$usgs_cfs),]
+stormOut <- stormSeparate(as.Date(stormCompData$obs_date),
+                         inflow = stormCompData$usgs_cfs,
+                         plt = TRUE,path = paste0(getwd(),"/StormPlots/"),
+                         allMinimaStorms = TRUE,
+                         baselineFlowOption = "Month")
+
 #For each storm, sum precip leading up to it (past 3, 5, 7, and 14 days?). Go
 #through each storm and find the sum of precip of each dataset. Also find past
-#3, 5, 7, and 14 days from storm endpoint including its full duration?
+#3, 5, 7, and 14 days from storm endpoint including its full duration? What
+#about stream length? What about DA or other NHDPLus factors? Can we get at
+#travel time and or lag? Land use?
+stormStats <- stormOut$Stats
+#Throw out any storms that have inconsistent durations compared to start and end
+#date. This can occur when a gage goes offline as StormSep doesn't check for
+#this
+stormStats <- stormStats[(as.Date(stormStats$endDate) - as.Date(stormStats$startDate) + 1) == stormStats$durAll,]
 
-stormCompData 
+#Get rolling sums of precip over 3, 5, 7 and 14 day periods:
+comp_data$roll3PRISM_cfs <- rollapply(comp_data$prism_p_cfs,3,sum,fill = NA,align = "right")
+comp_data$roll7PRISM_cfs <- rollapply(comp_data$prism_p_cfs,7,sum,fill = NA,align = "right")
+comp_data$roll14PRISM_cfs <- rollapply(comp_data$prism_p_cfs,14,sum,fill = NA,align = "right")
+
+#A function that gets precip from the rollingDur period but will include the
+#full stormDuration
+getRollPrecip <- function(comp_data,stormDuration,
+                          rollingDur,endDate,
+                          precipColName = "prism_p_cfs"){
+  #Convert input date to date, just in case
+  sDate <- as.Date(endDate)
+  #Get the index in comp_date df where the endDate occurs
+  dateIndex <- grep(endDate,comp_data$date)
+  #Get all values from the precipColName in comp_data for the target duration
+  #adjusted for the storm duration. So, if there is a five-day storm,
+  #stormDuration is 5. If we are interested in rolling 7-day precip prior to and
+  #throughout the storm, we'd want rollingDur = 7. So, we need dateIndex - 7 - 5
+  #The precip data is in:
+  precipData <- comp_data[,precipColName]
+  precipStorm <- precipData[(dateIndex - rollingDur - stormDuration + 2) : dateIndex]
+  #Return total precip. Adjust for NAs that may occur due to indexing numbers
+  #prior to start of comp_data
+  totalPrecip <- sum(precipStorm,na.rm = TRUE)
+  return(totalPrecip)
+}
+
+#Add to stormStats the sum of precipitation from the 3-, 7-, and 14-day periods
+#leading up to the storm and including the full storm duration. Convert to MG
+cfsToMGD <- 86400 * 12*12*12/231/1000000
+stormStats$roll1DayWStormPRISM_MG <- mapply(SIMPLIFY = TRUE, USE.NAMES = FALSE,
+                                            FUN = getRollPrecip, stormDuration = stormStats$durAll,
+                                            endDate = stormStats$endDate,
+                                            MoreArgs = list(comp_data = comp_data,rollingDur = 1,
+                                                            precipColName = "prism_p_cfs")
+)
+stormStats$roll1DayWStormPRISM_MG <- stormStats$roll1DayWStormPRISM_MG * cfsToMGD
+stormStats$roll3DayWStormPRISM_MG <- mapply(SIMPLIFY = TRUE, USE.NAMES = FALSE,
+                                            FUN = getRollPrecip, stormDuration = stormStats$durAll,
+                                            endDate = stormStats$endDate,
+                                            MoreArgs = list(comp_data = comp_data,rollingDur = 3,
+                                                            precipColName = "prism_p_cfs")
+)
+stormStats$roll3DayWStormPRISM_MG <- stormStats$roll3DayWStormPRISM_MG * cfsToMGD
+
+stormStats$roll7DayWStormPRISM_MG <- mapply(SIMPLIFY = TRUE, USE.NAMES = FALSE,
+                                            FUN = getRollPrecip, stormDuration = stormStats$durAll,
+                                            endDate = stormStats$endDate,
+                                            MoreArgs = list(comp_data = comp_data,rollingDur = 7,
+                                                            precipColName = "prism_p_cfs")
+)
+stormStats$roll7DayWStormPRISM_MG <- stormStats$roll7DayWStormPRISM_MG * cfsToMGD
+
+stormStats$roll14DayWStormPRISM_MG <- mapply(SIMPLIFY = TRUE, USE.NAMES = FALSE,
+                                             FUN = getRollPrecip, stormDuration = stormStats$durAll,
+                                             endDate = stormStats$endDate,
+                                             MoreArgs = list(comp_data = comp_data,rollingDur = 14,
+                                                             precipColName = "prism_p_cfs")
+)
+stormStats$roll14DayWStormPRISM_MG <- stormStats$roll14DayWStormPRISM_MG * cfsToMGD
+
+#Find the rolling 3-, 7-, and 14-day sum of precipitation that ends at the
+#beginning of each storm event. We can do this by finding the index in
+#comp_data$date that matches the dates in stormStats$startDate. This is
+#essentially a left_join by date
+stormStats$roll3DayPRISM_MG <- comp_data$roll3PRISM_cfs[match(stormStats$startDate,comp_data$date)]
+stormStats$roll7DayPRISM_MG <- comp_data$roll7PRISM_cfs[match(stormStats$startDate,comp_data$date)]
+stormStats$roll14DayPRISM_MG <- comp_data$roll14PRISM_cfs[match(stormStats$startDate,comp_data$date)]
+#Convert to MG
+stormStats$roll3DayPRISM_MG <- stormStats$roll3DayPRISM_MG * cfsToMGD 
+stormStats$roll7DayPRISM_MG <- stormStats$roll7DayPRISM_MG * cfsToMGD 
+stormStats$roll14DayPRISM_MG <- stormStats$roll14DayPRISM_MG * cfsToMGD
+
+#Plots of total storm volume to rolling 3-, 7-, 14-day periods with storm duration
+plot(stormStats$roll14DayWStormPRISM_MG,stormStats$volumeTotalMG,
+     log = "xy")
+plot(stormStats$roll7DayWStormPRISM_MG,stormStats$volumeTotalMG,
+     log = "xy")
+plot(stormStats$roll3DayWStormPRISM_MG,stormStats$volumeTotalMG,
+     log = "xy")
+#Plots of total storm volume above base Q to rolling 3-, 7-, 14-day periods with
+#storm duration
+plot(stormStats$roll14DayWStormPRISM_MG,stormStats$volumeAboveBaseQMG)
+plot(stormStats$roll7DayWStormPRISM_MG,stormStats$volumeAboveBaseQMG)
+plot(stormStats$roll3DayWStormPRISM_MG,stormStats$volumeAboveBaseQMG,
+     log="y")
+
+#Linear models with storm duration
+withStorm14 <- lm(volumeTotalMG ~ roll14DayWStormPRISM_MG,data = stormStats)
+withStorm7 <- lm(volumeTotalMG ~ roll7DayWStormPRISM_MG,data = stormStats)
+withStorm3 <- lm(volumeTotalMG ~ roll3DayWStormPRISM_MG,data = stormStats)
+
+#Linear models with stormDuration above base Q
+withStorm14_aboveBaseQ <- lm(volumeAboveBaseQMG ~ roll14DayWStormPRISM_MG,data = stormStats)
+withStorm7_aboveBaseQ <- lm(volumeAboveBaseQMG ~ roll7DayWStormPRISM_MG,data = stormStats)
+withStorm3_aboveBaseQ <- lm(volumeAboveBaseQMG ~ roll3DayWStormPRISM_MG,data = stormStats)
+withStorm1_aboveBaseQ <- lm(volumeAboveBaseQMG ~ roll1DayWStormPRISM_MG,data = stormStats)
+
+#The following showed a strong correlation. What if we look at power regression
+#to smooth over small and large differences e.g. take power away from larger
+#storms? This also removes storms in which no precip was found in the target
+#duration. This may skew results and should be reviewed carefully due to the
+#bias of picking only data where this method "works"
+withStorm3_aboveBaseQ_log <- lm(log(volumeAboveBaseQMG) ~ log(roll3DayWStormPRISM_MG),
+                            data = stormStats[stormStats$roll3DayWStormPRISM_MG > 0,])
+#The log power regression in this case actually performs worse:
+summary(withStorm3_aboveBaseQ_log)
+summary(withStorm3_aboveBaseQ)
+#However, are we weighted by large storm volumes?
+plot(fitted(withStorm3_aboveBaseQ),resid(withStorm3_aboveBaseQ))
+abline(h = 0,lwd = 2, col = "black",lty = 3)
+abline(a=0,b=-1,lty =3, col = "blue",lwd = 2)
+plot(withStorm3_aboveBaseQ$model$volumeAboveBaseQMG)
+plot(withStorm3_aboveBaseQ$model$roll3DayWStormPRISM_MG)
+#See all error plots:
+plot(withStorm3_aboveBaseQ)
+
+#Does relationsip improve at all when we only look at winter storms e.g. storms
+#that BEGIN between November and Feburary?
+stormStats$beginMonth <- as.numeric(format(as.Date(stormStats$startDate),"%m"))
+#Get only the data for storms that begin in Winter
+winterStormStats <- stormStats[stormStats$beginMonth %in% c(10:12,1:3),]
+#Rerun regression suite
+winterWithStorm14 <- lm(volumeTotalMG ~ roll14DayWStormPRISM_MG,
+                        data = winterStormStats)
+winterWithStorm7 <- lm(volumeTotalMG ~ roll7DayWStormPRISM_MG,
+                       data = winterStormStats)
+winterWithStorm3 <- lm(volumeTotalMG ~ roll3DayWStormPRISM_MG,
+                       data = winterStormStats)
+summary(winterWithStorm7)
+plot(winterWithStorm7)
+
+#There is likely interference in this relationship and a non-independent
+#variable. With back to back storms, the same rainfall event may be counted as
+#contributing to two separate storm hydrographs. This may be realistic at times
+#and unrealistic at others
+#Need plots of hydrographs with hyetographs on them. This could help use
+#distinguish if precip is being counted twice or if the worse performing storms
+#are perhaps partial hydrograph (those that occur as two peak storms and may be
+#better conisdered as one)
+
+#For each storm in stormOut$Storms, use the storm start and end-date to find the
+#14-day period leading up to the storm and the 7-day period following the storm.
+#Show precip during this period and throughout storm duration. Then, highlight
+#the separated storm hydrograph
+for(i in 1:length(stormOut$Storms)){
+  #Get the current storm flow data which will be used for highlighting that
+  #hydrograph
+  stormi <- stormOut$Storms[[1]]
+  #Only need non-NA values since stormSep will output full timeseries but leave
+  #values as NA if they are not included in storm
+  stormi <- stormi[!is.na(stormi$flow),]
+  
+  #Get the start and end date of the storm from stormStats:
+  stormStart <- as.Date(stormStats$startDate[i])
+  stormEnd <- as.Date(stormStats$endDate[i])
+  #Adjust these values to increase the window:
+  plotStart <- stormStart - 14
+  plotEnd <- stormEnd + 7
+  
+  #Get the stream flow and baseflow from stormSep
+  flowData <- stormOut$flowData[stormOut$flowData$timestamp >= plotStart & 
+                                  stormOut$flowData$timestamp <= plotEnd,]
+  #Join in the precip "flow" from comp_data:
+  flowDataAll <- sqldf("SELECT flowData.*,
+                          comp.prism_p_in,
+                          comp.daymet_p_in,
+                          comp.nldas2_p_in,
+                          comp.prism_p_cfs,
+                          comp.daymet_p_cfs,
+                          comp.nldas2_p_cfs
+                        FROM flowData
+                        LEFT JOIN comp_data as comp
+                          ON flowData.timeStamp = comp.Date")
+  
+}
