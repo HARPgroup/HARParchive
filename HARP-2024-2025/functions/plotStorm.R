@@ -7,7 +7,6 @@
 #Baseline flow (cfs)
 #Also take in flowDataAll, a data frame of a longer time period that has flow,
 #baseflow, and precip
-pathOut <- "testNewStormPlot.PNG"
 plotStorm <- function(pathOut,storm,flowDataAll){
   #Set colors for barplot:
   PRISMCol <- rgb(31/255,119/255,171/255,alpha = 0.5)
@@ -26,8 +25,8 @@ plotStorm <- function(pathOut,storm,flowDataAll){
           axes = FALSE,
           col = c(PRISMCol, daymetCol, NLDASCol)
   )
-  axis(4,line = -3,lwd = 2)
-  mtext("Precip (in)",side = 4, line = 0,cex = 2)
+  axis(4,line = -3,lwd = 2,cex.axis = 2)
+  mtext("Precip (in)",side = 4, line = 2,cex = 2)
   #Add new plot for flow and storm:
   par(new = TRUE)
   #Plot the storm, making the labels a little thicker and the lines of the
@@ -43,6 +42,8 @@ plotStorm <- function(pathOut,storm,flowDataAll){
   # lines(flowDataAll$timestamp,flowDataAll$prism_p_cfs,col = "blue",lty = 2)
   # lines(flowDataAll$timestamp,flowDataAll$daymet_p_cfs,col = "red",lty = 2)
   # lines(flowDataAll$timestamp,flowDataAll$nldas2_p_cfs,col = "orange",lty = 2)
+  lines(stormi$timestamp,stormi$flow,lwd = 4)
+  lines(stormi$timestamp,stormi$baseflow,lwd = 4,col = "darkgreen")
   
   #Put a small legend on the plot
   legend("topleft",c("Flow","Baseflow","Baseline","PRISM","daymet","NLDAS2"),

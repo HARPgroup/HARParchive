@@ -156,14 +156,6 @@ stormSeparate <- function(timeIn, inflow,
   #Add baseline flow to baseQ
   baseQ$baselineQ <- brk
   
-  #Quick plot to visualize baseflow relative to brk
-  # mindex <- which(timeIn == "2021-10-01")
-  # maxdex <- which(timeIn == "2022-12-31")
-  # seqdex <- seq(mindex,maxdex)
-  # plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
-  # lines(timeIn[seqdex],brk[seqdex],col = "blue",lwd = 2)
-  # lines(baseQ$timestamp[seqdex],baseQ$baseQ[seqdex],col = "red",lwd = 2)
-  # 
   #Next step is to isolate storms. This can be accomplished by taking a minimum
   #and the next point to fall below baseline flow, brk. Each storm is checked to
   #ensure a maximum above some reference level, here 1.5*brk. This eliminates
@@ -191,11 +183,12 @@ stormSeparate <- function(timeIn, inflow,
   }
   
   #A data frame to build with storms in each column
-  # stormsep <- data.frame(timestamp = as.POSIXct(baseQ$timestamp),
-  #                        Baseflow = baseQ$baseQ,
-  #                        QuickFlow = inflow)
   stormsep <- list()
+  #An ID column to store the storm number in baseQ
+  baseQ$stormID <- NA
   
+  #Start evaluating each set of minima to evaluate if there is a qualifying
+  #storm event. If there is, store it with all relevant data
   for (i in 1:(length(x) - 1)){
     # if(i==73){browser()}
     endIndex <- 1
@@ -284,6 +277,7 @@ stormSeparate <- function(timeIn, inflow,
       flow = stormflow,
       baselineQ = baseQ$baselineQ[baseQ$timestamp >= storm[1] & baseQ$timestamp <= storm[2]]
     )
+    
     #data frame of whole time series
     store <- data.frame(timestamp = baseQ$timestamp, flow = NA,baseflow = NA)
     #Fills in only flow data during storm, leaving rest as NA
@@ -296,6 +290,9 @@ stormSeparate <- function(timeIn, inflow,
     
     #If maximum exceeds limit, add it to the stormsep list:
     if(any(store$flow > (2.0 * store$baselineflow),na.rm = TRUE)){
+      #Set the storm number in baseQ
+      baseQ$stormID[baseQ$timestamp >= storm[1] & baseQ$timestamp <= storm[2]] <- length(stormsep) + 1
+      
       stormsep[[length(stormsep) + 1]] <- store
     }
   }
