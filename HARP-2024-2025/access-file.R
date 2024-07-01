@@ -2,6 +2,8 @@
 library("sqldf")
 library("dataRetrieval")
 library("lubridate")
+library("zoo")
+library("R6")
 
 #Set the id for the USGS gage from which we will pull data and use to summarize
 #our meteorology data. Currently, we have data set up for:
@@ -50,12 +52,12 @@ nldas2_data <- sqldf(
 # the dataRetrieval R package which has extensive documentation on the options
 # therewithin. See https://waterdata.usgs.gov/blog/dataretrieval/. Below, we
 # a cached version of the function defined in our config.R file:
-gage_info <- memo_readNWISsite(gageid)
+gage_info <- readNWISsite(gageid)
 #Extract the drainage area of the gage
 da <- gage_info$drain_area_va
 #Get daily, mean streamflow (pcode 000060, see dataRetrieval::parameterCdFile)
 #from the gage specified in gageid
-usgs_data <- memo_readNWISdv(gageid,'00060')
+usgs_data <- readNWISdv(gageid,'00060')
 #Extract date information from the gage using lubridate as above
 usgs_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)),
                                          month(as.Date(usgs_data$Date)),
@@ -140,6 +142,7 @@ comp_data$prism_p_cfs <- 1.572 * (da * 640.0 * comp_data$prism_p_in / 12.0) / 3.
 comp_data$daymet_p_cfs <- 1.572 * (da * 640.0 * comp_data$daymet_p_in / 12.0) / 3.07 
 comp_data$nldas2_p_cfs <- 1.572 * (da * 640.0 * comp_data$nldas2_p_in / 12.0) / 3.07 
 
+write.csv(comp_data,"~/HarpData/HARParchive/HARP-2024-2025/comp_data.csv")
 #We have a lot of daily data in comp_data, but we suspect to see more noteable
 #trends in weekly data compared to daily data given travel time and
 #abstraction/storage considerations. So, we can summarize our data by grouping
@@ -170,7 +173,7 @@ summary(comparePrecip)$adj.r.squared
 plot(comp_data$daymet_p_cfs ~ comp_data$prism_p_cfs)
 #What if we offset the PRSIM data by one day?
 compareNextDayPRISM <- lm(comp_data$daymet_p_cfs[1:(nrow(comp_data) - 1)] ~ 
-                        comp_data$prism_p_cfs[2:nrow(comp_data)])
+                            comp_data$prism_p_cfs[2:nrow(comp_data)])
 #Much improved. More like we expected, seems like daymet is offset.
 summary(compareNextDayPRISM)$adj.r.squared
 plot(comp_data$daymet_p_cfs[1:(nrow(comp_data) - 1)] ~ 
@@ -253,7 +256,7 @@ summary(mod_prism_jan_nz_ndd)
 plot(mod_prism_jan_nz_ndd$model$nextday_d_cfs ~ mod_prism_jan_nz_ndd$model$prism_p_cfs)
 
 # Now, we look at the change in flow on the day after it rains to the summarized
-# precipitation. So, repeate the same ananlysis but now compare to nextday flow
+# precipitation. So, repeat the same analysis but now compare to nextday flow
 # difference
 # *** DAYMET
 mod_daymet_jan_nz_ndd <- lm(nextday_d_cfs ~ daymet_p_cfs, 
@@ -289,55 +292,47 @@ mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
 summary(mod_prism_mon_nz_ndd)
 plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism_p_cfs)
 
-
 #The correlations above are decent. Let's see what the relationship looks like
 #across all months of the year
-ndd_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
-for (i in 1:nrow(ndd_stats)) {
-  mod_prism_mon_nz_ndd <- lm(nextday_d_cfs ~ prism_p_cfs,
-                             data = comp_data[which((comp_data$mo == i) & (comp_data$nextday_d_cfs > 0)),])
-  dsum <- summary(mod_prism_mon_nz_ndd)
-  ndd_stats$rsquared_a <- dsum$adj.r.squared
-}
-barplot(ndd_stats$dsum.adj.r.squared ~ ndd_stats$i)
-
-
-
+# do all months and assemble a barplot of R^2
+plotBin <- R6Class(
+  "plotBin", 
+  public = list(
+    plot = NULL, data=list(), atts=list(),
+    initialize = function(plot = NULL, data = list()){ 
+      self.plot = plot; self.data=data; 
+    }
+  )
+)
 # Week
-# do all months and assemble a barplot of R^2
-nwd_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
-for (i in 1:nrow(nwd_stats)) {
-  # Weekly d cfs vs P
-  mod_weekmo_prism_cfs <- lm(usgs_cfs ~ prism_p_cfs, data=week_data[which((week_data$mo == i)),])
-  dsum <- summary(mod_weekmo_prism_cfs)
-  #plot(mod_weekmo_prism_cfs$model$usgs_cfs ~ mod_weekmo_prism_cfs$model$prism_p_cfs)
-  
-  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
-  #summary(mod_week_daymet_d_cfs)
-  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
-  
-  nwd_stats$rsquared_a <- dsum$adj.r.squared
+mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
+  plot_out <- plotBin$new(data = sample_data)
+  nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
+  for (i in 1:12) {
+    mo_data=sample_data[which((sample_data[,mo_var] == i)),]
+    weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
+    dsum <- summary(weekmo_data)
+    nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
+  }
+  plot_out$atts[['stats']] <- nwd_stats
+  barplot(
+    nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
+    ylim=c(0,1.0),
+    main=paste("lm(Q ~ P), monthly,",data_name)
+  )
+  plot_out$plot <- recordPlot()
+  return(plot_out)
 }
-barplot(nwd_stats$dsum.adj.r.squared ~ nwd_stats$i,
-        main=paste(gage_info$station_nm ), ylim=c(0,1.0))
+nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2")
+nldas2_lm$atts
+nldas2_lm$plot
 
+prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism")
+prism_lm$atts
+prism_lm$plot
 
+daymet_lm <- mon_lm(week_data, "daymet_p_cfs", "usgs_cfs", "mo", "daymet")
+daymet_lm$atts
+daymet_lm$plot
 
-# NLDAS2
-# do all months and assemble a barplot of R^2
-nldaswk_stats <- data.frame('month' = 1:12, 'rsquared_a' = numeric(12))
-for (i in 1:12) {
-  # Weekly d cfs vs P
-  mod_weekmo_nldas2_cfs <- lm(usgs_cfs ~ nldas2_p_cfs,
-                              data=week_data[which((week_data$mo == i)),])
-  dsum <- summary(mod_weekmo_nldas2_cfs)
-  #plot(mod_weekmo_nldas2_cfs$model$usgs_cfs ~ mod_weekmo_nldas2_cfs$model$nldas2_p_cfs)
-  
-  #mod_week_daymet_d_cfs <- lm(today_d_cfs ~ daymet_p_cfs, data=week_data)
-  #summary(mod_week_daymet_d_cfs)
-  #plot(mod_week_daymet_d_cfs$model$today_d_cfs ~ mod_week_daymet_d_cfs$model$daymet_p_cfs)
-  nldaswk_stats$rsquared_a <- dsum$adj.r.squared
-}
-barplot(nldaswk_stats$dsum.adj.r.squared ~ nldaswk_stats$i,
-        main=paste(gage_info$station_nm ), ylim=c(0,1.0))
-
+write.csv(comp_data,"~/HarpData/HARParchive/HARP-2024-2025/comp_data.csv" )
