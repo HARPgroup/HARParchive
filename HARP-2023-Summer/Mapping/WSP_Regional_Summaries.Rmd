@@ -627,7 +627,7 @@ ft1 #display flextable
     ##Mapping function
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = rivmaptitle, mapnum=2, #rseg_leg_title
-                       display_title, map_server, base_layer, 
+                       display_title, map_server, map_layer, 
                        maplabs, nhd, roads, rsegs=rsegs_sf, map_style_set)
     map_objects[[i]] <- map_rivseg
     #assign map to environment
