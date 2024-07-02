@@ -105,6 +105,7 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
 fn_basemap <- function(map_server, base_layer, bbox_coord_df){ #generates a basemap
   map_url <- paste(map_server,base_layer,sep ="/")
   mapdata <- arcpullr::get_spatial_layer(map_url)
+  mapdata <- st_make_valid(mapdata)
   mapdata <- sf::st_crop(mapdata, c(xmin= min(bbox_coord_df$lng), ymin = min(bbox_coord_df$lat), 
                                 xmax = max(bbox_coord_df$lng), ymax = max(bbox_coord_df$lat))) #crop to our extent 
   basemap <- ggplot2::geom_sf(data = mapdata)
@@ -146,7 +147,8 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
                                     breaks = breaks, 
                                     labels = labs,
                                     limits = lims,
-                                    name = legend_title[1])
+                                    name = legend_title[1]
+    )
     bubbles <- list(map_layer, scale_size, num_labels)
   }
   if (featr_type == "source") {
@@ -345,7 +347,6 @@ fn_textRepel <- function(rsegs, labels_plot, textsize, map_style_set){
 fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                       maptitle, mapnum, rseg_leg_title, map_server, base_layer, maplabs, nhd, 
                       roads, rsegs, map_style_set){ #applies results of the above functions to plot the map
-  
   #getting various bbox formats:
   bbox_coords <- data.frame(lng = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]), row.names = NULL) 
   bbox_sf <- sf::st_as_sf(bbox_coords, coords = c('lng','lat'), crs = 4326) 
