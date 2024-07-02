@@ -290,8 +290,19 @@ stormSeparate <- function(timeIn, inflow,
     
     #If maximum exceeds limit, add it to the stormsep list:
     if(any(store$flow > (2.0 * store$baselineflow),na.rm = TRUE)){
-      #Set the storm number in baseQ
-      baseQ$stormID[baseQ$timestamp >= storm[1] & baseQ$timestamp <= storm[2]] <- length(stormsep) + 1
+      #Set the storm number in baseQ. In case of overlapping end/start points,
+      #store both IDs.
+      startID <- baseQ$stormID[baseQ$timestamp == storm[1]]
+      if(!is.na(startID)){
+        #If the stormID in baseQ is already entered for the start date, it
+        #overlaps with a previous storm since both use that local minima. Store
+        #both IDs.
+        baseQ$stormID[baseQ$timestamp == storm[1]] <- paste0(startID,",",length(stormsep) + 1)
+        baseQ$stormID[baseQ$timestamp > storm[1] & baseQ$timestamp <= storm[2]] <- length(stormsep) + 1
+      }else{
+        #If there is no overlap, enter the storm ID for all storm timestamps
+        baseQ$stormID[baseQ$timestamp >= storm[1] & baseQ$timestamp <= storm[2]] <- length(stormsep) + 1
+      }
       
       stormsep[[length(stormsep) + 1]] <- store
     }
@@ -482,7 +493,7 @@ hreg <- function(x, limit = 1){
   return(lns[which.min(mse)])
 }
 
-pathOut <- paste0(path,"storm",i,ext)
+# pathOut <- paste0(path,"storm",i,ext)
 
 
 # outTest <- stormSeparate(timeIn, inflow,
