@@ -1,10 +1,10 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 30-Day Demand Flow (mgd)","Lowest 30-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l30_Qout_mgd","l30_Qout_base_mgd","l30_Qout_mif_mgd","Qavailable_30_mgd","SminL30mg_local","SminL30mg_upstream","SminL30mg_total","WA_mgd_30"
 "1",1,"South Fork Roanoke River (Headwater)","OR1_8280_8020",0,0,1.201,4.092,3.683,-2.482,0,0,0,-2.482
 "2",2,"North and South Fork (Confluence) Roanoke River","OR2_8020_8130",1.726,0,0.745,10.353,9.317,-8.572,0,0,0,-8.572
 "3",3,"Tinker Creek","OR3_7740_8271_tinker",2.392,0,0.868,1.416,1.275,-0.407,0,0,0,-0.407
-"4",4,"Spring Hollow Reservoir","OR2_8130_7900_spring_hollow",6.085,0,0,0.009,0.008,-0.008,2939.112,0,2939.112,97.962
-"5",5,"Roanoke River (Wayside Park)","OR2_8130_7900",8.8,0.14,1.032,11.09,9.981,-8.949,0,2939.112,2939.112,89.021
-"6",6,"Roanoke River (Salem)","OR2_7900_7740",12,0.14,6.203,21.856,19.671,-13.468,0,2939.112,2939.112,84.502
+"4",4,"Spring Hollow Reservoir","OR2_8130_7900_spring_hollow",6.085,0,0,0.009,0.008,-0.008,0,0,0,-0.008
+"5",5,"Roanoke River (Wayside Park)","OR2_8130_7900",8.8,0.14,1.032,11.09,9.981,-8.949,0,0,0,-8.949
+"6",6,"Roanoke River (Salem)","OR2_7900_7740",12,0.14,6.203,21.856,19.671,-13.468,0,0,0,-13.468
 "7",7,"Catawba Creek","OR3_7740_8271_catawba",12.337,0,1.511,2.46,2.214,-0.703,0,0,0,-0.703
-"8",8,"Carvins Cove Reservoir","OR3_7740_8271_carvins",12.337,0,0,0,0,0,5938.178,0,5938.178,197.939
-"9",9,"Roanoke River (Roanoke)","OR3_7740_8271",19.718,3.525,21.844,37.851,34.066,-12.222,0,8877.29,8877.29,283.688
+"8",8,"Carvins Cove Reservoir","OR3_7740_8271_carvins",12.337,0,0,0,0,0,5979.215,0,5979.215,199.307
+"9",9,"Roanoke River (Roanoke)","OR3_7740_8271",19.718,3.525,21.844,37.851,34.066,-12.222,0,5979.215,5979.215,187.085

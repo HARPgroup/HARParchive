@@ -12,7 +12,7 @@ params:
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
-  Smin_analysis: TRUE #to compare Smin calculation methods: approximate and near-exact
+  Smin_analysis: FALSE #to compare Smin calculation methods: approximate and near-exact (adds tables 5 & 6)
   write_Qavailable: FALSE #to export Qavailable metrics to VAhydro
   write_tables: ["local", "github"]
   crs_default: 4326
@@ -48,7 +48,6 @@ github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE)
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_mapgen.R")) #load mapping function
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
@@ -936,20 +935,22 @@ for (i in 1:length(outlet_list)) {
                       SminL30mg_total = csws_df$SminL30mg_apx_total,
                       WA_mgd_30 = csws_df$WA_mgd_30_apx)
 
-  #Human readable column names 
-  names(table_cswsL30)[names(table_cswsL30) == "Num"] <- "#"
-  names(table_cswsL30)[names(table_cswsL30) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
-  names(table_cswsL30)[names(table_cswsL30) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
-  names(table_cswsL30)[names(table_cswsL30) == "l30_Qout_mgd"] <- "Lowest 30-Day Demand Flow (mgd)"
-  names(table_cswsL30)[names(table_cswsL30) == "l30_Qout_base_mgd"] <- "Lowest 30-Day Base Flow (mgd)"
-  names(table_cswsL30)[names(table_cswsL30) == "l30_Qout_mif_mgd"] <- "Min. Instream Flow (mgd)"
-  names(table_cswsL30)[names(table_cswsL30) == "Qavailable_30_mgd"] <- "Available Flow (mgd)"
-  names(table_cswsL30)[names(table_cswsL30) == "SminL30mg_local"] <- "Local Storage (mg)"
-  names(table_cswsL30)[names(table_cswsL30) == "SminL30mg_upstream"] <- "Upstream Storage (mg)"
-  names(table_cswsL30)[names(table_cswsL30) == "SminL30mg_total"] <- "Total Storage (mg)"
-  names(table_cswsL30)[names(table_cswsL30) == "WA_mgd_30"] <- "Water Availability (mgd)"
+  table_cswsL30Hr <- table_cswsL30 #table for flextable with human readable column names 
   
-  ftable_cswsL30 <- flextable(table_cswsL30)
+  #Human readable column names 
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "Num"] <- "#"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "l30_Qout_mgd"] <- "Lowest 30-Day Demand Flow (mgd)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "l30_Qout_base_mgd"] <- "Lowest 30-Day Base Flow (mgd)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "l30_Qout_mif_mgd"] <- "Min. Instream Flow (mgd)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "Qavailable_30_mgd"] <- "Available Flow (mgd)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "SminL30mg_local"] <- "Local Storage (mg)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "SminL30mg_upstream"] <- "Upstream Storage (mg)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "SminL30mg_total"] <- "Total Storage (mg)"
+  names(table_cswsL30Hr)[names(table_cswsL30Hr) == "WA_mgd_30"] <- "Water Availability (mgd)"
+  
+  ftable_cswsL30 <- flextable(table_cswsL30Hr)
   rownum_csL30 <- which(csws_df$riverseg == outlet_list[i]) #get rownum for case study
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, i = rownum_csL30 , bg = "yellow") #highlight case study row
   colnum_csL30 <- which(colnames(table_cswsL30) == "Water Availability (mgd)") #get col number for WA
@@ -971,21 +972,22 @@ for (i in 1:length(outlet_list)) {
                       SminL90mg_total = csws_df$SminL90mg_apx_total,
                       WA_mgd_90 = csws_df$WA_mgd_90_apx)
   
+  table_cswsL90Hr <- table_cswsL90 #table for flextable with human readable column names 
   
   #Human readable column names 
-  names(table_cswsL90)[names(table_cswsL90) == "Num"] <- "#"
-  names(table_cswsL90)[names(table_cswsL90) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
-  names(table_cswsL90)[names(table_cswsL90) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
-  names(table_cswsL90)[names(table_cswsL90) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand Flow (mgd)"
-  names(table_cswsL90)[names(table_cswsL90) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
-  names(table_cswsL90)[names(table_cswsL90) == "l90_Qout_mif_mgd"] <- "Min. Instream Flow (mgd)"
-  names(table_cswsL90)[names(table_cswsL90) == "Qavailable_90_mgd"] <- "Available Flow (mgd)"
-  names(table_cswsL90)[names(table_cswsL90) == "SminL90mg_local"] <- "Local Storage (mg)"
-  names(table_cswsL90)[names(table_cswsL90) == "SminL90mg_upstream"] <- "Upstream Storage (mg)"
-  names(table_cswsL90)[names(table_cswsL90) == "SminL90mg_total"] <- "Total Storage (mg)"
-  names(table_cswsL90)[names(table_cswsL90) == "WA_mgd_90"] <- "Water Availability (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "Num"] <- "#"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "wd_cumulative_mgd"] <- "Cumulative Withdrawal (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "ps_cumulative_mgd"] <- "Cumulative Point Source (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "l90_Qout_mgd"] <- "Lowest 90-Day Demand Flow (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "l90_Qout_base_mgd"] <- "Lowest 90-Day Base Flow (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "l90_Qout_mif_mgd"] <- "Min. Instream Flow (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "Qavailable_90_mgd"] <- "Available Flow (mgd)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "SminL90mg_local"] <- "Local Storage (mg)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "SminL90mg_upstream"] <- "Upstream Storage (mg)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "SminL90mg_total"] <- "Total Storage (mg)"
+  names(table_cswsL90Hr)[names(table_cswsL90Hr) == "WA_mgd_90"] <- "Water Availability (mgd)"
   
-  ftable_cswsL90 <- flextable(table_cswsL90)
+  ftable_cswsL90 <- flextable(table_cswsL90Hr)
   rownum_csL90 <- which(csws_df$riverseg == outlet_list[i]) #get rownum for case study
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, i = rownum_csL90 , bg = "yellow") #highlight case study row
   colnum_csL90 <- which(colnames(table_cswsL90) == "Water Availability (mgd)") #get col number for WA

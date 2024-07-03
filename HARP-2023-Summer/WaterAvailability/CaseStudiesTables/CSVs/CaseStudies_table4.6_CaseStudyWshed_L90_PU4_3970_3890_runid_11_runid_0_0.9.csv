@@ -1,13 +1,13 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 90-Day Demand Flow (mgd)","Lowest 90-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l90_Qout_mgd","l90_Qout_base_mgd","l90_Qout_mif_mgd","Qavailable_90_mgd","SminL90mg_local","SminL90mg_upstream","SminL90mg_total","WA_mgd_90"
 "1",1,"Savage River","PU1_3850_4190",0,0,3.419,3.104,2.793,0.625,0,0,0,0.625
 "2",2,"Georges Creek","PU1_3940_3970",0,0,3.405,2.525,2.272,1.133,0,0,0,1.133
-"3",3,"Savage River Dam","PU1_4190_4300",0,0,19.128,6.615,5.953,13.175,259.519,0,259.519,30.459
-"4",4,"Savage River","PU1_4300_4440",0,0,20.824,7.496,6.747,14.077,0,259.519,259.519,31.361
+"3",3,"Savage River Dam","PU1_4190_4300",0,0,19.128,6.615,5.953,13.175,1209.261,0,1209.261,41.016
+"4",4,"Savage River","PU1_4300_4440",0,0,20.824,7.496,6.747,14.077,0,1209.261,1209.261,41.919
 "5",5,"Stony River","PU1_4760_4451",0,0,6.89,6.892,6.202,0.688,0,0,0,0.688
 "6",6,"Mt. Storm Power Station Dam/Stony River Dam","PU1_4840_4760",0,0,6.321,6.322,5.69,0.631,0,0,0,0.631
 "7",7,"Potomac River North Branch","PU2_4720_4750",0,0,11.532,11.533,10.379,1.153,0,0,0,1.153
 "8",8,"Potomac River North Branch","PU2_4750_4451",0,0,13.089,13.09,11.781,1.308,0,0,0,1.308
-"9",9,"North Branch Potomac below Bloomington/Jennings Randolph","PU3_4450_4440",0,0,69.381,28.856,25.97,43.41,0,25746.2,25746.2,329.479
-"10",10,"Bloomington/Jennings Randolph","PU3_4451_4450",0,0,65.728,27.784,25.006,40.723,25746.2,0,25746.2,326.792
-"11",11,"Potomac River North Branch","PU4_3970_3890",0,0,114.184,50.858,45.772,68.412,0,26005.719,26005.719,371.765
-"12",12,"Potomac River North Branch","PU4_4440_3970",0,0,100.809,37.611,33.85,66.959,0,26005.719,26005.719,370.312
+"9",9,"North Branch Potomac below Bloomington/Jennings Randolph","PU3_4450_4440",0,0,69.381,28.856,25.97,43.41,0,25855.269,25855.269,330.691
+"10",10,"Bloomington/Jennings Randolph","PU3_4451_4450",0,0,65.728,27.784,25.006,40.723,25855.269,0,25855.269,328.003
+"11",11,"Potomac River North Branch","PU4_3970_3890",0,0,114.184,50.858,45.772,68.412,0,27064.53,27064.53,383.534
+"12",12,"Potomac River North Branch","PU4_4440_3970",0,0,100.809,37.611,33.85,66.959,0,27064.53,27064.53,382.082

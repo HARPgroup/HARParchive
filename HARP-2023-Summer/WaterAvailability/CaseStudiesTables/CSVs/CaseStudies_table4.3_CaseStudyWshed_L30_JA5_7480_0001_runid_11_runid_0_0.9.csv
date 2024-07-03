@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 30-Day Demand Flow (mgd)","Lowest 30-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l30_Qout_mgd","l30_Qout_base_mgd","l30_Qout_mif_mgd","Qavailable_30_mgd","SminL30mg_local","SminL30mg_upstream","SminL30mg_total","WA_mgd_30"
 "1",1,"West Creek (Deep Creek, Appommattox)","JA1_7600_7570",0.325,0,0.698,0.702,0.632,0.066,0,0,0,0.066
 "2",2,"Bush River","JA1_7640_7280",0.061,0,1.641,1.302,1.172,0.469,0,0,0,0.469
 "3",3,"0","JA1_7641_7640",0,0,0,0,0,0,0,0,0,0
@@ -8,4 +8,4 @@
 "7",7,"Appomatox River","JA4_7280_7340",1.636,0.97,8.403,9.184,8.265,0.137,0,0,0,0.137
 "8",8,"Appomatox River","JA4_7340_7470",1.636,1.167,8.683,9.246,8.321,0.362,0,0,0,0.362
 "9",9,"Appomatox River","JA4_7470_7480",1.7,1.167,9.639,10.148,9.133,0.506,0,0,0,0.506
-"10",10,"George F. Brasfield Dam","JA5_7480_0001",35.789,1.171,11.899,12.218,10.996,0.904,6250.413,0,6250.413,209.251
+"10",10,"George F. Brasfield Dam","JA5_7480_0001",35.789,1.171,11.899,12.218,10.996,0.904,6261.977,0,6261.977,209.636
