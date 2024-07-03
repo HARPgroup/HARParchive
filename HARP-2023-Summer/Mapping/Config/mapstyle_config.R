@@ -53,16 +53,6 @@ run_sets <- list(
         show_map = TRUE
       ),
       list(
-        metric='l90_Qout', 
-        data_set = 'rseg_no_geom',
-        column_name='percentDiff_l90_Qout_runid_11_runid_17', 
-        run_label = 'Dry Climate Change WSP L90 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout','runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
-        sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
-        sort_decreasing = FALSE,
-        show_map = TRUE
-      ),
-      list(
         metric='l30_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_13', 
@@ -70,6 +60,16 @@ run_sets <- list(
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
+        metric='l90_Qout', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_l90_Qout_runid_11_runid_17', 
+        run_label = 'Dry Climate Change WSP L90 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout','runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
+        sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
+        sort_decreasing = FALSE,
         show_map = TRUE
       ),
       list(
@@ -92,7 +92,6 @@ run_sets <- list(
         sort_decreasing = FALSE, 
         show_map = TRUE
       ),
-#      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
         metric='7q10', 
         data_set = 'rseg_no_geom',
@@ -103,6 +102,7 @@ run_sets <- list(
         sort_decreasing = FALSE,
         show_map = TRUE
       ),
+#      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
         metric='Smin_L30_mg', 
         data_set = 'rseg_no_geom',
