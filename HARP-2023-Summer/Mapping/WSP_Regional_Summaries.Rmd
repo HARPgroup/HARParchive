@@ -301,9 +301,6 @@ if (show_map == TRUE) {
      ORDER BY", ' ', featrs_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
      "facils")
     facils$NUM <- seq(1, nrow(facils))
-   if (i==1) { #data for table will be sorted by the first of featrs_file_map_bubble_column
-     #facils$within <- facils_within
-   } 
     
     metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
                           nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
@@ -364,6 +361,7 @@ if (show_map == TRUE) {
     #create map title by combining label and title
     maptitle <- paste0(title_main, ", ", maplabel)
     map_style_set <- styles[[map_style]]
+    
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                      maptitle, mapnum=1, rseg_leg_title=NULL, map_server, base_layer, 
                      maplabs, nhd, roads, rsegs, map_style_set)

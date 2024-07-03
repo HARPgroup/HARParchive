@@ -47,6 +47,7 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
     if(i!=1){ labelset$all <- rbind(labelset$all, labelset[[i]]) }
     if(i==length(labelset)-1){ labelset <- labelset$all }
   }
+  
   text_aes <- map_style_set$text
   labelset <- sqldf( #join text aesthetics with sqldf 
     "SELECT text_aes.*, labelset.label, labelset.lat, labelset.lng
@@ -85,6 +86,10 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   }
   #crop data to extent:
   roads_plot <- sf::st_crop(roads_plot, bbox_sf)
+  labelPlot <- st_as_sf(labels_plot,coords = c("lng","lat"),remove = FALSE)
+  labelPlot <- st_set_crs(labelPlot,4326)
+  labels_plot <- sf::st_crop(labelPlot, bbox_sf)
+  
   # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
   # labels_plot_sf <- sf::st_crop(labels_plot_sf, bbox_sf)
   # labels_plot_sf <- sf::st_drop_geometry(labels_plot_sf)
