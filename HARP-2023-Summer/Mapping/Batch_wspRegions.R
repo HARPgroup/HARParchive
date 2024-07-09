@@ -17,13 +17,10 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 
 #to run a single render statement within the loop, define region or locality name here
 origin_name <- "Chowan_1" 
-
+#East shore fails as does MiddleJames_3
 ### Run all regions ##########################
-i <- 0
-for (x in region_set) {
-  
-  i <- i+1
-  origin_name <-region_set[i]
+for (x in 8:length(region_set)) {
+  origin_name <- region_set[x]
   
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
                     params = list(
@@ -42,8 +39,13 @@ for (x in region_set) {
                     )
   )
   
+  fileName <- paste0(export_path, origin_name, "_wsp")
+  if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
+    fileName <- paste0(export_path, origin_name, "_wsp2")
+  }
+  
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
-                    output_file = paste0(export_path, origin_name, "_wsp"),
+                    output_file = fileName,
                     output_format = "word_document",
                     params = list(
                       origin = paste0(origin_name), 
@@ -64,11 +66,8 @@ for (x in region_set) {
 }
 
 #### Run all localities ##########################
-
-i <- 0
 for (x in locality_set) {
-  i <- i+1
-  origin_name <-locality_set[i]
+  origin_name <- x
 
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"),
                     params = list(
