@@ -748,38 +748,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
 }
 ```
 
-### Table:
-
-```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
-#result = 'asis' necessary 
-# if (tablemessage2==TRUE) {
-#   message("A column in the table is completely NA values, 
-#           likely meaning the metric requested is not modeled for this data
-#           or the segments are all tidal")
-# }
-if(message_nonexisting_cols){
-  messages <- rbind(messages,
-                      data.frame(pertaining_to= "Table 2",
-                       message=paste0("Not all of the requested columns could be found in the present data. Check mapstyle_config.R and Dataframe_Generator.R render"), var_name= "message_nonexisting_cols")
-                      )
-}
-if(tablemessage2){
-  messages <- rbind(messages,
-                      data.frame(pertaining_to= "Table 2",
-                       message=paste0("A column in the table is completely NA values, 
-          likely meaning the metric requested is not modeled for this data,
-          or the segments are all tidal."), var_name= "tablemessage2")
-                      )
-}
-
-for (k in 1:length(rivseg_metric)){
-  cat(knitr::knit_print(get(paste0('table', k))))
-  cat("\n\n\\pagebreak\n")
-  #cat(flextable::flextable_to_rmd(get(paste0('table', k))))
-}
-
-#note: doesn't display readable flextable within Rstudio but does upon render
-```
 
 ### Display Map and Table: 
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
