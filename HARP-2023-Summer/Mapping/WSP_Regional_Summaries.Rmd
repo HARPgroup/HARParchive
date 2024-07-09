@@ -640,8 +640,6 @@ ft1 #display flextable
       width = 25,
       height = 20)
     
-    browser()
-    
      }
   }
 ```
