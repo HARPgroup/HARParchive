@@ -16,7 +16,7 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- "Chowan_1" 
+origin_name <- "NewRiver_1" 
 #East shore fails as does MiddleJames_3
 ### Run all regions ##########################
 for (x in 8:length(region_set)) {

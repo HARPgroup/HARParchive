@@ -622,7 +622,7 @@ ft1 #display flextable
     
     rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
     st_crs(rsegs_sf) <- crs_default
-  
+
     ##Mapping function
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = rivmaptitle, mapnum=2, #rseg_leg_title
@@ -639,6 +639,7 @@ ft1 #display flextable
       plot = map_rivseg,
       width = 25,
       height = 20)
+    
      }
   }
 ```
