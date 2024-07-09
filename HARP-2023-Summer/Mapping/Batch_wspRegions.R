@@ -22,6 +22,7 @@ origin_name <- "Chowan_1"
 for (x in 8:length(region_set)) {
   origin_name <- region_set[x]
   
+  #RENDER DATAFRAME GENERATOR
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
                     params = list(
                       origin = paste0(origin_name), 
@@ -39,11 +40,14 @@ for (x in 8:length(region_set)) {
                     )
   )
   
+  #check if file exists and may be open, which will cause document render to fail after generating doc successfully
   fileName <- paste0(export_path, origin_name, "_wsp")
   if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
-    fileName <- paste0(export_path, origin_name, "_wsp2")
+    print("Reminder, close any open version of the regional summary doc before rendering it.")
+    #fileName <- paste0(export_path, origin_name, "_wsp2")
   }
   
+  #RENDER WSP REGIONAL SUMMARY DOC
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
                     output_file = fileName,
                     output_format = "word_document",
@@ -62,7 +66,11 @@ for (x in 8:length(region_set)) {
                       bbox_type = "auto",
                       show_map = TRUE))
   
-  
+  #clear environment and reload config, so that prior maps don't interfere with next region
+  rm(list = ls())
+  library("sqldf")
+  basepath='/var/www/R'
+  source('/var/www/R/config.R')
 }
 
 #### Run all localities ##########################
