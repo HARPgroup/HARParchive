@@ -53,6 +53,26 @@ run_sets <- list(
         show_map = TRUE
       ),
       list(
+        metric='l30_Qout', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_l30_Qout_runid_11_runid_13', 
+        run_label = '2040 WSP L30 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
+        sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
+        sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
+        metric='7q10', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_7q10_runid_11_runid_13', 
+        run_label = '2040 WSP 7q10 %', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
+        sort_col = 'percentDiff_7q10_runid_11_runid_13',
+        sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
@@ -65,31 +85,11 @@ run_sets <- list(
       list(
         metric='l30_Qout', 
         data_set = 'rseg_no_geom',
-        column_name='percentDiff_l30_Qout_runid_11_runid_13', 
-        run_label = '2040 WSP L30 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
-        sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
-        sort_decreasing = FALSE, 
-        show_map = TRUE
-      ),
-      list(
-        metric='l30_Qout', 
-        data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_17', 
         run_label = 'Dry climate Change WSP L30 %', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
-        show_map = TRUE
-      ),
-      list(
-        metric='7q10', 
-        data_set = 'rseg_no_geom',
-        column_name='percentDiff_7q10_runid_11_runid_13', 
-        run_label = '2040 WSP 7q10 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
-        sort_col = 'percentDiff_7q10_runid_11_runid_13',
-        sort_decreasing = FALSE, 
         show_map = TRUE
       ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),

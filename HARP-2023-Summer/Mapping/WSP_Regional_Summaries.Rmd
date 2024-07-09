@@ -575,6 +575,7 @@ ft1 #display flextable
         rivmaplabel <- rivmapmetric
     }
   
+      ##!!! Change this to just be run set label:
     rivmaptitle <- paste0(display_title, ", ", rivmaplabel)
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
@@ -638,9 +639,7 @@ ft1 #display flextable
       plot = map_rivseg,
       width = 25,
       height = 20)
-     } else {
-      print("No map created for this metric")
-    }
+     }
   }
 ```
 
@@ -734,16 +733,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
   
   #defining titles 
   rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
-  
-  # this chunk is not in use at the moment, based on titles being done in config 
-  if (display_metric=="l30_Qout"){
-      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
-    } else if (display_metric=="l90_Qout"){
-      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
-  } else {
-    message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
-  }
   }
 }
 ```
