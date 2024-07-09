@@ -89,6 +89,10 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   labelPlot <- st_as_sf(labels_plot,coords = c("lng","lat"),remove = FALSE)
   labelPlot <- st_set_crs(labelPlot,4326)
   labels_plot <- sf::st_crop(labelPlot, bbox_sf)
+  #Crop nhd_plot to the appropriate bbox and reproject from NAD83 to 4326:
+  nhdplot_new <- st_transform(nhd_plot,4326)
+  nhd_plot <- st_crop(nhdplot_new,bbox_sf)
+
   
   # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
   # labels_plot_sf <- sf::st_crop(labels_plot_sf, bbox_sf)
@@ -297,7 +301,7 @@ fn_roadsAndCityPoints <- function(roads_plot, map_style_set, labels_plot, mp_lay
                           aes(x=lng, y=lat), color= map_style_set[["color"]][["sf"]]["citypts",], size=2)
   #mp labels placeholder to have other labels repel:
   mp_placeholder <- ggplot2::geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA, size=textsize[4],check_overlap=TRUE)
-  rd_bubbles <- ggrepel::geom_label_repel(data = labels_plot[labels_plot$class == c("I","S","U"), ],
+  rd_bubbles <- ggrepel::geom_label_repel(data = labels_plot[labels_plot$class %in% c("I","S","U"), ],
                    aes(x=lng, y=lat, label=label,
                        fontface=fontface, family=fontfam,
                        color=as.factor(colcode),
@@ -382,6 +386,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                            layer_description = "feature metric bubbles", map = map)
   map <- fn_catchMapErrors(map_layer = fn_shadow(rsegs, bbox_sfc, map_style_set),
                            layer_description = "reverse fill shadow", map = map)
+  map <- map + coord_sf(xlim = bbox[c(1,3)],ylim = bbox[c(2,4)], expand =F)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_north_arrow(which_north="true", location="tr",
