@@ -43,10 +43,10 @@ for (x in region_set) {
                     )
   )
   
-  #check if 
+  #check if file exists and may be open, which will cause document render to fail after generating doc successfully
   fileName <- paste0(export_path, origin_name, "_wsp")
   if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
-    print("Reminder, close any open version of the regional summary doc before rendering.")
+    print("Reminder, close any open version of the regional summary doc before rendering it.")
     #fileName <- paste0(export_path, origin_name, "_wsp2")
   }
   
@@ -68,6 +68,7 @@ for (x in region_set) {
                       map_style = "custom", 
                       bbox_type = "auto",
                       show_map = TRUE))
+  
   #clear environment and reload config, so that prior maps don't interfere with next region
   rm(list = ls())
   library("sqldf")
