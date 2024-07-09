@@ -73,6 +73,16 @@ run_sets <- list(
         show_map = TRUE
       ),
       list(
+        metric='consumptive_use_frac', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_7q10_runid_11_runid_13', 
+        run_label = 'Overall Change in Flow (Percent Change 2020 to 2040)%', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_consumptive_use_frac','runid_13_consumptive_use_frac', 'percentDiff_consumptive_use_frac_runid_11_runid_13'),
+        sort_col = 'percentDiff_consumptive_use_frac_runid_11_runid_13',
+        sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
