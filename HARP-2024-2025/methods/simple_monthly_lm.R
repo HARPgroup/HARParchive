@@ -2,14 +2,12 @@
 library("sqldf")
 library("dataRetrieval")
 library("lubridate")
+library("R6")
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
 source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/R/fac_utils.R")
 source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
-ds <- RomDataSource$new(site, rest_uname = rest_uname)
-ds$get_token(rest_pw = rest_pw)
-
 
 gageid = '02031000' # Culpepper 01667500, Strasburg 01634000, Ruckersville 01665500, Mechums 02031000
 hydrocode = paste0('usgs_ws_', gageid)
