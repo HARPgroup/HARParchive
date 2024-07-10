@@ -12,9 +12,9 @@ params:
   demand_scenario: ["runid_11"] 
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
-  Smin_analysis: FALSE #to compare Smin calculation methods: approximate and near-exact (adds tables 5 & 6)
+  Smin_analysis: TRUE #to compare Smin calculation methods: approximate and near-exact (adds tables 5 & 6)
   write_Qavailable: FALSE #to export Qavailable metrics to VAhydro
-  write_tables: ["local", "github"]
+  write_outputs: ["local", "github"]
   crs_default: 4326
   
 editor_options: 
@@ -882,7 +882,7 @@ for (i in 1:length(outlet_list)) {
   assign(paste0('ftable_caseStudyWshed_', outlet_list[i]), ftable_csws)
   print(get(paste0('ftable_caseStudyWshed_', outlet_list[i])))
   
-  if ("local" %in% write_tables) {
+  if ("local" %in% write_outputs) {
     write.csv(table_caseStudyWshed, paste0(export_path, 
                                            'CaseStudies_table3.', i, '_CaseStudyWshed_', 
                                            outlet_list[i], '_', 
@@ -897,7 +897,7 @@ for (i in 1:length(outlet_list)) {
     
     }
   
-  if ("github" %in% write_tables) {
+  if ("github" %in% write_outputs) {
     write.csv(table_caseStudyWshed, paste0(github_location, 
                                            '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table3.', i, 
                                            '_CaseStudyWshed_', outlet_list[i], '_', demand_scenario, '_', 
@@ -953,7 +953,7 @@ for (i in 1:length(outlet_list)) {
   ftable_cswsL30 <- flextable(table_cswsL30Hr)
   rownum_csL30 <- which(csws_df$riverseg == outlet_list[i]) #get rownum for case study
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, i = rownum_csL30 , bg = "yellow") #highlight case study row
-  colnum_csL30 <- which(colnames(table_cswsL30) == "Water Availability (mgd)") #get col number for WA
+  colnum_csL30 <- which(colnames(table_cswsL30Hr) == "Water Availability (mgd)") #get col number for WA
   ftable_cswsL30 <- flextable::bg(ftable_cswsL30, j = colnum_csL30 , bg = "yellow") #highlight WA column 
   assign(paste0('ftable_cswsL30_', i), ftable_cswsL30)
   
@@ -990,13 +990,13 @@ for (i in 1:length(outlet_list)) {
   ftable_cswsL90 <- flextable(table_cswsL90Hr)
   rownum_csL90 <- which(csws_df$riverseg == outlet_list[i]) #get rownum for case study
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, i = rownum_csL90 , bg = "yellow") #highlight case study row
-  colnum_csL90 <- which(colnames(table_cswsL90) == "Water Availability (mgd)") #get col number for WA
+  colnum_csL90 <- which(colnames(table_cswsL90Hr) == "Water Availability (mgd)") #get col number for WA
   ftable_cswsL90 <- flextable::bg(ftable_cswsL90, j = colnum_csL90 , bg = "yellow") #highlight WA column 
   assign(paste0('ftable_cswsL90_', i), ftable_cswsL90)
   
   #save both tables 
   
-  if ("local" %in% write_tables) {
+  if ("local" %in% write_outputs) {
     write.csv(table_cswsL30, paste0(export_path, 
                                            'CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
                                            outlet_list[i], '_', 
@@ -1022,7 +1022,7 @@ for (i in 1:length(outlet_list)) {
     
      }
   
-  if ("github" %in% write_tables) {
+  if ("github" %in% write_outputs) {
     write.csv(table_cswsL30, paste0(github_location, 
                                '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table4.', i, '_CaseStudyWshed_L30_', 
                                outlet_list[i], '_', demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) #write table to GitHub
@@ -1231,7 +1231,7 @@ for (i in 1:length(outlet_list)) {
     
   assign(paste0('plot30_', i), plot30, envir = globalenv())
   
-  if ("local" %in% write_tables) { #save image of plot locally
+  if ("local" %in% write_outputs) { #save image of plot locally
     plot30_filenameL[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_', outlet_list[i], '_QvsQavail_L30.png')
     ggsave( 
       filename = plot30_filenameL[i],
@@ -1240,7 +1240,7 @@ for (i in 1:length(outlet_list)) {
       height = 20)
   }
     
-  if ("github" %in% write_tables) { #save image of plot to GitHub
+  if ("github" %in% write_outputs) { #save image of plot to GitHub
     plot30_filenameG[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesPlots/WAcaseStudies_Plot_',
                                   i, '_', outlet_list[i], '_QvsQavail_L30.png')
     ggsave( 
@@ -1275,7 +1275,7 @@ for (i in 1:length(outlet_list)) {
     
     assign(paste0('plot90_', i), plot90, envir = globalenv())
   
-  if ("local" %in% write_tables) { #save image of plot locally
+  if ("local" %in% write_outputs) { #save image of plot locally
     plot90_filenameL[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_', outlet_list[i], '_QvsQavail_L90.png')
     ggsave( 
       filename = plot90_filenameL[i],
@@ -1284,7 +1284,7 @@ for (i in 1:length(outlet_list)) {
       height = 20)
   }
     
-  if ("github" %in% write_tables) { #save image of plot to GitHub
+  if ("github" %in% write_outputs) { #save image of plot to GitHub
     plot90_filenameG[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesPlots/WAcaseStudies_Plot_',
                                   i, '_', outlet_list[i], '_QvsQavail_L90.png')
     ggsave( 
@@ -1404,7 +1404,7 @@ for (i in 1:length(outlet_list)) {
   
   assign(paste0('map30', i), map30, envir = globalenv())
   
-  if ("local" %in% write_tables) { #save image of L30 map locally
+  if ("local" %in% write_outputs) { #save image of L30 map locally
     WAmapfilename30L[i] <- paste(export_path, "WAcaseStudiesMapL30_", i, "_", outlet_list[i], ".png", sep="")
     ggsave(
       filename = WAmapfilename30L[i],
@@ -1413,7 +1413,7 @@ for (i in 1:length(outlet_list)) {
       height = 20)
   }
     
-  if ("github" %in% write_tables) { #save image of L30 map to GitHub
+  if ("github" %in% write_outputs) { #save image of L30 map to GitHub
     WAmapfilename30G[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesMaps/WAcaseStudiesMapL30_', 
                                   i, "_", outlet_list[i], '.png')
     ggsave( 
@@ -1482,7 +1482,7 @@ for (i in 1:length(outlet_list)) {
   
   assign(paste0('map90', i), map90, envir = globalenv())
   
-   if ("local" %in% write_tables) { #save image of L90 map locally
+   if ("local" %in% write_outputs) { #save image of L90 map locally
     WAmapfilename90L[i] <- paste(export_path, "WAcaseStudiesMapL90_", i, "_", outlet_list[i], ".png", sep="")
     ggsave(
       filename = WAmapfilename90L[i],
@@ -1491,7 +1491,7 @@ for (i in 1:length(outlet_list)) {
       height = 20)
   }
     
-  if ("github" %in% write_tables) { #save image of L90 map to GitHub
+  if ("github" %in% write_outputs) { #save image of L90 map to GitHub
     WAmapfilename90G[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesMaps/WAcaseStudiesMapL90_', 
                                   i, "_", outlet_list[i], '.png')
     ggsave( 
@@ -1509,7 +1509,7 @@ for (i in 1:length(outlet_list)) {
 
 ```{r Write CSVs Locally}
 #Writing locally to location of export_path
-if ("local" %in% write_tables) {
+if ("local" %in% write_outputs) {
   write.csv(table_WA, paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
 
@@ -1530,7 +1530,7 @@ if ("local" %in% write_tables) {
 
 ```{r Write CSVs to GitHub}
 #Writng to github using github_location
-if ("github" %in% write_tables) {
+if ("github" %in% write_outputs) {
   write.csv(table_WA, paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/CSVs/CaseStudies_table1_WaterAvailabilityEqn_', 
                            demand_scenario, '_', baseline_scenario, '_', mif_coef, '.csv')) 
   
@@ -1550,7 +1550,7 @@ if ("github" %in% write_tables) {
 ```
 
 ```{r Save Tables as Images}
-if ("local" %in% write_tables) {
+if ("local" %in% write_outputs) {
   #save flextable images locally 
   flextable::save_as_image(ftable_WA, path = paste0(export_path, 'CaseStudies_table1_WaterAvailabilityEqn_', 
                                                     demand_scenario, '_', baseline_scenario, '_', mif_coef, '.png')) 
@@ -1568,7 +1568,7 @@ if ("local" %in% write_tables) {
   }
 }
 
-if ("github" %in% write_tables) { 
+if ("github" %in% write_outputs) { 
   #save flextable images to Github 
   flextable::save_as_image(ftable_WA, path = paste0(github_location, 
                                                     '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesTables/flextables/CaseStudies_table1_WaterAvailabilityEqn_',
