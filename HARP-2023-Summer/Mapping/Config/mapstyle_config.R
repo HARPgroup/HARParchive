@@ -41,10 +41,12 @@ metric_names <- data.frame(read_metric_name, new_metric_name)
 # )
 run_sets <- list(
   wsp_2020_2040 = list(
+    md_base_path = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data",
     riverseg_metrics=list( 
       list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
+        intro_md_prefix = 'demand_2040',
         column_name='percentDiff_l90_Qout_runid_11_runid_13', 
         run_label = '90 Day Low Flow (Percent Change 2020 to 2040)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),

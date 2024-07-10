@@ -787,6 +787,11 @@ for (k in 1:length(rivseg_metric)){
 
 ### Display Map and Table: 
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
+# todo: set appropriate base paths for this narrative in model run_set
+md_base_path = run_config$md_base_path
+if (is.null(md_base_path)) {
+  md_base_path = "https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data"
+}
 for (k in 1:length(run_config$riverseg_metrics)){
   #map
   show_map = run_config$riverseg_metrics[[k]]$show_map
@@ -796,6 +801,20 @@ for (k in 1:length(run_config$riverseg_metrics)){
   } else {
     fig_md = ''
   }
+  
+  if (!is.null(run_config$riverseg_metrics[[k]]$intro_md_narrative)) {
+    f_narrative = run_config$riverseg_metrics[[k]]$intro_md_narrative
+    narrative_fname = paste0(md_base_path, "/", as.character( f_narrative), "_", origin, '.md' )
+    
+    atext <- try(paste(readLines(narrative_fname), collapse="\n"), silent=TRUE)
+    if (!class(atext) == "try-error") {
+      message(paste("Could not download", narrative_fname))
+    } else {
+      cat(paste(atext, "\n\n"))
+    }
+    
+  }
+
     #table
     if (tablemessage2==TRUE) {
       message("A column in the table is completely NA values, 
