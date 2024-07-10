@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 30-Day Demand Flow (mgd)","Lowest 30-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l30_Qout_mgd","l30_Qout_base_mgd","l30_Qout_mif_mgd","Qavailable_30_mgd","SminL30mg_local","SminL30mg_upstream","SminL30mg_total","WA_mgd_30"
 "1",1,"South Fork Roanoke River (Headwater)","OR1_8280_8020",0,0,1.201,4.092,3.683,-2.482,0,0,0,-2.482
 "2",2,"North and South Fork (Confluence) Roanoke River","OR2_8020_8130",1.726,0,0.745,10.353,9.317,-8.572,0,0,0,-8.572
 "3",3,"Tinker Creek","OR3_7740_8271_tinker",2.392,0,0.868,1.416,1.275,-0.407,0,0,0,-0.407
