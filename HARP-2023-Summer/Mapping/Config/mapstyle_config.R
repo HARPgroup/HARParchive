@@ -29,6 +29,40 @@ new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max',
                      'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use (MGY)', 'Withdraws (MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 Demand (MGY)", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
 metric_names <- data.frame(read_metric_name, new_metric_name)
 
+readable <- data.frame(rbind(
+                  #scenarios:
+                  c('runid_0', 'Pre-Condition'),
+                  c('runid_1', 'Historical Condition'),
+                  c('runid_3', 'Permit Term Max'),
+                  c('runid_11', '2020 Demand Scenario'),
+                  c('runid_12', '2030 Demand Scenario'),
+                  c('runid_13', '2040 Demand Scenario'),
+                  c('runid_14', 'Median Climate Change Scenario (50/50)- 2020 Demand'),
+                  c('runid_15', 'Dry Climate Change Scenario (10/10) - 2020 Demand'),
+                  c('runid_16', 'Wet Climate Change Scenario (90/90) - 2020 Demand'),
+                  c('runid_17', 'Dry Climate Change Scenario (10/20) - 2040 Demand'),
+                  c('runid_18', '2020 Exempt User Runs'),
+                  c('runid_19','Median Climate Change Scenario (50/50)- 2040 Demand'),
+                  c('runid_20', 'Wet Climate Change Scenario (90/90) - 2040 Demand'),
+                  c('runid_21', '2015 Demand 2010'),
+                  c('runid_22', '2015 Demand 2040'),
+                  #metrics:
+                  c('fiveyr_avg_mgy', 'Five Year Avg Use (MGY)'),
+                  c('wd_mgd', 'Withdraws (MGD)'),
+                  c('gw_demand_mgd', 'Ground Water Demand (MGD)'),
+                  c('ps_mgd', 'Point Source (MGD)'),
+                  c('wsp2020_2040_mgy', 'Water Supply Plan 2020-2040 Demand (MGY)'),
+                  c('l90_Qout', '90 Day Low Flow'),
+                  c('l30_Qout', '30 Day Low Flow'),
+                  c('Smin_L30_mg', 'Lowest 30 Day Minimum Storage (MG)'),
+                  c('unmet30_mgd', 'Highest 30 Day Potential Unmet Demand (MGD)'),
+                  #table column names:
+                  c('five_yr_avg', '5-yr Avg Use (MGY)'),
+                  c('runid_11_wd_mgd', '2020 Demand Scenario Withdraws (MGD)'),
+                  c('runid_13_wd_mgd', '2040 Demand Scenario Withdraws (MGD)')
+))
+colnames(readable) <- c('computer', 'human')
+
 # adapt this to permit us to store pre-configured sets
 # run_set is parameter to use in WSP_Regional_Summaries.Rmd
 

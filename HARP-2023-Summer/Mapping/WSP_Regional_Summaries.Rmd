@@ -301,8 +301,9 @@ if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
     #legend_title <- paste0(featrs_file_map_bubble_column[i])
     #legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
-    legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
-    
+    #legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
+    legend_title <- readable$human[grep(featrs_file_map_bubble_column[i], readable$computer)]
+
     #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
     if ((featrs_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
       facils[featrs_file_map_bubble_column[i]] <- NA
@@ -369,8 +370,12 @@ if (show_map == TRUE) {
     #   maplabel <- colname
     # }
     ##instead:
-    maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
-    
+    #maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
+    if(featrs_file_map_bubble_column[i] %in% readable$computer){
+      maplabel <- readable$human[readable$computer==featrs_file_map_bubble_column[i]]
+    }else {
+      maplabel <- featrs_file_map_bubble_column[i]
+    }
 
     #create map title by combining label and title
     maptitle <- paste0(title_main, ", ", maplabel)
@@ -515,12 +520,24 @@ if (nrow(novals > 0)) {
 
 # Rename columns & create flextable
 #names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-
+# 
+# for (i in 1:length(featrs_file_table_column)) {
+#   for (x in 1:nrow(metric_names)){
+#     if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
+#     {
+#       names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
+#     }
+#     else
+#     {
+#       next
+#     }
+#   }
+# }
 for (i in 1:length(featrs_file_table_column)) {
-  for (x in 1:nrow(metric_names)){
-    if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
+  for (x in 1:nrow(readable)){
+    if (featrs_file_table_column[i]==readable$computer[x])
     {
-      names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
+      names(table)[names(table)==featrs_file_table_column[i]] <- readable$human[x]
     }
     else
     {
@@ -528,8 +545,6 @@ for (i in 1:length(featrs_file_table_column)) {
     }
   }
 }
-
-names(table)[names(table) == 'five_yr_avg'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
 
@@ -577,20 +592,20 @@ ft1 #display flextable
       display_column <- run_config$riverseg_metrics[[i]]$column_name
       display_title <- run_config$riverseg_metrics[[i]]$run_label
     
-     # rseg_leg_title <- legend_titling(display_metric, runid_list)
-
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
-    if (display_metric=="l30_Qout"){
-        rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
-    } else if (display_metric=="l90_Qout"){
-        rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
-    } else {
+    # if (display_metric=="l30_Qout"){
+    #     rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
+    # } else if (display_metric=="l90_Qout"){
+    #     rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
+    # } else {
+    #     rivmaplabel <- rivmapmetric
+    # }
+    if(display_metric %in% readable$computer){
+      rivmaplabel <- readable$human[readable$computer==display_metric]
+    }else {
         rivmaplabel <- rivmapmetric
     }
-  
-      ##!!! Change this to just be run set label:
-    rivmaptitle <- paste0(display_title, ", ", rivmaplabel)
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
     #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -639,7 +654,7 @@ ft1 #display flextable
 
     ##Mapping function
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                       maptitle = rivmaptitle, mapnum=2, rseg_leg_title=display_title, 
+                       maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
                        map_server, base_layer, maplabs, nhd, roads, 
                        rsegs=rsegs_sf, map_style_set)
     map_objects[[i]] <- map_rivseg
