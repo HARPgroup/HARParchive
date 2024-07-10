@@ -1,4 +1,4 @@
-**2040 Water Supply Demand Scenario**
+**2040 Water Supply Demand Scenario (SAMPLE DATA ONLY)**
 Projected Water Use: The following section discusses projected water use through 2040 within the
 Middle James Minor Basin, based on projections provided in local and regional water supply plans. Table
 36, included in the existing demand section above, is the basis for information discussed in this section.
