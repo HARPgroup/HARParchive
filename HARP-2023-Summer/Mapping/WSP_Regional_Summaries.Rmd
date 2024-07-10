@@ -806,13 +806,14 @@ for (k in 1:length(run_config$riverseg_metrics)){
     f_narrative = run_config$riverseg_metrics[[k]]$intro_md_narrative
     narrative_fname = paste0(md_base_path, "/", as.character( f_narrative), "_", origin, '.md' )
     
-    atext <- try(paste(readLines(narrative_fname), collapse="\n"), silent=TRUE)
-    if (!class(atext) == "try-error") {
-      message(paste("Could not download", narrative_fname))
-    } else {
-      cat(paste(atext, "\n\n"))
-    }
-    
+    # atext <- try(paste(readLines(narrative_fname), collapse="\n"), silent=TRUE)
+    # if (!class(atext) == "try-error") {
+    #   message(paste("Could not download", narrative_fname))
+    # } else {
+    #   cat(paste(atext, "\n\n"))
+    # }
+    atext <- paste(readLines(narrative_fname), collapse="\n")
+    cat(paste(atext, "\n\n"))
   }
 
     #table
