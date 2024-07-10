@@ -1,6 +1,9 @@
 ##Establishes a collection of the functions utilized for map plotting. 
 ##fn_mapgen() is the final call used in WSP_Regional_Summaries.Rmd, and it calls these modular functions within it.
 #Load required libraries
+#install.packages("extrafont")
+library(extrafont)
+loadfonts(device = "win")
 library(ggplot2)
 library(geosphere)
 library(arcpullr)
@@ -86,8 +89,11 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   }
   #crop data to extent:
   roads_plot <- sf::st_crop(roads_plot, bbox_sf)
+  nhd_plot <- sf::st_transform(nhd_plot, crs_default) #use instead of st_crs (st_crs doesn't transform--only changes metadata)
+  nhd_plot <- sf::st_crop(nhd_plot, bbox_sf)
   labelPlot <- st_as_sf(labels_plot,coords = c("lng","lat"),remove = FALSE)
-  labelPlot <- st_set_crs(labelPlot,4326)
+  labelPlot <- st_set_crs(labelPlot,crs_default)
+  #labelPlot <- sf::st_transform(labelPlot, crs_default)
   labels_plot <- sf::st_crop(labelPlot, bbox_sf)
   
   # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
@@ -107,7 +113,7 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   assign('textsize', textsize, envir = globalenv())
 }
 
-fn_basemap <- function(map_server, base_layer, bbox_coord_df){ #generates a basemap
+fn_basemap <- function(map_server, base_layer, bbox_coord_df=bbox_coords){ #generates a basemap
   map_url <- paste(map_server,base_layer,sep ="/")
   mapdata <- arcpullr::get_spatial_layer(map_url)
   mapdata <- st_make_valid(mapdata)
@@ -140,8 +146,8 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
   mp_layer <- mp_layer[!mp_layer$bin == "X" , ]
   class(mp_layer$bin) <- "numeric" #make sure bin column is type numeric for sizing data points
   #text for number labels:
-  num_labels <- ggplot2::geom_text(data = mp_layer, 
-                          aes(lng, lat, label=NUM, fontface="bold"), 
+  num_labels <- ggplot2::geom_text(data = mp_layer,
+                          aes(lng, lat, label=NUM, fontface="bold"),
                           color="black", size=textsize[5], check_overlap=TRUE)
   #colored bubbles:
   if (featr_type == "facility") {
@@ -182,28 +188,31 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
   return(bubbles)
 }
 
-fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, map_style_set){ #merges all polygon borders into 1 df and associates them w/ aesthetics from mapstyle_config.R
-  #merging borders into 1 df so they can be on the same legend
-  borders <- data.frame(counties[,"name"] , bundle= rep("county", nrow(counties)) )
-  names(borders) <- c("name", "geometry", "bundle")
+fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, map_style_set){ #merges all polygon polyg_borders into 1 df and associates them w/ aesthetics from mapstyle_config.R
+  #merging polyg_borders into 1 df so they can be on the same legend
+  polyg_borders <- data.frame(counties[,"name"] , bundle= rep("county", nrow(counties)) )
+  names(polyg_borders) <- c("name", "geometry", "bundle")
   sf::st_geometry(rsegs) <- "geometry"
   sf::st_crs(rsegs) <- crs_default
-  borders <- rbind(borders, data.frame(rsegs[,c("name", "bundle")] )  )
+  #rsegs <- sf::st_transform(rsegs, crs_default)
+  polyg_borders <- rbind(polyg_borders, data.frame(rsegs[,c("name", "bundle")] )  )
   if (origin_type=="region") {
     region_OI <- regions[regions$region==origin,] #region of interest
     sf::st_geometry(region_OI) <- "geometry"
     region_OI <- data.frame(name="region", bundle="region", geometry=region_OI[fn_geoCol(region_OI)] )
-    borders <- rbind(borders, region_OI)
-    borders <- sf::st_as_sf(borders)
-    sf::st_crs(borders) <- crs_default
-  } else {borders <- sf::st_as_sf(borders)}
-  sf::st_crs(borders) <- crs_default
-  borders <- borders[borders$bundle %in% c('region','county','watershed'), ]
-  borders <- sf::st_crop(borders, bbox_sf)  
+    polyg_borders <- rbind(polyg_borders, region_OI)
+    polyg_borders <- sf::st_as_sf(polyg_borders)
+    sf::st_crs(polyg_borders) <- crs_default
+    #polyg_borders <- sf::st_transform(polyg_borders, crs_default)
+  } else {polyg_borders <- sf::st_as_sf(polyg_borders)}
+  sf::st_crs(polyg_borders) <- crs_default
+  #polyg_borders <- sf::st_transform(polyg_borders, crs_default)
+  polyg_borders <- polyg_borders[polyg_borders$bundle %in% c('region','county','watershed'), ]
+  polyg_borders <- sf::st_crop(polyg_borders, bbox_sf)  
   
   #generate layer for mapping
   if (origin_type == "region") { 
-    map_layer <- ggplot2::geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
+    map_layer <- ggplot2::geom_sf(data= polyg_borders, inherit.aes=FALSE, fill=NA,
                               ggplot2::aes(color= bundle,
                                   lwd= as.numeric(mgsub::mgsub(bundle, 
                                                       pattern=c("county","watershed","region"), 
@@ -213,16 +222,16 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
     scale_color <- ggplot2::scale_colour_manual(values= c(map_style_set$color$sf[c("region","county","rsegs"),]) ,
                                        breaks= c("region","county","watershed"),
                                        labels= c("Region","County","Basin"),
-                                       name= "Borders" )
+                                       name= "polyg_borders" )
     scale_linetype <- ggplot2::scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), 
                             labels= c("Region","County","Basin"),
-                            name= "Borders" )
+                            name= "polyg_borders" )
     scale_linewidth <- ggplot2::scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
                           breaks= c(4.5,2.5,textsize[6]),
                           labels= c("Region","County","Basin"),
-                          name= "Borders" )
+                          name= "polyg_borders" )
   } else {
-    map_layer <- ggplot2::geom_sf(data= borders, inherit.aes=FALSE, fill=NA,
+    map_layer <- ggplot2::geom_sf(data= polyg_borders, inherit.aes=FALSE, fill=NA,
                               ggplot2::aes(color= bundle,
                                     lwd= as.numeric(mgsub::mgsub(bundle, 
                                                         pattern=c("county","watershed"), 
@@ -232,14 +241,14 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
     scale_color <- ggplot2::scale_colour_manual(values= c(map_style_set$color$sf[c("county","rsegs"),]) ,
                                        breaks= c("county","watershed"),
                                        labels= c("County","Basin"),
-                                       name= "Borders" )
+                                       name= "polyg_borders" )
     scale_linetype <- ggplot2::scale_linetype_manual(values= c("county"= 1,"watershed"= 2),
                           labels= c("County","Basin"),
-                          name= "Borders" )
+                          name= "polyg_borders" )
     scale_linewidth <- ggplot2::scale_linewidth(range= range(c(textsize[6],4.5)),
                           breaks= c(2.5,textsize[6]),
                           labels= c("County","Basin"),
-                          name= "Borders" )
+                          name= "polyg_borders" )
   }
   borders_layer <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
                   map_layer[[1]], map_layer[[2]], scale_color, scale_linetype, scale_linewidth)
@@ -249,7 +258,8 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
 fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title){
   #fill tidal rsegs 
   rsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
-  st_crs(rsegTidal) <- crs_default 
+  #st_crs(rsegTidal) <- crs_default
+  rsegTidal <- sf::st_transform(rsegTidal, crs_default)
   #fix tidal df
   names(rsegTidal)[1:(ncol(rsegTidal)-6)] <- names(rsegTidal)[2:(ncol(rsegTidal)-5)]
   rsegTidal[ncol(rsegTidal)-5] <- NULL
@@ -297,7 +307,7 @@ fn_roadsAndCityPoints <- function(roads_plot, map_style_set, labels_plot, mp_lay
                           aes(x=lng, y=lat), color= map_style_set[["color"]][["sf"]]["citypts",], size=2)
   #mp labels placeholder to have other labels repel:
   mp_placeholder <- ggplot2::geom_text(data = mp_layer, aes(lng, lat, label=NUM),colour=NA, size=textsize[4],check_overlap=TRUE)
-  rd_bubbles <- ggrepel::geom_label_repel(data = labels_plot[labels_plot$class == c("I","S","U"), ],
+  rd_bubbles <- ggrepel::geom_label_repel(data = labels_plot[labels_plot$class %in% c("I","S","U"), ],
                    aes(x=lng, y=lat, label=label,
                        fontface=fontface, family=fontfam,
                        color=as.factor(colcode),
@@ -319,7 +329,7 @@ fn_roadsAndCityPoints <- function(roads_plot, map_style_set, labels_plot, mp_lay
   return(roadsNcitydots)
 }
   
-fn_textRepel <- function(rsegs, labels_plot, textsize, map_style_set){
+fn_textRepel <- function(rsegs, labels_plot, textsize, map_style_set, bbox_coords){
   textcol <- map_style_set$color$text$color
   # Basin Labels (by riverseg ID):
   basins <- ggplot2::geom_text(data=rsegs, aes(x=lng, y=lat, label=riverseg),color="black",size=textsize[5],check_overlap=TRUE)
@@ -336,8 +346,9 @@ fn_textRepel <- function(rsegs, labels_plot, textsize, map_style_set){
                         color=as.factor(colcode),
                     ), 
                     show.legend=FALSE,
-                    force= 40, direction="both",
-                    min.segment.length=0.5
+                    force=40, direction="both",
+                    min.segment.length=0.5,
+                    #max.overlaps=getOption("ggrepel.max.overlaps",20)
         )
   scale_size <- ggplot2::scale_size(range= range(textsize[2:4]), breaks= textsize[2:4]) 
   scale_color <- ggplot2::scale_colour_manual(values=textcol, breaks=seq(1,length(textcol)), guide="none")
@@ -369,19 +380,19 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                                   layer_description = "map theme", map = map)
   map <- fn_catchMapErrors(map_layer = ggplot2::ggtitle(maptitle), layer_description = "map title", map = map)
   map <- fn_catchMapErrors(map_layer = fn_polygonFill(rsegs, map_style_set, mapnum, rseg_leg_title),
-                           layer_description = "tidal rseg fill and, if applicable, rivseg metric fill", map = map)
+                           layer_description = "fn_polygonFill(): tidal rseg fill and, if applicable, rivseg metric fill", map = map)
   map <- fn_catchMapErrors(map_layer = fn_nhdLines(nhd_plot, map_style_set, nhd),
-                           layer_description = "nhd flowlines and waterbodies", map = map)
+                           layer_description = "fn_nhdLines(): nhd flowlines and waterbodies", map = map)
   map <- fn_catchMapErrors(map_layer = fn_roadsAndCityPoints(roads_plot, map_style_set, labels_plot, mp_layer),
-                           layer_description = "road lines, road labels, mp placeholder text, and/or city dots", map = map)
+                           layer_description = "fn_roadsAndCityPoints(): road lines, road labels, mp placeholder text, and/or city dots", map = map)
   map <- fn_catchMapErrors(map_layer = fn_borders(rsegs, counties, regions, origin, bbox_sf, crs_default, textsize, map_style_set),
-                           layer_description = "county, region, and/or rseg borders", map = map)
-  map <- fn_catchMapErrors(map_layer = fn_textRepel(rsegs, labels_plot, textsize, map_style_set),
-                          layer_description = "basin IDs, county, river, and/or city text", map = map)
+                           layer_description = "fn_borders(): county, region, and/or rseg polyg_borders", map = map)
+  map <- fn_catchMapErrors(map_layer = fn_textRepel(rsegs, labels_plot, textsize, map_style_set, bbox_coords),
+                          layer_description = "fn_textRepel(): basin IDs, county, river, and/or city text", map = map)
   map <- fn_catchMapErrors(map_layer = fn_mp_bubbles(mp_layer, metric_unit, featr_type, map_style_set),
-                           layer_description = "feature metric bubbles", map = map)
+                           layer_description = "fn_mp_bubbles(): feature metric bubbles", map = map)
   map <- fn_catchMapErrors(map_layer = fn_shadow(rsegs, bbox_sfc, map_style_set),
-                           layer_description = "reverse fill shadow", map = map)
+                           layer_description = "fn_shadow(): reverse fill shadow", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_north_arrow(which_north="true", location="tr",
@@ -393,7 +404,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 
 #--!!for testing only!!--
 # textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
-# mapnum <- 1
+# mapnum <- 2
 # bbox_as_sf <- bbox_sf
 #---
 # #example usage:
@@ -404,4 +415,4 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 #                                            paste0(run_config$riverseg_metrics[[4]]$metric)),
 #                          mapnum=2,
 #                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list),
-#                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)
+#                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style_set)
