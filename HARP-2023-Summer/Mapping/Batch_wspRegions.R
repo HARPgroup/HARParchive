@@ -16,10 +16,10 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- "NewRiver_1" 
+origin_name <- "Shenandoah_1" 
 #East shore fails as does MiddleJames_3
 ### Run all regions ##########################
-for (x in 8:length(region_set)) {
+for (x in 1:length(region_set)) {
   origin_name <- region_set[x]
   
   #RENDER DATAFRAME GENERATOR
@@ -31,7 +31,7 @@ for (x in 8:length(region_set)) {
                       metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"), 
                       model_version = "vahydro-1.0",
                       metric_feat = "wsp2020_2040_mgy", 
-                      rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Smin_L30_mg"), 
+                      rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "consumptive_use_frac", "Smin_L30_mg"), 
                       runid_list = c("runid_11", "runid_13", "runid_17"), 
                       crs_default = 4326, 
                       limit_featrs_to_origin = FALSE,
@@ -40,12 +40,12 @@ for (x in 8:length(region_set)) {
                     )
   )
   
-  #check if file exists and may be open, which will cause document render to fail after generating doc successfully
-  fileName <- paste0(export_path, origin_name, "_wsp")
-  if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
-    print("Reminder, close any open version of the regional summary doc before rendering it.")
-    #fileName <- paste0(export_path, origin_name, "_wsp2")
-  }
+  # #check if file exists and may be open, which will cause document render to fail after generating doc successfully
+   fileName <- paste0(export_path, origin_name, "_wsp")
+  # if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
+  #   print("Reminder, close any open version of the regional summary doc before rendering it.")
+  #   #fileName <- paste0(export_path, origin_name, "_wsp2")
+  # }
   
   #RENDER WSP REGIONAL SUMMARY DOC
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
@@ -66,11 +66,11 @@ for (x in 8:length(region_set)) {
                       bbox_type = "auto",
                       show_map = TRUE))
   
-  #clear environment and reload config, so that prior maps don't interfere with next region
-  rm(list = ls())
-  library("sqldf")
-  basepath='/var/www/R'
-  source('/var/www/R/config.R')
+  # #clear environment and reload config, so that prior maps don't interfere with next region
+  # rm(list = ls())
+  # library("sqldf")
+  # basepath='/var/www/R'
+  # source('/var/www/R/config.R')
 }
 
 #### Run all localities ##########################
