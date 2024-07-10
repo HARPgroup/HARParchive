@@ -1202,8 +1202,10 @@ if (Smin_analysis == TRUE) { #Only needed for Smin analysis
 # Plot 1: Demand Flow vs Available Flow 
 
 ```{r Create Q available Plots for L30/L90}
-plot30_filename <- character()
-plot90_filename <- character()
+plot30_filenameL <- character()
+plot90_filenameL <- character()
+plot30_filenameG <- character()
+plot90_filenameG <- character()
 
 for (i in 1:length(outlet_list)) {
  
@@ -1227,19 +1229,32 @@ for (i in 1:length(outlet_list)) {
     labs(title = 'Available vs Demand Flow (30-day)',
        subtitle = paste0("For ", outlet_list[i], " <br> Available Flow = Demand Flow - Min. Instream Flow"))
     
-    assign(paste0('plot30_', i), plot30, envir = globalenv())
+  assign(paste0('plot30_', i), plot30, envir = globalenv())
   
-    plot30_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_', outlet_list[i], '_QvsQavail_L30.png')
-    ggsave( #save image of plot
-      filename = plot30_filename[i],
+  if ("local" %in% write_tables) { #save image of plot locally
+    plot30_filenameL[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_', outlet_list[i], '_QvsQavail_L30.png')
+    ggsave( 
+      filename = plot30_filenameL[i],
       plot = plot30,
       width = 25,
       height = 20)
+  }
+    
+  if ("github" %in% write_tables) { #save image of plot to GitHub
+    plot30_filenameG[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesPlots/WAcaseStudies_Plot_',
+                                  i, '_', outlet_list[i], '_QvsQavail_L30.png')
+    ggsave( 
+      filename = plot30_filenameG[i],
+      plot = plot30,
+      width = 25,
+      height = 20)
+  }
+    
     
     
     
   #L90 graph
- plot90 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x= reorder(riverseg, NUM))) +
+  plot90 <- ggplot(data = get(paste0('caseStudy_wshed_df_',i)), aes(x= reorder(riverseg, NUM))) +
     geom_bar(aes(y=l90_Qout_dem, fill = 'blue'), stat = 'identity') +
     geom_bar(aes(y=Qavailable_90_cfs, fill = 'green'), stat = 'identity') +
     theme(axis.text.x = element_text(size = 25, angle = 45, vjust = 1.0, hjust=1)) + #rotate x-axis labels
@@ -1260,12 +1275,24 @@ for (i in 1:length(outlet_list)) {
     
     assign(paste0('plot90_', i), plot90, envir = globalenv())
   
-    plot90_filename[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i,'_', outlet_list[i], '_QvsQavail_L90.png')
-    ggsave( #save image of plot
-      filename = plot90_filename[i],
+  if ("local" %in% write_tables) { #save image of plot locally
+    plot90_filenameL[i] <- paste0(export_path, 'WAcaseStudies_Plot_', i, '_', outlet_list[i], '_QvsQavail_L90.png')
+    ggsave( 
+      filename = plot90_filenameL[i],
       plot = plot90,
       width = 25,
       height = 20)
+  }
+    
+  if ("github" %in% write_tables) { #save image of plot to GitHub
+    plot90_filenameG[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesPlots/WAcaseStudies_Plot_',
+                                  i, '_', outlet_list[i], '_QvsQavail_L90.png')
+    ggsave( 
+      filename = plot90_filenameG[i],
+      plot = plot90,
+      width = 25,
+      height = 20)
+  }
     
     
 }
@@ -1295,8 +1322,10 @@ names(bins) <- c("val", "bin")
 rsegs_all_sf <- sf::st_as_sf(rsegs_geom_data, wkt='geom', crs =  crs_default) #convert to sf
 
 #map case study watersheds
-WAmapfilename30 <- character()
-WAmapfilename90 <- character()
+WAmapfilename30L <- character()
+WAmapfilename90L <- character()
+WAmapfilename30G <- character()
+WAmapfilename90G <- character()
 for (i in 1:length(outlet_list)) {
 
   rsegs_df <- get(paste0('caseStudy_wshed_df_', i))
@@ -1375,15 +1404,25 @@ for (i in 1:length(outlet_list)) {
   
   assign(paste0('map30', i), map30, envir = globalenv())
   
-  #save image of L30 map
-  WAmapfilename30[i] <- paste(export_path, "WAcaseStudiesMapL30_", i, "_", outlet_list[i], ".png", sep="")
-  ggsave(
-    filename = WAmapfilename30[i],
-    plot = map30,
-    width = 25,
-    height = 20)
-  
-  
+  if ("local" %in% write_tables) { #save image of L30 map locally
+    WAmapfilename30L[i] <- paste(export_path, "WAcaseStudiesMapL30_", i, "_", outlet_list[i], ".png", sep="")
+    ggsave(
+      filename = WAmapfilename30L[i],
+      plot = map30,
+      width = 25,
+      height = 20)
+  }
+    
+  if ("github" %in% write_tables) { #save image of L30 map to GitHub
+    WAmapfilename30G[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesMaps/WAcaseStudiesMapL30_', 
+                                  i, "_", outlet_list[i], '.png')
+    ggsave( 
+      filename = WAmapfilename30G[i],
+      plot = map30,
+      width = 25,
+      height = 20)
+  }
+
   ## L90 map of Water Availability
   rsegs_df$bin <- NULL #remove bin col from L30 map 
   rsegs_df$geom <- NULL
@@ -1443,13 +1482,24 @@ for (i in 1:length(outlet_list)) {
   
   assign(paste0('map90', i), map90, envir = globalenv())
   
-  #save image of L30 map
-  WAmapfilename90[i] <- paste(export_path, "WAcaseStudiesMapL90_", i, "_", outlet_list[i], ".png", sep="")
-  ggsave(
-    filename = WAmapfilename90[i],
-    plot = map90,
-    width = 25,
-    height = 20)
+   if ("local" %in% write_tables) { #save image of L90 map locally
+    WAmapfilename90L[i] <- paste(export_path, "WAcaseStudiesMapL90_", i, "_", outlet_list[i], ".png", sep="")
+    ggsave(
+      filename = WAmapfilename90L[i],
+      plot = map90,
+      width = 25,
+      height = 20)
+  }
+    
+  if ("github" %in% write_tables) { #save image of L90 map to GitHub
+    WAmapfilename90G[i] <- paste0(github_location, '/HARParchive/HARP-2023-Summer/WaterAvailability/CaseStudiesMaps/WAcaseStudiesMapL90_', 
+                                  i, "_", outlet_list[i], '.png')
+    ggsave( 
+      filename = WAmapfilename90G[i],
+      plot = map90,
+      width = 25,
+      height = 20)
+  }
   
 }
 
