@@ -95,6 +95,10 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   labelPlot <- st_set_crs(labelPlot,crs_default)
   #labelPlot <- sf::st_transform(labelPlot, crs_default)
   labels_plot <- sf::st_crop(labelPlot, bbox_sf)
+  #Crop nhd_plot to the appropriate bbox and reproject from NAD83 to 4326:
+  nhdplot_new <- st_transform(nhd_plot,4326)
+  nhd_plot <- st_crop(nhdplot_new,bbox_sf)
+
   
   # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
   # labels_plot_sf <- sf::st_crop(labels_plot_sf, bbox_sf)
@@ -393,6 +397,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                            layer_description = "fn_mp_bubbles(): feature metric bubbles", map = map)
   map <- fn_catchMapErrors(map_layer = fn_shadow(rsegs, bbox_sfc, map_style_set),
                            layer_description = "fn_shadow(): reverse fill shadow", map = map)
+  #map <- map + coord_sf(xlim = bbox[c(1,3)],ylim = bbox[c(2,4)], expand =F)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_north_arrow(which_north="true", location="tr",
