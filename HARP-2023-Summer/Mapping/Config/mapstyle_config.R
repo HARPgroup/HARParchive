@@ -46,7 +46,9 @@ run_sets <- list(
       list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
-        intro_md_narrative = 'demand_2040',
+        # uncomment this to include a narrative file reference. Note: if files do not exist this will
+        # cause the routine to fail with an error, so, you should upload blank files if
+        intro_md_narrative = 'l90_2040.md',
         column_name='percentDiff_l90_Qout_runid_11_runid_13', 
         run_label = '90 Day Low Flow (Percent Change 2020 to 2040)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),

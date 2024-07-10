@@ -804,7 +804,10 @@ for (k in 1:length(run_config$riverseg_metrics)){
   
   if (!is.null(run_config$riverseg_metrics[[k]]$intro_md_narrative)) {
     f_narrative = run_config$riverseg_metrics[[k]]$intro_md_narrative
-    narrative_fname = paste0(md_base_path, "/", as.character( f_narrative), "_", origin, '.md' )
+    # this was a draft to allow region specific narrative
+    #narrative_fname = paste0(md_base_path, "/", as.character( f_narrative), "_", origin, '.md' )
+    # THis is for a generic, by section narrative.
+    narrative_fname = paste0(md_base_path, "/", as.character( f_narrative))
     
     # atext <- try(paste(readLines(narrative_fname), collapse="\n"), silent=TRUE)
     # if (!class(atext) == "try-error") {
