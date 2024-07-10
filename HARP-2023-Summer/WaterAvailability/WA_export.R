@@ -31,6 +31,7 @@ if (!length(argst) == 6) { #set defaults if not all arguments are provided
   runid_base <- 0 
   CPL <- 90 #default to a 90-day critical period length 
   PoF <- 0.9 #default to 0.9 for percent of instream flow required 
+  print("Not all required inputs provided, defaults will be used")
 }
 
 demand_scenario <- paste0('runid_', runid_dem)
