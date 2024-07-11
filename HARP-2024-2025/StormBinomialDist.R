@@ -4,8 +4,8 @@ flowData <- flowData %>%
   rename(flow = X_00060_00003)
 inflow <- flowData$flow
 timeIn <- as.Date(flowData$Date)
-mindex <- which(timeIn == "2021-01-01")
-maxdex <- which(timeIn == "2022-12-31")
+mindex <- which(timeIn == "2019-01-01")
+maxdex <- which(timeIn == "2019-12-31")
 seqdex <- seq(mindex,maxdex)
 inflow <- inflow[seqdex]
 timeIn <- timeIn[seqdex]
@@ -64,8 +64,8 @@ timeIn <- timeIn[seqdex]
   brk <- brk * 1.1
   
   #Quick plot to visualize baseflow relative to brk
-  mindex <- which(timeIn == "2021-10-01")
-  maxdex <- which(timeIn == "2022-12-31")
+  mindex <- which(timeIn == "2019-01-01")
+  maxdex <- which(timeIn == "2019-12-31")
   seqdex <- seq(mindex,maxdex)
   plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
   lines(timeIn[seqdex],rep(brk,length(seqdex)),col = "blue",lwd = 2)
@@ -78,8 +78,10 @@ timeIn <- timeIn[seqdex]
   #the brk value are considered as these are storms that occur at baseflow and
   #fully rise/recede.
   
+  #(brk+(0.5*(baseQ$flow - baseQ$baseQ)))
   #Get the times associated with minimums that are below baseline flow brk:
-  x <- mins$timestamp[mins$mins < brk]
+  # ADDITION - brk + 50% of diff between baseflow and max flow
+  x <- mins$timestamp[mins$mins < (brk+(0.5*(baseQ$flow - baseQ$baseQ)))]
   #A data frame to build with storms in each column
   stormsep <- data.frame(timestamp = as.POSIXct(baseQ$timestamp),
                          Baseflow = baseQ$baseQ,
@@ -99,7 +101,7 @@ timeIn <- timeIn[seqdex]
     #If there is a point at baseflow before next minimum, use it instead to
     #prevent over elongated tails. We just need to ensure it takes place before
     #the next minima, is over brk, and occurs after maxtime
-    endAlt <- (baseQ$timestamp[baseQ$flow < brk & 
+    endAlt <- (baseQ$timestamp[baseQ$flow < (brk+(0.5*(baseQ$flow - baseQ$baseQ))) & 
                                  baseQ$timestamp >= x[i] & 
                                  baseQ$timestamp < x[i+1] & 
                                  baseQ$timestamp > maxtime])[1]
@@ -128,6 +130,9 @@ timeIn <- timeIn[seqdex]
       stormsep[[length(stormsep) + 1]] <- store
     }
   }
+  
+  
+  ######################
   
   #Now plot each storm and fit exponential curves to rising and falling limbs
   #Store coefficients and statistics for each curve into a data frame, looking
@@ -265,17 +270,34 @@ plambda <- as.numeric(length(stormsep))
 
 
 # poisson of storms 
-# probability that more than 5 storms will occur over 2 years
+
+
+# probability that more than 5 storms will occur in a year
 ppois(5,plambda,lower.tail = FALSE)
-# probability that less than 8 storms will occur over 2 years
+# probability that less than 8 storms will occur in a year
 ppois(8,plambda,lower.tail = TRUE)
+# probability that exactly 6 storms will occur in a year
+dpois(6,plambda)
 
-# Using r pois to plot ... over 40 years (20 periods)
+# Using r pois to plot 30 storms and proportions for each
 
-randStorm <- data.frame('data'=rpois(20,plambda))
+randStorm <- data.frame('data'=rpois(100,plambda))
+
+# Simulation of storms for 100 years
 
 randStorm |> ggplot()+
-  
+  geom_histogram(aes(x=data,
+                     y=stat(count/sum(count))),
+                 binwidth=1,
+                 fill='plum',
+                 colour = 'orchid4')+
+  scale_x_continuous(breaks = 0:20)+
+  labs(x="Number of Storms",
+       y="Proportion",
+       title = paste("Storms from 100 Simulated Years with Lambda =",plambda))+
+  theme_bw()+
+  theme(plot.title = element_text(hjust=0.5))
+                   
 
 
 
