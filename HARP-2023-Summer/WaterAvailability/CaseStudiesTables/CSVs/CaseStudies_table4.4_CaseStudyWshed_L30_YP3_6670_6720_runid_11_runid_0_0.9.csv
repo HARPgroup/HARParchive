@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 30-Day Demand Flow (mgd)","Lowest 30-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l30_Qout_mgd","l30_Qout_base_mgd","l30_Qout_mif_mgd","Qavailable_30_mgd","SminL30mg_local","SminL30mg_upstream","SminL30mg_total","WA_mgd_30"
 "1",1,"Little River","YP1_6570_6680",1.005,0,0.509,1.047,0.943,-0.434,0,0,0,-0.434
 "2",2,"Little River","YP1_6680_6670",1.005,0.251,0.75,1.163,1.047,-0.297,0,0,0,-0.297
 "3",3,"North Anna Dam","YP2_6390_6330",0.022,0,12.928,4.335,3.902,9.027,89557.51,0,89557.51,2994.277

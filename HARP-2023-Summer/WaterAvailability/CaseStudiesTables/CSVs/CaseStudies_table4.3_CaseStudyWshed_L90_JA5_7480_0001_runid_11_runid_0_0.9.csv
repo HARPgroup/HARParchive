@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 90-Day Demand Flow (mgd)","Lowest 90-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l90_Qout_mgd","l90_Qout_base_mgd","l90_Qout_mif_mgd","Qavailable_90_mgd","SminL90mg_local","SminL90mg_upstream","SminL90mg_total","WA_mgd_90"
 "1",1,"West Creek (Deep Creek, Appommattox)","JA1_7600_7570",0.325,0,4.791,3.424,3.082,1.709,0,0,0,1.709
 "2",2,"Bush River","JA1_7640_7280",0.061,0,5.337,3.889,3.5,1.837,0,0,0,1.837
 "3",3,"0","JA1_7641_7640",0,0,0,0,0,0,0,0,0,0

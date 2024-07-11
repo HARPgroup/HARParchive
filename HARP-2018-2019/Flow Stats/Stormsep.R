@@ -65,12 +65,12 @@ stormSeparate <- function(timeIn, inflow, plt = F,path = paste0(getwd(),"/")){
   brk <- brk * 1.1
   
   #Quick plot to visualize baseflow relative to brk
-  mindex <- which(timeIn == "2021-10-01")
-  maxdex <- which(timeIn == "2022-12-31")
-  seqdex <- seq(mindex,maxdex)
-  plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
-  lines(timeIn[seqdex],rep(brk,length(seqdex)),col = "blue",lwd = 2)
-  lines(baseQ$timestamp[seqdex],baseQ$baseQ[seqdex],col = "red",lwd = 2)
+  # mindex <- which(timeIn == "2021-10-01")
+  # maxdex <- which(timeIn == "2022-12-31")
+  # seqdex <- seq(mindex,maxdex)
+  # plot(timeIn[seqdex],inflow[seqdex],type = "l",lwd = 2)
+  # lines(timeIn[seqdex],rep(brk,length(seqdex)),col = "blue",lwd = 2)
+  # lines(baseQ$timestamp[seqdex],baseQ$baseQ[seqdex],col = "red",lwd = 2)
   
   #Next step is to isolate storms. This can be accomplished by taking a minimum
   #and the next point to fall below baseline flow, brk. Each storm is checked to
