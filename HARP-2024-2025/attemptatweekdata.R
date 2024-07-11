@@ -93,7 +93,8 @@ write.csv(week_data,write_file_location)
 
 }
 
-dataset_creation("01660400", "PRISM", 
-                 write_file_location = "~/HarpData/HARParchive/HARP-2024-2025/prism_test")
+
+dataset_creation(gageid="01660400", dataset="PRISM",
+                 write_file_location= "~/HarpData/HARParchive/HARP-2024-2025/attempt.csv")                                    
 
 
