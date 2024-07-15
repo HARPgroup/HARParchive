@@ -14,18 +14,18 @@ output:
 ## More params used during development and testing for user-control -- will be consolidated  
 params: 
 
-  origin: ["Roanoake_1"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
   
-  featrs_file: "C:/HARP/Exports/Roanoke_1_featrs_sf.csv"
-  featrs_file_map_bubble_column: ["five_yr_avg"] #runid & metric
+  featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
+  featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/HARP/Exports/Roanoke_1_rsegs_sf.csv"
+  rsegs_file: "C:/aa_HARP/Exports/MiddleJames_2_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
-  runid_list: ["runid_11", "runid_13"] #list of runids used for facil and rseg data
+  runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system 
@@ -260,7 +260,21 @@ if (show_map == TRUE) {
 
 ## Framing Text:
 
-Including how to use this doc per regulatory requirement. Include note that water is limited for your locality due to what was withdrawn upstream, and what needs to be left for downstream users. Ex. for Drought (reg section XXX), refer to summary document Drought section L90 maps.
+This document is a summary of information pulled from the most recent State Water Resources and Supply Plan, and is provided to assist with the requirements of 9VAC25-780. Data and modeling results are displayed for river segments intersecting the Region and/or Local Government boundaries (“region”). Water withdrawn upstream of these boundaries impacts the local governments, and water withdrawn within each boundary impacts downstream users. The first map and corresponding table display facilities within each region. Subsequent maps and tables display modeling results for each river segment. Note that these results are based in existing use, permitted use, and projected growth provided in the prior water supply plans.  
+
+ 
+
+To assist with 9VAC25-780-100 I 3, Water Availability: instream water availability changes inclusive of withdrawals and storage is provided. #Additionally, the 2040 demand scenario under short-term drought (30-day low flow), long term drought (90-day low flow), and overall percent of flow change, are relevant for showing the simulated impacts of projected demands on in-stream water availability. The potential unmet demand tables also provide information on the impacts of scenarios such as future demand on water supply sources. 
+
+To assist with 9VAC25-780-100 J, cumulative demand, use conflicts, or in-stream flow information: Table 1 shows the change in cumulative demand between 2020 and 2040 projections. The potential unmet demand table presents potential beneficial use conflicts, and overall change in flow shows simulated changes to in-stream flow. One way plan developers could use this information is to check if identified alternatives are located in a river segment with greater than 10% reductions in streamflow during the planning period, and then consider that alternative as potentially unavailable. 
+
+To assist 9VAC25-780-125, risk identification: 
+
+For 9VAC25-780-125 B 2, the projected lowest 90 day flow under the dry climate scenario may be used to evaluate how stream flows may be impacted by climate change.  
+
+For 9VAC25-780-125 B 3, the lowest 30 day flow and lowest 90 day flow are provided under the 2040 projected demand scenario, and can be used to estimate short and long term drought respectively.  
+
+For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day low flow condition that is expected to occur only one time in a 10-year period. The 7Q10 metric is used to establish point source discharge limits and is used to assess potential risks to assimilative capacity from water supply system changes. 
 
 ## State Plan 2020 demand - State Plan 2040 demand:
 
@@ -287,8 +301,9 @@ if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
     #legend_title <- paste0(featrs_file_map_bubble_column[i])
     #legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
-    legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
-    
+    #legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
+    legend_title <- readable$human[grep(featrs_file_map_bubble_column[i], readable$computer)]
+
     #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
     if ((featrs_file_map_bubble_column[i] %in% colnames(facils)) == FALSE) {
       facils[featrs_file_map_bubble_column[i]] <- NA
@@ -301,9 +316,6 @@ if (show_map == TRUE) {
      ORDER BY", ' ', featrs_file_map_bubble_column[i], ' ', "DESC"), #ordering by the metric of interest, descending 
      "facils")
     facils$NUM <- seq(1, nrow(facils))
-   if (i==1) { #data for table will be sorted by the first of featrs_file_map_bubble_column
-     #facils$within <- facils_within
-   } 
     
     metric_unit <- substr(featrs_file_map_bubble_column[i], nchar(featrs_file_map_bubble_column[i]) - 2, 
                           nchar(featrs_file_map_bubble_column[i]))  #get metric unit from last 3 characters of metric 
@@ -341,7 +353,7 @@ if (show_map == TRUE) {
     mp_layer <- fn_centroid_coords(mp_layer)
     
     rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default)
-    
+
     # colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
     # 
     # ## Create title for the map
@@ -358,12 +370,17 @@ if (show_map == TRUE) {
     #   maplabel <- colname
     # }
     ##instead:
-    maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
-    
+    #maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
+    if(featrs_file_map_bubble_column[i] %in% readable$computer){
+      maplabel <- readable$human[readable$computer==featrs_file_map_bubble_column[i]]
+    }else {
+      maplabel <- featrs_file_map_bubble_column[i]
+    }
 
     #create map title by combining label and title
     maptitle <- paste0(title_main, ", ", maplabel)
     map_style_set <- styles[[map_style]]
+    
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                      maptitle, mapnum=1, rseg_leg_title=NULL, map_server, base_layer, 
                      maplabs, nhd, roads, rsegs, map_style_set)
@@ -503,12 +520,24 @@ if (nrow(novals > 0)) {
 
 # Rename columns & create flextable
 #names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-
+# 
+# for (i in 1:length(featrs_file_table_column)) {
+#   for (x in 1:nrow(metric_names)){
+#     if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
+#     {
+#       names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
+#     }
+#     else
+#     {
+#       next
+#     }
+#   }
+# }
 for (i in 1:length(featrs_file_table_column)) {
-  for (x in 1:nrow(metric_names)){
-    if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
+  for (x in 1:nrow(readable)){
+    if (featrs_file_table_column[i]==readable$computer[x])
     {
-      names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
+      names(table)[names(table)==featrs_file_table_column[i]] <- readable$human[x]
     }
     else
     {
@@ -516,8 +545,6 @@ for (i in 1:length(featrs_file_table_column)) {
     }
   }
 }
-
-names(table)[names(table) == 'five_yr_avg'] <- '5-yr Avg Use (mgy)'
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
 
@@ -565,19 +592,20 @@ ft1 #display flextable
       display_column <- run_config$riverseg_metrics[[i]]$column_name
       display_title <- run_config$riverseg_metrics[[i]]$run_label
     
-     # rseg_leg_title <- legend_titling(display_metric, runid_list)
-
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
-    if (display_metric=="l30_Qout"){
-        rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
-    } else if (display_metric=="l90_Qout"){
-        rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
-    } else {
+    # if (display_metric=="l30_Qout"){
+    #     rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
+    # } else if (display_metric=="l90_Qout"){
+    #     rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
+    # } else {
+    #     rivmaplabel <- rivmapmetric
+    # }
+    if(display_metric %in% readable$computer){
+      rivmaplabel <- readable$human[readable$computer==display_metric]
+    }else {
         rivmaplabel <- rivmapmetric
     }
-  
-    rivmaptitle <- paste0(display_title, ", ", rivmaplabel)
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
     #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
@@ -623,12 +651,12 @@ ft1 #display flextable
     
     rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
     st_crs(rsegs_sf) <- crs_default
-  
+
     ##Mapping function
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                       maptitle = rivmaptitle, mapnum=2, #rseg_leg_title
-                       display_title, map_server, map_layer, 
-                       maplabs, nhd, roads, rsegs=rsegs_sf, map_style_set)
+                       maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
+                       map_server, base_layer, maplabs, nhd, roads, 
+                       rsegs=rsegs_sf, map_style_set)
     map_objects[[i]] <- map_rivseg
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
@@ -640,9 +668,8 @@ ft1 #display flextable
       plot = map_rivseg,
       width = 25,
       height = 20)
-     } else {
-      print("No map created for this metric")
-    }
+    
+     }
   }
 ```
 
@@ -736,16 +763,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
   
   #defining titles 
   rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
-  
-  # this chunk is not in use at the moment, based on titles being done in config 
-  if (display_metric=="l30_Qout"){
-      rivtablelabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivtablemetric)
-    } else if (display_metric=="l90_Qout"){
-      rivtablelabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivtablemetric)
-    #print(get(paste0('table', k))) #doesn't work to display flextables in loop on rendering 
-  } else {
-    message(paste("The requested data_set,", data_set,"is not defined. Please adjust settings in config file"))
-  }
   }
 }
 ```
@@ -805,33 +822,9 @@ for (k in 1:length(run_config$riverseg_metrics)){
     cat("\n\n\\pagebreak\n")
   }
 ```
-### Narrative note:
 
-Narrative summarizing highlights from maps/tables
 
-## Climate: State Plan Dry climate scenario - Climate differential scenario
-
-### Map
-
-### Table
-
-### Narrative Note:
-
-Narrative summarizing highlights from maps/tables
-
-## CU: Overall Change in Flow from State Plan
-
-### Map
-
-### Table
-
-### Narrative Note:
-
-# Locality Focus:
-
-repeat above for localities
-
-# Region Appendix:
+# Appendix:
 
 ```{r Generate Errors Summary, echo=FALSE}
 #if there are any mapping errors or other messages to the user, output a separate file containing them

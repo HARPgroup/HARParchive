@@ -26,8 +26,42 @@
 read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
 new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
                      'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
-                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use (MGY)', 'Withdraws (MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 MGY", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
+                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use (MGY)', 'Withdraws (MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 Demand (MGY)", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
 metric_names <- data.frame(read_metric_name, new_metric_name)
+
+readable <- data.frame(rbind(
+                  #scenarios:
+                  c('runid_0', 'Pre-Condition'),
+                  c('runid_1', 'Historical Condition'),
+                  c('runid_3', 'Permit Term Max'),
+                  c('runid_11', '2020 Demand Scenario'),
+                  c('runid_12', '2030 Demand Scenario'),
+                  c('runid_13', '2040 Demand Scenario'),
+                  c('runid_14', 'Median Climate Change Scenario (50/50)- 2020 Demand'),
+                  c('runid_15', 'Dry Climate Change Scenario (10/10) - 2020 Demand'),
+                  c('runid_16', 'Wet Climate Change Scenario (90/90) - 2020 Demand'),
+                  c('runid_17', 'Dry Climate Change Scenario (10/20) - 2040 Demand'),
+                  c('runid_18', '2020 Exempt User Runs'),
+                  c('runid_19','Median Climate Change Scenario (50/50)- 2040 Demand'),
+                  c('runid_20', 'Wet Climate Change Scenario (90/90) - 2040 Demand'),
+                  c('runid_21', '2015 Demand 2010'),
+                  c('runid_22', '2015 Demand 2040'),
+                  #metrics:
+                  c('fiveyr_avg_mgy', 'Five Year Avg Use (MGY)'),
+                  c('wd_mgd', 'Withdraws (MGD)'),
+                  c('gw_demand_mgd', 'Ground Water Demand (MGD)'),
+                  c('ps_mgd', 'Point Source (MGD)'),
+                  c('wsp2020_2040_mgy', 'Water Supply Plan 2020-2040 Demand (MGY)'),
+                  c('l90_Qout', '90 Day Low Flow'),
+                  c('l30_Qout', '30 Day Low Flow'),
+                  c('Smin_L30_mg', 'Lowest 30 Day Minimum Storage (MG)'),
+                  c('unmet30_mgd', 'Highest 30 Day Potential Unmet Demand (MGD)'),
+                  #table column names:
+                  c('five_yr_avg', '5-yr Avg Use (MGY)'),
+                  c('runid_11_wd_mgd', '2020 Demand Scenario Withdraws (MGD)'),
+                  c('runid_13_wd_mgd', '2040 Demand Scenario Withdraws (MGD)')
+))
+colnames(readable) <- c('computer', 'human')
 
 # adapt this to permit us to store pre-configured sets
 # run_set is parameter to use in WSP_Regional_Summaries.Rmd
@@ -46,17 +80,47 @@ run_sets <- list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_13', 
-        run_label = '2040 WSP L90 %', 
+        run_label = '90 Day Low Flow (Percent Change 2020 to 2040)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
         sort_decreasing = FALSE,
         show_map = TRUE
       ),
       list(
+        metric='l30_Qout', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_l30_Qout_runid_11_runid_13', 
+        run_label = '30 Day Low Flow (Percent Change 2020 to 2040)', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
+        sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
+        sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
+        metric='7q10', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_7q10_runid_11_runid_13', 
+        run_label = '7Q10 (Percent Change 2020 to 2040)%', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
+        sort_col = 'percentDiff_7q10_runid_11_runid_13',
+        sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
+        metric='consumptive_use_frac', 
+        data_set = 'rseg_no_geom',
+        column_name='percentDiff_consumptive_use_frac_runid_11_runid_13', 
+        run_label = 'Overall Change in Flow (Percent Change 2020 to 2040)%', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_consumptive_use_frac','runid_13_consumptive_use_frac', 'percentDiff_consumptive_use_frac_runid_11_runid_13'),
+        sort_col = 'percentDiff_consumptive_use_frac_runid_11_runid_13',
+        sort_decreasing = FALSE, 
+        show_map = TRUE
+      ),
+      list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
-        run_label = 'Dry Climate Change WSP L90 %', 
+        run_label = '90 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout','runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
@@ -65,31 +129,11 @@ run_sets <- list(
       list(
         metric='l30_Qout', 
         data_set = 'rseg_no_geom',
-        column_name='percentDiff_l30_Qout_runid_11_runid_13', 
-        run_label = '2040 WSP L30 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
-        sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
-        sort_decreasing = FALSE, 
-        show_map = TRUE
-      ),
-      list(
-        metric='l30_Qout', 
-        data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_17', 
-        run_label = 'Dry climate Change WSP L30 %', 
+        run_label = '30 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         sort_decreasing = FALSE,
-        show_map = TRUE
-      ),
-      list(
-        metric='7q10', 
-        data_set = 'rseg_no_geom',
-        column_name='percentDiff_7q10_runid_11_runid_13', 
-        run_label = '2040 WSP 7q10 %', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
-        sort_col = 'percentDiff_7q10_runid_11_runid_13',
-        sort_decreasing = FALSE, 
         show_map = TRUE
       ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
@@ -97,7 +141,7 @@ run_sets <- list(
         metric='7q10', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_7q10_runid_11_runid_17', 
-        run_label = 'Climate Change 7q10 %', 
+        run_label = '7Q10 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
         sort_col = 'percentDiff_7q10_runid_11_runid_17',
         sort_decreasing = FALSE,
@@ -107,7 +151,7 @@ run_sets <- list(
         metric='Smin_L30_mg', 
         data_set = 'rseg_no_geom',
         column_name='runid_13_Smin_L30_mg', 
-        run_label = 'Minimum Storage', 
+        run_label = 'Lowest 30 Day Minimum Storage (MG)', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'), 
         sort_col = 'runid_13_Smin_L30_mg',
         sort_decreasing = TRUE, 
@@ -117,7 +161,7 @@ run_sets <- list(
         data_set = 'facils_nogeom',
         metric='unmet30_mgd', #replace with unmet demand req 
         column_name='runid_11_unmet30_mgd', 
-        run_label = 'Highest 30-day Potential Unmet Demand', 
+        run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
         tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_decreasing = FALSE, 
         show_map= FALSE
@@ -225,7 +269,7 @@ styles$custom$color$fill <- data.frame(row.names=c("interstate","staterte","ushw
 
 styles$custom$a <- data.frame(class="I", #label type identifier; should match up with the labels df so aesthetics can be joined to it
                                fontface="plain", #plain, bold, italic, bold.italic
-                               fontfam="Comic Sans MS",
+                               fontfam="TT Times New Roman",
                                angle=0, #angle of the text; e.g. river names are tilted 15 degrees for clarity
                                bg.r="NA", #thickness of the text's white outline; not applicable to labels with backgrounds (i.e. roads)
                                segsize=0, #lollipop label line width
@@ -236,7 +280,7 @@ styles$custom$a <- data.frame(class="I", #label type identifier; should match up
 )
 styles$custom$b <- data.frame(class="S",
                                fontface="plain",
-                               fontfam="Comic Sans MS",
+                               fontfam="TT Times New Roman",
                                angle=0,
                                bg.r="NA",
                                segsize=0,
@@ -247,7 +291,7 @@ styles$custom$b <- data.frame(class="S",
 )
 styles$custom$c <- data.frame(class="U",
                                fontface="plain",
-                               fontfam="Comic Sans MS",
+                               fontfam="TT Times New Roman",
                                angle=0,
                                bg.r="NA",
                                segsize=0,
@@ -258,7 +302,7 @@ styles$custom$c <- data.frame(class="U",
 )
 styles$custom$d <- data.frame(class="town",
                                fontface="plain",
-                               fontfam="sans",
+                               fontfam="Sans",
                                angle=0,
                                bg.r=.05,
                                segsize=.5,
@@ -269,7 +313,7 @@ styles$custom$d <- data.frame(class="town",
 )
 styles$custom$e <- data.frame(class="city",
                                fontface="plain",
-                               fontfam="sans",
+                               fontfam="Sans",
                                angle=0,
                                bg.r=.05,
                                segsize=.5,
@@ -280,7 +324,7 @@ styles$custom$e <- data.frame(class="city",
 )
 styles$custom$f <- data.frame(class="waterbody_lg",
                                fontface="bold",
-                               fontfam="serif",
+                               fontfam="Serif",
                                angle=0,
                                bg.r=.1,
                                segsize=.5,
@@ -291,7 +335,7 @@ styles$custom$f <- data.frame(class="waterbody_lg",
 )
 styles$custom$g <- data.frame(class="waterbody_med",
                               fontface="bold",
-                              fontfam="serif",
+                              fontfam="Serif",
                               angle=0,
                               bg.r=.1,
                               segsize=.5,
@@ -302,7 +346,7 @@ styles$custom$g <- data.frame(class="waterbody_med",
 )
 styles$custom$h <- data.frame(class="waterbody_sm",
                               fontface="bold",
-                              fontfam="serif",
+                              fontfam="Serif",
                               angle=0,
                               bg.r=.1,
                               segsize=.5,
@@ -313,7 +357,7 @@ styles$custom$h <- data.frame(class="waterbody_sm",
 )
 styles$custom$i <- data.frame(class="stream",
                                fontface="bold",
-                               fontfam="serif",
+                               fontfam="Serif",
                                angle=15,
                                bg.r=.1,
                                segsize=.5,
@@ -324,7 +368,7 @@ styles$custom$i <- data.frame(class="stream",
 )
 styles$custom$j <- data.frame(class="majorRiver",
                                fontface="bold",
-                               fontfam="serif",
+                               fontfam="Serif",
                                angle=15,
                                bg.r=.05,
                                segsize=.75,
@@ -346,7 +390,7 @@ styles$custom$k <- data.frame(class="county",
 )
 styles$custom$l <- data.frame(class="smallTown",
                               fontface="plain",
-                              fontfam="sans",
+                              fontfam="Sans",
                               angle=0,
                               bg.r=.05,
                               segsize=.5,

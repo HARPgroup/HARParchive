@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 90-Day Demand Flow (mgd)","Lowest 90-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l90_Qout_mgd","l90_Qout_base_mgd","l90_Qout_mif_mgd","Qavailable_90_mgd","SminL90mg_local","SminL90mg_upstream","SminL90mg_total","WA_mgd_90"
 "1",1,"Savage River","PU1_3850_4190",0,0,3.419,3.104,2.793,0.625,0,0,0,0.625
 "2",2,"Georges Creek","PU1_3940_3970",0,0,3.405,2.525,2.272,1.133,0,0,0,1.133
 "3",3,"Savage River Dam","PU1_4190_4300",0,0,19.128,6.615,5.953,13.175,259.519,0,259.519,30.459

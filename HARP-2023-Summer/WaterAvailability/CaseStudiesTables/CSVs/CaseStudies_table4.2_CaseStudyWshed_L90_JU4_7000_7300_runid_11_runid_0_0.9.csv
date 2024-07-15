@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 90-Day Demand Flow (mgd)","Lowest 90-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l90_Qout_mgd","l90_Qout_base_mgd","l90_Qout_mif_mgd","Qavailable_90_mgd","SminL90mg_local","SminL90mg_upstream","SminL90mg_total","WA_mgd_90"
 "1",1,"Back Creek","JU1_6290_6590",0,0,1.637,1.63,1.467,0.17,0,0,0,0.17
 "2",2,"Back Creek - Bath County Lower Dam","JU1_6590_6600",0.009,0,5.994,2.857,2.572,3.422,7912.425,11457.43,19369.855,218.774
 "3",3,"Bath County Pump Store - Upper","JU1_6591_6590",0,0,1.293,0.97,0.873,0.42,11457.43,0,11457.43,127.856
