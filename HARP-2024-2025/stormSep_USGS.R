@@ -417,7 +417,7 @@ stormSeparate <- function(timeIn, inflow,
   return(out)
 }
 
-Below function hreg (horizontal regression) will try to fit mulitple
+# Below function hreg (horizontal regression) will try to fit mulitple
 #horizontal lines through subset of data involving every point below that line
 #until best fit is found. This becomes baseline flow, brk
 hreg <- function(x, limit = 1){
