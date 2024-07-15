@@ -8,9 +8,9 @@ suppressPackageStartupMessages(library("dataRetrieval"))
 suppressPackageStartupMessages(library("lubridate"))
 suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
-
-source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
-#source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
+#for testing purposes only
+#source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
+source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
 args <- commandArgs(trailingOnly = T)
 if (length(args) != 4){
