@@ -37,11 +37,11 @@ hydro_daily[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(hydro_daily$obs_da
 print("Checking for nldas2")
 if (dataset_type=="nldas2"){
   hydro_daily <- sqldf(
-    "select featureid, min(obs_date) as obs_date, yr, mo, da, 
+    "select featureid, min(obs_date) as obs_date, yr, mo, da, wk, 
      sum(precip_mm) as precip_mm, sum(precip_in) as precip_in
    from hydro_daily 
-   group by yr, mo, da
-   order by yr, mo, da
+   group by yr, mo, da, wk
+   order by yr, mo, da, wk
   "
   )}
 

@@ -12,16 +12,16 @@ suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
 suppressPackageStartupMessages(library("rjson"))
 #for testing purposes
-#source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
+source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
 
 
 #mon_lm function
-source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
+#source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
 
 #checks for proper number of arguments
 args <- commandArgs(trailingOnly = T)
-if (length(args) != 6){
+if (length(args) != 5){
   message("Missing or extra inputs. Usage: Rscript analysis.R data_csv x_variable y_var month_var location_for_stats")
   q()
 }
@@ -31,7 +31,6 @@ y_var <- args[2]
 x_var <- args[3]
 mo_var <- args[4]
 csv_location <- args[5]
-json_location <- args[6]
 
 print("Reading in data")
 sample_data <- read.csv(data_location)

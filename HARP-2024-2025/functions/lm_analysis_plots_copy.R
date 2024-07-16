@@ -19,10 +19,8 @@ mon_lm_stats <- function(sample_data, y_var, x_var, mo_var){
     weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
     plot_out$atts$lms[[i]] <- weekmo_data
     dsum <- summary(weekmo_data)
-    print("test")
     nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
   }
-      print("test")
      plot_out$atts$stats <- nwd_stats
      plot_out$r_col <- paste0('r_squared')
      names(plot_out$atts$stats) <- c('mo', plot_out$r_col)
