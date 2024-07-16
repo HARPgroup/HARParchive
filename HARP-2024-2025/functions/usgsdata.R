@@ -23,5 +23,5 @@ usgs_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)),
 gage_info <- readNWISsite(gage_id)
 
 
-print("Write csv in new file path")
+print(paste0("Write csv in new file path: ",write_path))
 write.csv(usgs_data,write_path)
