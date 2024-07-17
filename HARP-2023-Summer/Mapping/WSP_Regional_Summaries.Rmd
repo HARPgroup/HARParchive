@@ -702,7 +702,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     display_title <- run_config$riverseg_metrics[[k]]$run_label
     
     #metrics, to be suppressed later?
-    rseg_display$Metric <- display_metric 
+    #rseg_display$Metric <- display_metric 
 
     #assemble our table, with the columns in order defined by table_cols
     # cols present
@@ -733,7 +733,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     rivtablenum <- k + 1 #for heading numbering, use 1 + rivtablenum since we already printed a table
   
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
-                       columns = "all", alignment = "left", 
+                       columns = cols_present, alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
                        origin = origin , tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
