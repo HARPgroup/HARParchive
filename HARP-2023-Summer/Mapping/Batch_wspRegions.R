@@ -10,13 +10,15 @@ region_set <-
   c(
     "BigSandy_UpperTennessee_1", "BigSandy_UpperTennessee_2",
     "Chowan_1", "Chowan_2", 
-    "Eastern_Shore",#ERRORS HERE!
+    "Eastern_Shore",
     "MiddleJames_1", "MiddleJames_2",
-    "MiddleJames_3",
+    "MiddleJames_3",#ERRORS HERE!
     "NewRiver_1", "NewRiver_2",
     "NorthernCoastalPlain_1", "NorthernCoastalPlain_2",
     "NorthernCoastalPlain_3", "NorthernPiedmont_1", "NorthernPiedmont_2",
-    "NorthernVirginia", "Roanoke_1", "Roanoke_2", "Roanoke_3",
+    "NorthernVirginia", "Roanoke_1", 
+    #CONNOR STOPPED HERE. Roanoke_2 onward still need testing
+    "Roanoke_2", "Roanoke_3",
     "Shenandoah_1", "Shenandoah_2", "SoutheastVirginia",
     "UpperJames_1", "UpperJames_2", "York_James_1", "York_James_2"
   )
@@ -32,8 +34,9 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 origin_name <- "Shenandoah_1" 
 #East shore fails as does MiddleJames_3
 ### Run all regions ##########################
-for (x in 1:length(region_set)) {
+for (x in 10:length(region_set)) {
   origin_name <- region_set[x]
+  print(paste0("Rendering ",origin_name))
   
   #RENDER DATAFRAME GENERATOR
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
