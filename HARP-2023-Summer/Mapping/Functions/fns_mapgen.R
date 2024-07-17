@@ -162,7 +162,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
                                     breaks = breaks, 
                                     labels = labs,
                                     limits = lims,
-                                    name = legend_title[1]
+                                    name = str_wrap(legend_title[1], width = 20)
     )
     bubbles <- list(map_layer, scale_size, num_labels)
   }
@@ -226,14 +226,14 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
     scale_color <- ggplot2::scale_colour_manual(values= c(map_style_set$color$sf[c("region","county","rsegs"),]) ,
                                        breaks= c("region","county","watershed"),
                                        labels= c("Region","County","Basin"),
-                                       name= "polyg_borders" )
+                                       name= "Borders" )
     scale_linetype <- ggplot2::scale_linetype_manual(values= c("region"= 1,"county"= 1,"watershed"= 2), 
                             labels= c("Region","County","Basin"),
-                            name= "polyg_borders" )
+                            name= "Borders" )
     scale_linewidth <- ggplot2::scale_linewidth(range= range(c(2.5,textsize[6],4.5)), 
                           breaks= c(4.5,2.5,textsize[6]),
                           labels= c("Region","County","Basin"),
-                          name= "polyg_borders" )
+                          name= "Borders" )
   } else {
     map_layer <- ggplot2::geom_sf(data= polyg_borders, inherit.aes=FALSE, fill=NA,
                               ggplot2::aes(color= bundle,
@@ -283,7 +283,7 @@ fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title){
                                            breaks = rivbreaks,
                                            labels = rivmap_labs,
                                            limits = as.factor(rivbreaks),
-                                           name = rseg_leg_title)
+                                           name = str_wrap(rseg_leg_title, width = 20))
     metric_legend <- ggplot2::theme(legend.spacing.y = unit(0.1, 'cm')) #adjust spacing of legend 
     rseg_fill <- list(ggnewscale::new_scale("fill"), metric_fill, metric_scale_fill,
                       ggplot2::guides(fill = guide_legend(byrow = TRUE)),
