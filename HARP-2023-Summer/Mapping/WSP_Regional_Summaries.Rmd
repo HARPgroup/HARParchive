@@ -378,7 +378,7 @@ if (show_map == TRUE) {
     }
 
     #create map title by combining label and title
-    maptitle <- paste0(title_main, ", ", maplabel)
+    #maptitle <- paste0(title_main, ", ", maplabel)
     map_style_set <- styles[[map_style]]
     
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
@@ -738,6 +738,24 @@ for (k in 1:length(run_config$riverseg_metrics)){
                        origin = origin , tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
     
+    new_cols <- colnames(rivTables[[k]])
+    for (i in 1:length(colnames(rivTables[[k]]))) {
+      if (colnames(rivTables[[k]])[i] %in% readable$computer)
+        {
+        new_cols[i] <- readable$human[readable$computer==colnames(rivTables[[k]])[i]]
+        }
+      else
+        {
+          next
+        }
+      }
+
+    ref_table <- data.frame( #human readable column names
+      key = colnames(rivTables[[k]]),
+      label = new_cols
+      )
+    ft2 <- set_header_df(ft2, mapping = ref_table, key = "key")
+
     assign(paste0('table', k), ft2, envir = globalenv())
   
   display_metric <- run_config$riverseg_metrics[[k]]$metric
