@@ -283,7 +283,7 @@ For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day lo
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
-facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
+# facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 #create human-readable title based on origin & type
@@ -382,7 +382,8 @@ if (show_map == TRUE) {
     map_style_set <- styles[[map_style]]
     
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server, base_layer, 
+                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server,
+                     base_layer, 
                      maplabs, nhd, roads, rsegs, map_style_set)
                     
     #assign map to environment
@@ -470,7 +471,7 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 table <- data.frame(
   Number= facils_table$NUM,
   Facility=facils_table$facility,
-  HydroID = facils_table$Facility_hydroid, 
+  HydroID = facils_table$featureid, 
   GWFrac = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table

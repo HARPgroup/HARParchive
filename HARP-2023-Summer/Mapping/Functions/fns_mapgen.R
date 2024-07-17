@@ -379,7 +379,8 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                                                   title=ggplot2::element_text(size=40), #setting text sizes
                                                   legend.title = ggplot2::element_text(size=25), 
                                                   axis.title.x=ggplot2::element_blank(), 
-                                                  axis.title.y=ggplot2::element_blank()
+                                                  axis.title.y=ggplot2::element_blank(),
+                                                  panel.grid = ggplot2::element_blank()
                                                   ),
                                   layer_description = "map theme", map = map)
   map <- fn_catchMapErrors(map_layer = ggplot2::ggtitle(maptitle), layer_description = "map title", map = map)
