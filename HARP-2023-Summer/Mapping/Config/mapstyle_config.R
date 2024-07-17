@@ -23,12 +23,6 @@
 #Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used
 
 #----Human-readable metric names: add here any new metric names being used and their readable version----
-# read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
-# new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
-#                      'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
-#                      'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use (MGY)', 'Withdraws (MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 Demand (MGY)", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
-# metric_names <- data.frame(read_metric_name, new_metric_name)
-
 readable <- data.frame(rbind(
                   #scenarios:
                   c('runid_0', 'Pre-Condition'),
