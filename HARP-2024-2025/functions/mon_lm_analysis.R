@@ -41,3 +41,19 @@ print("Creating csv of stats")
 write.csv(data_lm$atts$stats,csv_location)
 
 
+
+
+#list_data_lm<- as.list(data_lm$atts$lms)
+
+
+#library(jsonlite)
+#x <- toJSON(list_data_lm)
+
+
+#exportJson <- toJSON(data_lm)
+#save(exportJson, file="export.JSON")
+
+
+
+
+

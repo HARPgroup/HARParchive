@@ -18,42 +18,18 @@ print("Assigning arguments")
 comp_data_filepath <- args[1]
 output_filepath <- args[2]
 
-
-
+required_variables <- c("obs_date", "yr", "wk", "mo", "precip_p_in", "precip_cfs","obs_flow")
 print("Reading in comp data csv")
 comp_data <- read.csv(comp_data_filepath)
   
 # Check for necessary data there are a lot of 
 #required columns and this ensures they are all available
 print("Checking columns")
-if ("obs_date" %in% colnames(comp_data)){}else{
-  message("Missing obs_date column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
+if (!all(required_variables %in% colnames(comp_data))){
+  message("Missing required columns, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and obs_flow")
  q()
 }
-if ("yr" %in% colnames(comp_data)){}else{
-  message("Missing yr column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
-  q()
-}
-if ("wk" %in% colnames(comp_data)){}else{
-  message("Missing wk column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
-  q()
-}
-if ("mo" %in% colnames(comp_data)){}else{
-  message("Missing mo column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
-  q()
-}
-if ("precip_p_in"%in% colnames(comp_data)){}else{
-  message("Missing precip_p_in column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
-  q()
-}
-if ("precip_cfs"%in% colnames(comp_data)){}else{
-  message("Missing precip_cfs column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
-  q()
-}
-if ("usgs_cfs" %in% colnames(comp_data)){}else{
-  message("Missing usgs_cfs column, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and usgs_cfs")
-  q()
-}
+
 
 
 #converts our daily data into weekly
@@ -61,7 +37,7 @@ print("Converting to weekly data")
   week_data <- sqldf(
     "select min(obs_date) as start_date, max(obs_date) as end_date, yr, wk,
      avg(precip_p_in) as weekly_mean_p_in, avg(precip_cfs) as weekly_mean_precip_cfs,
-     avg(usgs_cfs) as weekly_mean_usgs_cfs
+     avg(obs_flow) as weekly_mean_obs_flow
    from comp_data
    group by yr, wk
    order by yr, wk
@@ -72,8 +48,8 @@ print("Converting to weekly data")
   #Base the month column off of the min day index for that week, or the day that
   #week began
 
-  week_data$mo <- month(week_data$start_date)
+week_data$mo <- month(week_data$start_date)
   
-  
-  write.csv(week_data,output_filepath)
+print(paste0("Write csv in new file path: ",write_path))
+write.csv(week_data,output_filepath)
   

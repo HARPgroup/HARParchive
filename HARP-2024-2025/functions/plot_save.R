@@ -9,13 +9,13 @@ suppressPackageStartupMessages(library("lubridate"))
 suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
 #for testing purposes only
-<<<<<<< HEAD
+
 source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
 #source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
-=======
+
 #source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
 source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
->>>>>>> ee2bed887736f1431e0ac336fa77ae659c033229
+
 
 args <- commandArgs(trailingOnly = T)
 if (length(args) != 4){
@@ -34,3 +34,5 @@ png(filename = plot_location)
 # plot(testPlot)
 mon_lm_plot(stats, data_name, label_name)
 dev.off()
+
+

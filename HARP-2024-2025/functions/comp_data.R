@@ -1,4 +1,8 @@
-
+#Arguments
+#Argument 1 is the flow_csv
+#Argument 2 is the precip_csv
+#argument 3 is the gage_id, this is used to create precip_cfs, could be moved to a different function
+#Argument 4 is the location where the file is going to be saved
 
 
 
@@ -15,14 +19,14 @@ if (length(args) != 4) {
   q()
 }
 
-usgs_csv <- args[1]
+flow_csv<- args[1]
 precip_csv <- args[2]
 gage_id <- args[3]
 file_location <- args[4]
 
 print("Inputting csvs")
-#argument 1 is the file path to the usgs csv made earlier
-usgs_data <- read.csv(usgs_csv)
+#argument 1 is the file path to the flow csv made earlier
+usgs_data <- read.csv(flow_csv)
 #argument 2 is the file path to the precipitation csv made earlier
 precip_data <- read.csv(precip_csv)
 #argument 3 is the gageid, could be improved, we only need this for the drainage area
@@ -33,9 +37,9 @@ print("creating comp_data")
 comp_data <- sqldf(
   "select a.obs_date, a.precip_in as  precip_p_in, 
   a.yr, a.mo, a.da, a.wk,
-  b.X_00060_00003 as usgs_cfs
+  b.obs_flow 
   from precip_data as a
-  left outer join usgs_data as b 
+  left outer join flow_data as b 
   on (
     a.yr = b.yr
     and a.mo = b.mo
@@ -48,5 +52,5 @@ comp_data <- sqldf(
 print("computing drainage area")
 comp_data$precip_cfs <- 1.572 * (da * 640.0 * comp_data$precip_p_in / 12.0) / 3.07 
 #argument 4 is the save location for the comp_data csv
-print("outputting csv")
+print(paste0("Write csv in new file path: ",write_path))
 write.csv(comp_data,file_location)
