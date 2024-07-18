@@ -283,7 +283,7 @@ For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day lo
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
-facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
+# facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
 #st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 #create human-readable title based on origin & type
@@ -378,11 +378,12 @@ if (show_map == TRUE) {
     }
 
     #create map title by combining label and title
-    maptitle <- paste0(title_main, ", ", maplabel)
+    #maptitle <- paste0(title_main, ", ", maplabel)
     map_style_set <- styles[[map_style]]
     
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                     maptitle, mapnum=1, rseg_leg_title=NULL, map_server, base_layer, 
+                     maptitle=title_main, mapnum=1, rseg_leg_title=NULL, map_server,
+                     base_layer, 
                      maplabs, nhd, roads, rsegs, map_style_set)
                     
     #assign map to environment
@@ -470,7 +471,7 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 table <- data.frame(
   Number= facils_table$NUM,
   Facility=facils_table$facility,
-  HydroID = facils_table$Facility_hydroid, 
+  HydroID = facils_table$featureid, 
   GWFrac = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
@@ -701,7 +702,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     display_title <- run_config$riverseg_metrics[[k]]$run_label
     
     #metrics, to be suppressed later?
-    rseg_display$Metric <- display_metric 
+    #rseg_display$Metric <- display_metric 
 
     #assemble our table, with the columns in order defined by table_cols
     # cols present
@@ -732,11 +733,29 @@ for (k in 1:length(run_config$riverseg_metrics)){
     rivtablenum <- k + 1 #for heading numbering, use 1 + rivtablenum since we already printed a table
   
     ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
-                       columns = "all", alignment = "left", 
+                       columns = cols_present, alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
                        origin = origin , tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
     
+    new_cols <- colnames(rivTables[[k]])
+    for (i in 1:length(colnames(rivTables[[k]]))) {
+      if (colnames(rivTables[[k]])[i] %in% readable$computer)
+        {
+        new_cols[i] <- readable$human[readable$computer==colnames(rivTables[[k]])[i]]
+        }
+      else
+        {
+          next
+        }
+      }
+
+    ref_table <- data.frame( #human readable column names
+      key = colnames(rivTables[[k]]),
+      label = new_cols
+      )
+    ft2 <- set_header_df(ft2, mapping = ref_table, key = "key")
+
     assign(paste0('table', k), ft2, envir = globalenv())
   
   display_metric <- run_config$riverseg_metrics[[k]]$metric

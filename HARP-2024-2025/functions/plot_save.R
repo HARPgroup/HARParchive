@@ -10,9 +10,12 @@ suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
 #for testing purposes only
 
+<<<<<<< HEAD
 source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
 #source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
+=======
+>>>>>>> 620281731255fa3d6dc81ea3e44ed0f933e6f37c
 #source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
 source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 

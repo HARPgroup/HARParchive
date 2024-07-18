@@ -23,12 +23,6 @@
 #Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used
 
 #----Human-readable metric names: add here any new metric names being used and their readable version----
-read_metric_name <- c('runid_0', 'runid_1','runid_3','runid_11','runid_12','runid_13','runid_14','runid_15','runid_16','runid_17','runid_18','runid_19','runid_20','runid_21','runid_22', 'fiveyr_avg_mgy', "wd_mgd", "gw_demand_mgd", "ps_mgd", "wsp2020_2040_mgy", "runid_11_wd_mgd", "runid_13_wd_mgd")
-new_metric_name <- c('Pre-Condition', 'Historical Condition', 'Permit Term Max', '2020 Demand Scenario', '2030 Demand Scenario', '2040 Demand Scenario', 'Median Climate Change Scenario (50/50)- 2020 Demand',
-                     'Dry Climate Change Scenario (10/10) - 2020 Demand', 'Wet Climate Change Scenario (90/90) - 2020 Demand ', 'Dry Climate Change Scenario (10/20) - 2040 Demand ', '2020 Exempt User Runs', 'Median Climate Change Scenario (50/50)- 2040 Demand',  
-                     'Wet Climate Change Scenario (90/90) - 2040 Demand', '2015 Demand 2010', '2015 Demand 2040', 'Five Year Avg Use (MGY)', 'Withdraws (MGD)', 'Ground Water Demand (MGD)', "Point Source (MGD)", "Water Supply Plan 2020-2040 Demand (MGY)", "2020 Demand Scenario Withdraws (MGD)", "2040 Demand Scenario Withdraws (MGD)")
-metric_names <- data.frame(read_metric_name, new_metric_name)
-
 readable <- data.frame(rbind(
                   #scenarios:
                   c('runid_0', 'Pre-Condition'),
@@ -57,9 +51,35 @@ readable <- data.frame(rbind(
                   c('Smin_L30_mg', 'Lowest 30 Day Minimum Storage (MG)'),
                   c('unmet30_mgd', 'Highest 30 Day Potential Unmet Demand (MGD)'),
                   #table column names:
+                  c('name', 'Name'),
+                  c('riverseg', 'River Segment ID'),
                   c('five_yr_avg', '5-yr Avg Use (MGY)'),
                   c('runid_11_wd_mgd', '2020 Demand Scenario Withdraws (MGD)'),
-                  c('runid_13_wd_mgd', '2040 Demand Scenario Withdraws (MGD)')
+                  c('runid_13_wd_mgd', '2040 Demand Scenario Withdraws (MGD)'),
+                  c('runid_11_l90_Qout', '2020 90 Day Low Flow'),
+                  c('runid_13_l90_Qout', '2040 90 Day Low Flow'),
+                  c('percentDiff_l90_Qout_runid_11_runid_13', 'Percent Difference in 90 Day Low Flow From 2020-2040'),
+                  c('runid_11_l30_Qout', '2020 30 Day Low Flow'),
+                  c('runid_13_l30_Qout', '2040 30 Day Low Flow'),
+                  c('percentDiff_l30_Qout_runid_11_runid_13', 'Percent Difference in 30 Day Low Flow From 2020-2040'),
+                  c('runid_11_7q10', '2020 7Q10'),
+                  c('runid_13_7q10', '2040 7Q10'),
+                  c('percentDiff_7q10_runid_11_runid_13', 'Percent Difference in 7Q10 From 2020-2040'),
+                  c('runid_11_consumptive_use_frac', '2020 Consumptive Use Fraction'),
+                  c('runid_13_consumptive_use_frac', '2040 Consumptive Use Fraction'),
+                  c('percentDiff_consumptive_use_frac_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
+                  c('runid_17_l90_Qout', '2040 Dry Climate Change 90 Day Low Flow'),
+                  c('runid_17_l30_Qout', '2040 Dry Climate Change 30 Day Low Flow'),
+                  c('percentDiff_l90_Qout_runid_11_runid_17', 'Percent Difference in 90 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
+                  c('percentDiff_l30_Qout_runid_11_runid_17', 'Percent Difference in 30 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
+                  c('runid_17_7q10', '2040 Dry Climate Change 7Q10'),
+                  c('percentDiff_7q10_runid_11_runid_17', 'Percent Difference in 7Q10 From 2020-2040 (Dry Climate Scenario)'),
+                  c('runid_11_Smin_L30_mg', '2020 Lowest 30 Day Minimum Storage (MG)'),
+                  c('runid_13_Smin_L30_mg', '2040 Lowest 30 Day Minimum Storage (MG)'),
+                  c('percentDiff_Smin_L30_mg_runid_11_runid_17', 'Percent Difference in Lowest 30 Day Minimum Storage From 2020-2040 (Dry Climate Scenario)'),
+                  c('runid_11_unmet30_mgd', '2020 Highest 30 Day Potential Unmet Demand (MGD)'),
+                  c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)')
+                  
 ))
 colnames(readable) <- c('computer', 'human')
 
