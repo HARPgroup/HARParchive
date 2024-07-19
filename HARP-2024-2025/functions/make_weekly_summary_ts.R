@@ -11,14 +11,14 @@ suppressPackageStartupMessages(library(dplyr))
 args <- commandArgs(trailingOnly = T)
 
 if (length(args) != 2){
-  message("Missing or extra inputs. Usage: Rscript make_weekly_summary_ts.R comp_data_filepath output_filepath")
+  message("Missing or extra inputs. Usage: Rscript make_weekly_summary_ts.R comp_data_filepath write_path")
   q()
 }
 print("Assigning arguments")
 comp_data_filepath <- args[1]
-output_filepath <- args[2]
+write_path <- args[2]
 
-required_variables <- c("obs_date", "yr", "wk", "mo", "precip_p_in", "precip_cfs","obs_flow")
+required_variables <- c("obs_date", "yr", "wk", "mo", "precip_p_in", "precip_p_cfs","obs_flow")
 print("Reading in comp data csv")
 comp_data <- read.csv(comp_data_filepath)
   
@@ -36,7 +36,7 @@ if (!all(required_variables %in% colnames(comp_data))){
 print("Converting to weekly data")
   week_data <- sqldf(
     "select min(obs_date) as start_date, max(obs_date) as end_date, yr, wk,
-     avg(precip_p_in) as weekly_mean_p_in, avg(precip_cfs) as weekly_mean_precip_cfs,
+     avg(precip_p_in) as weekly_mean_p_in, avg(precip_p_cfs) as weekly_mean_precip_cfs,
      avg(obs_flow) as weekly_mean_obs_flow
    from comp_data
    group by yr, wk
@@ -51,5 +51,5 @@ print("Converting to weekly data")
 week_data$mo <- month(week_data$start_date)
   
 print(paste0("Write csv in new file path: ",write_path))
-write.csv(week_data,output_filepath)
+write.csv(week_data,write_path)
   

@@ -10,30 +10,27 @@ suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
 #for testing purposes only
 
-<<<<<<< HEAD
+
 source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
 #source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
-=======
->>>>>>> 620281731255fa3d6dc81ea3e44ed0f933e6f37c
-#source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
-source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
+
 
 
 args <- commandArgs(trailingOnly = T)
 if (length(args) != 4){
-  message("Missing or extra inputs. Usage: Rscript analysis.R data_csv x_variable y_var month_var location_for_stats")
+  message("Missing or extra inputs. Usage: Rscript plot_save.R data_location data_name label_name write_path for png")
   q()
 }
 print("Assigning Arguments to Variables")
 data_location <- args[1]
 data_name <- args[2]
 label_name <- args[3]
-plot_location <- args[4]
+write_path <- args[4]
 
 stats <- read.csv(data_location)
-
-png(filename = plot_location)
+print(paste0("Write png in new file path: ",write_path))
+png(filename = write_path)
 # plot(testPlot)
 mon_lm_plot(stats, data_name, label_name)
 dev.off()

@@ -10,6 +10,8 @@ plotBin <- R6Class(
   )
 )
 
+
+
 # Week
 #This takes in sample data, y_var, x_var, and mo_var and outputs an environment of
 #lm stats, residuals, and our r_squared stats we use
@@ -26,10 +28,28 @@ mon_lm_stats <- function(sample_data, y_var, x_var, mo_var){
   }
      plot_out$atts$stats <- nwd_stats
      plot_out$r_col <- paste0('r_squared')
-     names(plot_out$atts$stats) <- c('mo', plot_out$r_col)
      return(plot_out)
 }
 
+mon_lm_new <- function(sample_data, y_var, x_var, mo_var){
+  full_list <- list(resid = list(),
+                    fitted = list(),
+                    coeff=list(),rsq = numeric(),data=list(), mo = list())
+  for (i in 1:12) {
+    mo_data=sample_data[which((sample_data[,mo_var] == i)),]
+    weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
+    dsum <- summary(weekmo_data)
+    rsq <- dsum$adj.r.squared
+    full_list$resid[[i]] <- weekmo_data$residuals
+    full_list$fitted[[i]] <- weekmo_data$fitted.values
+    full_list$coeff[[i]] <- dsum$coefficients
+    full_list$rsq[i] <- rsq
+    full_list$data[[i]] <- mo_data
+    full_list$mo[[i]] <- i
+  }
+  
+  return(full_list)
+}
 #Takes in the stats that are output from mon_lm_stats and uses them to generate out barplots
 #This also uses data_name and label_name in order to put them on the plot
 #Generally we use the precipitation dataset and gageide as a way to generally show these plots
