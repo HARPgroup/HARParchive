@@ -1,6 +1,6 @@
 #Arguments
 #Argument 1 is the flow_csv
-#Argument 2 is the precip_cfs.csv
+#Argument 2 is the precip_data.csv
 #Argument 3 is the location where the file is going to be saved
 
 
@@ -14,25 +14,25 @@ suppressPackageStartupMessages(library(zoo))
 
 
 if (length(args) != 3) {
-  message("Usage: Rscript usgsdata.R usgs_data.csv precip_cfs.csv write_path")
+  message("Usage: Rscript usgsdata.R usgs_data.csv precip.csv write_path")
   q()
 }
 
 flow_csv<- args[1]
-precip_cfs_csv <- args[2]
+precip_csv <- args[2]
 write_path <- args[3]
 
 print("Inputting csvs")
 #argument 1 is the file path to the flow csv made earlier
 flow_data <- read.csv(flow_csv)
 #argument 2 is the file path to the precipitation csv made earlier
-precip_cfs <- read.csv(precip_cfs_csv)
+precip_data <- read.csv(precip_csv)
 print("creating comp_data")
 daily_data <- sqldf(
-  "select a.obs_date, a.precip_in as  precip_p_in, a.precip_p_cfs, 
+  "select a.obs_date, a.precip_in as  precip_p_in, 
   a.yr, a.mo, a.da, a.wk,
-  b.obs_flow, dra, 
-  from precip_cfs as a
+  b.obs_flow, dra 
+  from precip_data as a
   left outer join flow_data as b 
   on (
     a.yr = b.yr
