@@ -17,7 +17,7 @@ suppressPackageStartupMessages(library("jsonlite"))
 
 
 #mon_lm functions
-source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
+source("https://raw.githubusercontent.com/HARPgroup/meta_model/master/scripts/precip/lm_analysis_plots.R")
 
 
 #checks for proper number of arguments
