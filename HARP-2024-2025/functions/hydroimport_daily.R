@@ -1,6 +1,6 @@
 # Inputs (args):
 # 1 = File path of csv from VA Hydro
-# 2 = Data source "nldas2, daymet, prism"
+# 2 = Csv location for your flow data source
 # 3 = End path of new csv
 # Outputs:
 # Csv file with manipulated data at end filepath
@@ -13,7 +13,7 @@ suppressPackageStartupMessages(library("zoo"))
 suppressPackageStartupMessages(library("lubridate"))
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 3){
-  message("Missing or extra inputs. Usage: Rscript hydroimport_daily.R data_csv_location write_path")
+  message("Missing or extra inputs. Usage: Rscript hydroimport_daily.R precip_csv_location flow_csv_location write_path")
   q()
 }
 # Set up command args
@@ -45,6 +45,8 @@ print("Summing to daily data")
   "
   )
   
+  
+#Creates Daily data by combining our flow and precip data  
 daily_data <- sqldf(
   "select a.obs_date, a.precip_in as precip_p_in, 
   a.yr, a.mo, a.da, a.wk,
@@ -59,7 +61,7 @@ daily_data <- sqldf(
   order by a.yr, a.mo, a.da
   "
   )
-print("test")
+print("Creating precip_p_cfs column")
 daily_data$precip_p_cfs <- 1.572 * (daily_data$dra * 640.0 * daily_data$precip_p_in / 12.0) / 3.07
 
 # Write csv in new file path
