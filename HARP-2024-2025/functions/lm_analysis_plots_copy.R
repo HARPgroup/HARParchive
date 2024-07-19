@@ -27,7 +27,7 @@ mon_lm_stats <- function(sample_data, y_var, x_var, mo_var){
     nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
   }
      plot_out$atts$stats <- nwd_stats
-     plot_out$r_col <- paste0('r_squared')
+     names(plot_out$atts$stats) <- c('mo', 'r_squared')
      return(plot_out)
 }
 
