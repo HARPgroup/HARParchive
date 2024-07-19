@@ -36,7 +36,7 @@ if (!all(required_variables %in% colnames(comp_data))){
 #converts our daily data into weekly
 print("Converting to weekly data")
   week_data <- sqldf(
-    "select min(obs_date) as start_date, max(obs_date) as end_date, yr, wk,
+    "select min(obs_date) as start_date, max(obs_date) as end_date, yr, wk, min(mo) as mo,
      avg(precip_in) as weekly_mean_p_in, avg(precip_cfs) as weekly_mean_precip_cfs,
      avg(obs_flow) as weekly_mean_obs_flow
    from comp_data
@@ -46,10 +46,6 @@ print("Converting to weekly data")
   )
   
 
-  #Base the month column off of the min day index for that week, or the day that
-  #week began
-
-week_data$mo <- month(as.Date(week_data$start_date))
   
 print(paste0("Write csv in new file path: ",write_path))
 write.csv(week_data,write_path)
