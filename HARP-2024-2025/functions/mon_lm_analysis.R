@@ -13,11 +13,11 @@ suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
 suppressPackageStartupMessages(library("jsonlite"))
 #for testing purposes
-source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
+#source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots.R")
 
 
-#mon_lm function
-#source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
+#mon_lm functions
+source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
 
 #checks for proper number of arguments
