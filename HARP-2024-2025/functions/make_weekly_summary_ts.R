@@ -18,7 +18,7 @@ print("Assigning arguments")
 comp_data_filepath <- args[1]
 write_path <- args[2]
 
-required_variables <- c("obs_date", "yr", "wk", "mo", "precip_p_in", "precip_p_cfs","obs_flow")
+required_variables <- c("obs_date", "yr", "wk", "mo", "precip_in", "precip_cfs","obs_flow")
 print("Reading in comp data csv")
 comp_data <- read.csv(comp_data_filepath)
   
@@ -26,7 +26,8 @@ comp_data <- read.csv(comp_data_filepath)
 #required columns and this ensures they are all available
 print("Checking columns")
 if (!all(required_variables %in% colnames(comp_data))){
-  message("Missing required columns, required columns are obs_date, yr, wk, mo, precip_p_in, precip_cfs, and obs_flow")
+  message("Missing required columns, required columns are obs_date, yr, wk, mo, precip_in, precip_cfs, and obs_flow")
+  message(paste("Dataset contained", paste(names(comp_data))))
  q()
 }
 
@@ -36,7 +37,7 @@ if (!all(required_variables %in% colnames(comp_data))){
 print("Converting to weekly data")
   week_data <- sqldf(
     "select min(obs_date) as start_date, max(obs_date) as end_date, yr, wk,
-     avg(precip_p_in) as weekly_mean_p_in, avg(precip_p_cfs) as weekly_mean_precip_cfs,
+     avg(precip_in) as weekly_mean_p_in, avg(precip_cfs) as weekly_mean_precip_cfs,
      avg(obs_flow) as weekly_mean_obs_flow
    from comp_data
    group by yr, wk
@@ -48,7 +49,7 @@ print("Converting to weekly data")
   #Base the month column off of the min day index for that week, or the day that
   #week began
 
-week_data$mo <- month(week_data$start_date)
+week_data$mo <- month(as.Date(week_data$start_date))
   
 print(paste0("Write csv in new file path: ",write_path))
 write.csv(week_data,write_path)
