@@ -17,7 +17,7 @@ region_set <-
     "NorthernCoastalPlain_1", "NorthernCoastalPlain_2",
     "NorthernCoastalPlain_3", "NorthernPiedmont_1", "NorthernPiedmont_2",
     "NorthernVirginia", "Roanoke_1", 
-    #CONNOR STOPPED HERE. Roanoke_2 onward still need testing
+    #CONNOR STOPPED HERE. Roanoke_2 onward still need testing. Error in Roanoke 2, 685-787 in if(columns == "all")...
     "Roanoke_2", "Roanoke_3",
     "Shenandoah_1", "Shenandoah_2", "SoutheastVirginia",
     "UpperJames_1", "UpperJames_2", "York_James_1", "York_James_2"
@@ -34,7 +34,7 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 origin_name <- "Shenandoah_1" 
 #East shore fails as does MiddleJames_3
 ### Run all regions ##########################
-for (x in 10:length(region_set)) {
+for (x in 18:length(region_set)) {
   origin_name <- region_set[x]
   print(paste0("Rendering ",origin_name))
   
