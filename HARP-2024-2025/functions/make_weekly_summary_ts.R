@@ -44,7 +44,6 @@ print("Converting to weekly data")
    order by yr, wk
   "
   )
-  
 
   
 print(paste0("Write csv in new file path: ",write_path))
