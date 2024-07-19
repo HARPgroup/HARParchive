@@ -29,9 +29,9 @@ flow_data <- read.csv(flow_csv)
 precip_data <- read.csv(precip_csv)
 print("creating comp_data")
 daily_data <- sqldf(
-  "select a.obs_date, a.precip_in as  precip_p_in, 
+  "select a.obs_date, a.precip_in as precip_in, a.precip_mm as precip_mm, 
   a.yr, a.mo, a.da, a.wk,
-  b.obs_flow, dra 
+  b.obs_flow, dra as area_sqmi
   from precip_data as a
   left outer join flow_data as b 
   on (
@@ -44,7 +44,7 @@ daily_data <- sqldf(
 )
 
 print("computing drainage area")
-daily_data$precip_p_cfs <- 1.572 * (daily_data$dra * 640.0 * daily_data$precip_p_in / 12.0) / 3.07
+daily_data$precip_cfs <- 1.572 * (daily_data$area_sqmi * 640.0 * daily_data$precip_in / 12.0) / 3.07
 #argument 3 is the save location for the comp_data csv
 print(paste0("Write csv in new file path: ",write_path))
 write.csv(daily_data,write_path)
