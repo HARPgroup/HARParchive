@@ -39,7 +39,10 @@ sample_data <- read.csv(data_location)
 
 print("Running mon_lm function")
 data_lm <- mon_lm_stats(sample_data,y_var,x_var,mo_var)
-json_data_lm <- serializeJSON(data_lm)
+json_data_lm <- prettify(
+  serializeJSON(data_lm), 
+  indent = 2
+)
 print(paste0("Write json in new file path: ",json_write_path))
 write(json_data_lm, json_write_path)
 write.csv(data_lm$atts$stats, stats_write_path)
