@@ -449,7 +449,7 @@ messages <- data.frame(pertaining_to=character(0), message=character(0),
 if (mapMessage) {
   messages <- rbind(messages,
                     data.frame(pertaining_to= "Map 1",
-                              message=paste0("The metric requested does not exist for this map.\nCheck your syntax/spelling. If correct, then this data has not been measured/modeled."),
+                              message=paste0("The requested metric: ", featrs_file_map_bubble_column[i]," ; does not exist for this map.\nCheck your syntax/spelling. If correct, then this data has not been measured/modeled."),
                        var_name= "mapMessage"
                        )
                     )
@@ -569,7 +569,7 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 if (tableMessage) {
  messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 1",
-                       message=paste0("Missing column indicates the metric requested does not exist for this table."), var_name= "tableMessage")
+                       message=paste0("Missing column(s): ",  paste(novals[,1], collapse=', '), " ; indicate the requested metric(s) do not exist for this table."), var_name= "tableMessage")
                       )
 }
 
@@ -708,7 +708,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
     # cols present
     # Megan: can you insert into error messages if cols_present <> table_cols?
     cols_present <- table_cols[which(table_cols %in% names(rseg_display))]
-    message_nonexisting_cols <- any(table_cols %in% cols_present) # Megan: done!
+    message_nonexisting_cols <- any(!table_cols %in% cols_present) # Megan: done!
     rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
 
     
@@ -804,9 +804,7 @@ if(message_nonexisting_cols){
 if(tablemessage2){
   messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 2",
-                       message=paste0("A column in the table is completely NA values, 
-          likely meaning the metric requested is not modeled for this data,
-          or the segments are all tidal."), var_name= "tablemessage2")
+                       message=paste0("Column(s): ", paste(rownames(nacols)[nacols[1]==TRUE], collapse=", " )," ; in the table are completely NA values, likely meaning the requested metric is not modeled for this data, or that the segments are all tidal."), var_name= "tablemessage2")
                       )
 }
 
@@ -831,15 +829,23 @@ for (k in 1:length(run_config$riverseg_metrics)){
     fig_md = ''
   }
     #table
-    if (tablemessage2==TRUE) {
-      message("A column in the table is completely NA values, 
-          likely meaning the metric requested is not modeled for this data
-          or the segments are all tidal")
-    }
     cat(fig_md)
     cat(knitr::knit_print(get(paste0('table', k))))
     cat("\n\n\\pagebreak\n")
-  }
+}
+
+if(message_nonexisting_cols){
+      messages <- rbind(messages,
+                      data.frame(pertaining_to= "Table 2",
+                       message=paste0("The requested columns: ", table_cols[!table_cols %in% cols_present]," ; could be found in the present data. Check mapstyle_config.R and Dataframe_Generator.R render"), var_name= "message_nonexisting_cols")
+                      )
+    }
+    if(tablemessage2){
+      messages <- rbind(messages,
+                      data.frame(pertaining_to= "Table 2",
+                       message=paste0("Column(s): ", paste(rownames(nacols)[nacols[1]==TRUE], collapse=", " )," ; in the table are completely NA values, likely meaning the requested metric is not modeled for this data, or that the segments are all tidal."), var_name= "tablemessage2")
+                      )
+    }
 ```
 
 
