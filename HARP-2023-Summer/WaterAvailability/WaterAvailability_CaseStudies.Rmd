@@ -1112,56 +1112,6 @@ if (Smin_analysis == TRUE) { #Only needed for Smin analysis
 }
 ```
 
-
-```{r Table 3, eval=FALSE}
-## This has been incorporated into table 5 so temporarliy disabled the chunk
-title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-
-table_Smin <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
-                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
-                     pctDiff30 = storage_data$pctDiff30,
-                     pctDiff90 = storage_data$pctDiff90)
-
-#order table with rows of interest at the top 
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_30)") 
-
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_90)") 
-
-#Table for flextable with human readable column names 
-table_SminHr <- table_Smin
-
-#Human readable column names for flextable 
-names(table_SminHr)[names(table_SminHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
-names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
-names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
-names(table_SminHr)[names(table_SminHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
-names(table_SminHr)[names(table_SminHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
-
-ftable_Smin <- flextable(table_SminHr) #create flextable
-
-#to highlight when approx is not <= near-exact
-rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
-rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
-rownums <- c(rownums30, rownums90)
-
-ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
-ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
-
-ftable_Smin
-```
-
 # Table 6: Smins that Need to be Updated
 
 ```{r Table 6}
