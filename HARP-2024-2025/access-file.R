@@ -46,6 +46,7 @@ nldas2_data <- sqldf(
   "
 )
 
+
 # Get USGS gage data from NWIS, the USGS REST services. We pull this data using
 # the dataRetrieval R package which has extensive documentation on the options
 # therewithin. See https://waterdata.usgs.gov/blog/dataretrieval/. Below, we
@@ -102,6 +103,10 @@ comp_data <- sqldf(
 # please note we will often encourage the use of SQL as we assist in tasks. But
 # all code is acceptable if it is documented and works!
 comp_data$dataset_day <- index(comp_data) 
+
+#Add a column for the date since this is now daily data
+comp_data$date <- as.Date(comp_data$obs_date)
+
 #Here, we add in columns to represent tomorrow's flow and the change in flow
 #from today to yesterday and today and tomorrow. This give an indication of how
 #flow is changing. We can do so using R's indexing, simply calling the next rows
@@ -219,7 +224,7 @@ mod_daymet_jan <- lm(usgs_cfs ~ daymet_p_cfs_nextDay, data=comp_data[(comp_data$
 summary(mod_daymet_jan)
 #Plot the daily data for january and see how the flow relates to the summarized
 #precip data. This is equivalent to comp_data$usgs_cfs and comp_data$daymet_p_cfs
-plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs)
+plot(mod_daymet_jan$model$usgs_cfs ~ mod_daymet_jan$model$daymet_p_cfs_nextDay)
 
 # January, next day flow todays precip
 mod_prism_jan_nd <- lm(nextday_usgs_cfs ~ prism_p_cfs,
@@ -296,7 +301,7 @@ plot(mod_prism_mon_nz_ndd$model$nextday_d_cfs ~ mod_prism_mon_nz_ndd$model$prism
 # do all months and assemble a barplot of R^2
 
 # create a class to hold both stats and the plot to make it easier to do comparisons later
-plotBin <- R6Class(
+plotBin <- R6::R6Class(
   "plotBin", 
   public = list(
     plot = NULL, data=list(), atts=list(),
@@ -310,7 +315,7 @@ mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name){
   plot_out <- plotBin$new(data = sample_data)
   nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
   for (i in 1:12) {
-    mo_data=week_data[which((sample_data[,mo_var] == i)),]
+    mo_data=sample_data[which((sample_data[,mo_var] == i)),]
     weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
     dsum <- summary(weekmo_data)
     nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
@@ -409,3 +414,5 @@ plot(as.Date(comp_data$obs_date),
      col = "red",type = "l")
 lines(as.Date(comp_data$obs_date),
       comp_data$usgs_cfs)
+
+

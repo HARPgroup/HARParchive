@@ -20,19 +20,23 @@ pid <- as.integer(argst[1])
 elid <- as.integer(argst[2])
 runid_dem <- as.integer(argst[3]) #demand scenario (ex. 11)
 runid_base <- as.integer(argst[4]) #baseline scenario, default to 0 if none is provided (ex. 0 or NA)
-CPL <- as.integer(argst[5]) #critical period length (days)
-PoF <- as.integer(argst[6]) #minimum instream flow coefficient 
+CPL <- as.integer(argst[5]) #critical period length (days), default to 90
+PoF <- as.integer(argst[6]) #minimum instream flow coefficient, default to 0.9
 
 #For testing: Lake Pelham
 # pid = 5714522 ; elid = 352006 ; runid_dem = 11 ; runid_base = 0 ; CPL <- 30 ; PoF <- 0.9
 
-demand_scenario <- paste0('runid_', runid_dem)
-if (is.na(runid_base) == FALSE) { #default to runid_0 for baseline scenario 
-  baseline_scenario <- paste0('runid_', runid_base)
-} else {
-  baseline_scenario <- paste0('runid_0')
+#Set defaults 
+if (!length(argst) == 6) { #set defaults if not all arguments are provided 
+  runid_base <- 0 
+  CPL <- 90 #default to a 90-day critical period length 
+  PoF <- 0.9 #default to 0.9 for percent of instream flow required 
+  print("Not all required inputs provided, defaults will be used")
 }
-  
+
+demand_scenario <- paste0('runid_', runid_dem)
+baseline_scenario <- paste0('runid_', runid_base)
+
 #Pull metrics for WA eqn: Qdemand, Qbase, Smin
 df_metrics <- data.frame(
   'model_version' = c('vahydro-1.0', 'vahydro-1.0', 'vahydro-1.0'),

@@ -312,8 +312,9 @@ model_data_river <- om_vahydro_metric_grid(
   base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
   ds=ds
 )
-statemt <- "select a.hydroid, a.name, a.ftype, a.bundle, b.* from rsegs as a left outer join model_data_river as b on (a.riverseg = b.riverseg)"
-rsegs <- fn_sqldf_sf(statemt, geomback="rsegs")
+#Match the riverseg column in rsegs to the equivalent column in model_data_river. Match provides a vector of the indices in model_data_river for the riverseg in rsegs. Then, grab all model_data_river at these rows and cbind to rsegs
+joinData <- model_data_river[match(rsegs$riverseg,model_data_river$riverseg),]
+rsegs <- cbind(rsegs[,c("hydroid","name","ftype","bundle")],joinData)
 
 #----Calculate Rseg Metric % Diff ----
 rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data

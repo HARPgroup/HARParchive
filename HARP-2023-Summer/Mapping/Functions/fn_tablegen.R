@@ -12,7 +12,6 @@ fn_tablegen <- function(
   #table: data frame to be transformed into a flextable 
   #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
   #columns: a list of columns to display from the dataframe supplied, in the order the columns will be 
-  
   #set up rivseg table titles/same as rivseg map titles loop
     
   #set table defaults of theme and font and make sure theres no blanks from NAs, can be edited if desired

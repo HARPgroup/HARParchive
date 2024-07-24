@@ -39,7 +39,7 @@ fn_sqldf_sf <- function(statemt, geomback="NA", crs=4326){
   dfs[["result"]] <- sqldf(statemt, envir=dfs) #SQLDF the non-sf dataframes in the new environment (so that the global envir. retains the sf objects)
   
   if(geomback!="NA"){
-    output <- merge(x=dfs[["result"]], y=.GlobalEnv[[geomback]], all.x=TRUE, all.y=FALSE) #match the newly filtered obs. to their geometries
+    output <- merge(y=dfs[["result"]], x=.GlobalEnv[[geomback]], all.x=FALSE, all.y=TRUE) #match the newly filtered obs. to their geometries
     output <- sf::st_as_sf(output, crs=crs) #convert back to sf
   } else {
     output <- dfs[["result"]]

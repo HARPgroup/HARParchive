@@ -1,4 +1,4 @@
-"","#","Propname","Riverseg","Cumulative Withdrawal (mgd)","Cumulative Point Source (mgd)","Lowest 90-Day Demand Flow (mgd)","Lowest 90-Day Base Flow (mgd)","Min. Instream Flow (mgd)","Available Flow (mgd)","Local Storage (mg)","Upstream Storage (mg)","Total Storage (mg)","Water Availability (mgd)"
+"","Num","Propname","Riverseg","wd_cumulative_mgd","ps_cumulative_mgd","l90_Qout_mgd","l90_Qout_base_mgd","l90_Qout_mif_mgd","Qavailable_90_mgd","SminL90mg_local","SminL90mg_upstream","SminL90mg_total","WA_mgd_90"
 "1",1,"T. Nelson Elliott Dam","PL0_5141_5140",11.903,0,3.716,3.271,2.944,0.772,2384.126,0,2384.126,36.806
 "2",2,"Cedar Run at Elk Run Road","PL1_5370_5470",1.142,0,4.423,4.645,4.181,0.242,0,0,0,0.242
 "3",3,"Broad Run at Confluence with Cedar Run","PL2_5140_5360",13.012,0,6.749,7.897,7.107,-0.357,0,2384.126,2384.126,35.676
