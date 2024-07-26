@@ -18,11 +18,16 @@ print("Pull csv from input file path")
 
 flow_data <- readNWISdv(gage_id,'00060')
 print("Extract date information from the gage using lubridate as above")
-flow_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(usgs_data$Date)),
-                                         month(as.Date(usgs_data$Date)),
-                                         day(as.Date(usgs_data$Date)))
+flow_data[,c('yr', 'mo', 'da')] <- cbind(year(as.Date(flow_data$Date)),
+                                         month(as.Date(flow_data$Date)),
+                                         day(as.Date(flow_data$Date)))
 
-flow_data <-flow_data |> rename(obs_flow = X_00060_00003)
+#Converts the name for flow from usgs to our generic name of obs_flow
+#adds drainage area as a column, to be used in later steps
+
+flow_data <- flow_data |> rename(obs_flow = X_00060_00003)
+gage_info <- readNWISsite(gage_id)
+flow_data <- flow_data |> mutate(dra = gage_info$drain_area_va)
 
 
 

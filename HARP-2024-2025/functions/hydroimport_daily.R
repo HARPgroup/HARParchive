@@ -44,5 +44,5 @@ print("Summing to daily data")
   )
 
 # Write csv in new file path
-  print(paste0("Write csv in new file path: ",write_path))
+print(paste0("Write csv in new file path: ",write_location))
 write.csv(hydro_daily,write_location)
