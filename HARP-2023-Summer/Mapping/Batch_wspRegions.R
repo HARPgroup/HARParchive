@@ -34,7 +34,7 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 origin_name <- "Shenandoah_1" 
 #East shore fails as does MiddleJames_3
 ### Run all regions ##########################
-for (x in 10:length(region_set)) {
+for (x in 16:length(region_set)) {
   origin_name <- region_set[x]
   print(paste0("Rendering ",origin_name))
   
@@ -58,10 +58,10 @@ for (x in 10:length(region_set)) {
   
   # #check if file exists and may be open, which will cause document render to fail after generating doc successfully
    fileName <- paste0(export_path, origin_name, "_wsp")
-  # if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
-  #   print("Reminder, close any open version of the regional summary doc before rendering it.")
-  #   #fileName <- paste0(export_path, origin_name, "_wsp2")
-  # }
+  if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
+    print("Reminder, close any open version of the regional summary doc before rendering it.")
+    #fileName <- paste0(export_path, origin_name, "_wsp2")
+  }
   
   #RENDER WSP REGIONAL SUMMARY DOC
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
