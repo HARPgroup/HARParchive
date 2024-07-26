@@ -31,7 +31,7 @@ locality_set <- c("51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",
 
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- "Shenandoah_1" 
+origin_name <- "MiddleJames_3" 
 #East shore fails as does MiddleJames_3
 ### Run all regions ##########################
 for (x in 16:length(region_set)) {
@@ -101,7 +101,7 @@ for (x in locality_set) {
                       metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"),
                       model_version = "vahydro-1.0",
                       metric_feat = "wsp2020_2040_mgy",
-                      rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Smin_L30_mg"),
+                      rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "consumptive_use_frac", "Smin_L30_mg"),
                       runid_list = c("runid_11", "runid_13", "runid_17"),
                       crs_default = 4326,
                       limit_featrs_to_origin = FALSE,
