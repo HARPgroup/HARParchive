@@ -13,7 +13,6 @@ params:
   baseline_scenario: ["runid_0"] 
   mif_coef: [0.9]
   Smin_analysis: TRUE #to compare Smin calculation methods: approximate and near-exact (adds tables 5 & 6)
-  write_Qavailable: FALSE #to export Qavailable metrics to VAhydro
   write_outputs: ["local", "github"]
   crs_default: 4326
   
@@ -600,39 +599,11 @@ metric_data$Qavailable_90_cfs <- round((metric_data$l90_Qout_dem - metric_data$l
 ## Reminder: Perform unit conversions when plugging values into WA equation 
 # mgd = cfs / 1.547
 
-#4 total WA values: L30 and L90 for each approx and near exact storage 
 metric_data$WA_mgd_30_apx = round((metric_data$Qavailable_30_cfs / 1.547) + 
   (metric_data$SminL30mg_apx_total / 30), digits = 3)
 
 metric_data$WA_mgd_90_apx = round((metric_data$Qavailable_90_cfs / 1.547) + 
   (metric_data$SminL30mg_apx_total / 90), digits = 3)
-
-# save all these values to REST
-if (write_Qavailable == TRUE) {
-  for (i in 1:nrow(metric_data)) {
-    model_metrics <- metric_data[i,]
-    pid = model_metrics$pid 
-    # GETTING SCENARIO PROPERTY FROM VA HYDRO
-    sceninfo <- list(
-      varkey = 'om_scenario',
-      propname = demand_scenario,
-      featureid = pid,
-      entity_type = "dh_properties",
-      bundle = "dh_properties"
-    )
-    scenprop <- RomProperty$new( ds, sceninfo, TRUE)
-    # Warn PROPERTY IF IT IS NOT YET CREATED
-    if (is.na(scenprop$pid) | is.null(scenprop$pid) ) {
-      message("Cannot find run data for ",model_metrics$propname, "scenario", demand_scenario )
-    }
-  
-  # Post l30 available
-  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qavailable_30_mgd', model_metrics$Qavailable_30_cfs / 1.547, ds)
-  vahydro_post_metric_to_scenprop(scenprop$pid, 'om_class_Constant', NULL, 'Qavailable_90_mgd', model_metrics$Qavailable_90_cfs / 1.547, ds)
-  
-  }
-  
-}
 
 ```
 
@@ -1110,56 +1081,6 @@ if (Smin_analysis == TRUE) { #Only needed for Smin analysis
   
   ftable_Storage
 }
-```
-
-
-```{r Table 3, eval=FALSE}
-## This has been incorporated into table 5 so temporarliy disabled the chunk
-title_table_Smin <- paste0('TABLE 3: SMIN DISCREPANCIES. Demand: ', demand_scenario, ', Baseline: ', baseline_scenario, ', MIF: ', mif_coef)
-
-
-table_Smin <- data.frame(Propname = storage_data$propname,
-                     Riverseg = storage_data$riverseg,
-                     SminL30mg_apx = storage_data$SminL30mg_apx,
-                     SminL30mg_nex = storage_data$SminL30mg_nex,
-                     SminL90mg_apx = storage_data$SminL90mg_apx,
-                     SminL90mg_nex = storage_data$SminL90mg_nex,
-                     apx_lessthan_nex_30 = storage_data$apx_lessthan_nex_30,
-                     apx_lessthan_nex_90 = storage_data$apx_lessthan_nex_90,
-                     pctDiff30 = storage_data$pctDiff30,
-                     pctDiff90 = storage_data$pctDiff90)
-
-#order table with rows of interest at the top 
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_30)") 
-
-table_Smin <- sqldf("SELECT a.* FROM table_Smin as a 
-                       ORDER BY (a.apx_lessthan_nex_90)") 
-
-#Table for flextable with human readable column names 
-table_SminHr <- table_Smin
-
-#Human readable column names for flextable 
-names(table_SminHr)[names(table_SminHr) == "SminL30mg_apx"] <- "30-Day Storage (approx, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL30mg_nex"] <- "30-Day Storage (near-exact, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL90mg_apx"] <- "90-Day Storage (approx, mg)"
-names(table_SminHr)[names(table_SminHr) == "SminL90mg_nex"] <- "90-Day Storage (near-exact, mg)"
-names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_30"] <- "Is Approx. Method Lowest? (30-day)"
-names(table_SminHr)[names(table_SminHr) == "apx_lessthan_nex_90"] <- "Is Approx. Method Lowest? (90-day)"
-names(table_SminHr)[names(table_SminHr) == "pctDiff30"] <- "% Difference of Storage Methods (30-day)"
-names(table_SminHr)[names(table_SminHr) == "pctDiff90"] <- "% Difference of Storage Methods (90-day)"
-
-ftable_Smin <- flextable(table_SminHr) #create flextable
-
-#to highlight when approx is not <= near-exact
-rownums30 <- which(table_Smin$apx_lessthan_nex_30 == FALSE, arr.ind = TRUE) #get rows
-rownums90 <- which(table_Smin$apx_lessthan_nex_90 == FALSE, arr.ind = TRUE)
-rownums <- c(rownums30, rownums90)
-
-ftable_Smin <- flextable::bg(ftable_Smin, i = rownums , bg = "yellow") #add row highlight
-ftable_Smin <- add_header_lines(ftable_Smin, values= title_table_Smin) #add title 
-
-ftable_Smin
 ```
 
 # Table 6: Smins that Need to be Updated
