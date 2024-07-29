@@ -21,7 +21,7 @@ fn_tablegen <- function(
     table.layout = 'fixed', tabcolsep = 1.5,
     fonts_ignore = T, big.mark = "", decimal.mark = ".", digits = 4 ) #fonts_ignore applies when knitting as pdf 
   
-  if (columns == "all") { #columns param in function is all meaning keep columns as normal
+  if (exists("columns")) { #columns param in function is all meaning keep columns as normal
     ft <- flextable(table)
   } else { # want specific columns in table 
     tablecols <- table[, paste0(columns)] 
