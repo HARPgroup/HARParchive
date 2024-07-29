@@ -12,12 +12,10 @@ suppressPackageStartupMessages(library("lubridate"))
 suppressPackageStartupMessages(library("sqldf"))
 suppressPackageStartupMessages(library("R6"))
 suppressPackageStartupMessages(library("jsonlite"))
-#for testing purposes
-source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
-
-
 #mon_lm function
-#source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
+#for testing purposes
+#source("~/HarpData/HARParchive/HARP-2024-2025/functions/lm_analysis_plots_copy.R")
+source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
 
 #checks for proper number of arguments
@@ -39,7 +37,12 @@ sample_data <- read.csv(data_location)
 
 print("Running mon_lm function")
 data_lm <- mon_lm_stats(sample_data,y_var,x_var,mo_var)
-json_data_lm <- serializeJSON(data_lm)
+data_meth_json <- data_lm$toJSON()
+data_from_json <- plotBin$new(data_meth_json, data_is_json=TRUE)
+# compare the plots from the original object and the serialized/unserialized object
+plot(data_lm$atts$lms[[1]],1)
+plot(data_from_json$atts$lms[[1]],1)
+
 print(paste0("Write json in new file path: ",json_write_path))
 write(json_data_lm, json_write_path)
 write.csv(data_lm$atts$stats, stats_write_path)

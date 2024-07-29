@@ -3,9 +3,29 @@
 plotBin <- R6Class(
   "plotBin", 
   public = list(
-    plot = NULL, data=list(), atts=list(), r_col='',
-    initialize = function(plot = NULL, data = list()){ 
-      self.plot = plot; self.data=data; 
+    data=list(), atts=list(), r_col='',
+    initialize = function(data = list(), data_is_json = FALSE){ 
+      if (!data_is_json) {
+        self.data=data; 
+      } else {
+        self$fromJSON(data)
+      }
+      
+    },
+    asJSON = function() {
+      self.toJSON()
+    },
+    toJSON = function() {
+      json_out <- jsonlite::serializeJSON(self)
+      json_out[['data']] <- jsonlite::serializeJSON(self$data, pretty=TRUE)
+      json_out[['atts']] <- jsonlite::serializeJSON(self$atts, pretty=TRUE)
+      json_out[['r_col']] <- jsonlite::serializeJSON(self$r_col, pretty=TRUE)
+      return(json_out)
+    },
+    fromJSON = function(json_out) {
+      self$data <- jsonlite::unserializeJSON(json_out[['data']])
+      self$atts <- jsonlite::unserializeJSON(json_out[['atts']])
+      self$r_col <- jsonlite::unserializeJSON(json_out[['r_col']])
     }
   )
 )

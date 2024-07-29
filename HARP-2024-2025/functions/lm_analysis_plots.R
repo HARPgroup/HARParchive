@@ -17,7 +17,7 @@ mon_lm <- function(sample_data, y_var, x_var, mo_var, data_name, label_name){
   for (i in 1:12) {
     mo_data=sample_data[which((sample_data[,mo_var] == i)),]
     weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
-    plot_out$atts$lms[[i]] <- weekmo_data
+    plot_out$atts$lms[[i]] <- jsonlite::serializeJSON(weekmo_data)
     dsum <- summary(weekmo_data)
     nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
   }
