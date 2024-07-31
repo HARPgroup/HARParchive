@@ -193,10 +193,13 @@ if(featr_type == "source"){
 }
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("select foundatn_mp.*,
-                    sum(five_yr_avg) as sum
+                    sum(five_yr_avg) as sum  -- Creating an aggregated column for the five_yr_avg
                     from foundatn_mp
                     group by Facility_hydroid
                   ") #all source-related data now only applies to 1 source (random) within the facil 
+  ## Need to replace the MP five_yr_avg with the aggregated column
+  f_foundatn$five_yr_avg <- f_foundatn$sum
+  
   f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp_2040_mgy
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
   f_model$Facility_hydroid <- f_model$featureid 
