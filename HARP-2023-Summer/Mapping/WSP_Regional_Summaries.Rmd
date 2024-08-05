@@ -486,9 +486,9 @@ table$Locality = facils_table$Locality
 #add rivseg names
 for(i in 1:nrow(table)){ 
   loc_rivseg <- (rsegs[grep(facils_table$riverseg[i], rsegs$riverseg),]) #find rivseg in segs and compare to facils_table to add name
-  if (nrow(loc_rivseg) != 0) {
+  if (nrow(loc_rivseg) != 0 & facils_table$riverseg[i] != "" ) {
     table$`River Segment Name`[i] <- loc_rivseg$name
-  } else { # if no matching row was found for the riverseg ID, leave blank but don't break
+  } else { # if no matching row was found for the riverseg ID (or too many), leave blank but don't break
     table$`River Segment Name`[i] <- ""
     }
 }
