@@ -12,12 +12,12 @@ output:
 #Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
 #Can edit here or in a render command 
 ## More params used during development and testing for user-control -- will be consolidated  
-params: 
+params:
 
   origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  
+
   featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
   featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
@@ -28,9 +28,9 @@ params:
   runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
 
   # aesthetic changes
-  crs_default: 4326 #default coordinate system 
+  crs_default: 4326 #default coordinate system
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
-  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
+  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments
   show_map: TRUE #either TRUE or FALSE
 ---
 
@@ -502,6 +502,14 @@ for (i in 1:length(featrs_file_table_column)){
   if (featrs_file_table_column[i] %in% colnames(facils_table)) {
   #adding requested columns to table
     table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
+    
+    ## For facils where GW_frac = 1, there is no modelling data. NAs are rewritten as something more meaningful
+    #### Check if its  a modelling column
+    if (grepl('runid_',featrs_file_table_column[i])) {
+      ## Rewrite column when GWFrac = 1
+      table[table$GWFrac == 1 & !is.na(table$GWFrac),featrs_file_table_column[i]] <- "No model ran"
+    }
+    
   }
 }
 
