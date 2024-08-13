@@ -41,10 +41,16 @@ mon_lm_stats <- function(sample_data, y_var, x_var, mo_var){
   nwd_stats <- data.frame(row.names=c('month', 'rsquared_a'))
   for (i in 1:12) {
     mo_data=sample_data[which((sample_data[,mo_var] == i)),]
-    weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
-    plot_out$atts$lms[[i]] <- weekmo_data
-    dsum <- summary(weekmo_data)
-    nwd_stats <- rbind(nwd_stats, data.frame(i, dsum$adj.r.squared))
+    if(nrow(mo_data) >= 3){
+      weekmo_data <- lm(mo_data[,y_var] ~ mo_data[,x_var])
+      plot_out$atts$lms[[i]] <- weekmo_data
+      dsum <- summary(weekmo_data)
+      nwd_stats <- rbind(nwd_stats, data.frame(month = i, rsquared_a = dsum$adj.r.squared))
+    }else{
+      print(paste0("Less than 3 data points for month ",i,". Cannot conduct linear regression. Skipping."))
+      plot_out$atts$lms[[i]] <- NA
+      nwd_stats <- rbind(nwd_stats, data.frame(month = i, rsquared_a = NA))
+    }
   }
   plot_out$atts$stats <- nwd_stats
   names(plot_out$atts$stats) <- c('mo', 'r_squared')
