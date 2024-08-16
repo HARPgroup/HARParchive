@@ -88,15 +88,17 @@ for (x in 1:length(region_set)) {
   # basepath='/var/www/R'
   # source('/var/www/R/config.R')
 }
-
+origin_name <- '510ce05'
+basepath='/var/www/R'
+source('/var/www/R/config.R')
 #### Run all localities ##########################
 for (x in locality_set) {
   origin_name <- x
 
   rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"),
                     params = list(
-                      origin = paste0(origin_name),
-                      origin_type = "region",
+                      origin = origin_name,
+                      origin_type = "locality",
                       featr_type = "facility",
                       metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"),
                       model_version = "vahydro-1.0",
@@ -115,7 +117,7 @@ for (x in locality_set) {
                     output_format = "word_document",
                     params = list(
                       origin = paste0(origin_name),
-                      origin_type = "region",
+                      origin_type = "locality",
                       featr_type = "facility",
                       featrs_file = paste0(export_path, "/", origin_name, "_featrs_sf.csv"),
                       featrs_file_map_bubble_column = "wsp2020_2040_mgy",
