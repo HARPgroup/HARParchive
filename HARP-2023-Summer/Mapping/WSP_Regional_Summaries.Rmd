@@ -719,6 +719,9 @@ for (k in 1:length(run_config$riverseg_metrics)){
     message_nonexisting_cols <- any(!table_cols %in% cols_present) # Megan: done!
     rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
 
+    ## 08-13-24 Added Code: Rounding all numeric columns to 1 decimal point
+    ## Only uses numeric columns as found by sapply (which returns a vector)
+    rseg_display[,sapply(rseg_display, is.numeric)] <- round(rseg_display[,sapply(rseg_display, is.numeric)],1)
     
     #na messages 
     
@@ -828,6 +831,8 @@ for (k in 1:length(rivseg_metric)){
 ### Display Map and Table: 
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
+  ## Including a header for the section
+  cat('\n#### ',run_config$riverseg_metrics[[k]]$run_label,' \n')
   #map
   show_map = run_config$riverseg_metrics[[k]]$show_map
   if (show_map == TRUE) {
