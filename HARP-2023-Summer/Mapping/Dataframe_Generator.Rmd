@@ -274,7 +274,7 @@ if (origin_type=="basin") { #finding upstream riversegs for basin maps
   rsegs <- unique(rsegs) #don't duplicate riversegs for overlapping basins
   rm(basin)
 } else if (origin_type=="locality") { #for locality level
-  rsegs <- st_filter(rsegs, counties[counties$hydrocode==origin, ]) #filter basins by locality (if REST is working)
+  rsegs <- st_filter(rsegs, counties[counties$hydrocode==origin, ],.predicates = st_intersects) #filter basins by locality (if REST is working)
 } else if (origin_type=="region") { #for region level
   rsegs <- st_filter(rsegs, regions[regions$region==origin,]) #filter basins by the region given in params
   # Consider:
@@ -321,6 +321,9 @@ joinData <- model_data_river[match(rsegs$riverseg,model_data_river$riverseg),]
 ## For those that dont match, riverseg must be added from rsegs (NA in joinData)
 rsegs <- cbind(rsegs[,c("hydroid","name","ftype","bundle","riverseg")],joinData[,-grep("riverseg",names(joinData))])
 
+print(dim(rsegs))
+print(dim(featrs))
+
 #----Calculate Rseg Metric % Diff ----
 rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data
 for (j in 2:length(runid_list)) {
@@ -330,13 +333,19 @@ for (j in 2:length(runid_list)) {
     column2 = paste0(runid_list[j],"_",rivseg_metric[k])
     new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
     message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
-    for (n in 1:nrow(rsegs_data)) {
-      if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
-        rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
-      } else {
-        rsegs_data[n,new_col] <- NA
-      }
-    }
+    
+    rsegs_data[,column2] <- as.numeric(rsegs_data[,column2])
+    rsegs_data[,column1] <- as.numeric(rsegs_data[,column1])
+    
+    rsegs_data[,new_col] <- 100.0 * (rsegs_data[,column2] - rsegs_data[,column1]) / rsegs_data[,column1]
+    # for (n in 1:nrow(rsegs_data)) {
+    #   browser()
+    #   if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
+    #     rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
+    #   } else {
+    #     rsegs_data[n,new_col] <- NA
+    #   }
+    # }
     rsegs[[new_col]] <- rsegs_data[[new_col]]
   }
 }
