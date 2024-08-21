@@ -171,24 +171,29 @@ regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, re
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
-#note: only operational for river segments/basins
-  for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
-    bbox <- ds$get_prop(config=list( #get bbox properties
-                        featureid= RomProperty$new(ds,list( #get extent property pid
-                                      propname="extent",
-                                      entity_type="dh_properties",
-                                      featureid= RomProperty$new(ds,list( #get map property pid
-                                                    varkey="map", 
-                                                    entity_type="dh_feature",
-                                                    featureid= rsegs$hydroid[i]
-                                                    ),TRUE)$pid #map pid
-                                      ),TRUE)$pid, #extent pid
-                        entity_type='dh_properties'))
-    bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
-    bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
-    bbox <- st_bbox(bbox)
-  }
+# if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
+# #note: only operational for river segments/basins
+#   for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
+#     bbox <- ds$get_prop(config=list( #get bbox properties
+#                         featureid= RomProperty$new(ds,list( #get extent property pid
+#                                       propname="extent",
+#                                       entity_type="dh_properties",
+#                                       featureid= RomProperty$new(ds,list( #get map property pid
+#                                                     varkey="map", 
+#                                                     entity_type="dh_feature",
+#                                                     featureid= rsegs$hydroid[i]
+#                                                     ),TRUE)$pid #map pid
+#                                       ),TRUE)$pid, #extent pid
+#                         entity_type='dh_properties'))
+#     bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
+#     bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
+#     bbox <- st_bbox(bbox)
+#   }
+# }
+if(origin %in% names(custom_bboxes)){
+  #formatting to bbox object:
+  bbox <- SpatialPoints(custom_bboxes[origin])
+  bbox <- st_bbox(bbox)
 } else { #auto bbox. should always be around the basins intersecting region of interest
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(rsegs)), .02) #slightly past basin

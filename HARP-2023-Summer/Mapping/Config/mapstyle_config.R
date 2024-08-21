@@ -272,9 +272,15 @@ base_layer = "Download/LandCover_Downloads/MapServer/0" #VA LandCover -> very sp
 
 #--
 styles <- list()
+#----Overrides for Custom Bbox----
+#Edit here:
+custom_bboxes <- list(
+  'SoutheastVirginia'= cbind(c(xmin=-77.75660,xmax=-75.77736),c(ymin=36.4, ymax=37.4))
+)
+
 #----Custom Aesthetics:----
 styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow","tidal"),
-                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F","gray62")
+                               color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F","#0000FF")
                               )
 styles$custom$color$metrics <- data.frame(row.names=c("Surface Water","Groundwater","Nondistinctive"),
                                     color=c("#F7FF00","#FF00FF","#FF9851")
