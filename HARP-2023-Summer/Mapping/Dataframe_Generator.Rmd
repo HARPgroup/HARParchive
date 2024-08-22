@@ -89,33 +89,34 @@ if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   }
 }
 
-if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
+facdf <- data.frame()
+for (k in metric_mod) {
+  #create df of model run specifications for om_vahydro_metric_grid()
+  df <- data.frame(runid=runid_list, model_version, metric=k) 
+  #add column to df containing 'runlabel' which will become the metric column
+  #names in featrs$model
+  df$runlabel <- paste0(runid_list, "_", k)
   
-  facdf <- data.frame()
-  for (k in metric_mod) {
-    #create df of model run specifications for om_vahydro_metric_grid()
-    df <- data.frame(runid=runid_list, model_version, metric=k) 
-    #add column to df containing 'runlabel' which will become the metric column
-    #names in featrs$model
-    df$runlabel <- paste0(runid_list, "_", k)
-    
-    if (is.logical(facdf)) {
-      facdf <- df
-    } else {
-      facdf <- rbind(facdf,df)
-    }
+  if (is.logical(facdf)) {
+    facdf <- df
+  } else {
+    facdf <- rbind(facdf,df)
   }
-  #pull facilities w/ metric of interest from vahydro:
-  f_model <- om_vahydro_metric_grid(
-    metric=FALSE, runids=facdf, featureid='all', 
-    entity_type='dh_feature', bundle='facility',
-    ftype='all', model_version=model_version,
-    base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
-    ds=ds
-  )
-  #pull facility-level geometry to join with model data:
-  f_geo <- fread(paste0(foundation_path , "/facilities_all_geom.csv"))
-} 
+}
+
+#pull facility-level geometry to join with model data:
+f_geo <- fread(paste0(foundation_path , "/facilities_all_geom.csv"))
+
+
+#pull facilities w/ metric of interest from vahydro:
+f_model <- om_vahydro_metric_grid(
+  metric=FALSE, runids=facdf, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version=model_version,
+  base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
+  ds=ds
+)
+
 #---Watershed/Riverseg Data---
 rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
   #pulls csv with All vahydro watershed features
@@ -186,10 +187,24 @@ if(base_layer_data==TRUE){
 
 #---Facilities/Rsegs---
 if(featr_type == "source"){
-  featrs <- foundatn_mp[foundatn_mp$Latitude!="" & foundatn_mp$Longitude!="" 
-                          & !is.na(foundatn_mp$Latitude) & !is.na(foundatn_mp$Longitude) 
-                      ,] #omits facilities with blank or NA geometry
-  featrs <- sf::st_as_sf(featrs, coords=c("Longitude","Latitude"), crs=crs_default) #convert to sf
+  featrs <- foundatn_mp[foundatn_mp$latitude!="" & foundatn_mp$longitude!="" 
+                        & !is.na(foundatn_mp$latitude) & !is.na(foundatn_mp$longitude) 
+                        ,] #omits facilities with blank or NA geometry
+  featrs <- as.data.frame(featrs)
+  
+  ## Merge deletes the by.y column used in merge(), so this creates a new one
+  featrs$joinid <- featrs$facility_hydroid
+  
+  f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
+  
+  
+  featrs <- merge(x=f_model, #merge/full join foundational & modeled facil data
+                  y=featrs[names(featrs)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
+                  by.x="featureid", by.y="joinid", all.y=T
+  )
+  
+  featrs <- sf::st_as_sf(featrs, coords=c("longitude","latitude"), crs=crs_default) #convert to sf
+  
 }
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("select foundatn_mp.*,
@@ -321,8 +336,6 @@ joinData <- model_data_river[match(rsegs$riverseg,model_data_river$riverseg),]
 ## For those that dont match, riverseg must be added from rsegs (NA in joinData)
 rsegs <- cbind(rsegs[,c("hydroid","name","ftype","bundle","riverseg")],joinData[,-grep("riverseg",names(joinData))])
 
-print(dim(rsegs))
-print(dim(featrs))
 
 #----Calculate Rseg Metric % Diff ----
 rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data
