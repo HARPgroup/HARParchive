@@ -157,7 +157,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
   if (featr_type == "facility") {
     map_layer <- ggplot2::geom_point(data = mp_layer, aes(x = lng, y = lat, 
                                  size = bin), color = map_style_set$color$metrics["Surface Water",],
-                                 shape = 19)
+                                 shape = 19, alpha = 0.6)
     scale_size <- ggplot2::scale_size_binned(range = c(2,20), 
                                     breaks = breaks, 
                                     labels = labs,
