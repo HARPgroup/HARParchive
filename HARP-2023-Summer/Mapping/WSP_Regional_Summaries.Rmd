@@ -14,24 +14,24 @@ output:
 ## More params used during development and testing for user-control -- will be consolidated  
 params:
 
-  origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
-  origin_type: ["region"] #basin, locality, or region
-  featr_type: ["facility"] #source or facility
-
-  featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
-  featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
-  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
-
-  rsegs_file: "C:/aa_HARP/Exports/MiddleJames_2_rsegs_sf.csv"
-  rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
-  run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
-  runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
-
-  # aesthetic changes
-  crs_default: 4326 #default coordinate system
-  map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
-  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments
-  show_map: TRUE #either TRUE or FALSE
+  # origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  # origin_type: ["region"] #basin, locality, or region
+  # featr_type: ["facility"] #source or facility
+  # 
+  # featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
+  # featrs_file_ = _bubble_column: ["wsp2020_2040_mgy"] #runid & metric
+  # featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
+  # 
+  # rsegs_file: "C:/aa_HARP/Exports/MiddleJames_2_rsegs_sf.csv"
+  # rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
+  # run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
+  # runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
+  # 
+  # # aesthetic changes
+  # crs_default: 4326 #default coordinate system
+  # map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
+  # bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments
+  # show_map: TRUE #either TRUE or FALSE
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -62,7 +62,14 @@ origin <- params$origin #supply either a rivseg, locality, or region name ## JL7
 origin_type <- params$origin_type #basin, locality, or region
 featr_type <- params$featr_type #source or facility
 
-featrs_file <- params$featrs_file
+## featrs_file changes based on what its featr_type is 
+if(featr_type=="facility"){
+  featrs_file <- paste0(export_path,origin,"_featrs_sf.csv")
+}
+if(featr_type=="source"){
+  featrs_file <- paste0(export_path,origin,"_mp_sf.csv")
+}
+
 featrs_file_map_bubble_column <- params$featrs_file_map_bubble_column
 featrs_file_table_column <- params$featrs_file_table_column
 
