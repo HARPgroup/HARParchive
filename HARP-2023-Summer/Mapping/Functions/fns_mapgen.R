@@ -157,7 +157,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
   if (featr_type == "facility") {
     map_layer <- ggplot2::geom_point(data = mp_layer, aes(x = lng, y = lat, 
                                  size = bin), color = map_style_set$color$metrics["Surface Water",],
-                                 shape = 19)
+                                 shape = 19, alpha = 0.6)
     scale_size <- ggplot2::scale_size_binned(range = c(2,20), 
                                     breaks = breaks, 
                                     labels = labs,
@@ -171,23 +171,25 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
                                                       color = Source_Type, 
                                                       size = bin),
                                                       shape = 19)
-      scale_size <- ggplot2::scale_size_binned(range = c(2,20),
-                                      breaks = breaks,
-                                      labels = labs,
-                                      limits = lims,
-                                      name = legend_title[1],
-                                      guide= guide_legend(override.aes=list(color = map_style_set$color$metrics["Groundwater",],
-                                                                            fill = map_style_set$color$metrics["Surface Water",],
-                                                                            stroke = seq(3,7,length.out=length(breaks)),
-                                                                            shape=21 ))
-      )
-      scale_color <- ggplot2::scale_colour_manual(values= map_style_set$color$metrics[c("Surface Water", "Groundwater"),] ,
-                                         breaks= c("Surface Water", "Groundwater"),
-                                         labels= c("Surface Water", "Groundwater"),
-                                         name= "Source Type",
-                                         guide= guide_legend(override.aes=list(size=9))
-      )
-      bubbles <- list(map_layer, scale_size, scale_color, num_labels)
+    
+    scale_size <- ggplot2::scale_size_binned(range = c(2,20),
+                                             breaks = breaks,
+                                             labels = labs,
+                                             limits = lims,
+                                             name = legend_title[1],
+                                             guide= guide_legend(override.aes=list(color = map_style_set$color$metrics["Groundwater",],
+                                                                                   fill = map_style_set$color$metrics["Surface Water",],
+                                                                                   stroke = seq(3,7,length.out=length(breaks)),
+                                                                                   shape=21 ))
+    )
+    scale_color <- ggplot2::scale_colour_manual(values= c(map_style_set$color$metrics[c("Surface Water", "Groundwater"),],'blue','red') ,
+                                                breaks= c("Surface Water", "Groundwater"),
+                                                labels= c("Surface Water", "Groundwater"),
+                                                name= "Source Type",
+                                                guide= guide_legend(override.aes=list(size=9))
+    )
+    
+    bubbles <- list(map_layer, scale_size, scale_color, num_labels)
   }
   return(bubbles)
 }

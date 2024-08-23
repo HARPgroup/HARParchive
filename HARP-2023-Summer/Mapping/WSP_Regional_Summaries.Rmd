@@ -62,7 +62,14 @@ origin <- params$origin #supply either a rivseg, locality, or region name ## JL7
 origin_type <- params$origin_type #basin, locality, or region
 featr_type <- params$featr_type #source or facility
 
-featrs_file <- params$featrs_file
+## featrs_file changes based on what its featr_type is 
+if(featr_type=="facility"){
+  featrs_file <- paste0(export_path,origin,"_featrs_sf.csv")
+}
+if(featr_type=="source"){
+  featrs_file <- paste0(export_path,origin,"_mp_sf.csv")
+}
+
 featrs_file_map_bubble_column <- params$featrs_file_map_bubble_column
 featrs_file_table_column <- params$featrs_file_table_column
 
@@ -485,7 +492,7 @@ if (featr_type=="source"){
   table$Source_Type = facils_table$Source_Type
 }
 
-table$Locality = facils_table$Locality
+table$Locality = facils_table$locality
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
@@ -500,13 +507,19 @@ for(i in 1:nrow(table)){
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils_table$Permit_Limit_MGY #add permitted capacity to table 
+table$`Permitted Capacity` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
+  
+  ## Want to round the numeric columns to 2 decimal points, but let in other columns that have strings
   if (featrs_file_table_column[i] %in% colnames(facils_table)) {
   #adding requested columns to table
-    table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
+    if (!is.character(facils_table[,featrs_file_table_column[i]])) {
+      table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
+    } else {
+      table[,featrs_file_table_column[i]] <- facils_table[,featrs_file_table_column[i]]
+    }
     
     ## For facils where GW_frac = 1, there is no modelling data. NAs are rewritten as something more meaningful
     #### Check if its  a modelling column
