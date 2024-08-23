@@ -49,7 +49,7 @@ if (is.logical(foundation_path)) {
 ```
 
 
-```{r}
+```{r Loading_data}
 #----Check if Files Already Exist----
 #rivseg file
 rseg_filepath <- paste0(export_path,origin,"_rsegs_sf.csv")
@@ -135,6 +135,10 @@ if(base_layer_data==TRUE){
   cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/USA_Major_Cities_GIS.csv')
 }
 
+```
+
+``` {r base_layers}
+
 #----Filter/Process Data----
 #---Counties---
 cnty_fips$name <- sub(" County", "", cnty_fips$name) # fix any names followed by " County" to match the names of counties in the regions df
@@ -184,6 +188,10 @@ if(base_layer_data==TRUE){
   roads$FULLNAME <- gsub(".* ", "", roads$FULLNAME) #removes text and spaces before route number
   names(roads) <- gsub("RTTYP", "CLASS", names(roads)) #re-name class column -> needed for fn_labelprep() in the RMD
 }
+
+```
+
+``` {r Creating_featrs_rsegs}
 
 #---Facilities/Rsegs---
 if(featr_type == "source"){
@@ -248,6 +256,11 @@ rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sortin
 # - Above relies on up to date riverseg properties in model
 # - could add clause to use MP~riverseg if model riverseg does not occur in current river seg list - that would indicate that model riverseg is bunk
 # create intersection feature and riversegs
+
+```
+
+``` {r Combining_featrs_rsegs}
+
 featrs_riverseg <- st_drop_geometry( sf::st_join(featrs[,c('facility','featureid')], rsegs[ ,c("riverseg","hydroid", "area_dd",fn_geoCol(rsegs)) ]))
 # find the smallest riversg containing each feature
 featrs_riverseg_sm <- sqldf(
@@ -363,19 +376,22 @@ for (j in 2:length(runid_list)) {
   }
 }
 
+```
+
+``` {r Saving_files}
 #----Write Files----
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
 if(featr_type=="facility"){
-  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
 }
 if(featr_type=="source"){
   featrs <- featrs[names(featrs) %in% grep("^([0-9]+).$", names(featrs), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
 }
 if(base_layer_data==TRUE){
-  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT")
-  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT")
-  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT", append = F)
+  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT", append = F)
+  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
   write.csv(cities, paste0(export_path,"cities.csv")) 
 }
 
