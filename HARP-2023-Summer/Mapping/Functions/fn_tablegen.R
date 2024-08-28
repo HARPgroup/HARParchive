@@ -6,7 +6,7 @@ library(flextable)
 fn_tablegen <- function(
     featr_type, table, columns, alignment, 
     origin_type, metric, origin, tabletitle, num,
-    highlight_col = FALSE, highlight_limit = -10
+    highlight_col = FALSE, highlight_limit
   ) { 
   #featr_type: either 'facility' (map 1) or 'riverseg' (map 2)
   #table: data frame to be transformed into a flextable 
