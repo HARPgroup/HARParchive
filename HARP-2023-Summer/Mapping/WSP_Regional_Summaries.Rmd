@@ -479,6 +479,7 @@ table <- data.frame(
   Number= facils_table$NUM,
   Facility=facils_table$facility,
   HydroID = facils_table$featureid, 
+  table$Locality = facils_table$locality, 
   GWFrac = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
@@ -486,8 +487,6 @@ if (featr_type=="source"){
   table$Source = facils_table$MP_Name  
   table$Source_Type = facils_table$Source_Type
 }
-
-table$Locality = facils_table$locality
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
