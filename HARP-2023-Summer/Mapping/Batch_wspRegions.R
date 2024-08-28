@@ -99,7 +99,7 @@ for (x in 1:length(region_set)) {
 }
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- '510ce05'
+origin_name <- '51003'
 
 #### Run all localities ##########################
 for (x in locality_set) {
