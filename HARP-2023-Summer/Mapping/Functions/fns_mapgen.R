@@ -98,18 +98,12 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   #Crop nhd_plot to the appropriate bbox and reproject from NAD83 to 4326:
   nhdplot_new <- st_transform(nhd_plot,4326)
   nhd_plot <- st_crop(nhdplot_new,bbox_sf)
+  
+  #remove repeated road labels:
+  labels_plot <- labels_plot[!duplicated(labels_plot$label,
+                                 incomparables= !labels_plot$class %in% c("I","S","U") #don't remove duplicated labels that aren't of road classes
+                                 ), ]
 
-  
-  # labels_plot_sf <- sf::st_as_sf(labels_plot, coords=c("lng", "lat"), crs=crs_default)
-  # labels_plot_sf <- sf::st_crop(labels_plot_sf, bbox_sf)
-  # labels_plot_sf <- sf::st_drop_geometry(labels_plot_sf)
-  # test <- sqldf( #join text aesthetics with sqldf 
-  #   "SELECT labels_plot_sf.*, labels_plot.lat, labels_plot.lng
-  #   FROM labels_plot_sf 
-  #   LEFT OUTER JOIN labels_plot
-  #     on (names(labels_plot_sf) = names(labels_plot))"
-  # )
-  
   #save:
   assign('labels_plot', labels_plot, envir = globalenv())
   assign('nhd_plot', nhd_plot, envir = globalenv())
@@ -179,7 +173,7 @@ fn_mp_bubbles <- function(mp_layer, metric_unit, featr_type, map_style_set){
                                              name = legend_title[1],
                                              guide= guide_legend(override.aes=list(color = map_style_set$color$metrics["Groundwater",],
                                                                                    fill = map_style_set$color$metrics["Surface Water",],
-                                                                                   stroke = seq(3,7,length.out=length(breaks)),
+                                                                                   #stroke = seq(3,7,length.out=length(breaks)),
                                                                                    shape=21 ))
     )
     scale_color <- ggplot2::scale_colour_manual(values= c(map_style_set$color$metrics[c("Surface Water", "Groundwater"),],'blue','red') ,
@@ -261,35 +255,47 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
   return(borders_layer)
 }
 
-fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title){
-  #fill tidal rsegs 
-  rsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
-  #st_crs(rsegTidal) <- crs_default
-  rsegTidal <- sf::st_transform(rsegTidal, crs_default)
-  #fix tidal df
-  names(rsegTidal)[1:(ncol(rsegTidal)-6)] <- names(rsegTidal)[2:(ncol(rsegTidal)-5)]
-  rsegTidal[ncol(rsegTidal)-5] <- NULL
-  #create tidal map layer
-  tidal <- ggplot2::geom_sf(data = rsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 1)
-  tidal_scale_fill <- ggplot2::scale_fill_manual(values = map_style_set$color$sf["tidal",], #color set in config
-                                        breaks = "watershed",
-                                        labels = "Tidal/Unmodeled",
-                                        name = NULL)
-  rseg_fill <- list(ggnewscale::new_scale("fill"), tidal, tidal_scale_fill)
-  
-  #rseg fill based on drought metric % difference for rivseg maps:
+fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title, rivmap_ramp){
   if (mapnum == 2) {
+    #fill tidal rsegs 
+    # rsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
+    # rsegTidal <- sf::st_transform(rsegTidal, crs_default)
+    # #fix tidal df
+    # names(rsegTidal)[1:(ncol(rsegTidal)-6)] <- names(rsegTidal)[2:(ncol(rsegTidal)-5)]
+    # rsegTidal[ncol(rsegTidal)-5] <- NULL
+    # #create tidal map layer
+    # tidal <- ggplot2::geom_sf(data = rsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 1)
+    # tidal_scale_fill <- ggplot2::scale_fill_manual(values = map_style_set$color$sf["tidal",], #color set in config
+    #                                                breaks = "watershed",
+    #                                                labels = "Tidal/Unmodeled",
+    #                                                name = NULL)
+    # rseg_fill <- list(ggnewscale::new_scale("fill"), tidal, tidal_scale_fill)
+    
+    
+    #rseg fill based on drought metric % difference for rivseg maps:
+    rivseg_pct_vect <- rivmap_ramp[,"rivseg_pct_vect"]
+    # place Tidal rsegs in a bin that will be listed after the bins with data values: 
+    rsegs[rsegs$riverseg %in% grep("0000", rsegs$riverseg, value=TRUE) 
+          #& is.na(rsegs$bin)
+          , "bin"] <- 1+length(rivseg_pct_vect)
+    # place rsegs with no data in an "unmodeled" bin at the end of the list:
+    rsegs[is.na(rsegs$bin), "bin"] <- 2+length(rivseg_pct_vect)
+    
     class(rsegs$bin) <- "numeric"
     metric_fill <- ggplot2::geom_sf(data = rsegs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 )
-    metric_scale_fill <- ggplot2::scale_fill_manual(values = rivmap_colors, #from config
-                                           breaks = rivbreaks,
-                                           labels = rivmap_labs,
-                                           limits = as.factor(rivbreaks),
-                                           name = str_wrap(rseg_leg_title, width = 20))
+    metric_scale_fill <- ggplot2::scale_fill_manual(values = c(rivmap_ramp[,"rivmap_colors"], 
+                                                               map_style_set$color$sf["tidal",], 
+                                                               map_style_set$color$sf["unmodeled",]), #from config
+                                           breaks = seq(1:(2+length(rivseg_pct_vect))), #append all these lists to incorporate bins for tidal segs & unmodeled data
+                                           labels = c(rivmap_ramp[,"rivmap_labs"], "Tidal", "Unmodeled"),
+                                           limits = as.factor(seq(1:(2+length(rivseg_pct_vect)))),
+                                           name = str_wrap(rseg_leg_title, width = 20)
+                                           )
     metric_legend <- ggplot2::theme(legend.spacing.y = unit(0.1, 'cm')) #adjust spacing of legend 
     rseg_fill <- list(ggnewscale::new_scale("fill"), metric_fill, metric_scale_fill,
-                      ggplot2::guides(fill = guide_legend(byrow = TRUE)),
-                      ggnewscale::new_scale("fill"), tidal, tidal_scale_fill)
+                      ggplot2::guides(fill = guide_legend(byrow = TRUE))
+                      #,ggnewscale::new_scale("fill"), tidal, tidal_scale_fill2
+                      )
   }
   return(rseg_fill)
 }
@@ -368,7 +374,7 @@ fn_textRepel <- function(rsegs, labels_plot, textsize, map_style_set, bbox_coord
 
 fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                       maptitle, mapnum, rseg_leg_title, map_server, base_layer, maplabs, nhd, 
-                      roads, rsegs, map_style_set){ #applies results of the above functions to plot the map
+                      roads, rsegs, map_style_set, rivmap_ramp){ #applies results of the above functions to plot the map
   #getting various bbox formats:
   bbox_coords <- data.frame(lng = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]), row.names = NULL) 
   bbox_sf <- sf::st_as_sf(bbox_coords, coords = c('lng','lat'), crs = 4326) 
@@ -386,7 +392,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                                                   ),
                                   layer_description = "map theme", map = map)
   map <- fn_catchMapErrors(map_layer = ggplot2::ggtitle(maptitle), layer_description = "map title", map = map)
-  map <- fn_catchMapErrors(map_layer = fn_polygonFill(rsegs, map_style_set, mapnum, rseg_leg_title),
+  map <- fn_catchMapErrors(map_layer = fn_polygonFill(rsegs, map_style_set, mapnum, rseg_leg_title, rivmap_ramp),
                            layer_description = "fn_polygonFill(): tidal rseg fill and, if applicable, rivseg metric fill", map = map)
   map <- fn_catchMapErrors(map_layer = fn_nhdLines(nhd_plot, map_style_set, nhd),
                            layer_description = "fn_nhdLines(): nhd flowlines and waterbodies", map = map)
