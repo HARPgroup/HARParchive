@@ -167,20 +167,21 @@ rm(regions_split)
 
 if(base_layer_data==TRUE){
 #---Cities---
-  statemt <- paste("SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,",
-                   "CASE WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
-                   "THEN 'smallTown' 
-                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.5),"AND",quantile(cities$POPULATION, 0.8),
-                   "THEN 'town'
-                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.8),"AND",quantile(cities$POPULATION, 1.0),
-                   "THEN 'city'
-                  ELSE CLASS", 
-                   "END as CLASS",
-                   "FROM cities
-                  WHERE NAME 
-                  NOT IN (select counties.name from counties)",
-                   "AND (cities.ST == 'VA') ", 
-                   "ORDER BY POPULATION DESC", sep=" ") 
+  statemt <- paste("
+  SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,
+  CASE 
+    WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND",quantile(cities$POPULATION, 0.5)," THEN 'smallTown' 
+    WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.5),"AND",quantile(cities$POPULATION, 0.8)," THEN 'town'
+    WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.8),"AND",quantile(cities$POPULATION, 1.0)," THEN 'city'
+    ELSE CLASS
+  END as CLASS
+  
+  FROM cities
+  
+  WHERE NAME NOT IN (select counties.name from counties)
+        AND (cities.ST == 'VA') 
+  ORDER BY POPULATION DESC", sep="") 
+    
   cities <- fn_sqldf_sf(statemt)
 #---Roads---
   roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
@@ -264,7 +265,8 @@ rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sortin
 featrs_riverseg <- st_drop_geometry( sf::st_join(featrs[,c('facility','featureid')], rsegs[ ,c("riverseg","hydroid", "area_dd",fn_geoCol(rsegs)) ]))
 # find the smallest riversg containing each feature
 featrs_riverseg_sm <- sqldf(
-  "select a.featureid, a.riverseg from featrs_riverseg as a 
+  "select a.featureid, a.riverseg 
+   from featrs_riverseg as a 
    left outer join (
      select featureid, min(area_dd) as min_area_dd 
      from featrs_riverseg group by riverseg
@@ -272,11 +274,12 @@ featrs_riverseg_sm <- sqldf(
   where a.area_dd = b.min_area_dd and a.featureid = b.featureid"
 )
 # Add riverseg from featrs_riverseg_sm for featrs that have NA riverseg
-featrs <- fn_sqldf_sf(
+featrs2 <- fn_sqldf_sf(
   "select a.*, b.riverseg as riverseg_contains 
    from featrs as a 
   left outer join featrs_riverseg_sm as b 
-  on (a.featureid = b.featureid)
+    on (a.featureid = b.featureid)
+    and a.riverseg IS NULL
  ", 
  geomback = 'featrs'
 )
