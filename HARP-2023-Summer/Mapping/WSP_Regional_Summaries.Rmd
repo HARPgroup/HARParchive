@@ -30,7 +30,7 @@ params:
   # aesthetic changes
   crs_default: 4326 #default coordinate system
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
-  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments
+  bbox_type: ["auto"] #either 'auto' to force automatic for all, or 'custom'
   show_map: TRUE #either TRUE or FALSE
 ---
 
@@ -62,14 +62,7 @@ origin <- params$origin #supply either a rivseg, locality, or region name ## JL7
 origin_type <- params$origin_type #basin, locality, or region
 featr_type <- params$featr_type #source or facility
 
-## featrs_file changes based on what its featr_type is 
-if(featr_type=="facility"){
-  featrs_file <- paste0(export_path,origin,"_featrs_sf.csv")
-}
-if(featr_type=="source"){
-  featrs_file <- paste0(export_path,origin,"_mp_sf.csv")
-}
-
+featrs_file <- params$featrs_file
 featrs_file_map_bubble_column <- params$featrs_file_map_bubble_column
 featrs_file_table_column <- params$featrs_file_table_column
 
@@ -178,29 +171,36 @@ regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, re
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
-#note: only operational for river segments/basins
-  for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
-    bbox <- ds$get_prop(config=list( #get bbox properties
-                        featureid= RomProperty$new(ds,list( #get extent property pid
-                                      propname="extent",
-                                      entity_type="dh_properties",
-                                      featureid= RomProperty$new(ds,list( #get map property pid
-                                                    varkey="map", 
-                                                    entity_type="dh_feature",
-                                                    featureid= rsegs$hydroid[i]
-                                                    ),TRUE)$pid #map pid
-                                      ),TRUE)$pid, #extent pid
-                        entity_type='dh_properties'))
-    bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
-    bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
-    bbox <- st_bbox(bbox)
-  }
+# if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
+# #note: only operational for river segments/basins
+#   for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
+#     bbox <- ds$get_prop(config=list( #get bbox properties
+#                         featureid= RomProperty$new(ds,list( #get extent property pid
+#                                       propname="extent",
+#                                       entity_type="dh_properties",
+#                                       featureid= RomProperty$new(ds,list( #get map property pid
+#                                                     varkey="map", 
+#                                                     entity_type="dh_feature",
+#                                                     featureid= rsegs$hydroid[i]
+#                                                     ),TRUE)$pid #map pid
+#                                       ),TRUE)$pid, #extent pid
+#                         entity_type='dh_properties'))
+#     bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
+#     bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
+#     bbox <- st_bbox(bbox)
+#   }
+# }
+
+if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom bbox in config
+  #formatting custom border coordinates to bbox object:
+  bbox <- SpatialPoints(custom_bboxes[origin])
+  bbox <- st_bbox(bbox)
 } else { #auto bbox. should always be around the basins intersecting region of interest
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(rsegs)), .02) #slightly past basin
   bbox <- st_bbox(bbox)
 }
+
 ```
 
 ```{r Get NHD in Bbox, echo=FALSE, message=FALSE, warning=FALSE}
@@ -391,7 +391,7 @@ if (show_map == TRUE) {
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                      maptitle=title_main, mapnum=1, rseg_leg_title=NULL, map_server,
                      base_layer, 
-                     maplabs, nhd, roads, rsegs, map_style_set)
+                     maplabs, nhd, roads, rsegs, map_style_set, rivmap_ramp=NULL)
                     
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
@@ -487,7 +487,7 @@ if (featr_type=="source"){
   table$Source_Type = facils_table$Source_Type
 }
 
-table$Locality = facils_table$locality
+table$Locality = facils_table$Locality
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
@@ -502,19 +502,13 @@ for(i in 1:nrow(table)){
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
+table$`Permitted Capacity` <- facils_table$Permit_Limit_MGY #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
-  
-  ## Want to round the numeric columns to 2 decimal points, but let in other columns that have strings
   if (featrs_file_table_column[i] %in% colnames(facils_table)) {
   #adding requested columns to table
-    if (!is.character(facils_table[,featrs_file_table_column[i]])) {
-      table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
-    } else {
-      table[,featrs_file_table_column[i]] <- facils_table[,featrs_file_table_column[i]]
-    }
+    table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
     
     ## For facils where GW_frac = 1, there is no modelling data. NAs are rewritten as something more meaningful
     #### Check if its  a modelling column
@@ -573,7 +567,8 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
                    origin_type = origin_type, metric = rivseg_metric[i], 
-                   origin = origin, tabletitle = title_main, num = "1.1" ) #execute flextable function
+                   origin = origin, tabletitle = title_main, num = "1.1",
+                   highlight_col = FALSE, highlight_limit = NULL) #execute flextable function
 ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
 ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
 
@@ -612,6 +607,7 @@ ft1 #display flextable
       display_metric <- run_config$riverseg_metrics[[i]]$metric
       display_column <- run_config$riverseg_metrics[[i]]$column_name
       display_title <- run_config$riverseg_metrics[[i]]$run_label
+      ramp <- run_config$riverseg_metrics[[i]]$ramp
     
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
@@ -642,7 +638,7 @@ ft1 #display flextable
     ##Work-around to problem above: change column name
     rseg_geom <- rsegs$geometry #save geometry before dropping
     rsegs <- st_drop_geometry(rsegs)
-    bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
+    bins = as.data.frame(rivmap_ramps[[ramp]][,"rivseg_pct_vect"]) #rivseg_pct_vect set in config
     bins$classid <- index(bins)
     names(bins) <- c("val", "bin")
     #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
@@ -677,7 +673,8 @@ ft1 #display flextable
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
                        map_server, base_layer, maplabs, nhd, roads, 
-                       rsegs=rsegs_sf, map_style_set)
+                       rsegs=rsegs_sf, map_style_set,
+                       rivmap_ramp=rivmap_ramps[[ramp]])
     map_objects[[i]] <- map_rivseg
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
@@ -759,7 +756,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
                        columns = cols_present, alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
                        origin = origin , tabletitle = display_title,
-                       num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
+                       num=rivtablenum, highlight_col = display_column, 
+                       highlight_limit = rivmap_ramps[[ramp]][1,"highlight_limit"]) #flextable function 
     
     new_cols <- colnames(rivTables[[k]])
     for (i in 1:length(colnames(rivTables[[k]]))) {
