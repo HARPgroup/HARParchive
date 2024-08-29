@@ -274,7 +274,7 @@ featrs_riverseg_sm <- sqldf(
   where a.area_dd = b.min_area_dd and a.featureid = b.featureid"
 )
 # Add riverseg from featrs_riverseg_sm for featrs that have NA riverseg
-featrs2 <- fn_sqldf_sf(
+featrs <- fn_sqldf_sf(
   "select a.*, b.riverseg as riverseg_contains 
    from featrs as a 
   left outer join featrs_riverseg_sm as b 
@@ -358,10 +358,18 @@ rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data
 for (j in 2:length(runid_list)) {
   for (k in 1:length(rivseg_metric)) {
     ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
-    column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+    #### Need to carve out an exception for change in flow (which is runid_0 compared to runid_13)
     column2 = paste0(runid_list[j],"_",rivseg_metric[k])
-    new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
-    message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
+    
+    if (rivseg_metric[k] == "Qout" & "runid_0" %in% runid_list) {
+      column1 = paste0("runid_0_Qout")
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_runid_0_", runid_list[j])
+            message(paste("Adding %diff for", rivseg_metric[k], "runid_0", runid_list[j]))
+    } else {
+      column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
+      message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
+    }
     
     rsegs_data[,column2] <- as.numeric(rsegs_data[,column2])
     rsegs_data[,column1] <- as.numeric(rsegs_data[,column1])
