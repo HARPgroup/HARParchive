@@ -67,7 +67,11 @@ readable <- data.frame(rbind(
                   c('percentDiff_7q10_runid_11_runid_13', 'Percent Difference in 7Q10 From 2020-2040'),
                   c('runid_11_consumptive_use_frac', '2020 Consumptive Use Fraction'),
                   c('runid_13_consumptive_use_frac', '2040 Consumptive Use Fraction'),
-                  c('percentDiff_consumptive_use_frac_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
+                  c('percentDiff_Qout_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
+                  c('percentDiff_Qout_runid_0_runid_13', 'Percent Change in Flow in 2040'),
+                  c('runid_11_Qout', '2020 Average Flow'),
+                  c('runid_13_Qout', '2040 Average Flow'),
+                  c('runid_0_Qout', 'Base Flow'),
                   c('runid_17_l90_Qout', '2040 Dry Climate Change 90 Day Low Flow'),
                   c('runid_17_l30_Qout', '2040 Dry Climate Change 30 Day Low Flow'),
                   c('percentDiff_l90_Qout_runid_11_runid_17', 'Percent Difference in 90 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
@@ -78,7 +82,9 @@ readable <- data.frame(rbind(
                   c('runid_13_Smin_L30_mg', '2040 Lowest 30 Day Minimum Storage (MG)'),
                   c('percentDiff_Smin_L30_mg_runid_11_runid_17', 'Percent Difference in Lowest 30 Day Minimum Storage From 2020-2040 (Dry Climate Scenario)'),
                   c('runid_11_unmet30_mgd', '2020 Highest 30 Day Potential Unmet Demand (MGD)'),
-                  c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)')
+                  c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)'),
+                  c('runid_17_unmet30_mgd', '2040 Dry Climate Change 30 day Potential Unmet Demand (MGD)'),
+                  c('gw_frac', 'GW Fraction')
                   
 ))
 colnames(readable) <- c('computer', 'human')
@@ -130,12 +136,12 @@ run_sets <- list(
         ramp = 'default'
       ),
       list(
-        metric='consumptive_use_frac', 
+        metric='Qout', 
         data_set = 'rseg_no_geom',
-        column_name='percentDiff_consumptive_use_frac_runid_11_runid_13', 
-        run_label = 'Overall Change in Flow (Percent Change 2020 to 2040)', 
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_consumptive_use_frac','runid_13_consumptive_use_frac', 'percentDiff_consumptive_use_frac_runid_11_runid_13'),
-        sort_col = 'percentDiff_consumptive_use_frac_runid_11_runid_13',
+        column_name='percentDiff_Qout_runid_0_runid_13', 
+        run_label = 'Overall Change in Flow in 2040', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_0_Qout','runid_13_Qout', 'percentDiff_Qout_runid_0_runid_13'),
+        sort_col = 'percentDiff_Qout_runid_0_runid_13',
         sort_decreasing = FALSE, 
         show_map = TRUE,
         ramp = 'default'

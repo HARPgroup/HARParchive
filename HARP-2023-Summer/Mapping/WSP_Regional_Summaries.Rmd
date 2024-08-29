@@ -479,6 +479,7 @@ table <- data.frame(
   Number= facils_table$NUM,
   Facility=facils_table$facility,
   HydroID = facils_table$featureid, 
+  Locality = facils_table$locality, 
   GWFrac = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
@@ -486,8 +487,6 @@ if (featr_type=="source"){
   table$Source = facils_table$MP_Name  
   table$Source_Type = facils_table$Source_Type
 }
-
-table$Locality = facils_table$locality
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
@@ -521,8 +520,8 @@ for (i in 1:length(featrs_file_table_column)){
   }
 }
 ## When a facility is only GW, it will not have a riverseg, so this is added
-table[table$GWFrac == 1 & !is.na(table$GWFrac),table$`River Segment ID`] <- "No model"
-table[table$GWFrac == 1 & !is.na(table$GWFrac),table$`River Segment Name`] <- "No model"
+table$`River Segment ID`[table$GWFrac == 1 & !is.na(table$GWFrac)] <- "No model"
+table$`River Segment Name`[table$GWFrac == 1 & !is.na(table$GWFrac)] <- "No model"
 
 table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
 
