@@ -41,7 +41,7 @@ fn_catchMapErrors <- function(map_layer, layer_description="blank", map=FALSE){ 
   return(map)
 }
 
-fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_style_set, bbox_sf, crs_default){ 
+fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs){ 
   #combines all text labels into 1 df and associates them w/ aesthetics from mapstyle_config.R
   #filters data to control the amount of map detail based on extent of the map
   
@@ -99,6 +99,26 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   nhdplot_new <- st_transform(nhd_plot,4326)
   nhd_plot <- st_crop(nhdplot_new,bbox_sf)
   
+  #only keep road labels outside of origin:
+  roadlabs_only <- labels_plot[labels_plot$class %in% c("I","S","U"),]
+  # roadlabs_in_origin <- sf::st_intersects(roadlabs_only, sf::st_union(rsegs), 
+  #                            sparse=FALSE) #determines which road labels intersect the highlighted map area (the origin)
+  roadlabs_in_origin <- sf::st_is_within_distance(roadlabs_only, sf::st_union(rsegs), 
+                            dist=units::set_units(1.5, "mi"), sparse=FALSE) #determines which road labels are within 1.5mi of the highlighted map area (the origin)
+  for(i in 1:nrow(roadlabs_only)){
+    if(roadlabs_in_origin[i]==FALSE){ #aka road label coordinate is outside of the origin
+      if(!exists("roadlabs_to_keep")){
+        roadlabs_to_keep <- roadlabs_only[i,]
+      }else{
+        roadlabs_to_keep <- rbind(roadlabs_to_keep, roadlabs_only[i,])
+      }
+    }
+  }
+  if(exists("roadlabs_to_keep")){
+    labels_plot <- rbind(roadlabs_to_keep, 
+                          labels_plot[!labels_plot$class %in% c("I","S","U"),] #non-roads
+                          )
+  }
   #remove repeated road labels:
   labels_plot <- labels_plot[!duplicated(labels_plot$label,
                                  incomparables= !labels_plot$class %in% c("I","S","U") #don't remove duplicated labels that aren't of road classes
@@ -333,11 +353,14 @@ fn_roadsAndCityPoints <- function(roads_plot, map_style_set, labels_plot, mp_lay
                         labels=c("Interstate","State Route", "US Hwy"), name="Roads")
   scale_fill <- ggplot2::scale_fill_manual(values=map_style_set[["color"]][["fill"]][,"color"], breaks=c(1,2,3),
                       labels=c("Interstate","State Route", "US Hwy"), name="Roads")
-  roadsNcitydots <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
-                         rd_lines, ggnewscale::new_scale("color"), ggnewscale::new_scale("size"), 
-                         city_dots, mp_placeholder, 
+  roadsNcitydots <- list(
+    ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"),
+                         rd_lines, ggnewscale::new_scale("color"), ggnewscale::new_scale("size"),
+                         city_dots, mp_placeholder
+                         ,
                          ggnewscale::new_scale("color"), ggnewscale::new_scale("fill"),
-                         rd_bubbles, scale_colour, scale_fill)
+                         rd_bubbles, scale_colour, scale_fill
+                         )
   return(roadsNcitydots)
 }
   
@@ -380,7 +403,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
   bbox_sf <- sf::st_as_sf(bbox_coords, coords = c('lng','lat'), crs = 4326) 
   bbox_sfc <- sf::st_as_sfc(sf::st_bbox(bbox))
   #prep labels & filter plotted data:
-  fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default)
+  fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
   #begin mapping:
   map <- fn_catchMapErrors(map_layer = fn_basemap(map_server, base_layer, bbox_coords)) 
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
