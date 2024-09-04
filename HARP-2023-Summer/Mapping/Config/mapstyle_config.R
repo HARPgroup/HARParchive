@@ -106,67 +106,91 @@ run_sets <- list(
         metric='l90_Qout',
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_13', 
-        run_label = '90 Day Low Flow (Percent Change 2020 to 2040)', 
+        run_label = '90 Day Low Flow (Percent Change 2020 to 2040)',
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout', 'runid_13_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
+        floor = NULL, #table only displays values above this (not equal to)
+        ceiling = NULL, #table only displays values below this (not equal to)
+        n_entries = NULL, #max num. of table entries
         sort_decreasing = FALSE,
-        show_map = TRUE,
-        ramp = 'default'
+        exlude_NAs = FALSE
       ),
       list(
         metric='l30_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_13', 
         run_label = '30 Day Low Flow (Percent Change 2020 to 2040)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_13_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_13'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
-        sort_decreasing = FALSE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = FALSE,
+        exlude_NAs = FALSE
       ),
       list(
         metric='7q10', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_7q10_runid_11_runid_13', 
         run_label = '7Q10 (Percent Change 2020 to 2040)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10','runid_13_7q10', 'percentDiff_7q10_runid_11_runid_13'),
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
-        sort_decreasing = FALSE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = FALSE,
+        exlude_NAs = FALSE
       ),
       list(
         metric='Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_Qout_runid_0_runid_13', 
         run_label = 'Overall Change in Flow in 2040', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_0_Qout','runid_13_Qout', 'percentDiff_Qout_runid_0_runid_13'),
         sort_col = 'percentDiff_Qout_runid_0_runid_13',
-        sort_decreasing = FALSE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = FALSE,
+        exlude_NAs = FALSE
       ),
       list(
         metric='l90_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l90_Qout_runid_11_runid_17', 
         run_label = '90 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l90_Qout','runid_17_l90_Qout', 'percentDiff_l90_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
         sort_decreasing = FALSE,
-        show_map = TRUE,
-        ramp = 'default'
+        exlude_NAs = FALSE
       ),
       list(
         metric='l30_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_Qout_runid_11_runid_17', 
         run_label = '30 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_Qout','runid_17_l30_Qout', 'percentDiff_l30_Qout_runid_11_runid_17'),
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
         sort_decreasing = FALSE,
-        show_map = TRUE,
-        ramp = 'default'
+        exlude_NAs = FALSE
       ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
@@ -174,32 +198,45 @@ run_sets <- list(
         data_set = 'rseg_no_geom',
         column_name='percentDiff_7q10_runid_11_runid_17', 
         run_label = '7Q10 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
         sort_col = 'percentDiff_7q10_runid_11_runid_17',
-        sort_decreasing = FALSE,
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = TRUE,
+        exlude_NAs = FALSE
       ),
       list(
         metric='Smin_L30_mg', 
         data_set = 'rseg_no_geom',
         column_name='runid_13_Smin_L30_mg', 
         run_label = 'Lowest 30 Day Minimum Storage (MG)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'), 
         sort_col = 'runid_13_Smin_L30_mg',
-        sort_decreasing = TRUE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = TRUE,
+        exlude_NAs = FALSE
       ), 
       list(
         data_set = 'facils_nogeom',
         metric='unmet30_mgd', #replace with unmet demand req 
         column_name='runid_11_unmet30_mgd', 
         run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
-        sort_decreasing = FALSE, 
-        show_map= FALSE,
-        ramp = 'default'
+        sort_col = 'runid_11_unmet30_mgd',
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = FALSE,
+        exlude_NAs = FALSE
       )
   ),
   permit_dev = list(
@@ -209,33 +246,45 @@ run_sets <- list(
         metric='l30_Qout', 
         column_name='percentDiff_l30_Qout_runid_0_runid_601', 
         run_label = '2040 WSP L30 %', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_l30_Qout', 'runid_601_l30_Qout', 'percentDiff_l30_Qout_runid_0_runid_601'),
         sort_col = 'percentDiff_l30_Qout_runid_401_runid_601',
-        sort_decreasing = FALSE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = FALSE,
+        exlude_NAs = FALSE
       ),
       list(
         data_set = 'rseg_no_geom',
         metric='7q10', 
         column_name='percentDiff_7q10_runid_0_runid_601', 
         run_label = '2040 WSP 7q10 %', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_7q10', 'runid_601_7q10', 'percentDiff_7q10_runid_0_runid_601'),
         sort_col = 'percentDiff_7q10_runid_401_runid_601',
-        sort_decreasing = FALSE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = FALSE,
+        exlude_NAs = FALSE
       ),
       list(
         data_set = 'rseg_no_geom',
         metric='Smin_L30_mg', 
         column_name='runid_601_Smin_L30_mg', 
         run_label = 'Minimum Storage', 
+        show_map = TRUE,
+        ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_401_Smin_L30_mg', 'runid_601_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_0_runid_601'),
         sort_col = 'runid_601_Smin_L30_mg',
-        sort_decreasing = TRUE, 
-        show_map = TRUE,
-        ramp = 'default'
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = NULL,
+        sort_decreasing = TRUE,
+        exlude_NAs = FALSE
       )
     )
   )

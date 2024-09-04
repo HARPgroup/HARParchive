@@ -89,6 +89,7 @@ if (!exists("HARParchive_location")){
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_filter_table.R")) #load table filtering function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
@@ -538,20 +539,6 @@ if (nrow(novals > 0)) {
 } else { tableMessage <- FALSE }
 
 # Rename columns & create flextable
-#names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-# 
-# for (i in 1:length(featrs_file_table_column)) {
-#   for (x in 1:nrow(metric_names)){
-#     if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
-#     {
-#       names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
-#     }
-#     else
-#     {
-#       next
-#     }
-#   }
-# }
 for (i in 1:length(featrs_file_table_column)) {
   for (x in 1:nrow(readable)){
     if (featrs_file_table_column[i]==readable$computer[x])
@@ -741,13 +728,14 @@ for (k in 1:length(run_config$riverseg_metrics)){
     tablemessage2 <- any(nacols) 
     
     #sorting 
-    sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-    rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-    
+    # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+    # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+    rivTables[[k]] <- rseg_display
     
     #fill blanks with NA
     rivTables[[k]][rivTables[[k]] == ''] <- NA
     
+    rivTables[[k]] <- fn_filter_table(table_data=rivTables[[k]], run_set_k=run_config$riverseg_metrics[[k]])
     
     #defining titles 
     rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
@@ -782,30 +770,30 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
     assign(paste0('table', k), ft2, envir = globalenv())
   
-  display_metric <- run_config$riverseg_metrics[[k]]$metric
-  display_title <- run_config$riverseg_metrics[[k]]$run_label
-
-  #metrics, to be suppressed later?
-  rseg_display$Metric <- display_metric 
-
-  #assemble our table, with the columns in order defined by table_cols
-  rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
-  
-  #na messages 
-   nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
-   tablemessage2 <- any(nacols)
-  
-  #sorting 
-  sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-  rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-  
-  
-  #fill blanks with NA
-  rivTables[[k]][rivTables[[k]] == ''] <- NA
-  
-  
-  #defining titles 
-  rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
+  # display_metric <- run_config$riverseg_metrics[[k]]$metric
+  # display_title <- run_config$riverseg_metrics[[k]]$run_label
+  # 
+  # #metrics, to be suppressed later?
+  # rseg_display$Metric <- display_metric 
+  # 
+  # #assemble our table, with the columns in order defined by table_cols
+  # rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
+  # 
+  # #na messages 
+  #  nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
+  #  tablemessage2 <- any(nacols)
+  # 
+  # #sorting 
+  # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+  # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+  # 
+  # 
+  # #fill blanks with NA
+  # rivTables[[k]][rivTables[[k]] == ''] <- NA
+  # 
+  # 
+  # #defining titles 
+  # rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   }
 }
 ```
