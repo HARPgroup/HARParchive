@@ -4,12 +4,12 @@ params:
   origin: ["Roanoke_1"] #name of a region (Roanoke_1), locality (use FIPS, i.e, 51015 = Augusta county), or a rivseg ID (JL7_7070_0001)
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  runid_list: ["runid_11","runid_13"]
+  runid_list: ["runid_11", "runid_13", "runid_17", "runid_0"]
   model_version: ["vahydro-1.0"]
-  metric_mod: ["wd_mgd"] #wd_mgd, ps_mgd
-  metric_feat: ["NA"] #wsp2020_2040_mgy, NA
+  metric_mod: ["wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"] #wd_mgd, ps_mgd
+  metric_feat: ["wsp2020_2040_mgy"] #wsp2020_2040_mgy, NA
   foundation_path: FALSE
-  rivseg_metric: ["l30_Qout","l90_Qout"] #l30_Qout, l90_Qout, 7q10
+  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"] #l30_Qout, l90_Qout, 7q10
   crs_default: 4326
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
@@ -232,11 +232,10 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                    by.x="featureid", by.y="facility_hydroid", all=T
                    )
   #join facility geometry to merged data frame:
-  featrs <- sqldf(paste("SELECT a.*, b.",fn_geoCol(f_geo), #robust for varying geometry column names
-                        " FROM f_merge as a
-                      LEFT OUTER JOIN f_geo as b
-                      ON (a.featureid = b.Facility_hydroid)", 
-                    sep="")
+  featrs <- sqldf("SELECT a.*, b.dh_geofield
+                  FROM f_merge as a
+                  LEFT OUTER JOIN f_geo as b
+                    ON (a.featureid = b.Facility_hydroid)"
                   )
   # Also: we should *not* be doing this -- or if we do, we need to alert the user in the exceptions
   # or in an appendix
@@ -262,16 +261,19 @@ rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sortin
 
 ``` {r Combining_featrs_rsegs}
 
-featrs_riverseg <- st_drop_geometry( sf::st_join(featrs[,c('facility','featureid')], rsegs[ ,c("riverseg","hydroid", "area_dd",fn_geoCol(rsegs)) ]))
+featrs_riverseg <- st_drop_geometry(sf::st_join(featrs[,c('facility','featureid')], 
+                                    rsegs[,c("riverseg","hydroid", "area_dd","geom")]))
 # find the smallest riversg containing each feature
 featrs_riverseg_sm <- sqldf(
   "select a.featureid, a.riverseg 
    from featrs_riverseg as a 
-   left outer join (
+   left join (
      select featureid, min(area_dd) as min_area_dd 
-     from featrs_riverseg group by riverseg
-  ) as b
-  where a.area_dd = b.min_area_dd and a.featureid = b.featureid"
+     from featrs_riverseg
+     group by featureid 
+   ) as b
+     ON a.featureid = b.featureid
+   where a.area_dd = b.min_area_dd"
 )
 # Add riverseg from featrs_riverseg_sm for featrs that have NA riverseg
 featrs <- fn_sqldf_sf(
