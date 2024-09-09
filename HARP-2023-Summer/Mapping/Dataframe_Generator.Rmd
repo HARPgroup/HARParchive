@@ -4,12 +4,12 @@ params:
   origin: ["Roanoke_1"] #name of a region (Roanoke_1), locality (use FIPS, i.e, 51015 = Augusta county), or a rivseg ID (JL7_7070_0001)
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  runid_list: ["runid_11","runid_13"]
+  runid_list: ["runid_11", "runid_13", "runid_17", "runid_0"]
   model_version: ["vahydro-1.0"]
-  metric_mod: ["wd_mgd"] #wd_mgd, ps_mgd
-  metric_feat: ["NA"] #wsp2020_2040_mgy, NA
+  metric_mod: ["wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"] #wd_mgd, ps_mgd
+  metric_feat: ["wsp2020_2040_mgy"] #wsp2020_2040_mgy, NA
   foundation_path: FALSE
-  rivseg_metric: ["l30_Qout","l90_Qout"] #l30_Qout, l90_Qout, 7q10
+  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"] #l30_Qout, l90_Qout, 7q10
   crs_default: 4326
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
@@ -49,7 +49,7 @@ if (is.logical(foundation_path)) {
 ```
 
 
-```{r}
+```{r Loading_data}
 #----Check if Files Already Exist----
 #rivseg file
 rseg_filepath <- paste0(export_path,origin,"_rsegs_sf.csv")
@@ -89,33 +89,34 @@ if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   }
 }
 
-if (featr_type=="facility") { #specified model metrics will be pulled @ the facility-level for every specified runid using om_vahydro_metric_grid()
+facdf <- data.frame()
+for (k in metric_mod) {
+  #create df of model run specifications for om_vahydro_metric_grid()
+  df <- data.frame(runid=runid_list, model_version, metric=k) 
+  #add column to df containing 'runlabel' which will become the metric column
+  #names in featrs$model
+  df$runlabel <- paste0(runid_list, "_", k)
   
-  facdf <- data.frame()
-  for (k in metric_mod) {
-    #create df of model run specifications for om_vahydro_metric_grid()
-    df <- data.frame(runid=runid_list, model_version, metric=k) 
-    #add column to df containing 'runlabel' which will become the metric column
-    #names in featrs$model
-    df$runlabel <- paste0(runid_list, "_", k)
-    
-    if (is.logical(facdf)) {
-      facdf <- df
-    } else {
-      facdf <- rbind(facdf,df)
-    }
+  if (is.logical(facdf)) {
+    facdf <- df
+  } else {
+    facdf <- rbind(facdf,df)
   }
-  #pull facilities w/ metric of interest from vahydro:
-  f_model <- om_vahydro_metric_grid(
-    metric=FALSE, runids=facdf, featureid='all', 
-    entity_type='dh_feature', bundle='facility',
-    ftype='all', model_version=model_version,
-    base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
-    ds=ds
-  )
-  #pull facility-level geometry to join with model data:
-  f_geo <- fread(paste0(foundation_path , "/facilities_all_geom.csv"))
-} 
+}
+
+#pull facility-level geometry to join with model data:
+f_geo <- fread(paste0(foundation_path , "/facilities_all_geom.csv"))
+
+
+#pull facilities w/ metric of interest from vahydro:
+f_model <- om_vahydro_metric_grid(
+  metric=FALSE, runids=facdf, featureid='all', 
+  entity_type='dh_feature', bundle='facility',
+  ftype='all', model_version=model_version,
+  base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
+  ds=ds
+)
+
 #---Watershed/Riverseg Data---
 rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
   #pulls csv with All vahydro watershed features
@@ -133,6 +134,10 @@ if(base_layer_data==TRUE){
   
   cities <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/USA_Major_Cities_GIS.csv')
 }
+
+```
+
+``` {r base_layers}
 
 #----Filter/Process Data----
 #---Counties---
@@ -162,20 +167,21 @@ rm(regions_split)
 
 if(base_layer_data==TRUE){
 #---Cities---
-  statemt <- paste("SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,",
-                   "CASE WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND", quantile(cities$POPULATION, 0.5),
-                   "THEN 'smallTown' 
-                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.5),"AND",quantile(cities$POPULATION, 0.8),
-                   "THEN 'town'
-                  WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.8),"AND",quantile(cities$POPULATION, 1.0),
-                   "THEN 'city'
-                  ELSE CLASS", 
-                   "END as CLASS",
-                   "FROM cities
-                  WHERE NAME 
-                  NOT IN (select counties.name from counties)",
-                   "AND (cities.ST == 'VA') ", 
-                   "ORDER BY POPULATION DESC", sep=" ") 
+  statemt <- paste("
+  SELECT cities.X, cities.Y, cities.NAME, cities.POPULATION,
+  CASE 
+    WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.1),"AND",quantile(cities$POPULATION, 0.5)," THEN 'smallTown' 
+    WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.5),"AND",quantile(cities$POPULATION, 0.8)," THEN 'town'
+    WHEN POPULATION BETWEEN",quantile(cities$POPULATION, 0.8),"AND",quantile(cities$POPULATION, 1.0)," THEN 'city'
+    ELSE CLASS
+  END as CLASS
+  
+  FROM cities
+  
+  WHERE NAME NOT IN (select counties.name from counties)
+        AND (cities.ST == 'VA') 
+  ORDER BY POPULATION DESC", sep="") 
+    
   cities <- fn_sqldf_sf(statemt)
 #---Roads---
   roads <- subset(roads, MTFCC=="S1100" & (RTTYP=="I"|RTTYP=="U"|RTTYP=="S") #primary roads & interstate, US Hwy, or State Rte only
@@ -184,12 +190,30 @@ if(base_layer_data==TRUE){
   names(roads) <- gsub("RTTYP", "CLASS", names(roads)) #re-name class column -> needed for fn_labelprep() in the RMD
 }
 
+```
+
+``` {r Creating_featrs_rsegs}
+
 #---Facilities/Rsegs---
 if(featr_type == "source"){
-  featrs <- foundatn_mp[foundatn_mp$Latitude!="" & foundatn_mp$Longitude!="" 
-                          & !is.na(foundatn_mp$Latitude) & !is.na(foundatn_mp$Longitude) 
-                      ,] #omits facilities with blank or NA geometry
-  featrs <- sf::st_as_sf(featrs, coords=c("Longitude","Latitude"), crs=crs_default) #convert to sf
+  featrs <- foundatn_mp[foundatn_mp$latitude!="" & foundatn_mp$longitude!="" 
+                        & !is.na(foundatn_mp$latitude) & !is.na(foundatn_mp$longitude) 
+                        ,] #omits facilities with blank or NA geometry
+  featrs <- as.data.frame(featrs)
+  
+  ## Merge deletes the by.y column used in merge(), so this creates a new one
+  featrs$joinid <- featrs$facility_hydroid
+  
+  f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
+  
+  
+  featrs <- merge(x=f_model, #merge/full join foundational & modeled facil data
+                  y=featrs[names(featrs)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
+                  by.x="featureid", by.y="joinid", all.y=T
+  )
+  
+  featrs <- sf::st_as_sf(featrs, coords=c("longitude","latitude"), crs=crs_default) #convert to sf
+  
 }
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("select foundatn_mp.*,
@@ -208,11 +232,10 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                    by.x="featureid", by.y="facility_hydroid", all=T
                    )
   #join facility geometry to merged data frame:
-  featrs <- sqldf(paste("SELECT a.*, b.",fn_geoCol(f_geo), #robust for varying geometry column names
-                        " FROM f_merge as a
-                      LEFT OUTER JOIN f_geo as b
-                      ON (a.featureid = b.Facility_hydroid)", 
-                    sep="")
+  featrs <- sqldf("SELECT a.*, b.dh_geofield
+                  FROM f_merge as a
+                  LEFT OUTER JOIN f_geo as b
+                    ON (a.featureid = b.Facility_hydroid)"
                   )
   # Also: we should *not* be doing this -- or if we do, we need to alert the user in the exceptions
   # or in an appendix
@@ -233,22 +256,32 @@ rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sortin
 # - Above relies on up to date riverseg properties in model
 # - could add clause to use MP~riverseg if model riverseg does not occur in current river seg list - that would indicate that model riverseg is bunk
 # create intersection feature and riversegs
-featrs_riverseg <- st_drop_geometry( sf::st_join(featrs[,c('facility','featureid')], rsegs[ ,c("riverseg","hydroid", "area_dd",fn_geoCol(rsegs)) ]))
+
+```
+
+``` {r Combining_featrs_rsegs}
+
+featrs_riverseg <- st_drop_geometry(sf::st_join(featrs[,c('facility','featureid')], 
+                                    rsegs[,c("riverseg","hydroid", "area_dd","geom")]))
 # find the smallest riversg containing each feature
 featrs_riverseg_sm <- sqldf(
-  "select a.featureid, a.riverseg from featrs_riverseg as a 
-   left outer join (
+  "select a.featureid, a.riverseg 
+   from featrs_riverseg as a 
+   left join (
      select featureid, min(area_dd) as min_area_dd 
-     from featrs_riverseg group by riverseg
-  ) as b
-  where a.area_dd = b.min_area_dd and a.featureid = b.featureid"
+     from featrs_riverseg
+     group by featureid 
+   ) as b
+     ON a.featureid = b.featureid
+   where a.area_dd = b.min_area_dd"
 )
 # Add riverseg from featrs_riverseg_sm for featrs that have NA riverseg
 featrs <- fn_sqldf_sf(
   "select a.*, b.riverseg as riverseg_contains 
    from featrs as a 
   left outer join featrs_riverseg_sm as b 
-  on (a.featureid = b.featureid)
+    on (a.featureid = b.featureid)
+    and a.riverseg IS NULL
  ", 
  geomback = 'featrs'
 )
@@ -274,7 +307,7 @@ if (origin_type=="basin") { #finding upstream riversegs for basin maps
   rsegs <- unique(rsegs) #don't duplicate riversegs for overlapping basins
   rm(basin)
 } else if (origin_type=="locality") { #for locality level
-  rsegs <- st_filter(rsegs, counties[counties$hydrocode==origin, ]) #filter basins by locality (if REST is working)
+  rsegs <- st_filter(rsegs, counties[counties$hydrocode==origin, ],.predicates = st_intersects) #filter basins by locality (if REST is working)
 } else if (origin_type=="region") { #for region level
   rsegs <- st_filter(rsegs, regions[regions$region==origin,]) #filter basins by the region given in params
   # Consider:
@@ -317,41 +350,61 @@ model_data_river <- om_vahydro_metric_grid(
 )
 #Match the riverseg column in rsegs to the equivalent column in model_data_river. Match provides a vector of the indices in model_data_river for the riverseg in rsegs. Then, grab all model_data_river at these rows and cbind to rsegs
 joinData <- model_data_river[match(rsegs$riverseg,model_data_river$riverseg),]
-rsegs <- cbind(rsegs[,c("hydroid","name","ftype","bundle")],joinData)
+
+## For those that dont match, riverseg must be added from rsegs (NA in joinData)
+rsegs <- cbind(rsegs[,c("hydroid","name","ftype","bundle","riverseg")],joinData[,-grep("riverseg",names(joinData))])
+
 
 #----Calculate Rseg Metric % Diff ----
 rsegs_data <- st_drop_geometry(rsegs) # final list of riversegs with all data
 for (j in 2:length(runid_list)) {
   for (k in 1:length(rivseg_metric)) {
     ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
-    column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+    #### Need to carve out an exception for change in flow (which is runid_0 compared to runid_13)
     column2 = paste0(runid_list[j],"_",rivseg_metric[k])
-    new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
-    message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
-    for (n in 1:nrow(rsegs_data)) {
-      if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
-        rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
-      } else {
-        rsegs_data[n,new_col] <- NA
-      }
+    
+    if (rivseg_metric[k] == "Qout" & "runid_0" %in% runid_list) {
+      column1 = paste0("runid_0_Qout")
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_runid_0_", runid_list[j])
+            message(paste("Adding %diff for", rivseg_metric[k], "runid_0", runid_list[j]))
+    } else {
+      column1 = paste0(runid_list[1],"_",rivseg_metric[k])
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
+      message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
     }
+    
+    rsegs_data[,column2] <- as.numeric(rsegs_data[,column2])
+    rsegs_data[,column1] <- as.numeric(rsegs_data[,column1])
+    
+    rsegs_data[,new_col] <- 100.0 * (rsegs_data[,column2] - rsegs_data[,column1]) / rsegs_data[,column1]
+    # for (n in 1:nrow(rsegs_data)) {
+    #   browser()
+    #   if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
+    #     rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
+    #   } else {
+    #     rsegs_data[n,new_col] <- NA
+    #   }
+    # }
     rsegs[[new_col]] <- rsegs_data[[new_col]]
   }
 }
 
+```
+
+``` {r Saving_files}
 #----Write Files----
-st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+st_write(rsegs, paste0(export_path,origin,"_rsegs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
 if(featr_type=="facility"){
-  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_featrs_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
 }
 if(featr_type=="source"){
   featrs <- featrs[names(featrs) %in% grep("^([0-9]+).$", names(featrs), value=TRUE, invert=TRUE)] #get rid of all those year columns
-  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(featrs, paste0(export_path,origin,"_mp_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
 }
 if(base_layer_data==TRUE){
-  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT")
-  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT")
-  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
+  st_write(counties, paste0(export_path,"counties_sf.csv"), layer_options="GEOMETRY=AS_WKT", append = F)
+  st_write(regions, paste0(export_path,"regions_sf.csv"), layer_options="GEOMETRY=AS_WKT", append = F)
+  st_write(roads, paste0(export_path,"roads_sf.csv"), layer_options = "GEOMETRY=AS_WKT", append = F)
   write.csv(cities, paste0(export_path,"cities.csv")) 
 }
 

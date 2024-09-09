@@ -12,12 +12,12 @@ output:
 #Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
 #Can edit here or in a render command 
 ## More params used during development and testing for user-control -- will be consolidated  
-params: 
+params:
 
   origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  
+
   featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
   featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
   featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
@@ -28,9 +28,9 @@ params:
   runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
 
   # aesthetic changes
-  crs_default: 4326 #default coordinate system 
+  crs_default: 4326 #default coordinate system
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
-  bbox_type: ["auto"] #either 'auto' or 'vahydro'. vahydro map type only functional for riv.segments 
+  bbox_type: ["auto"] #either 'auto' to force automatic for all, or 'custom'
   show_map: TRUE #either TRUE or FALSE
 ---
 
@@ -78,7 +78,7 @@ show_map <- params$show_map
     
 ```
 
-```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide'}
+```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide', include=FALSE}
 # For planners, updated when changes are merged to master
 # Make sure github location in config file is properly set 
 github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
@@ -89,6 +89,7 @@ if (!exists("HARParchive_location")){
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_tablegen.R")) #load table function
+source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_filter_table.R")) #load table filtering function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_labelprep.R")) #load labeling function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_nhd_labs.R")) #load nhd label function
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R")) #load general mapping aesthetics 
@@ -171,29 +172,36 @@ regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, re
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
-#note: only operational for river segments/basins
-  for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
-    bbox <- ds$get_prop(config=list( #get bbox properties
-                        featureid= RomProperty$new(ds,list( #get extent property pid
-                                      propname="extent",
-                                      entity_type="dh_properties",
-                                      featureid= RomProperty$new(ds,list( #get map property pid
-                                                    varkey="map", 
-                                                    entity_type="dh_feature",
-                                                    featureid= rsegs$hydroid[i]
-                                                    ),TRUE)$pid #map pid
-                                      ),TRUE)$pid, #extent pid
-                        entity_type='dh_properties'))
-    bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
-    bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
-    bbox <- st_bbox(bbox)
-  }
+# if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
+# #note: only operational for river segments/basins
+#   for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
+#     bbox <- ds$get_prop(config=list( #get bbox properties
+#                         featureid= RomProperty$new(ds,list( #get extent property pid
+#                                       propname="extent",
+#                                       entity_type="dh_properties",
+#                                       featureid= RomProperty$new(ds,list( #get map property pid
+#                                                     varkey="map", 
+#                                                     entity_type="dh_feature",
+#                                                     featureid= rsegs$hydroid[i]
+#                                                     ),TRUE)$pid #map pid
+#                                       ),TRUE)$pid, #extent pid
+#                         entity_type='dh_properties'))
+#     bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
+#     bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
+#     bbox <- st_bbox(bbox)
+#   }
+# }
+
+if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom bbox in config
+  #formatting custom border coordinates to bbox object:
+  bbox <- SpatialPoints(custom_bboxes[origin])
+  bbox <- st_bbox(bbox)
 } else { #auto bbox. should always be around the basins intersecting region of interest
   sf_use_s2(FALSE) # switch off Spherical geometry
   bbox <- st_buffer(st_as_sfc(st_bbox(rsegs)), .02) #slightly past basin
   bbox <- st_bbox(bbox)
 }
+
 ```
 
 ```{r Get NHD in Bbox, echo=FALSE, message=FALSE, warning=FALSE}
@@ -384,7 +392,7 @@ if (show_map == TRUE) {
     map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                      maptitle=title_main, mapnum=1, rseg_leg_title=NULL, map_server,
                      base_layer, 
-                     maplabs, nhd, roads, rsegs, map_style_set)
+                     maplabs, nhd, roads, rsegs, map_style_set, rivmap_ramp=NULL)
                     
     #assign map to environment
     assign(paste0('map', i), map, envir = globalenv())
@@ -472,6 +480,7 @@ table <- data.frame(
   Number= facils_table$NUM,
   Facility=facils_table$facility,
   HydroID = facils_table$featureid, 
+  Locality = facils_table$locality, 
   GWFrac = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
@@ -479,8 +488,6 @@ if (featr_type=="source"){
   table$Source = facils_table$MP_Name  
   table$Source_Type = facils_table$Source_Type
 }
-
-table$Locality = facils_table$Locality
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
@@ -495,15 +502,27 @@ for(i in 1:nrow(table)){
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils_table$Permit_Limit_MGY #add permitted capacity to table 
+table$`Permitted Capacity` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
   if (featrs_file_table_column[i] %in% colnames(facils_table)) {
   #adding requested columns to table
     table[,featrs_file_table_column[i]] <- round(as.numeric(facils_table[,featrs_file_table_column[i]]), digits = 2)
+    
+    ## For facils where GW_frac = 1, there is no modelling data. NAs are rewritten as something more meaningful
+    #### Check if its  a modelling column
+    if (grepl('runid_',featrs_file_table_column[i])) {
+      ## Rewrite column when GWFrac = 1
+      table[table$GWFrac == 1 & !is.na(table$GWFrac),featrs_file_table_column[i]] <- "No model"
+      
+    }
+    
   }
 }
+## When a facility is only GW, it will not have a riverseg, so this is added
+table$`River Segment ID`[table$GWFrac == 1 & !is.na(table$GWFrac)] <- "No model"
+table$`River Segment Name`[table$GWFrac == 1 & !is.na(table$GWFrac)] <- "No model"
 
 table <- table[,colSums(is.na(table))<nrow(table)] #remove columns with all NAs, added to df for mapping as placeholders 
 
@@ -520,20 +539,6 @@ if (nrow(novals > 0)) {
 } else { tableMessage <- FALSE }
 
 # Rename columns & create flextable
-#names(table)[names(table) == 'Source_Type'] <- 'Source Type'
-# 
-# for (i in 1:length(featrs_file_table_column)) {
-#   for (x in 1:nrow(metric_names)){
-#     if (featrs_file_table_column[i]==metric_names$read_metric_name[x])
-#     {
-#       names(table)[names(table)==featrs_file_table_column[i]] <- metric_names$new_metric_name[x]
-#     }
-#     else
-#     {
-#       next
-#     }
-#   }
-# }
 for (i in 1:length(featrs_file_table_column)) {
   for (x in 1:nrow(readable)){
     if (featrs_file_table_column[i]==readable$computer[x])
@@ -552,7 +557,8 @@ names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting fo
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
                    origin_type = origin_type, metric = rivseg_metric[i], 
-                   origin = origin, tabletitle = title_main, num = "1.1" ) #execute flextable function
+                   origin = origin, tabletitle = title_main, num = "1.1",
+                   highlight_col = FALSE, highlight_limit = NULL) #execute flextable function
 ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
 ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
 
@@ -578,7 +584,6 @@ ft1 #display flextable
 
 ## 2020/2040 Demand Scenarios Through Drought Metrics: L90 -- 7Q10:
 
-### Map:
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
@@ -592,6 +597,7 @@ ft1 #display flextable
       display_metric <- run_config$riverseg_metrics[[i]]$metric
       display_column <- run_config$riverseg_metrics[[i]]$column_name
       display_title <- run_config$riverseg_metrics[[i]]$run_label
+      ramp <- run_config$riverseg_metrics[[i]]$ramp
     
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
@@ -622,7 +628,7 @@ ft1 #display flextable
     ##Work-around to problem above: change column name
     rseg_geom <- rsegs$geometry #save geometry before dropping
     rsegs <- st_drop_geometry(rsegs)
-    bins = as.data.frame(rivseg_pct_vect) #rivseg_pct_vect set in config
+    bins = as.data.frame(rivmap_ramps[[ramp]][,"rivseg_pct_vect"]) #rivseg_pct_vect set in config
     bins$classid <- index(bins)
     names(bins) <- c("val", "bin")
     #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
@@ -657,7 +663,8 @@ ft1 #display flextable
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
                        map_server, base_layer, maplabs, nhd, roads, 
-                       rsegs=rsegs_sf, map_style_set)
+                       rsegs=rsegs_sf, map_style_set,
+                       rivmap_ramp=rivmap_ramps[[ramp]])
     map_objects[[i]] <- map_rivseg
     #assign map to environment
     assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
@@ -711,6 +718,9 @@ for (k in 1:length(run_config$riverseg_metrics)){
     message_nonexisting_cols <- any(!table_cols %in% cols_present) # Megan: done!
     rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
 
+    ## 08-13-24 Added Code: Rounding all numeric columns to 1 decimal point
+    ## Only uses numeric columns as found by sapply (which returns a vector)
+    rseg_display[,sapply(rseg_display, is.numeric)] <- round(rseg_display[,sapply(rseg_display, is.numeric)],1)
     
     #na messages 
     
@@ -718,13 +728,14 @@ for (k in 1:length(run_config$riverseg_metrics)){
     tablemessage2 <- any(nacols) 
     
     #sorting 
-    sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-    rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-    
+    # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+    # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+    rivTables[[k]] <- rseg_display
     
     #fill blanks with NA
     rivTables[[k]][rivTables[[k]] == ''] <- NA
     
+    rivTables[[k]] <- fn_filter_table(table_data=rivTables[[k]], run_set_k=run_config$riverseg_metrics[[k]])
     
     #defining titles 
     rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
@@ -736,7 +747,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
                        columns = cols_present, alignment = "left", 
                        metric = display_metric, origin_type = origin_type,  
                        origin = origin , tabletitle = display_title,
-                       num=rivtablenum, highlight_col = display_column, highlight_limit = -10) #flextable function 
+                       num=rivtablenum, highlight_col = display_column, 
+                       highlight_limit = rivmap_ramps[[ramp]][1,"highlight_limit"]) #flextable function 
     
     new_cols <- colnames(rivTables[[k]])
     for (i in 1:length(colnames(rivTables[[k]]))) {
@@ -758,35 +770,34 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
     assign(paste0('table', k), ft2, envir = globalenv())
   
-  display_metric <- run_config$riverseg_metrics[[k]]$metric
-  display_title <- run_config$riverseg_metrics[[k]]$run_label
-
-  #metrics, to be suppressed later?
-  rseg_display$Metric <- display_metric 
-
-  #assemble our table, with the columns in order defined by table_cols
-  rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
-  
-  #na messages 
-   nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
-   tablemessage2 <- any(nacols)
-  
-  #sorting 
-  sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-  rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-  
-  
-  #fill blanks with NA
-  rivTables[[k]][rivTables[[k]] == ''] <- NA
-  
-  
-  #defining titles 
-  rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
+  # display_metric <- run_config$riverseg_metrics[[k]]$metric
+  # display_title <- run_config$riverseg_metrics[[k]]$run_label
+  # 
+  # #metrics, to be suppressed later?
+  # rseg_display$Metric <- display_metric 
+  # 
+  # #assemble our table, with the columns in order defined by table_cols
+  # rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
+  # 
+  # #na messages 
+  #  nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
+  #  tablemessage2 <- any(nacols)
+  # 
+  # #sorting 
+  # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
+  # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
+  # 
+  # 
+  # #fill blanks with NA
+  # rivTables[[k]][rivTables[[k]] == ''] <- NA
+  # 
+  # 
+  # #defining titles 
+  # rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   }
 }
 ```
 
-### Table:
 
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
@@ -820,6 +831,8 @@ for (k in 1:length(rivseg_metric)){
 ### Display Map and Table: 
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
+  ## Including a header for the section
+  cat('\n### ',run_config$riverseg_metrics[[k]]$run_label,' \n')
   #map
   show_map = run_config$riverseg_metrics[[k]]$show_map
   if (show_map == TRUE) {

@@ -265,6 +265,22 @@ format:
     -   **NHD**: Whichever flowlines were kept for the extent, scaled by streamOrde ; Waterbodies
     -   **Polygons**: Counties, Reverse fill of basin, Riverseg borders
 
+-   **Overrides for Custom Bbox**: Allows user to input custom bounding boxes to override the auto-calculated bounding box for certain map origins.
+
+```         
+format: 
+custom_bboxes <- list(
+  '[origin name]'= cbind(
+          c(xmin=[min longitude], xmax=[max longitude]),
+          c(ymin=[min latitude], ymax=[max latitude])
+          ),
+  '[origin name 2]'= cbind(
+          c(xmin=[min longitude], xmax=[max longitude]),
+          c(ymin=[min latitude], ymax=[max latitude])
+          )
+)
+```
+
 ### Riversegmaps_config
 
 to edit later(might end up merging into mapstyle)

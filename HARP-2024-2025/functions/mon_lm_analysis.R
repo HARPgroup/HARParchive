@@ -20,8 +20,8 @@ source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024
 
 #checks for proper number of arguments
 args <- commandArgs(trailingOnly = T)
-if (length(args) != 6){
-  message("Missing or extra inputs. Usage: Rscript analysis.R data_csv y_variable x_var month_var json_write_path csv_write_path ")
+if (length(args) != 7){
+  message("Missing or extra inputs. Usage: Rscript analysis.R data_csv y_variable x_var month_var json_write_path csv_write_path png_location")
   q()
 }
 print("Assigning Arguments to Variables")
@@ -31,6 +31,7 @@ x_var <- args[3]
 mo_var <- args[4]
 json_write_path <- args[5]
 stats_write_path <-args[6]
+png_location <- args [7]
 
 print("Reading in data")
 sample_data <- read.csv(data_location)
@@ -42,6 +43,12 @@ data_from_json <- plotBin$new(data_meth_json, data_is_json=TRUE)
 # compare the plots from the original object and the serialized/unserialized object
 plot(data_lm$atts$lms[[1]],1)
 plot(data_from_json$atts$lms[[1]],1)
+# This outputs our residuals
+for (i in 1:12){
+  png(paste0(png_location, i,".png"))
+  plot(data_from_json$atts$lms[[i]],1)
+  dev.off()
+}
 
 print(paste0("Write json in new file path: ",json_write_path))
 write(json_data_lm, json_write_path)
