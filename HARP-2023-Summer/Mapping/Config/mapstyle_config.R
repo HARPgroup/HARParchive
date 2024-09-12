@@ -228,7 +228,7 @@ run_sets <- list(
         metric='unmet30_mgd', #replace with unmet demand req 
         column_name='runid_11_unmet30_mgd', 
         run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
-        show_map = TRUE,
+        show_map = FALSE,
         ramp = 'default',
         tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_col = 'runid_11_unmet30_mgd',

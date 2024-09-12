@@ -268,7 +268,7 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
     scale_linewidth <- ggplot2::scale_linewidth(range= range(c(textsize[6],4.5)),
                           breaks= c(2.5,textsize[6]),
                           labels= c("County","Basin"),
-                          name= "polyg_borders" )
+                          name= "Borders" )
   }
   borders_layer <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
                   map_layer[[1]], map_layer[[2]], scale_color, scale_linetype, scale_linewidth)

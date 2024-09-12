@@ -83,6 +83,9 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+## Removing abadnoned facilities
+foundatn_mp <- foundatn_mp[foundatn_mp$facility_status != 'abandoned',]
+
 if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
     foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp_2040_mgy
@@ -92,7 +95,7 @@ if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
 facdf <- data.frame()
 for (k in metric_mod) {
   #create df of model run specifications for om_vahydro_metric_grid()
-  df <- data.frame(runid=runid_list, model_version, metric=k) 
+  df <- data.frame(runid=runid_list, model_version, metric=k)
   #add column to df containing 'runlabel' which will become the metric column
   #names in featrs$model
   df$runlabel <- paste0(runid_list, "_", k)
