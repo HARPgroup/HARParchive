@@ -298,6 +298,7 @@ For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day lo
 if (origin_type == "basin") {
   title_main <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
 } else if (origin_type == "locality") {
+  origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
   title_main <- paste0(counties[["name"]][counties[["dh_fips"]]==origin]," Locality")
 } else if (origin_type == "region") {
   origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
@@ -565,6 +566,126 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 ```
 
 ###Narrative note: Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
+
+```{r GW_Maps, echo = FALSE, message=FALSE, warning=FALSE, out.width = '100%', out.height='100%', results='asis', eval = show_map}
+
+## Reading in the shapefiles from the onedrive
+#### Also transforms them innto lat/lon
+## Potomac
+potomac <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Potomac/Potomac_Critical_Cells_in_2040.shp'))
+potomac <- st_transform(potomac,4326)
+potomac <- st_set_crs(potomac,4326)
+
+## Aquia
+aquia <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Aquia/AQAQ_Critical_Cells_in_2040.shp'))
+aquia <- st_transform(aquia,4326)
+aquia <- st_set_crs(aquia,4326)
+
+## Piney Point
+pineypoint <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/PineyPoint/PPAQ_Critical_Cells_in_2040.shp'))
+pineypoint <- st_transform(pineypoint,4326)
+pineypoint <- st_set_crs(pineypoint,4326)
+
+## Yorktown-Eastover
+yorktown <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Yorktown-Eastover/YEAQ_Critical_Cells_in_2040.shp'))
+yorktown <- st_transform(yorktown,4326)
+yorktown <- st_set_crs(yorktown,4326)
+
+## Need to determine if the area intersects the aquifer to create the maps
+#### Or at least the critical cell part
+if (origin_type == 'region') {
+  ## Gets the shape to use as a boundary
+  origin_shape <- regions[regions$region== origin,]
+} else if (origin_type == 'locality') {
+  origin_shape <- regions[regions$region== counties$Region[counties$hydrocode == origin],]
+}
+
+## Checking for intersection
+potomac_int <- st_intersection(origin_shape,st_as_sfc(st_bbox(potomac)))
+aquia_int <- st_intersection(origin_shape,st_as_sfc(st_bbox(aquia)))
+pineypoint_int <- st_intersection(origin_shape,st_as_sfc(st_bbox(potomac)))
+
+## First checks all of them, to determine if there is any intersection. If so, add section title
+if (any(nrow(potomac_int) > 0, nrow(aquia_int) > 0, nrow(pineypoint_int) > 0) & show_map == TRUE) {
+  
+  cat('\n### Groundwater Critical Cell Maps \n')
+  
+}
+
+## Then check the individual ones to add in maps
+### Potomac
+if (nrow(potomac_int) > 0 & show_map == TRUE) {  
+  ## If there is no intersection, then the length of the output is 0, so cant check the value
+  #### So it only gets here if there IS intersection
+  
+  aquifer <- 'Potomac'
+  
+  ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
+  potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+                              maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                              aquifer_shp = potomac)
+  
+  ## Saves the file
+  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+         plot = potomac_map,width=25,height=20)
+  
+  ## Includes the saved file
+  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  
+}
+### Aquia
+if (nrow(aquia_int) > 0 & show_map == TRUE) {  
+  ## If there is no intersection, then the length of the output is 0, so cant check the value
+  #### So it only gets here if there IS intersection
+  
+  aquifer <- 'Aquia'
+  
+  aquia_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+                              maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                              aquifer_shp = aquia)
+  
+  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+         plot = aquia_map,width=25,height=20)
+  
+  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  
+}
+### Piney Point 
+if (nrow(potomac_int) > 0 & show_map == TRUE) {  
+  ## If there is no intersection, then the length of the output is 0, so cant check the value
+  #### So it only gets here if there IS intersection
+  
+  aquifer <- 'Piney Point'
+  
+  pineypoint_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+                              maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                              aquifer_shp = pineypoint)
+  
+  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+         plot = pineypoint_map,width=25,height=20)
+  
+  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  
+}
+### Yorktown Eastover
+# if (length(potomac_int) > 0 & show_map == TRUE) {  
+#   ## If there is no intersection, then the length of the output is 0, so cant check the value
+#   #### So it only gets here if there IS intersection
+#   
+#   aquifer <- 'Potomac'
+#   
+#   potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+#                               maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+#                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+#                               aquifer_shp = potomac)
+#   
+# }
+
+
+```
 
 ### Table:
 
