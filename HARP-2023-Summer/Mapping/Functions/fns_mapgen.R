@@ -492,11 +492,11 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 #                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list),
 #                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style_set)
 
+## Function for making the critical cell groundwater maps for Coastal Plain origins
 fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type, 
                       maptitle, maplabs, nhd, 
-                      roads, map_style_set, rivmap_ramp, aquifer_shp, origin_shape){ #applies results of the above functions to plot the map
+                      roads, map_style_set, rivmap_ramp, aquifer_shp, origin_shape){ 
   #getting various bbox formats:
-   # browser()
   bbox_coords <- data.frame(lng = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]), row.names = NULL) 
   bbox_sf <- sf::st_as_sf(bbox_coords, coords = c('lng','lat'), crs = 4326) 
   bbox_sfc <- sf::st_as_sfc(sf::st_bbox(bbox))
@@ -542,20 +542,4 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
                            layer_description = "north arrow", map = map)
 
   return(map)
-} 
-
-#--!!for testing only!!--
-# textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
-# mapnum <- 2
-# bbox_as_sf <- bbox_sf
-#---
-# #example usage:
-# map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1,
-#                   rseg_leg_title=NULL, map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)
-# map_rivseg4 <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type,
-#                          maptitle = paste0(run_config$riverseg_metrics[[4]]$run_label, ", ",
-#                                            paste0(run_config$riverseg_metrics[[4]]$metric)),
-#                          mapnum=2,
-#                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list),
-#                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style_set)
-
+}
