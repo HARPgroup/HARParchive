@@ -494,7 +494,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 
 fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type, 
                       maptitle, maplabs, nhd, 
-                      roads, map_style_set, rivmap_ramp, aquifer_shp){ #applies results of the above functions to plot the map
+                      roads, map_style_set, rivmap_ramp, aquifer_shp, origin_shape){ #applies results of the above functions to plot the map
   #getting various bbox formats:
    # browser()
   bbox_coords <- data.frame(lng = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]), row.names = NULL) 
@@ -527,6 +527,13 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   map <- map + geom_sf(data = aquifer_shp, fill = 'red')
   map <- fn_catchMapErrors(map_layer = fn_mp_bubbles(mp_layer, metric_unit, featr_type, map_style_set),
                            layer_description = "fn_mp_bubbles(): feature metric bubbles", map = map)
+  
+  nonorigin <- sf::st_difference(bbox_sfc, origin_shape) #method of erasing
+  sf::st_crs(nonorigin) <- crs_default
+  shadow <- ggplot2::geom_sf(data = nonorigin, inherit.aes=FALSE, color=NA, fill = map_style_set$color$sf["shadow",], lwd=1 )
+
+  map <-  map + shadow
+  
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_north_arrow(which_north="true", location="tr",
