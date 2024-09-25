@@ -492,11 +492,11 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
 #                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list),
 #                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style_set)
 
+## Function for making the critical cell groundwater maps for Coastal Plain origins
 fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type, 
                       maptitle, maplabs, nhd, 
-                      roads, map_style_set, rivmap_ramp, aquifer_shp){ #applies results of the above functions to plot the map
+                      roads, map_style_set, rivmap_ramp, aquifer_shp, origin_shape){ 
   #getting various bbox formats:
-   # browser()
   bbox_coords <- data.frame(lng = c(bbox[1], bbox[3]), lat = c(bbox[2], bbox[4]), row.names = NULL) 
   bbox_sf <- sf::st_as_sf(bbox_coords, coords = c('lng','lat'), crs = 4326) 
   bbox_sfc <- sf::st_as_sfc(sf::st_bbox(bbox))
@@ -527,6 +527,13 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   map <- map + geom_sf(data = aquifer_shp, fill = 'red')
   map <- fn_catchMapErrors(map_layer = fn_mp_bubbles(mp_layer, metric_unit, featr_type, map_style_set),
                            layer_description = "fn_mp_bubbles(): feature metric bubbles", map = map)
+  
+  nonorigin <- sf::st_difference(bbox_sfc, origin_shape) #method of erasing
+  sf::st_crs(nonorigin) <- crs_default
+  shadow <- ggplot2::geom_sf(data = nonorigin, inherit.aes=FALSE, color=NA, fill = map_style_set$color$sf["shadow",], lwd=1 )
+
+  map <-  map + shadow
+  
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_north_arrow(which_north="true", location="tr",
@@ -535,20 +542,4 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
                            layer_description = "north arrow", map = map)
 
   return(map)
-} 
-
-#--!!for testing only!!--
-# textcol <- styles[[map_style]]$color$text$color #from mapping aesthetics function
-# mapnum <- 2
-# bbox_as_sf <- bbox_sf
-#---
-# #example usage:
-# map <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, maptitle, mapnum=1,
-#                   rseg_leg_title=NULL, map_server, map_layer, maplabs, nhd, roads, rsegs, map_style, styles)
-# map_rivseg4 <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type,
-#                          maptitle = paste0(run_config$riverseg_metrics[[4]]$run_label, ", ",
-#                                            paste0(run_config$riverseg_metrics[[4]]$metric)),
-#                          mapnum=2,
-#                          rseg_leg_title=legend_titling(run_config$riverseg_metrics[[4]]$metric, runid_list),
-#                          map_server, map_layer, maplabs, nhd, roads, rsegs, map_style_set)
-
+}

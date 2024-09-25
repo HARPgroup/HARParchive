@@ -492,7 +492,7 @@ if (featr_type=="source"){
 #write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
-for(i in 1:nrow(table)){ 
+for(i in 1:nrow(table)){
   loc_rivseg <- (rsegs[grep(facils_table$riverseg[i], rsegs$riverseg),]) #find rivseg in segs and compare to facils_table to add name
   if (nrow(loc_rivseg) != 0 & facils_table$riverseg[i] != "" ) {
     table$`River Segment Name`[i] <- loc_rivseg$name
@@ -614,7 +614,7 @@ if (any(nrow(potomac_int) > 0, nrow(aquia_int) > 0, nrow(pineypoint_int) > 0) & 
 
 ## Then check the individual ones to add in maps
 ### Potomac
-if (nrow(potomac_int) > 0 & show_map == TRUE) {  
+if (nrow(potomac_int) > 0 & show_map == TRUE) {
   ## If there is no intersection, then the length of the output is 0, so cant check the value
   #### So it only gets here if there IS intersection
   
@@ -622,9 +622,9 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
   
   ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
   potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = potomac)
+                              aquifer_shp = potomac, origin_shape)
   
   ## Saves the file
   ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
@@ -635,16 +635,16 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
   
 }
 ### Aquia
-if (nrow(aquia_int) > 0 & show_map == TRUE) {  
+if (nrow(aquia_int) > 0 & show_map == TRUE) {
   ## If there is no intersection, then the length of the output is 0, so cant check the value
   #### So it only gets here if there IS intersection
   
   aquifer <- 'Aquia'
   
   aquia_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = aquia)
+                              aquifer_shp = aquia, origin_shape)
   
   ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
          plot = aquia_map,width=25,height=20)
@@ -653,16 +653,16 @@ if (nrow(aquia_int) > 0 & show_map == TRUE) {
   
 }
 ### Piney Point 
-if (nrow(potomac_int) > 0 & show_map == TRUE) {  
+if (nrow(potomac_int) > 0 & show_map == TRUE) {
   ## If there is no intersection, then the length of the output is 0, so cant check the value
   #### So it only gets here if there IS intersection
   
   aquifer <- 'Piney Point'
   
   pineypoint_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = pineypoint)
+                              aquifer_shp = pineypoint, origin_shape)
   
   ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
          plot = pineypoint_map,width=25,height=20)
