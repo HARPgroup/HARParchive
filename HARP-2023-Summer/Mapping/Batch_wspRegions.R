@@ -100,7 +100,7 @@ for (x in 1:length(region_set)) {
        #RENDER WSP REGIONAL SUMMARY DOC
        rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
                          output_file =  paste0(export_path, origin_name, "_wsp"),
-                         output_format = "word_document",
+                         # output_format = "word_document",
                          params = list(
                            origin = paste0(origin_name), 
                            origin_type = "region", 
@@ -163,7 +163,7 @@ for (x in locality_set) {
     tryCatch({
       rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"),
                         output_file = paste0(export_path, origin_name, "_wsp"),
-                        output_format = "word_document",
+                        # output_format = "word_document",
                         params = list(
                           origin = paste0(origin_name),
                           origin_type = "locality",
