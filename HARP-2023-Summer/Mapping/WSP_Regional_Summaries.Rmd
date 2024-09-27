@@ -5,7 +5,8 @@ date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
 #overridden by output_format in render command 
 output: 
-  word_document:
+   officedown::rdocx_document: 
+    # reference_docx: 51049_wsp.docx
     toc: true
     number_sections: true
 
@@ -46,6 +47,8 @@ library(nhdplusTools)
 library(png)
 library(flextable)
 library(pandoc)
+library(officedown)
+library(officer)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -76,6 +79,12 @@ map_style <- params$map_style
 bbox_type <- params$bbox_type
 show_map <- params$show_map
     
+```
+
+```{r TOC, echo = FALSE}
+## Need a seperate chunk for the table of contents, created with the block_toc() command
+block_toc()
+
 ```
 
 ```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide', include=FALSE}
@@ -446,7 +455,7 @@ if (show_map == TRUE) {
 
 ```
 
-```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE,eval = show_map}
+```{r View_Map_1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE,eval = show_map}
 knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
 # if (mapMessage) {
 #   message("The metric requested does not exist for this map.")
@@ -503,7 +512,7 @@ for(i in 1:nrow(table)){
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
+table$`Total Permitted Capacity (MGY)` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
@@ -684,7 +693,8 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
 #   
 # }
 
-
+## This line tells it to start formatting (in this case landscape)
+block_section(prop_section(type = "continuous"))
 ```
 
 ### Table:
@@ -693,6 +703,8 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
 # if (tableMessage == TRUE) {
 #   message("Missing column indicates the metric requested does not exist for this table")
 # }
+
+
 if (tableMessage) {
  messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 1",
@@ -701,6 +713,15 @@ if (tableMessage) {
 }
 
 ft1 #display flextable
+
+## This line tells it to stop formatting, but also defines what is being formatted? In this case, the page orientation. 
+#### Officer seems confusing, but this works
+block_section(
+  prop_section(
+    page_size = page_size(orient = "landscape"),
+    type = "continuous"
+  )
+)
 ```
 
 ## 2020/2040 Demand Scenarios Through Drought Metrics: L90 -- 7Q10:
@@ -708,6 +729,7 @@ ft1 #display flextable
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
+
   map_objects = list()
   rivmapfilename <- character() #empty character var, not a list, to store map names
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
@@ -803,6 +825,7 @@ ft1 #display flextable
 ```
 
 ```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE, eval=FALSE}
+
 if (show_map == TRUE) {
   knitr::include_graphics(rivmapfilename)
 }
