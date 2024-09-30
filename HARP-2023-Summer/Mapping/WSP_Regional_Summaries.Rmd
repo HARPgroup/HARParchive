@@ -487,8 +487,8 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 #facils_table$within$hydroid <- as.numeric(gsub(",", "", facils_table$within$hydroid, fixed = TRUE))
 #create initial table
 table <- data.frame(
-  Number= facils_table$NUM,
-  Facility=facils_table$facility,
+  Map_Number = facils_table$NUM,
+  Facility =facils_table$facility,
   HydroID = facils_table$featureid, 
   Locality = facils_table$locality, 
   GWFrac = facils_table$gw_frac)
@@ -562,7 +562,6 @@ for (i in 1:length(featrs_file_table_column)) {
   }
 }
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
-
 
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
