@@ -487,8 +487,8 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 #facils_table$within$hydroid <- as.numeric(gsub(",", "", facils_table$within$hydroid, fixed = TRUE))
 #create initial table
 table <- data.frame(
-  Number= facils_table$NUM,
-  Facility=facils_table$facility,
+  Map_Number = facils_table$NUM,
+  Facility =facils_table$facility,
   HydroID = facils_table$featureid, 
   Locality = facils_table$locality, 
   GWFrac = facils_table$gw_frac)
@@ -562,7 +562,6 @@ for (i in 1:length(featrs_file_table_column)) {
   }
 }
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
-
 
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
@@ -911,7 +910,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
       label = new_cols
       )
     ft2 <- set_header_df(ft2, mapping = ref_table, key = "key")
-
+    ft2 <- add_header_lines(ft2, values= display_title) #add subtite
+    
     assign(paste0('table', k), ft2, envir = globalenv())
   
   # display_metric <- run_config$riverseg_metrics[[k]]$metric
@@ -972,7 +972,7 @@ for (k in 1:length(rivseg_metric)){
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
 
-### Display Map and Table: 
+
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
   ## Including a header for the section
