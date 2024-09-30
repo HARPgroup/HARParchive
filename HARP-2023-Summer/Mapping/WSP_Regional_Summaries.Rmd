@@ -911,7 +911,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
       label = new_cols
       )
     ft2 <- set_header_df(ft2, mapping = ref_table, key = "key")
-
+    ft2 <- add_header_lines(ft2, values= display_title) #add subtite
+    
     assign(paste0('table', k), ft2, envir = globalenv())
   
   # display_metric <- run_config$riverseg_metrics[[k]]$metric
@@ -972,7 +973,7 @@ for (k in 1:length(rivseg_metric)){
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
 
-### Display Map and Table: 
+
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
   ## Including a header for the section
