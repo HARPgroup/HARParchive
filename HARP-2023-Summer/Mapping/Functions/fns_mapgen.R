@@ -44,7 +44,6 @@ fn_catchMapErrors <- function(map_layer, layer_description="blank", map=FALSE){ 
 fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs){ 
   #combines all text labels into 1 df and associates them w/ aesthetics from mapstyle_config.R
   #filters data to control the amount of map detail based on extent of the map
-  
   for(i in 1:length(labelset)){ #Combine all text labels into one df:
     if(i==1){ labelset$all <- labelset[[i]] }
     if(i!=1){ labelset$all <- rbind(labelset$all, labelset[[i]]) }
@@ -91,6 +90,9 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   roads_plot <- sf::st_crop(roads_plot, bbox_sf)
   nhd_plot <- sf::st_transform(nhd_plot, crs_default) #use instead of st_crs (st_crs doesn't transform--only changes metadata)
   nhd_plot <- sf::st_crop(nhd_plot, bbox_sf)
+  
+  ## Removing NAs, they cause errors and cannot be plotted
+  labels_plot <- labels_plot[!is.na(labels_plot$lat),]
   labelPlot <- st_as_sf(labels_plot,coords = c("lng","lat"),remove = FALSE)
   labelPlot <- st_set_crs(labelPlot,crs_default)
   #labelPlot <- sf::st_transform(labelPlot, crs_default)
@@ -106,7 +108,7 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   roadlabs_in_origin <- sf::st_is_within_distance(roadlabs_only, sf::st_union(rsegs), 
                             dist=units::set_units(1.5, "mi"), sparse=FALSE) #determines which road labels are within 1.5mi of the highlighted map area (the origin)
   for(i in 1:nrow(roadlabs_only)){
-    if(roadlabs_in_origin[i]==FALSE){ #aka road label coordinate is outside of the origin
+    if(roadlabs_in_origin[i]==FALSE && nrow(roadlabs_only) > 0){ #aka road label coordinate is outside of the origin
       if(!exists("roadlabs_to_keep")){
         roadlabs_to_keep <- roadlabs_only[i,]
       }else{

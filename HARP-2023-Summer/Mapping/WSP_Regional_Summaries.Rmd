@@ -568,7 +568,7 @@ ft1 <- fn_tablegen(featr_type = "facility", table = table,
                    origin_type = origin_type, metric = rivseg_metric[i], 
                    origin = origin, tabletitle = title_main, num = "1.1",
                    highlight_col = FALSE, highlight_limit = NULL) #execute flextable function
-ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
+# ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
 ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
 
 ```
