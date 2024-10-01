@@ -43,7 +43,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
         floor = NULL, #table only displays values above this (not equal to)
         ceiling = NULL, #table only displays values below this (not equal to)
-        n_entries = 25, #max num. of table entries
+        n_entries = 999, #max num. of table entries
         sort = 'increasing', #Options: 'increasing', 'decreasing', or NULL --> orders table entries by increasing or decreasing values of the specified sort_col
         exlude_NAs = FALSE
       ),
@@ -58,7 +58,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -73,7 +73,7 @@ run_sets <- list(
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -88,7 +88,7 @@ run_sets <- list(
         sort_col = 'percentDiff_Qout_runid_0_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -103,7 +103,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -118,7 +118,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -134,7 +134,7 @@ run_sets <- list(
         sort_col = 'percentDiff_7q10_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -149,7 +149,7 @@ run_sets <- list(
         sort_col = 'runid_13_Smin_L30_mg',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ), 
@@ -164,7 +164,7 @@ run_sets <- list(
         sort_col = 'runid_11_unmet30_mgd',
         floor = 0.001, 
         ceiling = NULL,
-        n_entries = 25,
+        n_entries = 999,
         sort = 'decreasing',
         exlude_NAs = TRUE
       )
