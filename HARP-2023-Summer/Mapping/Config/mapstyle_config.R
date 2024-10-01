@@ -323,7 +323,8 @@ readable <- data.frame(rbind(
   c('runid_11_unmet30_mgd', '2020 Highest 30 Day Potential Unmet Demand (MGD)'),
   c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)'),
   c('runid_17_unmet30_mgd', '2040 Dry Climate Change 30 day Potential Unmet Demand (MGD)'),
-  c('gw_frac', 'GW Fraction')
+  c('gw_frac', 'GW Fraction'),
+  c('Facility_hydroid', 'VAHydro ID')
   
 ))
 colnames(readable) <- c('computer', 'human')
