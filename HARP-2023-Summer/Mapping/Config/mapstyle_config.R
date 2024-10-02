@@ -162,11 +162,11 @@ run_sets <- list(
         ramp = 'default',
         tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_col = 'runid_11_unmet30_mgd',
-        floor = 0.001, 
+        floor = NULL, #floor = 0.001, 
         ceiling = NULL,
         n_entries = 999,
         sort = 'decreasing',
-        exlude_NAs = TRUE
+        exlude_NAs = TRUE #exlude_NAs = FALSE
       )
   ),
   permit_dev = list(
