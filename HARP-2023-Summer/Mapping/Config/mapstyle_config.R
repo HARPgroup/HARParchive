@@ -43,7 +43,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
         floor = NULL, #table only displays values above this (not equal to)
         ceiling = NULL, #table only displays values below this (not equal to)
-        n_entries = 25, #max num. of table entries
+        n_entries = 999, #max num. of table entries
         sort = 'increasing', #Options: 'increasing', 'decreasing', or NULL --> orders table entries by increasing or decreasing values of the specified sort_col
         exlude_NAs = FALSE
       ),
@@ -58,7 +58,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -73,7 +73,7 @@ run_sets <- list(
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -88,7 +88,7 @@ run_sets <- list(
         sort_col = 'percentDiff_Qout_runid_0_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -103,7 +103,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -118,7 +118,7 @@ run_sets <- list(
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -134,7 +134,7 @@ run_sets <- list(
         sort_col = 'percentDiff_7q10_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ),
@@ -149,7 +149,7 @@ run_sets <- list(
         sort_col = 'runid_13_Smin_L30_mg',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = 25,
+        n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
       ), 
@@ -162,11 +162,11 @@ run_sets <- list(
         ramp = 'default',
         tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_col = 'runid_11_unmet30_mgd',
-        floor = NULL, 
-        ceiling = NULL, 
-        n_entries = 25,
+        floor = NULL, #floor = 0.001, 
+        ceiling = NULL,
+        n_entries = 999,
         sort = 'decreasing',
-        exlude_NAs = FALSE
+        exlude_NAs = TRUE #exlude_NAs = FALSE
       )
   ),
   permit_dev = list(
@@ -323,7 +323,8 @@ readable <- data.frame(rbind(
   c('runid_11_unmet30_mgd', '2020 Highest 30 Day Potential Unmet Demand (MGD)'),
   c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)'),
   c('runid_17_unmet30_mgd', '2040 Dry Climate Change 30 day Potential Unmet Demand (MGD)'),
-  c('gw_frac', 'GW Fraction')
+  c('gw_frac', 'GW Fraction'),
+  c('Facility_hydroid', 'VAHydro ID')
   
 ))
 colnames(readable) <- c('computer', 'human')

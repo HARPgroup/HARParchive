@@ -1,6 +1,6 @@
 ---
-title: "WSP Regional Summaries"
-author: "HARP Analysts"
+title: "WSP Local and Regional Summaries"
+author: "DEQ"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
 #overridden by output_format in render command 
@@ -489,9 +489,9 @@ names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propnam
 table <- data.frame(
   Map_Number = facils_table$NUM,
   Facility =facils_table$facility,
-  HydroID = facils_table$featureid, 
+  VAHydro_ID = facils_table$featureid, 
   Locality = facils_table$locality, 
-  GWFrac = facils_table$gw_frac)
+  GW_Fraction = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
 if (featr_type=="source"){
@@ -573,7 +573,7 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 
 ```
 
-###Narrative note: Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
+###Note: NARRATIVE NOTE EXPLAIN FIRST MAPS HERE
 
 ```{r GW_Maps, echo = FALSE, message=FALSE, warning=FALSE, out.width = '100%', out.height='100%', results='asis', eval = show_map}
 
@@ -696,7 +696,15 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
 block_section(prop_section(type = "continuous"))
 ```
 
-### Table:
+### Table 1:
+
+Notes:
+Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario
+If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
+If facility only has groundwater sources, it will not have a surface water modeling value. 
+Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+
+
 
 ```{r View Table 1, echo=FALSE, out.width='100%', message=TRUE}
 # if (tableMessage == TRUE) {
@@ -971,6 +979,7 @@ for (k in 1:length(rivseg_metric)){
 
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
+
 
 
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
