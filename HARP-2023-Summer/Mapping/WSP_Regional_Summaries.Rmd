@@ -692,6 +692,13 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
 #   
 # }
 
+## Adds a pagebreak IF there are GW maps
+if (any(nrow(potomac_int) > 0, nrow(aquia_int) > 0, nrow(pineypoint_int) > 0) & show_map == TRUE) {
+  
+  cat('\\pagebreak')
+  
+}
+
 ## This line tells it to start formatting (in this case landscape)
 block_section(prop_section(type = "continuous"))
 ```
