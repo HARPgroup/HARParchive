@@ -273,9 +273,7 @@ if (show_map == TRUE) {
 }
 ```
 
-# Region
-
-## Framing Text:
+# How to use this document:
 
 This document is a summary of information pulled from the most recent State Water Resources and Supply Plan, and is provided to assist with the requirements of 9VAC25-780. Data and modeling results are displayed for river segments intersecting the Region and/or Local Government boundaries (“region”). Water withdrawn upstream of these boundaries impacts the local governments, and water withdrawn within each boundary impacts downstream users. The first map and corresponding table display facilities within each region. Subsequent maps and tables display modeling results for each river segment. Note that these results are based in existing use, permitted use, and projected growth provided in the prior water supply plans.  
 
@@ -293,9 +291,9 @@ For 9VAC25-780-125 B 3, the lowest 30 day flow and lowest 90 day flow are provid
 
 For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day low flow condition that is expected to occur only one time in a 10-year period. The 7Q10 metric is used to establish point source discharge limits and is used to assess potential risks to assimilative capacity from water supply system changes. 
 
-## State Plan 2020 demand - State Plan 2040 demand:
+# Facilitites within Regions and Local Government:
 
-### Map:
+## Facility Map:
 
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
@@ -696,13 +694,13 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
 block_section(prop_section(type = "continuous"))
 ```
 
-### Table 1:
+## Facility Table (Table 1):
 
 Notes:
-Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario
-If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
-If facility only has groundwater sources, it will not have a surface water modeling value. 
-Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+*Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
+*If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
+*If facility only has groundwater sources, it will not have a surface water modeling value. 
+*Permit exemption status is based on those who identified as exempt during the 2009 RFI.
 
 
 
@@ -731,7 +729,7 @@ block_section(
 )
 ```
 
-## 2020/2040 Demand Scenarios Through Drought Metrics: L90 -- 7Q10:
+# 2040 Modelled Demand Scenarios:
 
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
@@ -950,7 +948,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
 }
 ```
 
-
+The following table shows, for those facilities included at the time of modelling, which may experience unmet demand. Facilities without models are excluded from this list. 
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
 # if (tablemessage2==TRUE) {
@@ -1013,9 +1011,6 @@ if(message_nonexisting_cols){
                       )
     }
 ```
-
-
-# Appendix:
 
 ```{r Generate Errors Summary, echo=FALSE}
 #if there are any mapping errors or other messages to the user, output a separate file containing them
