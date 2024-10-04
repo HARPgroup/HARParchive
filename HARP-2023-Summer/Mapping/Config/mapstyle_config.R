@@ -161,7 +161,7 @@ run_sets <- list(
         show_map = FALSE,
         ramp = 'default',
         tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
-        sort_col = 'runid_11_unmet30_mgd',
+        sort_col = 'runid_13_unmet30_mgd',
         floor = NULL, #floor = 0.001, 
         ceiling = NULL,
         n_entries = 999,
