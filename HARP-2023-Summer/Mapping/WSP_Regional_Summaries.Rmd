@@ -15,18 +15,18 @@ output:
 ## More params used during development and testing for user-control -- will be consolidated  
 params:
 
-  origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["SoutheastVirginia"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
 
-  featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
+  featrs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_featrs_sf.csv"
   featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
-  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
+  featrs_file_table_column: ["Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/Exports/MiddleJames_2_rsegs_sf.csv"
+  rsegs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
-  runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
+  runid_list: ["runid_11", "runid_13", "runid_17", "runid_0"] #list of runids used for facil and rseg data
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system

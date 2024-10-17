@@ -441,7 +441,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
   #prep labels & filter plotted data:
   fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
   #begin mapping:
-  map <- fn_catchMapErrors(map_layer = fn_basemap(map_server, base_layer, bbox_coords)) 
+  map <- ggplot() 
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
                                                   title=ggplot2::element_text(size=40), #setting text sizes
                                                   legend.title = ggplot2::element_text(size=25), 
@@ -505,7 +505,7 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   #prep labels & filter plotted data:
   fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
   #begin mapping:
-  map <- ggplot() 
+  map <- ggplot() + coord_sf(xlim=bbox_coords$lng,ylim=bbox_coords$lat)
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
                                                       title=ggplot2::element_text(size=40), #setting text sizes
                                                       legend.title = ggplot2::element_text(size=25), 
