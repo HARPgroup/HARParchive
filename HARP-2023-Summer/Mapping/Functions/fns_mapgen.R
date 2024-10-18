@@ -355,9 +355,6 @@ fn_nhdLines <- function(nhd_plot, map_style_set, nhd, bbox_sf){
   
   ## Cropping the nhd water bodies to the bbox
   nhd_water_shp <- rbind(nhd$off_network_wtbd, nhd$network_wtbd)
-  nhd_water_shp <- st_set_crs(nhd_water_shp , 4326)
-  nhd_water_shp <- st_crop(nhd_water_shp, st_bbox(bbox_sf))
-  
   wtbd_layer <- ggplot2::geom_sf(data = nhd_water_shp,  
                        inherit.aes=FALSE, fill= map_style_set[["color"]][["sf"]]["nhd",], size=1)
   nhd_map <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
