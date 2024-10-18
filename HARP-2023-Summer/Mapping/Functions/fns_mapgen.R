@@ -346,13 +346,16 @@ fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title, rivmap_
   return(rseg_fill)
 }
 
-fn_nhdLines <- function(nhd_plot, map_style_set, nhd){
+fn_nhdLines <- function(nhd_plot, map_style_set, nhd, bbox_sf){
   nhd_layer <- ggplot2::geom_sf(data = nhd_plot, 
                  inherit.aes=FALSE, color= map_style_set[["color"]][["sf"]]["nhd",], 
                  mapping=aes(lwd=nhd_plot$StreamOrde), #line thickness based on stream order
                  show.legend=FALSE)
   scale_linewidth <- ggplot2::scale_linewidth(range= c(0.4,2), guide = FALSE) 
-  wtbd_layer <- ggplot2::geom_sf(data = rbind(nhd$off_network_wtbd, nhd$network_wtbd),  
+  
+  ## Cropping the nhd water bodies to the bbox
+  nhd_water_shp <- rbind(nhd$off_network_wtbd, nhd$network_wtbd)
+  wtbd_layer <- ggplot2::geom_sf(data = nhd_water_shp,  
                        inherit.aes=FALSE, fill= map_style_set[["color"]][["sf"]]["nhd",], size=1)
   nhd_map <- list(ggnewscale::new_scale("color"), ggnewscale::new_scale("linetype"), ggnewscale::new_scale("linewidth"), 
               nhd_layer[[1]], nhd_layer[[2]], scale_linewidth, wtbd_layer[[1]], wtbd_layer[[2]])
@@ -441,7 +444,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
   #prep labels & filter plotted data:
   fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
   #begin mapping:
-  map <- fn_catchMapErrors(map_layer = fn_basemap(map_server, base_layer, bbox_coords)) 
+  map <- ggplot() 
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
                                                   title=ggplot2::element_text(size=40), #setting text sizes
                                                   legend.title = ggplot2::element_text(size=25), 
@@ -457,7 +460,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                              layer_description = "fn_polygonFill(): tidal rseg fill and, if applicable, rivseg metric fill", map = map)
   }
   
-  map <- fn_catchMapErrors(map_layer = fn_nhdLines(nhd_plot, map_style_set, nhd),
+  map <- fn_catchMapErrors(map_layer = fn_nhdLines(nhd_plot, map_style_set, nhd, bbox_sf),
                            layer_description = "fn_nhdLines(): nhd flowlines and waterbodies", map = map)
   map <- fn_catchMapErrors(map_layer = fn_roadsAndCityPoints(roads_plot, map_style_set, labels_plot, mp_layer),
                            layer_description = "fn_roadsAndCityPoints(): road lines, road labels, mp placeholder text, and/or city dots", map = map)
@@ -469,7 +472,7 @@ fn_mapgen <- function(bbox, crs_default, metric_unit, mp_layer, featr_type,
                            layer_description = "fn_mp_bubbles(): feature metric bubbles", map = map)
   map <- fn_catchMapErrors(map_layer = fn_shadow(rsegs, bbox_sfc, map_style_set),
                            layer_description = "fn_shadow(): reverse fill shadow", map = map)
-  #map <- map + coord_sf(xlim = bbox[c(1,3)],ylim = bbox[c(2,4)], expand =F)
+  map <- map + coord_sf(xlim = bbox[c(1,3)],ylim = bbox[c(2,4)], expand =F)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_north_arrow(which_north="true", location="tr",
@@ -505,7 +508,7 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   #prep labels & filter plotted data:
   fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
   #begin mapping:
-  map <- ggplot() 
+  map <- ggplot() + coord_sf(xlim=bbox_coords$lng,ylim=bbox_coords$lat)
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
                                                       title=ggplot2::element_text(size=40), #setting text sizes
                                                       legend.title = ggplot2::element_text(size=25), 
@@ -535,6 +538,7 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   shadow <- ggplot2::geom_sf(data = nonorigin, inherit.aes=FALSE, color=NA, fill = map_style_set$color$sf["shadow",], lwd=1 )
 
   map <-  map + shadow
+  map <- map + coord_sf(xlim = bbox[c(1,3)],ylim = bbox[c(2,4)], expand =F)
   
   map <- fn_catchMapErrors(map_layer = ggspatial::annotation_scale(unit_category="imperial"),
                            layer_description = "scalebar", map = map)
