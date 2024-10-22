@@ -616,9 +616,9 @@ if (origin_type == 'region') {
 insidegwma <- st_intersection(origin_shape,GWMA_wkt )
 
 ## First checks all of them, to determine if there is any intersection. If so, add section title
-if (nrow(insidegwma) > 0 & show_map == TRUE) {
+if (nrow(insidegwma) > 0) {
   
-  cat('\n## Groundwater Critical Cell Maps \n')
+  cat('\n## Groundwater Critical Cell Maps')
   
   ### Potomac
   aquifer <- 'Potomac'
@@ -634,7 +634,7 @@ if (nrow(insidegwma) > 0 & show_map == TRUE) {
          plot = potomac_map,width=25,height=20)
   
   ## Includes the saved file
-  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
   
   ### Aquia
   aquifer <- 'Aquia'
@@ -644,10 +644,11 @@ if (nrow(insidegwma) > 0 & show_map == TRUE) {
                             maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
                             aquifer_shp = aquia, origin_shape)
   
-  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+  ggsave(filename = paste0(export_path,origin,'_Aquia.png'),
          plot = aquia_map,width=25,height=20)
   
-  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
   
   ### Piney Point 
   aquifer <- 'Piney Point'
@@ -657,10 +658,12 @@ if (nrow(insidegwma) > 0 & show_map == TRUE) {
                                  maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
                                  aquifer_shp = pineypoint, origin_shape)
   
-  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+  ## Piney Point cant have a space in the filename
+  ggsave(filename = paste0(export_path,origin,'_Piney_Point.png'),
          plot = pineypoint_map,width=25,height=20)
   
-  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_Piney_Point.png)'))
   
 ### Yorktown Eastover
 # if (length(potomac_int) > 0 & show_map == TRUE) {  
@@ -678,15 +681,12 @@ if (nrow(insidegwma) > 0 & show_map == TRUE) {
 
   ## Adds a pagebreak IF there are GW maps
 
-  cat('\\pagebreak')
+  cat("\n\n\\pagebreak\n")
   
   ## End of GW mapping section
 }
 
-## This line tells it to start formatting (in this case landscape)
-block_section(prop_section(type = "continuous"))
 ```
-
 ## Facility Table (Table 1):
 
 Notes:
@@ -701,7 +701,7 @@ Permit exemption status is based on those who identified as exempt during the 20
 # if (tableMessage == TRUE) {
 #   message("Missing column indicates the metric requested does not exist for this table")
 # }
-
+block_section(prop_section(type = "continuous"))
 
 if (tableMessage) {
  messages <- rbind(messages,
