@@ -592,38 +592,35 @@ pineypoint <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/
 pineypoint <- st_transform(pineypoint,4326)
 pineypoint <- st_set_crs(pineypoint,4326)
 
-## Yorktown-Eastover
-yorktown <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Yorktown-Eastover/YEAQ_Critical_Cells_in_2040.shp'))
-yorktown <- st_transform(yorktown,4326)
-yorktown <- st_set_crs(yorktown,4326)
+# ## Yorktown-Eastover
+# yorktown <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Yorktown-Eastover/YEAQ_Critical_Cells_in_2040.shp'))
+# yorktown <- st_transform(yorktown,4326)
+# yorktown <- st_set_crs(yorktown,4326)
+
+## Reading in the GWMA layer
+GWMA_wkt <- read.csv(paste(github_location,'/HARParchive/GIS_layers/GWMA_wkt.csv',sep=''))
+## Only the coastal plain
+GWMA_wkt <- GWMA_wkt[2,]
+GWMA_wkt <- st_as_sf(GWMA_wkt, wkt = "Geometry", crs = st_crs(4326))
 
 ## Need to determine if the area intersects the aquifer to create the maps
 #### Or at least the critical cell part
 if (origin_type == 'region') {
   ## Gets the shape to use as a boundary
-  origin_shape <- regions[regions$region== origin,]
+  origin_shape <- regions[regions$region == origin,]
 } else if (origin_type == 'locality') {
-  origin_shape <- regions[regions$region== counties$Region[counties$hydrocode == origin],]
+  origin_shape <- regions[regions$region == counties$Region[counties$hydrocode == origin],]
 }
 
 ## Checking for intersection
-potomac_int <- st_intersection(origin_shape,st_as_sfc(st_bbox(potomac)))
-aquia_int <- st_intersection(origin_shape,st_as_sfc(st_bbox(aquia)))
-pineypoint_int <- st_intersection(origin_shape,st_as_sfc(st_bbox(potomac)))
+insidegwma <- st_intersection(origin_shape,GWMA_wkt )
 
 ## First checks all of them, to determine if there is any intersection. If so, add section title
-if (any(nrow(potomac_int) > 0, nrow(aquia_int) > 0, nrow(pineypoint_int) > 0) & show_map == TRUE) {
+if (nrow(insidegwma) > 0) {
   
-  cat('\n### Groundwater Critical Cell Maps \n')
+  cat('\n## Groundwater Critical Cell Maps')
   
-}
-
-## Then check the individual ones to add in maps
-### Potomac
-if (nrow(potomac_int) > 0 & show_map == TRUE) {
-  ## If there is no intersection, then the length of the output is 0, so cant check the value
-  #### So it only gets here if there IS intersection
-  
+  ### Potomac
   aquifer <- 'Potomac'
   
   ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
@@ -637,45 +634,37 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
          plot = potomac_map,width=25,height=20)
   
   ## Includes the saved file
-  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
   
-}
-### Aquia
-if (nrow(aquia_int) > 0 & show_map == TRUE) {
-  ## If there is no intersection, then the length of the output is 0, so cant check the value
-  #### So it only gets here if there IS intersection
-  
+  ### Aquia
   aquifer <- 'Aquia'
   
   aquia_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = aquia, origin_shape)
+                            maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+                            maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                            aquifer_shp = aquia, origin_shape)
   
-  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+  ggsave(filename = paste0(export_path,origin,'_Aquia.png'),
          plot = aquia_map,width=25,height=20)
   
-  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
   
-}
-### Piney Point 
-if (nrow(potomac_int) > 0 & show_map == TRUE) {
-  ## If there is no intersection, then the length of the output is 0, so cant check the value
-  #### So it only gets here if there IS intersection
-  
+  ### Piney Point 
   aquifer <- 'Piney Point'
   
   pineypoint_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = pineypoint, origin_shape)
+                                 maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+                                 maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                                 aquifer_shp = pineypoint, origin_shape)
   
-  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+  ## Piney Point cant have a space in the filename
+  ggsave(filename = paste0(export_path,origin,'_Piney_Point.png'),
          plot = pineypoint_map,width=25,height=20)
   
-  knitr::include_graphics(paste0(export_path,origin,'_',aquifer,'.png'))
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_Piney_Point.png)'))
   
-}
 ### Yorktown Eastover
 # if (length(potomac_int) > 0 & show_map == TRUE) {  
 #   ## If there is no intersection, then the length of the output is 0, so cant check the value
@@ -690,17 +679,14 @@ if (nrow(potomac_int) > 0 & show_map == TRUE) {
 #   
 # }
 
-## Adds a pagebreak IF there are GW maps
-if (any(nrow(potomac_int) > 0, nrow(aquia_int) > 0, nrow(pineypoint_int) > 0) & show_map == TRUE) {
+  ## Adds a pagebreak IF there are GW maps
+
+  cat("\n\n\\pagebreak\n")
   
-  cat('\\pagebreak')
-  
+  ## End of GW mapping section
 }
 
-## This line tells it to start formatting (in this case landscape)
-block_section(prop_section(type = "continuous"))
 ```
-
 ## Facility Table (Table 1):
 
 Notes:
@@ -715,7 +701,7 @@ Permit exemption status is based on those who identified as exempt during the 20
 # if (tableMessage == TRUE) {
 #   message("Missing column indicates the metric requested does not exist for this table")
 # }
-
+block_section(prop_section(type = "continuous"))
 
 if (tableMessage) {
  messages <- rbind(messages,
@@ -990,7 +976,7 @@ for (k in 1:length(rivseg_metric)){
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
   ## Including a header for the section
-  cat('\n### ',run_config$riverseg_metrics[[k]]$run_label,' \n')
+  cat('\n## ',run_config$riverseg_metrics[[k]]$run_label,' \n')
   #map
   show_map = run_config$riverseg_metrics[[k]]$show_map
   if (show_map == TRUE) {
