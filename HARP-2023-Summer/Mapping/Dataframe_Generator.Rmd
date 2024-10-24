@@ -265,10 +265,6 @@ rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sortin
 # - could add clause to use MP~riverseg if model riverseg does not occur in current river seg list - that would indicate that model riverseg is bunk
 # create intersection feature and riversegs
 
-```
-
-``` {r Combining_featrs_rsegs}
-
 featrs_riverseg <- st_drop_geometry(sf::st_join(featrs[,c('facility','featureid')], 
                                     rsegs[,c("riverseg","hydroid", "area_dd","geom")]))
 # find the smallest riversg containing each feature
@@ -298,7 +294,10 @@ needs_riverseg <- which(is.na(featrs$riverseg))
 # copy the riverseg_contains value
 featrs[needs_riverseg,]$riverseg <- featrs[needs_riverseg,]$riverseg_contains
 
-# 
+```
+
+``` {r filtering_featrs_rsegs}
+
 #filter by boundary type:
 #---Rsegs---
 rsegs_data <- st_drop_geometry(rsegs)
@@ -332,7 +331,9 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
     featrs <- st_filter(featrs, regions[regions$region==origin,])
   }
 }
+```
 
+``` {r getting_rseg_modelling}
 
 #---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
 rivdf <- data.frame()
@@ -371,10 +372,10 @@ for (j in 2:length(runid_list)) {
     #### Need to carve out an exception for change in flow (which is runid_0 compared to runid_13)
     column2 = paste0(runid_list[j],"_",rivseg_metric[k])
     
-    if (rivseg_metric[k] == "Qout" & "runid_0" %in% runid_list) {
-      column1 = paste0("runid_0_Qout")
-      new_col = paste0("percentDiff_", rivseg_metric[k], "_runid_0_", runid_list[j])
-            message(paste("Adding %diff for", rivseg_metric[k], "runid_0", runid_list[j]))
+    if (rivseg_metric[k] == "Qout" & "runid_1000" %in% runid_list) {
+      column1 = paste0("runid_1000_Qout")
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_runid_1000_", runid_list[j])
+            message(paste("Adding %diff for", rivseg_metric[k], "runid_1000", runid_list[j]))
     } else {
       column1 = paste0(runid_list[1],"_",rivseg_metric[k])
       new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])

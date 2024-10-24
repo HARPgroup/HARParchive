@@ -80,12 +80,12 @@ run_sets <- list(
       list(
         metric='Qout', 
         data_set = 'rseg_no_geom',
-        column_name='percentDiff_Qout_runid_0_runid_13', 
+        column_name='percentDiff_Qout_runid_1000_runid_13', 
         run_label = 'Overall Change in Flow in 2040', 
         show_map = TRUE,
         ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_0_Qout','runid_13_Qout', 'percentDiff_Qout_runid_0_runid_13'),
-        sort_col = 'percentDiff_Qout_runid_0_runid_13',
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_1000_Qout','runid_13_Qout', 'percentDiff_Qout_runid_1000_runid_13'),
+        sort_col = 'percentDiff_Qout_runid_1000_runid_13',
         floor = NULL, 
         ceiling = NULL, 
         n_entries = 999,
@@ -264,7 +264,7 @@ custom_bboxes <- list(
 #----Human-readable metric names: add here any new metric names being used and their readable version----
 readable <- data.frame(rbind(
   #scenarios:
-  c('runid_0', 'Pre-Condition'),
+  c('runid_1000', 'Pre-Condition'),
   c('runid_1', 'Historical Condition'),
   c('runid_3', 'Permit Term Max'),
   c('runid_11', '2020 Demand Scenario'),
@@ -307,10 +307,10 @@ readable <- data.frame(rbind(
   c('runid_11_consumptive_use_frac', '2020 Consumptive Use Fraction'),
   c('runid_13_consumptive_use_frac', '2040 Consumptive Use Fraction'),
   c('percentDiff_Qout_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
-  c('percentDiff_Qout_runid_0_runid_13', 'Percent Change in Flow in 2040'),
+  c('percentDiff_Qout_runid_1000_runid_13', 'Percent Change in Flow in 2040'),
   c('runid_11_Qout', '2020 Average Flow (cfs)'),
   c('runid_13_Qout', '2040 Average Flow (cfs)'),
-  c('runid_0_Qout', 'Base Flow (cfs)'),
+  c('runid_1000_Qout', 'Base Flow (cfs)'),
   c('runid_17_l90_Qout', '2040 Dry Climate Change 90 Day Low Flow (cfs)'),
   c('runid_17_l30_Qout', '2040 Dry Climate Change 30 Day Low Flow (cfs)'),
   c('percentDiff_l90_Qout_runid_11_runid_17', 'Percent Difference in 90 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
