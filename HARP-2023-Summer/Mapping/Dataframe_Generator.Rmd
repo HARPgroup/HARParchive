@@ -372,10 +372,13 @@ for (j in 2:length(runid_list)) {
     ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
     #### Need to carve out an exception for change in flow (which is runid_0 compared to runid_13)
     for (i in 1:length(baseline_runid_list)) {
+      if (runid_list[j] == baseline_runid_list[i]) {
+        next
+      }
       column2 = paste0(runid_list[j],"_",rivseg_metric[k])
-      column1 = paste0(runid_list[i],"_",rivseg_metric[k])
-      new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[i], "_", runid_list[j])
-      message(paste("Adding %diff for", rivseg_metric[k], runid_list[i], runid_list[j]))
+      column1 = paste0(baseline_runid_list[i],"_",rivseg_metric[k])
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_", baseline_runid_list[i], "_", runid_list[j])
+      message(paste("Adding %diff for", rivseg_metric[k], baseline_runid_list[i], runid_list[j]))
       
       rsegs_data[,column2] <- as.numeric(rsegs_data[,column2])
       rsegs_data[,column1] <- as.numeric(rsegs_data[,column1])
