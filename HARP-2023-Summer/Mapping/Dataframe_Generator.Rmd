@@ -99,12 +99,13 @@ foundatn_mp$fac_CEDSid <- as.numeric(foundatn_mp$fac_CEDSid)
 
 
 facdf <- data.frame()
+allrunid_list = unique(runid_list, baseline_runid_list)
 for (k in metric_mod) {
   #create df of model run specifications for om_vahydro_metric_grid()
-  df <- data.frame(runid=runid_list, model_version, metric=k)
+  df <- data.frame(runid=allrunid_list, model_version, metric=k)
   #add column to df containing 'runlabel' which will become the metric column
   #names in featrs$model
-  df$runlabel <- paste0(runid_list, "_", k)
+  df$runlabel <- paste0(allrunid_list, "_", k)
   
   if (is.logical(facdf)) {
     facdf <- df
@@ -340,9 +341,9 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
 rivdf <- data.frame()
 for (k in rivseg_metric) {
   
-  df <- data.frame(runid=runid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
-  for(i in 1:length(runid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
-    df$runlabel[i] <- paste0(runid_list[i], '_', k)
+  df <- data.frame(runid=allrunid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
+  for(i in 1:length(allrunid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
+    df$runlabel[i] <- paste0(allrunid_list[i], '_', k)
   }
   if (is.logical(rivdf)) {
     rivdf <- df
