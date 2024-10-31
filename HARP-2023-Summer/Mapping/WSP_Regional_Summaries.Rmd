@@ -863,7 +863,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
     ft2 <- add_header_lines(ft2, values= display_title) #add subtite
     
     assign(paste0('table', k), ft2, envir = globalenv())
-  
+  }
+}
 ```
 
 The following table shows, for those facilities included at the time of modelling, which may experience unmet demand. Facilities without models are excluded from this list. 
