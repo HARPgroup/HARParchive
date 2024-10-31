@@ -553,19 +553,17 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 ## Reading in the shapefiles from the onedrive
 #### Also transforms them innto lat/lon
 ## Potomac
-potomac <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Potomac/Potomac_Critical_Cells_in_2040.shp'))
-potomac <- st_transform(potomac,4326)
-potomac <- st_set_crs(potomac,4326)
+potomac <- read.csv(paste(github_location,'/HARParchive/HARP-2023-Summer/Mapping/Data/potomac_critical_cells.csv',sep=''))
+potomac <- st_as_sf(potomac, wkt = "WKT", crs = st_crs(4326))
 
 ## Aquia
-aquia <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Aquia/AQAQ_Critical_Cells_in_2040.shp'))
-aquia <- st_transform(aquia,4326)
-aquia <- st_set_crs(aquia,4326)
+aquia <- read.csv(paste(github_location,'/HARParchive/HARP-2023-Summer/Mapping/Data/aquia_critical_cells.csv',sep=''))
+aquia <- st_as_sf(aquia, wkt = "WKT", crs = st_crs(4326))
 
 ## Piney Point
 ## Reading in the Piney Point layer
 pineypoint <- read.csv(paste(github_location,'/HARParchive/HARP-2023-Summer/Mapping/Data/pineypoint_critical_cells.csv',sep=''))
-pineypoint <- st_as_sf(pineypoint, wkt = "geometry", crs = st_crs(4326))
+pineypoint <- st_as_sf(pineypoint, wkt = "WKT", crs = st_crs(4326))
 
 
 # ## Yorktown-Eastover
@@ -578,6 +576,7 @@ GWMA_wkt <- read.csv(paste(github_location,'/HARParchive/GIS_layers/GWMA_wkt.csv
 ## Only the coastal plain
 GWMA_wkt <- GWMA_wkt[2,]
 GWMA_wkt <- st_as_sf(GWMA_wkt, wkt = "Geometry", crs = st_crs(4326))
+# make valid to avoid error in some version of st
 GWMA_wkt <- st_make_valid(GWMA_wkt)
 
 ## Need to determine if the area intersects the aquifer to create the maps
