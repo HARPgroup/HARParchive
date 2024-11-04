@@ -48,7 +48,7 @@ scenario <- om_get_model_scenario(ds, model, scenario_name)
 met_data <- read.table(met_file, header = TRUE, sep=",")
 
 
-summary <- summary_analytics(met_data)
+precip_summary <- summary_analytics(met_data)
 
 numrecs <- nrow(met_data) # what does this do?
 vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'num_records', numrecs, ds)
