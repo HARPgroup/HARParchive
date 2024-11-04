@@ -1,0 +1,5 @@
+Here we have some quotes. "Thats one small step" 
+
+'Thats one average sized step'
+
+(Random characters) ~!$ "Now thats a big step '
