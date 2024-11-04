@@ -584,7 +584,7 @@ insidegwma <- st_intersection(origin_shape,GWMA_wkt )
 ## First checks all of them, to determine if there is any intersection. If so, add section title
 if (nrow(insidegwma) > 0) {
   
-  cat('\n## Groundwater Critical Cell Maps')
+  cat('\n## Groundwater Critical Cell Maps \n')
   
   ### Potomac
   aquifer <- 'Potomac'
@@ -894,8 +894,30 @@ for (k in 1:length(rivseg_metric)){
 
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
+  
   ## Including a header for the section
   cat('\n## ',run_config$riverseg_metrics[[k]]$run_label,' \n')
+  
+  ## Including narrative IF there is a populated text file
+  txtfile <- (paste0(HARParchive_location,"\\HARP-2023-Summer\\Section_Narratives\\",
+                         run_config$riverseg_metrics[[k]]$run_label,".txt"))
+  
+  #### Checks if the text file exists AND if there is text in it (nchar > 0)
+  if (file.exists(txtfile) & file.info(txtfile)$size > 0) {
+    ## Seperating narrative from title
+    cat("\n \n")
+    
+    ## Reads the text file as 1 character vector
+    narrative <- readChar(txtfile, file.info(txtfile)$size)
+    #### Replaces \r (carraige break) with \n (line break)
+    narrative <- gsub('\r','\n',narrative)
+    cat(narrative)
+    
+    ## Adding lines to seperate the table/map
+    cat("\n \n")
+    
+  }
+  
   #map
   show_map = run_config$riverseg_metrics[[k]]$show_map
   if (show_map == TRUE) {
