@@ -181,25 +181,6 @@ regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, re
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-# if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
-# #note: only operational for river segments/basins
-#   for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
-#     bbox <- ds$get_prop(config=list( #get bbox properties
-#                         featureid= RomProperty$new(ds,list( #get extent property pid
-#                                       propname="extent",
-#                                       entity_type="dh_properties",
-#                                       featureid= RomProperty$new(ds,list( #get map property pid
-#                                                     varkey="map", 
-#                                                     entity_type="dh_feature",
-#                                                     featureid= rsegs$hydroid[i]
-#                                                     ),TRUE)$pid #map pid
-#                                       ),TRUE)$pid, #extent pid
-#                         entity_type='dh_properties'))
-#     bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
-#     bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
-#     bbox <- st_bbox(bbox)
-#   }
-# }
 
 if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom bbox in config
   #formatting custom border coordinates to bbox object:
@@ -214,7 +195,6 @@ if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom
 ```
 
 ```{r Get NHD in Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-# source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
 
 # NHD data within the bbox
 if (show_map == TRUE) {
@@ -298,8 +278,6 @@ For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day lo
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
-# facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
-#st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 #create human-readable title based on origin & type
 if (origin_type == "basin") {
@@ -315,9 +293,6 @@ if (origin_type == "basin") {
 
 if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
-    #legend_title <- paste0(featrs_file_map_bubble_column[i])
-    #legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
-    #legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     legend_title <- readable$human[grep(featrs_file_map_bubble_column[i], readable$computer)]
 
     #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
@@ -370,21 +345,7 @@ if (show_map == TRUE) {
     
     rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default)
 
-    # colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
-    # 
-    # ## Create title for the map
-    #   #first create label for metric
-    # if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
-    #   maplabel <- gsub("five_yr_avg", "5 Year Avg (MGY)", colname)
-    # } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
-    #   maplabel <- gsub("wd_mgd", "Withdraw (MGD)", colname)
-    # } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
-    #   maplabel <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', colname)
-    # } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
-    #   maplabel <- gsub("ps_mgd", "Point Source (MGD)", colname)
-    # } else {
-    #   maplabel <- colname
-    # }
+    ## Create title for the map
     ##instead:
     #maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     if(featrs_file_map_bubble_column[i] %in% readable$computer){
@@ -481,8 +442,14 @@ if (show_map == FALSE) {
   facils_table <- st_drop_geometry(facils)
 }
 
-names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
-#facils_table$within$hydroid <- as.numeric(gsub(",", "", facils_table$within$hydroid, fixed = TRUE))
+## Establishing status in the facility name field
+#### Appending a symbol onto name if it is inactive/proposed
+facils_table$facility[facils_table$facility_status == "Out of Service/Temporarily Inactive"] <-
+  paste0(facils_table$facility,"*")
+
+facils_table$facility[facils_table$facility_status == "Proposed"] <-
+  paste0(facils_table$facility,"**")
+
 #create initial table
 table <- data.frame(
   Map_Number = facils_table$NUM,
@@ -496,7 +463,6 @@ if (featr_type=="source"){
   table$Source = facils_table$MP_Name  
   table$Source_Type = facils_table$Source_Type
 }
-#write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
 for(i in 1:nrow(table)){
@@ -695,7 +661,7 @@ If a facility/source is outside groundwater management area, then it is not subj
 If facility only has groundwater sources, it will not have a surface water modeling value. 
 Permit exemption status is based on those who identified as exempt during the 2009 RFI.
 
-
+\pagebreak
 
 ```{r View Table 1, echo=FALSE, out.width='100%', message=TRUE}
 # if (tableMessage == TRUE) {
@@ -742,13 +708,6 @@ block_section(
     
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
-    # if (display_metric=="l30_Qout"){
-    #     rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
-    # } else if (display_metric=="l90_Qout"){
-    #     rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
-    # } else {
-    #     rivmaplabel <- rivmapmetric
-    # }
     if(display_metric %in% readable$computer){
       rivmaplabel <- readable$human[readable$computer==display_metric]
     }else {
@@ -756,7 +715,6 @@ block_section(
     }
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
-    #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
     
   #### Problem with rsegs df happens here 
     # rseg_sql <- paste('SELECT *, ','percentDiff','_',display_metric,' AS pct_diff 
@@ -783,13 +741,6 @@ block_section(
     )
     #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
     
-  ## sqldf error here about raw vectors  
-    # rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
-    #   "select a.*, b.bin 
-    #   from rsegs as a 
-    #   left outer join rivseg_classes as b 
-    #   on a.riverseg = b.riverseg " , "rsegs")
-    # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
     
     rsegs <- sqldf( #joining the bins with the metric data 
       "select a.*, b.bin 
@@ -869,9 +820,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     nacols <- colSums(is.na(rseg_display)) == nrow(rseg_display)
     tablemessage2 <- any(nacols) 
     
-    #sorting 
-    # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-    # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
     rivTables[[k]] <- rseg_display
     
     #fill blanks with NA
@@ -913,30 +861,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     assign(paste0('table', k), ft2, envir = globalenv())
   
-  # display_metric <- run_config$riverseg_metrics[[k]]$metric
-  # display_title <- run_config$riverseg_metrics[[k]]$run_label
-  # 
-  # #metrics, to be suppressed later?
-  # rseg_display$Metric <- display_metric 
-  # 
-  # #assemble our table, with the columns in order defined by table_cols
-  # rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
-  # 
-  # #na messages 
-  #  nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
-  #  tablemessage2 <- any(nacols)
-  # 
-  # #sorting 
-  # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-  # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-  # 
-  # 
-  # #fill blanks with NA
-  # rivTables[[k]][rivTables[[k]] == ''] <- NA
-  # 
-  # 
-  # #defining titles 
-  # rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   }
 }
 ```
@@ -944,11 +868,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
 The following table shows, for those facilities included at the time of modelling, which may experience unmet demand. Facilities without models are excluded from this list. 
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
-# if (tablemessage2==TRUE) {
-#   message("A column in the table is completely NA values, 
-#           likely meaning the metric requested is not modeled for this data
-#           or the segments are all tidal")
-# }
 if(message_nonexisting_cols){
   messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 2",
