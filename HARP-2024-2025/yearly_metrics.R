@@ -43,9 +43,18 @@ storm_events <- sqldf("WITH RainEvents AS (
                       FROM StormDurations
                       GROUP BY yr")
 
+# RainEvents <- sqldf("
+# SELECT obs_date, precip_in, yr,
+#   (SELECT SUM(precip_in <= 0.01)
+#    FROM daily_summary AS rd2
+#    WHERE rd2.obs_date <= rd1.obs_date)
+#    AS StormGroup
+#   FROM daily_summary AS rd1")
+
 # Printing results
 #merge(rainfall_days)
 return(merge(rainfall_days,storm_events))
+return(RainEvents)
 }
 ## It seems like NLDAS has much higher results...
 

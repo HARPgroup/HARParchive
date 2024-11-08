@@ -12,9 +12,10 @@ summary_analytics <- function(df){
 #creating a yearly summary with each year and its total precip
 yearly.summary <- 
   sqldf(
-  "SELECT yr, SUM(precip_in) AS total_precip
+  "SELECT COUNT(*) AS ndays, yr, SUM(precip_in) AS total_precip
   FROM df
-  GROUP BY yr"
+  GROUP BY yr
+  HAVING ndays >= 365"
 )
 
 #summary analytics
@@ -32,11 +33,9 @@ precip_annual_mean_in <-
 #For min values and years, we can exclude the first and last row since the 
 #current year and first years are incomplete data
 precip_annual_min_in <- 
-  min(yearly.summary$total_precip[c(-nrow(yearly.summary),-1)])
+  min(yearly.summary$total_precip)
 precip_annual_min_year <- 
-  yearly.summary$yr[which.min
-                          (yearly.summary$total_precip[c(-nrow
-                                                         (yearly.summary),-1)])]
+  yearly.summary$yr[which.min(yearly.summary$total_precip)]
 
 
 

@@ -2,21 +2,21 @@ source("C:/Users/natef/OneDrive - Virginia Tech/HARP/Github/HARParchive/HARP-202
 library("IHA")
 library("ggplot2")
 library(sqldf)
-prism <- read.csv("http://deq1.bse.vt.edu:81/met/stormVol_prism/precip/usgs_ws_01613900-PRISM-all.csv")
-prism_summary <- summary_analytics(prism)
-
-
-daymet <- read.csv("http://deq1.bse.vt.edu:81/met/daymet/precip/usgs_ws_01613900-daymet-all.csv")
-daymet_summary <- summary_analytics(daymet)
-
-nldas2 <- read.csv("http://deq1.bse.vt.edu:81/met/nldas2/precip/usgs_ws_01613900-nldas2-all.csv")
-nldas2_summary <- summary_analytics(nldas2) #issues with l90 -- zoo unique values
+# prism <- read.csv("http://deq1.bse.vt.edu:81/met/stormVol_prism/precip/usgs_ws_01613900-PRISM-all.csv")
+# prism_summary <- summary_analytics(prism)
+# 
+# 
+# daymet <- read.csv("http://deq1.bse.vt.edu:81/met/daymet/precip/usgs_ws_01613900-daymet-all.csv")
+# daymet_summary <- summary_analytics(daymet)
+# 
+# nldas2 <- read.csv("http://deq1.bse.vt.edu:81/met/nldas2/precip/usgs_ws_01613900-nldas2-all.csv")
+# nldas2_summary <- summary_analytics(nldas2) 
 
 #pull any value like this:
 
-prism_l90_precip_in <- prism_summary$l90_precip_in
-daymet_l90_precip_in <- daymet_summary$l90_precip_in
-nldas2_l90_precip_in <- nldas2_summary$l90_precip_in
+# prism_l90_precip_in <- prism_summary$l90_precip_in
+# daymet_l90_precip_in <- daymet_summary$l90_precip_in
+# nldas2_l90_precip_in <- nldas2_summary$l90_precip_in
 
 #Or even without the summary:
 

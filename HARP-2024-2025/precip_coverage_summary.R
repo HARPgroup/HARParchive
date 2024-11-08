@@ -13,19 +13,18 @@ ds$get_token(rest_pw)
 
 # Accepting command arguments:
 argst <- commandArgs(trailingOnly = T)
-if (length(argst) < 7) {
+if (length(argst) < 6) {
   
-  message("Use: Rscript met_store_info.R $ddate datasource coverage_hydrocode coverage_bundle coverage_ftype model_version met_file")
-  message("Ex: Rscript met_store_info.R $ddate nldas2 N5113 landunit cbp6_landseg met_file")
+  message("Use: Rscript met_store_info.R datasource coverage_hydrocode coverage_bundle coverage_ftype model_version met_file")
+  message("Ex: Rscript met_store_info.R nldas2 N5113 landunit cbp6_landseg met_file")
   q('n')
 }
-ddate <- argst[1]
-scenario_name <- argst[2]
-coverage_hydrocode <- argst[3]
-coverage_bundle <- argst[4]
-coverage_ftype <- argst[5]
-model_version <- argst[6] 
-met_file <- argst[7] 
+scenario_name <- argst[1]
+coverage_hydrocode <- argst[2]
+coverage_bundle <- argst[3]
+coverage_ftype <- argst[4]
+model_version <- argst[5] 
+met_file <- argst[6] 
 # load the feature -- get feature hydroid
 # find the dh_timeseries_weather record for this event
 # attach an image property to the record
@@ -53,8 +52,9 @@ precip_summary <- summary_analytics(met_data)
 numrecs <- nrow(met_data) # what does this do?
 vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'num_records', numrecs, ds)
 
-vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'precip_annual_max_in', summary$precip_annual_max_in, ds)
+vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'precip_annual_max_in', precip_summary$precip_annual_max_in, ds)
 
+vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'precip_annual_min_in', precip_summary$precip_annual_max_in, ds)
 
 
 
