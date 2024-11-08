@@ -57,7 +57,7 @@ locality_set <-
 
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- "Roanoke_2" 
+origin_name <- "SoutheastVirginia" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
@@ -100,7 +100,7 @@ for (x in 1:length(region_set)) {
        #RENDER WSP REGIONAL SUMMARY DOC
        rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
                          output_file =  paste0(export_path, origin_name, "_wsp"),
-                         output_format = "word_document",
+                         # output_format = "word_document",
                          params = list(
                            origin = paste0(origin_name), 
                            origin_type = "region", 
@@ -129,7 +129,7 @@ for (x in 1:length(region_set)) {
   # source('/var/www/R/config.R')
 }
 
-origin_name <- '51021'
+origin_name <- '51049'
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 #### Run all localities ##########################
@@ -147,8 +147,8 @@ for (x in locality_set) {
                           metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"),
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy",
-                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "consumptive_use_frac", "Smin_L30_mg"),
-                          runid_list = c("runid_11", "runid_13", "runid_17"),
+                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"), 
+                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_0"), 
                           crs_default = 4326,
                           limit_featrs_to_origin = FALSE,
                           overwrite_files = TRUE,
@@ -163,7 +163,7 @@ for (x in locality_set) {
     tryCatch({
       rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"),
                         output_file = paste0(export_path, origin_name, "_wsp"),
-                        output_format = "word_document",
+                        # output_format = "word_document",
                         params = list(
                           origin = paste0(origin_name),
                           origin_type = "locality",
@@ -173,11 +173,13 @@ for (x in locality_set) {
                           featrs_file_table_column = c("Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"),
                           rsegs_file = paste0(export_path, "/", origin_name,"_rsegs_sf.csv"),
                           run_set = "wsp_2020_2040",
-                          runid_list = c("runid_11", "runid_13", "runid_17"),
+                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_0"),
                           crs_default = 4326,
                           map_style = "custom",
                           bbox_type = "custom",
                           show_map = TRUE))
+      
+      
       break
     }, error = function(repeatit) {
       print(paste0('WSP gen ',origin_name,'Fail Attempt: ',k))

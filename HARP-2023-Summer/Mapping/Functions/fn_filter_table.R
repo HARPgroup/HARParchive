@@ -17,8 +17,19 @@ fn_filter_table <- function(table_data, run_set_k){
     table_data <- table_data[table_data[[run_set_k$sort_col]] < run_set_k$ceiling |
                                is.na(table_data[[run_set_k$sort_col]]), ]
   }
-  table_data <- table_data[order(as.vector(table_data[[run_set_k$sort_col]]), 
-                                 decreasing = run_set_k$sort_decreasing),] #sorts decreasing if sort_decreasing==TRUE
+  
+  if(!is.null(run_set_k$sort)){ #sorting table entries
+    if(run_set_k$sort == 'increasing'){ #orders from least -> greatest metric value
+      table_data <- table_data[order(as.vector(table_data[[run_set_k$sort_col]]), 
+                                     decreasing=FALSE),]
+    }
+    if(run_set_k$sort == 'decreasing'){ #orders from greatest -> least metric value
+      table_data <- table_data[order(as.vector(table_data[[run_set_k$sort_col]]), 
+                                     decreasing=TRUE),]
+    }
+    
+  }
+  
   if(!is.null(run_set_k$n_entries)){#limit num. rows displayed
     table_data <- head(table_data, n=run_set_k$n_entries)
   }

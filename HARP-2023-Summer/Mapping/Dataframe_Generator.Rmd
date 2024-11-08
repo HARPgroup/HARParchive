@@ -10,6 +10,7 @@ params:
   metric_feat: ["wsp2020_2040_mgy"] #wsp2020_2040_mgy, NA
   foundation_path: FALSE
   rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"] #l30_Qout, l90_Qout, 7q10
+  baseline_runid_list: [ "runid_11", "runid_1000" ]
   crs_default: 4326
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
@@ -83,19 +84,28 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+## Removing abadnoned facilities
+foundatn_mp <- foundatn_mp[!(grepl('Abandoned',foundatn_mp$facility_status)),]
+
 if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
     foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp_2040_mgy
   }
 }
 
+## Formatting CEDSids 
+foundatn_mp$MP_CEDSid  <- as.numeric(foundatn_mp$MP_CEDSid)
+foundatn_mp$fac_CEDSid <- as.numeric(foundatn_mp$fac_CEDSid)
+
+
 facdf <- data.frame()
+allrunid_list = unique(c(runid_list, baseline_runid_list))
 for (k in metric_mod) {
   #create df of model run specifications for om_vahydro_metric_grid()
-  df <- data.frame(runid=runid_list, model_version, metric=k) 
+  df <- data.frame(runid=allrunid_list, model_version, metric=k)
   #add column to df containing 'runlabel' which will become the metric column
   #names in featrs$model
-  df$runlabel <- paste0(runid_list, "_", k)
+  df$runlabel <- paste0(allrunid_list, "_", k)
   
   if (is.logical(facdf)) {
     facdf <- df
@@ -221,7 +231,7 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
                     from foundatn_mp
                     group by Facility_hydroid
                   ") #all source-related data now only applies to 1 source (random) within the facil 
-  ## Need to replace the MP five_yr_avg with the aggregated column
+  ## Need to replace the MP five_yr_avg with the aggregated column 
   f_foundatn$five_yr_avg <- f_foundatn$sum
   
   f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp_2040_mgy
@@ -257,10 +267,6 @@ rsegs$area_dd <- as.numeric(st_area(rsegs$geom)) # set the area for later sortin
 # - could add clause to use MP~riverseg if model riverseg does not occur in current river seg list - that would indicate that model riverseg is bunk
 # create intersection feature and riversegs
 
-```
-
-``` {r Combining_featrs_rsegs}
-
 featrs_riverseg <- st_drop_geometry(sf::st_join(featrs[,c('facility','featureid')], 
                                     rsegs[,c("riverseg","hydroid", "area_dd","geom")]))
 # find the smallest riversg containing each feature
@@ -290,7 +296,10 @@ needs_riverseg <- which(is.na(featrs$riverseg))
 # copy the riverseg_contains value
 featrs[needs_riverseg,]$riverseg <- featrs[needs_riverseg,]$riverseg_contains
 
-# 
+```
+
+``` {r filtering_featrs_rsegs}
+
 #filter by boundary type:
 #---Rsegs---
 rsegs_data <- st_drop_geometry(rsegs)
@@ -324,15 +333,17 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
     featrs <- st_filter(featrs, regions[regions$region==origin,])
   }
 }
+```
 
+``` {r getting_rseg_modelling}
 
 #---Pull Rseg Model Metrics using om_vahydro_metric_grid()---
 rivdf <- data.frame()
 for (k in rivseg_metric) {
   
-  df <- data.frame(runid=runid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
-  for(i in 1:length(runid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
-    df$runlabel[i] <- paste0(runid_list[i], '_', k)
+  df <- data.frame(runid=allrunid_list, model_version, metric=k) #create df of model run specifications for om_vahydro_metric_grid()
+  for(i in 1:length(allrunid_list)){ #add column to df containing 'runlabel' which will become the metric column names in featrs$model
+    df$runlabel[i] <- paste0(allrunid_list[i], '_', k)
   }
   if (is.logical(rivdf)) {
     rivdf <- df
@@ -349,6 +360,7 @@ model_data_river <- om_vahydro_metric_grid(
   ds=ds
 )
 #Match the riverseg column in rsegs to the equivalent column in model_data_river. Match provides a vector of the indices in model_data_river for the riverseg in rsegs. Then, grab all model_data_river at these rows and cbind to rsegs
+
 joinData <- model_data_river[match(rsegs$riverseg,model_data_river$riverseg),]
 
 ## For those that dont match, riverseg must be added from rsegs (NA in joinData)
@@ -361,31 +373,30 @@ for (j in 2:length(runid_list)) {
   for (k in 1:length(rivseg_metric)) {
     ## This calcs pct difference for runid 2 to n with the difference always in relation to first runid supplied
     #### Need to carve out an exception for change in flow (which is runid_0 compared to runid_13)
-    column2 = paste0(runid_list[j],"_",rivseg_metric[k])
-    
-    if (rivseg_metric[k] == "Qout" & "runid_0" %in% runid_list) {
-      column1 = paste0("runid_0_Qout")
-      new_col = paste0("percentDiff_", rivseg_metric[k], "_runid_0_", runid_list[j])
-            message(paste("Adding %diff for", rivseg_metric[k], "runid_0", runid_list[j]))
-    } else {
-      column1 = paste0(runid_list[1],"_",rivseg_metric[k])
-      new_col = paste0("percentDiff_", rivseg_metric[k], "_", runid_list[1], "_", runid_list[j])
-      message(paste("Adding %diff for", rivseg_metric[k], runid_list[1], runid_list[j]))
+    for (i in 1:length(baseline_runid_list)) {
+      if (runid_list[j] == baseline_runid_list[i]) {
+        next
+      }
+      column2 = paste0(runid_list[j],"_",rivseg_metric[k])
+      column1 = paste0(baseline_runid_list[i],"_",rivseg_metric[k])
+      new_col = paste0("percentDiff_", rivseg_metric[k], "_", baseline_runid_list[i], "_", runid_list[j])
+      message(paste("Adding %diff for", rivseg_metric[k], baseline_runid_list[i], runid_list[j]))
+      
+      rsegs_data[,column2] <- as.numeric(rsegs_data[,column2])
+      rsegs_data[,column1] <- as.numeric(rsegs_data[,column1])
+      
+      rsegs_data[,new_col] <- 100.0 * (rsegs_data[,column2] - rsegs_data[,column1]) / rsegs_data[,column1]
+      # for (n in 1:nrow(rsegs_data)) {
+      #   browser()
+      #   if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
+      #     rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
+      #   } else {
+      #     rsegs_data[n,new_col] <- NA
+      #   }
+      # }
+      rsegs[[new_col]] <- rsegs_data[[new_col]]
+      
     }
-    
-    rsegs_data[,column2] <- as.numeric(rsegs_data[,column2])
-    rsegs_data[,column1] <- as.numeric(rsegs_data[,column1])
-    
-    rsegs_data[,new_col] <- 100.0 * (rsegs_data[,column2] - rsegs_data[,column1]) / rsegs_data[,column1]
-    # for (n in 1:nrow(rsegs_data)) {
-    #   browser()
-    #   if ( (!is.na(rsegs_data[n,column1])) & (!is.na(rsegs_data[n,column2]))) {
-    #     rsegs_data[n,new_col] <- 100.0 * (rsegs_data[n,column2] - rsegs_data[n,column1]) / rsegs_data[n,column1]
-    #   } else {
-    #     rsegs_data[n,new_col] <- NA
-    #   }
-    # }
-    rsegs[[new_col]] <- rsegs_data[[new_col]]
   }
 }
 

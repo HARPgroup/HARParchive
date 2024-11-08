@@ -1,11 +1,12 @@
 ---
-title: "WSP Regional Summaries"
-author: "HARP Analysts"
+title: "WSP Local and Regional Summaries"
+author: "DEQ"
 date: "`r Sys.Date()`"
 geometry: margin=1cm #margins for pdf
 #overridden by output_format in render command 
 output: 
-  word_document:
+   officedown::rdocx_document: 
+    # reference_docx: 51049_wsp.docx
     toc: true
     number_sections: true
 
@@ -14,18 +15,18 @@ output:
 ## More params used during development and testing for user-control -- will be consolidated  
 params:
 
-  origin: ["MiddleJames_2"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
+  origin: ["SoutheastVirginia"] #supply either a rivseg, locality, or region name ## JL7_7070_0001
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
 
-  featrs_file: "C:/aa_HARP/Exports/MiddleJames_2_featrs_sf.csv"
+  featrs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_featrs_sf.csv"
   featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
-  featrs_file_table_column: ["runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"]
+  featrs_file_table_column: ["Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/aa_HARP/Exports/MiddleJames_2_rsegs_sf.csv"
+  rsegs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
-  runid_list: ["runid_11", "runid_13", "runid_17"] #list of runids used for facil and rseg data
+  runid_list: ["runid_11", "runid_13", "runid_17", "runid_0"] #list of runids used for facil and rseg data
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system
@@ -46,6 +47,8 @@ library(nhdplusTools)
 library(png)
 library(flextable)
 library(pandoc)
+library(officedown)
+library(officer)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
@@ -76,6 +79,12 @@ map_style <- params$map_style
 bbox_type <- params$bbox_type
 show_map <- params$show_map
     
+```
+
+```{r TOC, echo = FALSE}
+## Need a seperate chunk for the table of contents, created with the block_toc() command
+block_toc()
+
 ```
 
 ```{r Load Functions & Configs, echo=FALSE, warning=FALSE, results='hide', include=FALSE}
@@ -172,25 +181,6 @@ regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, re
 ```
 
 ```{r Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-# if(bbox_type == "vahydro") { #retrieve bbox from vahydro property if desired
-# #note: only operational for river segments/basins
-#   for (i in 1:nrow(rsegs)){ #not sure why we're looping through these if we're only saving the last one
-#     bbox <- ds$get_prop(config=list( #get bbox properties
-#                         featureid= RomProperty$new(ds,list( #get extent property pid
-#                                       propname="extent",
-#                                       entity_type="dh_properties",
-#                                       featureid= RomProperty$new(ds,list( #get map property pid
-#                                                     varkey="map", 
-#                                                     entity_type="dh_feature",
-#                                                     featureid= rsegs$hydroid[i]
-#                                                     ),TRUE)$pid #map pid
-#                                       ),TRUE)$pid, #extent pid
-#                         entity_type='dh_properties'))
-#     bbox <- data.frame(X=extent[1:2,4], Y=extent[3:4,4])
-#     bbox <- st_buffer(st_as_sf(extent_df, coords=c("X","Y"), crs=crs_default), dist=0.15) #original : dist=0.05
-#     bbox <- st_bbox(bbox)
-#   }
-# }
 
 if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom bbox in config
   #formatting custom border coordinates to bbox object:
@@ -205,7 +195,6 @@ if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom
 ```
 
 ```{r Get NHD in Bbox, echo=FALSE, message=FALSE, warning=FALSE}
-# source(paste0(github_location,"/HARParchive/HARP-2023-Summer/fn_nhd_labs.R"),local = TRUE) #load nhd label function
 
 # NHD data within the bbox
 if (show_map == TRUE) {
@@ -264,15 +253,13 @@ if (show_map == TRUE) {
 }
 ```
 
-# Region
-
-## Framing Text:
+# How to use this document:
 
 This document is a summary of information pulled from the most recent State Water Resources and Supply Plan, and is provided to assist with the requirements of 9VAC25-780. Data and modeling results are displayed for river segments intersecting the Region and/or Local Government boundaries (“region”). Water withdrawn upstream of these boundaries impacts the local governments, and water withdrawn within each boundary impacts downstream users. The first map and corresponding table display facilities within each region. Subsequent maps and tables display modeling results for each river segment. Note that these results are based in existing use, permitted use, and projected growth provided in the prior water supply plans.  
 
  
 
-To assist with 9VAC25-780-100 I 3, Water Availability: instream water availability changes inclusive of withdrawals and storage is provided. #Additionally, the 2040 demand scenario under short-term drought (30-day low flow), long term drought (90-day low flow), and overall percent of flow change, are relevant for showing the simulated impacts of projected demands on in-stream water availability. The potential unmet demand tables also provide information on the impacts of scenarios such as future demand on water supply sources. 
+To assist with 9VAC25-780-100 I 3, Water Availability: instream water availability changes inclusive of withdrawals and storage is provided. Additionally, the 2040 demand scenario under short-term drought (30-day low flow), long term drought (90-day low flow), and overall percent of flow change, are relevant for showing the simulated impacts of projected demands on in-stream water availability. The potential unmet demand tables also provide information on the impacts of scenarios such as future demand on water supply sources. 
 
 To assist with 9VAC25-780-100 J, cumulative demand, use conflicts, or in-stream flow information: Table 1 shows the change in cumulative demand between 2020 and 2040 projections. The potential unmet demand table presents potential beneficial use conflicts, and overall change in flow shows simulated changes to in-stream flow. One way plan developers could use this information is to check if identified alternatives are located in a river segment with greater than 10% reductions in streamflow during the planning period, and then consider that alternative as potentially unavailable. 
 
@@ -284,20 +271,19 @@ For 9VAC25-780-125 B 3, the lowest 30 day flow and lowest 90 day flow are provid
 
 For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day low flow condition that is expected to occur only one time in a 10-year period. The 7Q10 metric is used to establish point source discharge limits and is used to assess potential risks to assimilative capacity from water supply system changes. 
 
-## State Plan 2020 demand - State Plan 2040 demand:
+# Facilities within Regions and Local Government:
 
-### Map:
+## Facility Map(s):
 
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
-# facils <- facils[,colSums(is.na(facils))<nrow(facils)] #for extra long & lat columns full of NAs
-#st_write(facils, paste0(export_path,"33_facils_sf.csv"), layer_options = "GEOMETRY=AS_WKT")
 
 #create human-readable title based on origin & type
 if (origin_type == "basin") {
   title_main <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
 } else if (origin_type == "locality") {
+  origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
   title_main <- paste0(counties[["name"]][counties[["dh_fips"]]==origin]," Locality")
 } else if (origin_type == "region") {
   origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
@@ -307,9 +293,6 @@ if (origin_type == "basin") {
 
 if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
-    #legend_title <- paste0(featrs_file_map_bubble_column[i])
-    #legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
-    #legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     legend_title <- readable$human[grep(featrs_file_map_bubble_column[i], readable$computer)]
 
     #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
@@ -362,21 +345,7 @@ if (show_map == TRUE) {
     
     rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default)
 
-    # colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
-    # 
-    # ## Create title for the map
-    #   #first create label for metric
-    # if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
-    #   maplabel <- gsub("five_yr_avg", "5 Year Avg (MGY)", colname)
-    # } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
-    #   maplabel <- gsub("wd_mgd", "Withdraw (MGD)", colname)
-    # } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
-    #   maplabel <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', colname)
-    # } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
-    #   maplabel <- gsub("ps_mgd", "Point Source (MGD)", colname)
-    # } else {
-    #   maplabel <- colname
-    # }
+    ## Create title for the map
     ##instead:
     #maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     if(featrs_file_map_bubble_column[i] %in% readable$computer){
@@ -445,7 +414,7 @@ if (show_map == TRUE) {
 
 ```
 
-```{r View Map 1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE,eval = show_map}
+```{r View_Map_1, echo=FALSE, out.width = '100%', out.height='100%', message=TRUE,eval = show_map}
 knitr::include_graphics(mapfilename) #display map(s) PNG -- not functional inside loop
 # if (mapMessage) {
 #   message("The metric requested does not exist for this map.")
@@ -473,25 +442,30 @@ if (show_map == FALSE) {
   facils_table <- st_drop_geometry(facils)
 }
 
-names(facils_table)[names(facils_table) == 'propname'] <- 'Facility' #if propname column exists rename to Facility
-#facils_table$within$hydroid <- as.numeric(gsub(",", "", facils_table$within$hydroid, fixed = TRUE))
+## Establishing status in the facility name field
+#### Appending a symbol onto name if it is inactive/proposed
+facils_table$facility[facils_table$facility_status == "Out of Service/Temporarily Inactive"] <-
+  paste0(facils_table$facility,"*")
+
+facils_table$facility[facils_table$facility_status == "Proposed"] <-
+  paste0(facils_table$facility,"**")
+
 #create initial table
 table <- data.frame(
-  Number= facils_table$NUM,
-  Facility=facils_table$facility,
-  HydroID = facils_table$featureid, 
+  Map_Number = facils_table$NUM,
+  Facility =facils_table$facility,
+  VAHydro_ID = facils_table$featureid, 
   Locality = facils_table$locality, 
-  GWFrac = facils_table$gw_frac)
+  GW_Fraction = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
 if (featr_type=="source"){
   table$Source = facils_table$MP_Name  
   table$Source_Type = facils_table$Source_Type
 }
-#write.csv(table, paste0(export_path,"40_table.csv"))
 
 #add rivseg names
-for(i in 1:nrow(table)){ 
+for(i in 1:nrow(table)){
   loc_rivseg <- (rsegs[grep(facils_table$riverseg[i], rsegs$riverseg),]) #find rivseg in segs and compare to facils_table to add name
   if (nrow(loc_rivseg) != 0 & facils_table$riverseg[i] != "" ) {
     table$`River Segment Name`[i] <- loc_rivseg$name
@@ -502,7 +476,7 @@ for(i in 1:nrow(table)){
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
-table$`Permitted Capacity` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
+table$`Total Permitted Capacity (MGY)` <- facils_table$Total_Permit_Limit_MGY #add permitted capacity to table 
 
 for (i in 1:length(featrs_file_table_column)){
   #metric col of interest may not exist if none were found in extent: don't break if this is the case
@@ -553,25 +527,148 @@ for (i in 1:length(featrs_file_table_column)) {
 }
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-
 ft1 <- fn_tablegen(featr_type = "facility", table = table, 
                    columns = "all", alignment = "left", 
                    origin_type = origin_type, metric = rivseg_metric[i], 
                    origin = origin, tabletitle = title_main, num = "1.1",
                    highlight_col = FALSE, highlight_limit = NULL) #execute flextable function
-ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
+# ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
 ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
 
 ```
 
-###Narrative note: Narrative including note that facilities constructed after initial plan submission are not show in 2020 scenario
+###Note: NARRATIVE NOTE EXPLAIN FIRST MAPS HERE
 
-### Table:
+```{r GW_Maps, echo = FALSE, message=FALSE, warning=FALSE, out.width = '100%', out.height='100%', results='asis', eval = show_map}
+
+## Reading in the shapefiles from the onedrive
+#### Also transforms them innto lat/lon
+## Potomac
+potomac <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Potomac/Potomac_Critical_Cells_in_2040.shp'))
+potomac <- st_transform(potomac,4326)
+potomac <- st_set_crs(potomac,4326)
+
+## Aquia
+aquia <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Aquia/AQAQ_Critical_Cells_in_2040.shp'))
+aquia <- st_transform(aquia,4326)
+aquia <- st_set_crs(aquia,4326)
+
+## Piney Point
+pineypoint <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/PineyPoint/PPAQ_Critical_Cells_in_2040.shp'))
+pineypoint <- st_transform(pineypoint,4326)
+pineypoint <- st_set_crs(pineypoint,4326)
+
+# ## Yorktown-Eastover
+# yorktown <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Yorktown-Eastover/YEAQ_Critical_Cells_in_2040.shp'))
+# yorktown <- st_transform(yorktown,4326)
+# yorktown <- st_set_crs(yorktown,4326)
+
+## Reading in the GWMA layer
+GWMA_wkt <- read.csv(paste(github_location,'/HARParchive/GIS_layers/GWMA_wkt.csv',sep=''))
+## Only the coastal plain
+GWMA_wkt <- GWMA_wkt[2,]
+GWMA_wkt <- st_as_sf(GWMA_wkt, wkt = "Geometry", crs = st_crs(4326))
+
+## Need to determine if the area intersects the aquifer to create the maps
+#### Or at least the critical cell part
+if (origin_type == 'region') {
+  ## Gets the shape to use as a boundary
+  origin_shape <- regions[regions$region == origin,]
+} else if (origin_type == 'locality') {
+  origin_shape <- regions[regions$region == counties$Region[counties$hydrocode == origin],]
+}
+
+## Checking for intersection
+insidegwma <- st_intersection(origin_shape,GWMA_wkt )
+
+## First checks all of them, to determine if there is any intersection. If so, add section title
+if (nrow(insidegwma) > 0) {
+  
+  cat('\n## Groundwater Critical Cell Maps \n')
+  
+  ### Potomac
+  aquifer <- 'Potomac'
+  
+  ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
+  potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                              aquifer_shp = potomac, origin_shape)
+  
+  ## Saves the file
+  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+         plot = potomac_map,width=25,height=20)
+  
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
+  
+  ### Aquia
+  aquifer <- 'Aquia'
+  
+  aquia_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+                            maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+                            maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                            aquifer_shp = aquia, origin_shape)
+  
+  ggsave(filename = paste0(export_path,origin,'_Aquia.png'),
+         plot = aquia_map,width=25,height=20)
+  
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
+  
+  ### Piney Point 
+  aquifer <- 'Piney Point'
+  
+  pineypoint_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+                                 maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+                                 maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+                                 aquifer_shp = pineypoint, origin_shape)
+  
+  ## Piney Point cant have a space in the filename
+  ggsave(filename = paste0(export_path,origin,'_Piney_Point.png'),
+         plot = pineypoint_map,width=25,height=20)
+  
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_Piney_Point.png)'))
+  
+### Yorktown Eastover
+# if (length(potomac_int) > 0 & show_map == TRUE) {  
+#   ## If there is no intersection, then the length of the output is 0, so cant check the value
+#   #### So it only gets here if there IS intersection
+#   
+#   aquifer <- 'Potomac'
+#   
+#   potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+#                               maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+#                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+#                               aquifer_shp = potomac)
+#   
+# }
+
+  ## Adds a pagebreak IF there are GW maps
+
+  cat("\n\n\\pagebreak\n")
+  
+  ## End of GW mapping section
+}
+
+```
+## Facility Table (Table 1):
+
+Notes:
+Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
+If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
+If facility only has groundwater sources, it will not have a surface water modeling value. 
+Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+
+\pagebreak
 
 ```{r View Table 1, echo=FALSE, out.width='100%', message=TRUE}
 # if (tableMessage == TRUE) {
 #   message("Missing column indicates the metric requested does not exist for this table")
 # }
+block_section(prop_section(type = "continuous"))
+
 if (tableMessage) {
  messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 1",
@@ -580,13 +677,23 @@ if (tableMessage) {
 }
 
 ft1 #display flextable
+
+## This line tells it to stop formatting, but also defines what is being formatted? In this case, the page orientation. 
+#### Officer seems confusing, but this works
+block_section(
+  prop_section(
+    page_size = page_size(orient = "landscape"),
+    type = "continuous"
+  )
+)
 ```
 
-## 2020/2040 Demand Scenarios Through Drought Metrics: L90 -- 7Q10:
+# 2040 Modelled Demand Scenarios:
 
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
+
   map_objects = list()
   rivmapfilename <- character() #empty character var, not a list, to store map names
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
@@ -601,13 +708,6 @@ ft1 #display flextable
     
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
     
-    # if (display_metric=="l30_Qout"){
-    #     rivmaplabel <- gsub("l30_Qout", "Lowest 30 Day Flow", rivmapmetric)
-    # } else if (display_metric=="l90_Qout"){
-    #     rivmaplabel <- gsub("l90_Qout", "Lowest 90 Day Flow", rivmapmetric)
-    # } else {
-    #     rivmaplabel <- rivmapmetric
-    # }
     if(display_metric %in% readable$computer){
       rivmaplabel <- readable$human[readable$computer==display_metric]
     }else {
@@ -615,7 +715,6 @@ ft1 #display flextable
     }
     
     rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
-    #st_write(rsegs, paste0(export_path,"45_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
     
   #### Problem with rsegs df happens here 
     # rseg_sql <- paste('SELECT *, ','percentDiff','_',display_metric,' AS pct_diff 
@@ -642,13 +741,6 @@ ft1 #display flextable
     )
     #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
     
-  ## sqldf error here about raw vectors  
-    # rsegs <- fn_sqldf_sf( #joining the bins with the metric data 
-    #   "select a.*, b.bin 
-    #   from rsegs as a 
-    #   left outer join rivseg_classes as b 
-    #   on a.riverseg = b.riverseg " , "rsegs")
-    # st_write(rsegs, paste0(export_path,"49_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
     
     rsegs <- sqldf( #joining the bins with the metric data 
       "select a.*, b.bin 
@@ -682,6 +774,7 @@ ft1 #display flextable
 ```
 
 ```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE, eval=FALSE}
+
 if (show_map == TRUE) {
   knitr::include_graphics(rivmapfilename)
 }
@@ -727,9 +820,6 @@ for (k in 1:length(run_config$riverseg_metrics)){
     nacols <- colSums(is.na(rseg_display)) == nrow(rseg_display)
     tablemessage2 <- any(nacols) 
     
-    #sorting 
-    # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-    # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
     rivTables[[k]] <- rseg_display
     
     #fill blanks with NA
@@ -767,45 +857,17 @@ for (k in 1:length(run_config$riverseg_metrics)){
       label = new_cols
       )
     ft2 <- set_header_df(ft2, mapping = ref_table, key = "key")
-
+    ft2 <- add_header_lines(ft2, values= display_title) #add subtite
+    
     assign(paste0('table', k), ft2, envir = globalenv())
   
-  # display_metric <- run_config$riverseg_metrics[[k]]$metric
-  # display_title <- run_config$riverseg_metrics[[k]]$run_label
-  # 
-  # #metrics, to be suppressed later?
-  # rseg_display$Metric <- display_metric 
-  # 
-  # #assemble our table, with the columns in order defined by table_cols
-  # rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
-  # 
-  # #na messages 
-  #  nacols <- data.frame(colSums(is.na(rseg_display)) == nrow(rseg_display)) #dataframe of which columns are all na or not
-  #  tablemessage2 <- any(nacols)
-  # 
-  # #sorting 
-  # sort_decreasing <- run_config$riverseg_metrics[[k]]$sort_decreasing 
-  # rivTables[[k]] <- rseg_display[order(as.vector(rseg_display[,display_column]), decreasing=sort_decreasing),] 
-  # 
-  # 
-  # #fill blanks with NA
-  # rivTables[[k]][rivTables[[k]] == ''] <- NA
-  # 
-  # 
-  # #defining titles 
-  # rivtablemetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
   }
 }
 ```
 
-
+The following table shows, for those facilities included at the time of modelling, which may experience unmet demand. Facilities without models are excluded from this list. 
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
-# if (tablemessage2==TRUE) {
-#   message("A column in the table is completely NA values, 
-#           likely meaning the metric requested is not modeled for this data
-#           or the segments are all tidal")
-# }
 if(message_nonexisting_cols){
   messages <- rbind(messages,
                       data.frame(pertaining_to= "Table 2",
@@ -828,11 +890,34 @@ for (k in 1:length(rivseg_metric)){
 #note: doesn't display readable flextable within Rstudio but does upon render
 ```
 
-### Display Map and Table: 
+
+
 ```{r View Rivseg Maps and Tables, out.width = '100%', out.height='100%', results='asis', echo=FALSE}
 for (k in 1:length(run_config$riverseg_metrics)){
+  
   ## Including a header for the section
-  cat('\n### ',run_config$riverseg_metrics[[k]]$run_label,' \n')
+  cat('\n## ',run_config$riverseg_metrics[[k]]$run_label,' \n')
+  
+  ## Including narrative IF there is a populated text file
+  txtfile <- (paste0(HARParchive_location,"\\HARP-2023-Summer\\Section_Narratives\\",
+                         run_config$riverseg_metrics[[k]]$run_label,".txt"))
+  
+  #### Checks if the text file exists AND if there is text in it (nchar > 0)
+  if (file.exists(txtfile) & file.info(txtfile)$size > 0) {
+    ## Seperating narrative from title
+    cat("\n \n")
+    
+    ## Reads the text file as 1 character vector
+    narrative <- readChar(txtfile, file.info(txtfile)$size)
+    #### Replaces \r (carraige break) with \n (line break)
+    narrative <- gsub('\r','\n',narrative)
+    cat(narrative)
+    
+    ## Adding lines to seperate the table/map
+    cat("\n \n")
+    
+  }
+  
   #map
   show_map = run_config$riverseg_metrics[[k]]$show_map
   if (show_map == TRUE) {
@@ -860,9 +945,6 @@ if(message_nonexisting_cols){
                       )
     }
 ```
-
-
-# Appendix:
 
 ```{r Generate Errors Summary, echo=FALSE}
 #if there are any mapping errors or other messages to the user, output a separate file containing them
