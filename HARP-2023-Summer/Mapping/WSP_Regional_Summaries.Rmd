@@ -106,26 +106,6 @@ source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/mapstyle_co
 #source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Config/rivsegmaps_config.R")) #load rivseg-specific mapping aesthetics
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fn_get_memo_nhdplus.R")) #nhd caching
 
-# legend_titling() --> Generate user-understandable legend titles
-## Kept up here as a function so that it's easy to add if-statements when user-input options expand
-legend_titling <- function(metric, runid_list){
-  if (metric=="wd_mgd"){ #titles for wd_mgd
-    name <- "Withdrawal"
-    unit <- "(MGD)"
-    legend_title <- runid_list
-    year <- mgsub(runid_list, c("runid_11","runid_13"), c("2020","2040"))
-    for (i in 1:length(runid_list)){
-      legend_title[i] <- paste(year[i],name,unit,sep="\n")
-    }
-  } else if (metric=="fiveyr_avg_mgy"){ #this metric isn't associated w a runid
-    name <- "5-yr Avg Use"
-    unit <- "(MGY)"
-    legend_title<- paste(name,unit,sep="\n")
-  } else {
-    legend_title<- paste(metric)
-  }
-  return(legend_title)
-}
 
 ```
 
@@ -206,7 +186,7 @@ if (show_map == TRUE) {
   #} else {
    # nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
   #}
-  nhdlabs <- fn_nhd_labs(data=nhd)
+  nhdlabs <- fn_nhd_labs(nhd)
 }
 ```
 
@@ -294,9 +274,6 @@ if (origin_type == "basin") {
 
 if (show_map == TRUE) {
   for (i in 1:length(featrs_file_map_bubble_column)) { #execute for each metric in featrs_file_map_bubble_column param 
-    #legend_title <- paste0(featrs_file_map_bubble_column[i])
-    #legend_title <- legend_titling(featrs_file_map_bubble_column[i], runid_list)
-    #legend_title <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     legend_title <- readable$human[grep(featrs_file_map_bubble_column[i], readable$computer)]
 
     #add column of NAs when no metric col exists, when no facilities with the desired metric exist in the extent
@@ -349,23 +326,6 @@ if (show_map == TRUE) {
     
     rsegs <- fn_centroid_coords(data = rsegs, geom_col = "geometry", crs = crs_default)
 
-    # colname <- paste0(featrs_file_map_bubble_column[i]) #define title here for mapping so each map has diff metric title, pass into function
-    # 
-    # ## Create title for the map
-    #   #first create label for metric
-    # if (featrs_file_map_bubble_column[i]=="five_yr_avg"){
-    #   maplabel <- gsub("five_yr_avg", "5 Year Avg (MGY)", colname)
-    # } else if (featrs_file_map_bubble_column[i]=="wd_mgd"){
-    #   maplabel <- gsub("wd_mgd", "Withdraw (MGD)", colname)
-    # } else if (featrs_file_map_bubble_column[i]=="gw_demand_mgd"){
-    #   maplabel <- gsub("gw_demand_mgd", 'Ground Water Demand (MGD)', colname)
-    # } else if (featrs_file_map_bubble_column[i]=="ps_mgd"){
-    #   maplabel <- gsub("ps_mgd", "Point Source (MGD)", colname)
-    # } else {
-    #   maplabel <- colname
-    # }
-    ##instead:
-    #maplabel <- new_metric_name[grep(featrs_file_map_bubble_column[i], read_metric_name)]
     if(featrs_file_map_bubble_column[i] %in% readable$computer){
       maplabel <- readable$human[readable$computer==featrs_file_map_bubble_column[i]]
     }else {

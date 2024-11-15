@@ -325,7 +325,10 @@ if (origin_type=="basin") { #finding upstream riversegs for basin maps
 #---Sources/featrs---
 #filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
 if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
+  allfeatrs <- featrs # Stash
+  rseg_featrs <- fn_extract_basin(st_drop_geometry(featrs), origin_name)
   featrs <- st_filter(featrs, rsegs)
+  featrs <- allfeatrs[which(allfeatrs$featureid %in% c(featrs$featureid, rseg_featrs$featureid)),]
 } else if (limit_featrs_to_origin==TRUE){
   if(origin_type=="locality"){
     featrs <- st_filter(featrs, counties[counties$name==origin, ])

@@ -5,9 +5,9 @@
 # JK 8.8.23: Need to load the config file for this to run
 # Will need to explicitly pass in params such as nhd_rivname_pattern
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Config/mapstyle_config.R"),local = TRUE) #load mapping aesthetics
-fn_nhd_labs <- function(data) {
+fn_nhd_labs <- function(nhd) {
 
-  for(d in 1:length(data)){
+  for(d in 1:length(nhd)){
   ## NHD Data
     # First organize flowline data with major rivers/streams
     ## major rivs = orders 5 & 6; streams = order 4
@@ -25,33 +25,36 @@ fn_nhd_labs <- function(data) {
     
     # Now do the same for the water bodies
     wtbd <- rbind(nhd$network_wtbd, nhd$off_network_wtbd)
-    ## remove ones without names and ponds/swamps
-    wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname'),]
-    wtbd <- wtbd[!grepl(c(wtbd_names_rm), wtbd$gnis_name),] #remove certain names from waterbody labeling, wtbd_names_rm from mapstyles_config
-    wtbd <- wtbd[!is.na(wtbd$lakevolume),]
-    #wtbd <- wtbd[!grepl("Millpond", wtbd$gnis_name),] 
-   # wtbd <- wtbd[!grepl("Swamp", wtbd$gnis_name),]
+    if (!is.null(nrow(wtbd)) ) {
+      
+      ## remove ones without names and ponds/swamps
+      wtbd <- wtbd[!(wtbd$gnis_name==' ' | wtbd$gnis_name=='Noname'),]
+      wtbd <- wtbd[!grepl(c(wtbd_names_rm), wtbd$gnis_name),] #remove certain names from waterbody labeling, wtbd_names_rm from mapstyles_config
+      wtbd <- wtbd[!is.na(wtbd$lakevolume),]
+      #wtbd <- wtbd[!grepl("Millpond", wtbd$gnis_name),] 
+      # wtbd <- wtbd[!grepl("Swamp", wtbd$gnis_name),]
+      
+      
+      #classification of waterbodies with classes based on their size
+      wtbd_small <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_sm_pct_range[1], na.rm = T) & 
+                           wtbd$lakevolume < quantile(wtbd$lakevolume, wtbd_sm_pct_range[2], na.rm = T),]
+      wtbd_small$class <- rep("waterbody_sm", nrow(wtbd_small)) #add class column
+      
+      wtbd_med <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_med_pct_range[1], na.rm = T) & 
+                         wtbd$lakevolume < quantile(wtbd$lakevolume, wtbd_med_pct_range[2], na.rm = T),]
+      wtbd_med$class <- rep("waterbody_med", nrow(wtbd_med)) #add class column
+      
+      wtbd_large <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_med_pct_range[2], na.rm = T),]
+      wtbd_large$class <- rep("waterbody_lg", nrow(wtbd_large)) #add class column
+      
+      ##something wrong -- too many bodies classified as large 
+      
+      wtbd <- rbind(wtbd_small,wtbd_med,wtbd_large)
+      wtbd <- wtbd[,c("gnis_name","class")]
+      wtbd <- wtbd[!is.na(wtbd$gnis_name),]
+      nhdlabs <- rbind(flow, wtbd)
+    }
     
-    
-    #classification of waterbodies with classes based on their size
-    wtbd_small <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_sm_pct_range[1], na.rm = T) & 
-                         wtbd$lakevolume < quantile(wtbd$lakevolume, wtbd_sm_pct_range[2], na.rm = T),]
-    wtbd_small$class <- rep("waterbody_sm", nrow(wtbd_small)) #add class column
-    
-    wtbd_med <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_med_pct_range[1], na.rm = T) & 
-                       wtbd$lakevolume < quantile(wtbd$lakevolume, wtbd_med_pct_range[2], na.rm = T),]
-    wtbd_med$class <- rep("waterbody_med", nrow(wtbd_med)) #add class column
-    
-    wtbd_large <- wtbd[wtbd$lakevolume > quantile(wtbd$lakevolume, wtbd_med_pct_range[2], na.rm = T),]
-    wtbd_large$class <- rep("waterbody_lg", nrow(wtbd_large)) #add class column
-    
-    ##something wrong -- too many bodies classified as large 
-    
-    wtbd <- rbind(wtbd_small,wtbd_med,wtbd_large)
-    wtbd <- wtbd[,c("gnis_name","class")]
-    wtbd <- wtbd[!is.na(wtbd$gnis_name),]
-    
-    nhdlabs <- rbind(flow, wtbd)
     names(nhdlabs)[names(nhdlabs) == 'gnis_name'] <- 'label'
     # now it is ready to have coords calculated like the rest of the labeling data
 #    assign('data', data, envir = globalenv())#save df to environment
