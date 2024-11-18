@@ -59,4 +59,11 @@ j3 <- sqldf(
 
 ggplot(j3, aes(x = yr, y = precip_in, fill = model))+
   geom_histogram(stat = "identity", position = "identity", binwidth = 1, alpha = 0.5)+
-  theme_bw()
+  geom_histogram(stat = "identity", position = "identity", binwidth = 1, alpha = 0.5)+
+  theme_bw() #add border for visibility
+
+p1
+p2
+p3
+p1 / p2 /p3
+
