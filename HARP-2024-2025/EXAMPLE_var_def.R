@@ -1,0 +1,6 @@
+scenario_name <- 'daymet2'
+coverage_hydrocode <- 'usgs_ws_01673550'
+coverage_bundle <- 'watershed'
+coverage_ftype <- 'usgs_full_drainage'
+model_version <- 'cbp-6.1'
+met_file <- 'http://deq1.bse.vt.edu:81/met/daymet/precip/usgs_ws_01673550-daymet-all.csv'
