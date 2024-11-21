@@ -226,11 +226,13 @@ if(featr_type == "source"){
   
 }
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
-  f_foundatn <- sqldf("select foundatn_mp.*,
-                    sum(five_yr_avg) as sum  -- Creating an aggregated column for the five_yr_avg
-                    from foundatn_mp
-                    group by Facility_hydroid
-                  ") #all source-related data now only applies to 1 source (random) within the facil 
+  f_foundatn <- sqldf("
+   SELECT facility_hydroid,facility,Use_Type,latitude,longitude,fips_code,locality,ows_planner,facility_status,
+    Total_Permit_Limit_MGY,gw_frac,wsp_2040_mgy,wsp2020_2040_mgy,fac_CEDSid,
+    SUM(five_yr_avg) as sum  -- Creating an aggregated column for the five_yr_avg
+   FROM foundatn_mp
+   GROUP BY Facility_hydroid
+  ") # Not selecting any source related fields, as these are innacurate to the facility (and even the soruce)
   ## Need to replace the MP five_yr_avg with the aggregated column 
   f_foundatn$five_yr_avg <- f_foundatn$sum
   
@@ -288,6 +290,7 @@ featrs <- fn_sqldf_sf(
   left outer join featrs_riverseg_sm as b 
     on (a.featureid = b.featureid)
     and a.riverseg IS NULL
+   GROUP BY a.featureid, a.pid, a.riverseg, b.riverseg  --Very small amount of duplicates created
  ", 
  geomback = 'featrs'
 )
@@ -295,7 +298,7 @@ featrs <- fn_sqldf_sf(
 needs_riverseg <- which(is.na(featrs$riverseg))
 
 # copy the riverseg_contains value
-featrs[needs_riverseg,]$riverseg <- featrs[needs_riverseg,]$riverseg_contains
+featrs$riverseg[needs_riverseg] <- featrs$riverseg_contains[needs_riverseg]
 
 ## Adding the rseg name, so it doesn't have to be looked up . Still doesnt solve everything
 featrs$rseg_name <- NA
