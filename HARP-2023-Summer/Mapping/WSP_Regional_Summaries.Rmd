@@ -465,14 +465,7 @@ if (featr_type=="source"){
 }
 
 #add rivseg names
-for(i in 1:nrow(table)){
-  loc_rivseg <- (rsegs[grep(facils_table$riverseg[i], rsegs$riverseg),]) #find rivseg in segs and compare to facils_table to add name
-  if (nrow(loc_rivseg) != 0 & facils_table$riverseg[i] != "" ) {
-    table$`River Segment Name`[i] <- loc_rivseg$name
-  } else { # if no matching row was found for the riverseg ID (or too many), leave blank but don't break
-    table$`River Segment Name`[i] <- ""
-    }
-}
+table$`River Segment Name` <- facils_table$rseg_name
 
 table$`River Segment ID`= facils_table$riverseg #add rivseg ID
 
@@ -551,7 +544,6 @@ potomac <- st_set_crs(potomac,4326)
 ## Aquia
 aquia <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Aquia/AQAQ_Critical_Cells_in_2040.shp'))
 aquia <- st_transform(aquia,4326)
-aquia <- st_set_crs(aquia,4326)
 
 ## Piney Point
 pineypoint <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/PineyPoint/PPAQ_Critical_Cells_in_2040.shp'))
@@ -704,6 +696,13 @@ block_section(
       display_metric <- run_config$riverseg_metrics[[i]]$metric
       display_column <- run_config$riverseg_metrics[[i]]$column_name
       display_title <- run_config$riverseg_metrics[[i]]$run_label
+      
+      ## Adjusting title if the its a very tall map that causes it to get cut off
+      if ((bbox[4] - bbox[2])/(bbox[3] - bbox[1]) > 1.1 & nchar(display_title) > 55) {
+        ## How do i know when to put the new line?
+        display_title <- gsub("[(]"," \n (",display_title)
+      }
+      
       ramp <- run_config$riverseg_metrics[[i]]$ramp
     
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
@@ -750,7 +749,7 @@ block_section(
     
     rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
     st_crs(rsegs_sf) <- crs_default
-
+    
     ##Mapping function
     map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
                        maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
@@ -770,6 +769,7 @@ block_section(
       height = 20)
     
      }
+     
   }
 ```
 

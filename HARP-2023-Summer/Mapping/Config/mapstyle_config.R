@@ -307,7 +307,7 @@ readable <- data.frame(rbind(
   c('runid_11_consumptive_use_frac', '2020 Consumptive Use Fraction'),
   c('runid_13_consumptive_use_frac', '2040 Consumptive Use Fraction'),
   c('percentDiff_Qout_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
-  c('percentDiff_Qout_runid_1000_runid_13', 'Percent Change in Flow in 2040'),
+  c('percentDiff_Qout_runid_1000_runid_13', 'Percent Consumptive Use in 2040'),
   c('runid_11_Qout', '2020 Average Flow (cfs)'),
   c('runid_13_Qout', '2040 Average Flow (cfs)'),
   c('runid_1000_Qout', 'Base Flow (cfs)'),
