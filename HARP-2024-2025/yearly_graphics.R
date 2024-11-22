@@ -21,9 +21,10 @@ yearly_summary <- function(df){
   
 }
 
-prism <- read.csv("http://deq1.bse.vt.edu:81/met/stormVol_prism/precip/usgs_ws_01613900-PRISM-all.csv")
-daymet <- read.csv("http://deq1.bse.vt.edu:81/met/daymet/precip/usgs_ws_01613900-daymet-all.csv")
-nldas2 <- read.csv("http://deq1.bse.vt.edu:81/met/nldas2/precip/usgs_ws_01613900-nldas2-all.csv")
+model_comparison <- function(gage_id){
+prism <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/stormVol_prism/precip/",gage_id,"-PRISM-all.csv"))
+daymet <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/daymet/precip/",gage_id,"-daymet-all.csv"))
+nldas2 <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/nldas2/precip/",gage_id,"-nldas2-all.csv"))
 
 prism_sum <- yearly_summary(prism)
 daymet_sum <- yearly_summary(daymet)
@@ -31,17 +32,17 @@ nldas_sum <- yearly_summary(nldas2)
 
 
 # Example plots for each 
-ggplot(prism_sum, mapping = aes(x = yr, y = total_precip))+
-  geom_histogram(stat = "identity", binwidth = 1, fill = "lightblue1")+
-  theme_bw()
-
-ggplot(daymet_sum, mapping = aes(x = yr, y = total_precip))+
-  geom_histogram(stat = "identity", binwidth = 1, fill = "lightblue2")+
-  theme_bw()
-
-ggplot(nldas_sum, mapping = aes(x = yr, y = total_precip))+
-  geom_histogram(stat = "identity", binwidth = 1, fill = "lightblue3")+
-  theme_bw()
+# ggplot(prism_sum, mapping = aes(x = yr, y = total_precip))+
+#   geom_histogram(stat = "identity", binwidth = 1, fill = "lightblue1")+
+#   theme_bw()
+# 
+# ggplot(daymet_sum, mapping = aes(x = yr, y = total_precip))+
+#   geom_histogram(stat = "identity", binwidth = 1, fill = "lightblue2")+
+#   theme_bw()
+# 
+# ggplot(nldas_sum, mapping = aes(x = yr, y = total_precip))+
+#   geom_histogram(stat = "identity", binwidth = 1, fill = "lightblue3")+
+#   theme_bw()
 
 
 # A series of SQL joins and unions that produce a tidy, combined data frame
@@ -76,8 +77,10 @@ yearly_precip_plot <- ggplot(j3, aes(x = yr, y = precip_in, fill = model, color 
   geom_histogram(stat = "identity", position = "identity", binwidth = 1, alpha = 0.4)+
   theme_bw()+
   labs(title = 
-  "Yearly Precip Model Comparison
-  Hogue Creek Near Hayfield VA", x = "Year", y = "Precipitation (in)")
+  "Yearly Precip Model Comparison", x = "Year", y = "Precipitation (in)")
+return(yearly_precip_plot)
+}
 
-
-
+model_comparison("usgs_ws_01613900")
+model_comparison("usgs_ws_01615000") #why did this crap out?
+model_comparison("usgs_ws_01616100")
