@@ -651,6 +651,8 @@ Table 1 accompanies the facility map(s) shown above. The "Map Number" in the tab
 
 The table includes active, inactive, and proposed facilities. Abandoned facilities are not included. Inactive facilities are marked with an asterisk, and proposed facilities are marked with a double asterisk.
 
+When the groundwater fraction listed is 1.0, then the facility does not have surface water withdrawals, and does not have surface water modelling values.
+
 Notes: 
 Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
 If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
