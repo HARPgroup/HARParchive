@@ -84,8 +84,6 @@ if (overwrite_files==TRUE) {
 #----Pull Data----
 #---Facility Data---
 foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
-## Removing abadnoned facilities
-foundatn_mp <- foundatn_mp[!(grepl('Abandoned',foundatn_mp$facility_status)),]
 
 if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
@@ -221,6 +219,9 @@ if(featr_type == "source"){
                   y=featrs[names(featrs)!="hydrocode"], #all but the Hydrocode column bc it's a duplicate. Needed for SQLDF
                   by.x="featureid", by.y="joinid", all.y=T
   )
+  
+  ## Removing abadnoned facilities
+  featrs <- featrs[!(grepl('Abandoned',featrs$facility_status)),]
   
   featrs <- sf::st_as_sf(featrs, coords=c("longitude","latitude"), crs=crs_default) #convert to sf
   

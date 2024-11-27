@@ -444,10 +444,12 @@ if (show_map == FALSE) {
 
 ## Establishing status in the facility name field
 #### Appending a symbol onto name if it is inactive/proposed
-facils_table$facility[facils_table$facility_status == "Out of Service/Temporarily Inactive"] <-
+facils_table$facility[!is.na(facils_table$facility_status) &
+                      facils_table$facility_status == "Out of Service/Temporarily Inactive"] <-
   paste0(facils_table$facility,"*")
 
-facils_table$facility[facils_table$facility_status == "Proposed"] <-
+facils_table$facility[!is.na(facils_table$facility_status) &
+                      facils_table$facility_status == "Proposed"] <-
   paste0(facils_table$facility,"**")
 
 #create initial table
@@ -679,6 +681,9 @@ block_section(
   )
 )
 ```
+
+\pagebreak
+
 
 # 2040 Modelled Demand Scenarios:
 
