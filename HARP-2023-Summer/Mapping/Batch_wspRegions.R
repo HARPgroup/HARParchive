@@ -57,7 +57,7 @@ locality_set <-
 
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- "SoutheastVirginia" 
+origin_name <- "MiddleJames_3" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
@@ -74,7 +74,7 @@ for (x in 1:length(region_set)) {
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy", 
                           rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"), 
-                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_0"), 
+                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                           crs_default = 4326, 
                           limit_featrs_to_origin = FALSE,
                           overwrite_files = TRUE, 
@@ -110,7 +110,7 @@ for (x in 1:length(region_set)) {
                            featrs_file_table_column = c("Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"), 
                            rsegs_file = paste0(export_path, "/", origin_name,"_rsegs_sf.csv"), 
                            run_set = "wsp_2020_2040", 
-                           runid_list = c("runid_11", "runid_13", "runid_17", "runid_0"), 
+                           runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                            crs_default = 4326, 
                            map_style = "custom", 
                            bbox_type = "custom",
@@ -129,9 +129,7 @@ for (x in 1:length(region_set)) {
   # source('/var/www/R/config.R')
 }
 
-origin_name <- '51049'
-basepath='/var/www/R'
-source('/var/www/R/config.R')
+
 #### Run all localities ##########################
 for (x in locality_set) {
   origin_name <- x
@@ -148,7 +146,7 @@ for (x in locality_set) {
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy",
                           rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"), 
-                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_0"), 
+                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                           crs_default = 4326,
                           limit_featrs_to_origin = FALSE,
                           overwrite_files = TRUE,
@@ -173,7 +171,7 @@ for (x in locality_set) {
                           featrs_file_table_column = c("Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"),
                           rsegs_file = paste0(export_path, "/", origin_name,"_rsegs_sf.csv"),
                           run_set = "wsp_2020_2040",
-                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_0"),
+                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"),
                           crs_default = 4326,
                           map_style = "custom",
                           bbox_type = "custom",

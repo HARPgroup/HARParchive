@@ -255,9 +255,9 @@ if (show_map == TRUE) {
 
 # How to use this document:
 
-This document is a summary of information pulled from the most recent State Water Resources and Supply Plan, and is provided to assist with the requirements of 9VAC25-780. Data and modeling results are displayed for river segments intersecting the Region and/or Local Government boundaries (“region”). Water withdrawn upstream of these boundaries impacts the local governments, and water withdrawn within each boundary impacts downstream users. The first map and corresponding table display facilities within each region. Subsequent maps and tables display modeling results for each river segment. Note that these results are based in existing use, permitted use, and projected growth provided in the prior water supply plans.  
+This document is a summary of information pulled from the most recent State Water Resources and Supply Plan, and is provided to assist with the requirements of 9VAC25-780. Data and modeling results are displayed for river segments intersecting the Region and/or Local Government boundaries (“region”). Water withdrawn upstream of these boundaries impacts the local governments, and water withdrawn within each boundary impacts downstream users. The first map and corresponding table display facilities within each region. Subsequent maps and tables display modeling results for each river segment. Note that these results are based on existing use, permitted use, and projected growth provided in the prior water supply plans.  
 
- 
+This document does not provide current reported water use data. FORM 70-80-100, provided separately, contains information on individual water sources and water use.
 
 To assist with 9VAC25-780-100 I 3, Water Availability: instream water availability changes inclusive of withdrawals and storage is provided. Additionally, the 2040 demand scenario under short-term drought (30-day low flow), long term drought (90-day low flow), and overall percent of flow change, are relevant for showing the simulated impacts of projected demands on in-stream water availability. The potential unmet demand tables also provide information on the impacts of scenarios such as future demand on water supply sources. 
 
@@ -274,6 +274,9 @@ For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day lo
 # Facilities within Regions and Local Government:
 
 ## Facility Map(s):
+
+This map displays facilities located within river segments that intersect a local government or regional planning unit boundary.
+If a local government or regional planning unit boundary intersects the groundwater management area, a map of critical cells is also included.
 
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
@@ -532,7 +535,6 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 
 ```
 
-###Note: NARRATIVE NOTE EXPLAIN FIRST MAPS HERE
 
 ```{r GW_Maps, echo = FALSE, message=FALSE, warning=FALSE, out.width = '100%', out.height='100%', results='asis', eval = show_map}
 
@@ -649,11 +651,19 @@ if (nrow(insidegwma) > 0) {
 ```
 ## Facility Table (Table 1):
 
-Notes:
-Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
-If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
-If facility only has groundwater sources, it will not have a surface water modeling value. 
-Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+Table 1 accompanies the facility map(s) shown above. The "Map Number" in the table corresponds to the number within the bubbles in the map(s) above. Facilities that are geographically close together may partially or fully overlap each other on the map. Where this occurs, although not all Map Numbers will be visible on the map, the bubbles will be darker due to the overlap.
+
+The table includes active, inactive, and proposed facilities. Abandoned facilities are not included. Inactive facilities are marked with an asterisk (\*), and proposed facilities are marked with a double asterisk (\*\*).
+
+When the groundwater fraction listed is 1.0, then the facility does not have surface water withdrawals, and does not have surface water modelling values.
+
+**Notes:**
+
+ * Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
+ * If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting.
+ * If facility only has groundwater sources, it will not have a surface water modeling value.
+ * Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+ * If a facility has sources in more than one river segment, there will be multiple rows in the table showing the same facility with different river segments. The map numbers corresponding to the same facility will overlap on the map. 
 
 \pagebreak
 
@@ -687,6 +697,7 @@ block_section(
 
 # 2040 Modelled Demand Scenarios:
 
+The following maps and table show modeling results for future 2040 demands. The 2040 scenario was developed to model cumulative impacts under future conditions for the year 2040. The primary inputs are estimates of future water demands using projections submitted through local and regional water supply plans, combined with current meteorological conditions. More details on the modeling scenarios have been published in the [2020 State Water Resources Plan](https://www.deq.virginia.gov/our-programs/water/water-quantity/water-supply-planning/virginia-water-resources-plan). 
 
 ```{r Create Map 2, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 2----
@@ -870,7 +881,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
 }
 ```
 
-The following table shows, for those facilities included at the time of modelling, which may experience unmet demand. Facilities without models are excluded from this list. 
+
+
 ```{r View Table 2, out.width = '100%', out.height='100%', results='asis', echo=FALSE, eval=FALSE}
 #result = 'asis' necessary 
 if(message_nonexisting_cols){
