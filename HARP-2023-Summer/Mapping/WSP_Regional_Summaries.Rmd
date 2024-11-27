@@ -275,6 +275,9 @@ For 9VAC25-780-125 B 5, the 7Q10 flow is provided. The 7Q10 describes a 7-day lo
 
 ## Facility Map(s):
 
+This map displays facilities located within river segments that intersect a local government or regional planning unit boundary.
+If a local government or regional planning unit boundary intersects the groundwater management area, a map of critical cells is also included.
+
 ```{r Create Map 1, echo=FALSE, message=FALSE, warning=FALSE}
 #----Map 1----
 # Legend Bins
@@ -530,7 +533,6 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 
 ```
 
-###Note: NARRATIVE NOTE EXPLAIN FIRST MAPS HERE
 
 ```{r GW_Maps, echo = FALSE, message=FALSE, warning=FALSE, out.width = '100%', out.height='100%', results='asis', eval = show_map}
 
@@ -653,13 +655,13 @@ The table includes active, inactive, and proposed facilities. Abandoned faciliti
 
 When the groundwater fraction listed is 1.0, then the facility does not have surface water withdrawals, and does not have surface water modelling values.
 
-**Notes:** 
- * Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
- * If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting. 
- * If facility only has groundwater sources, it will not have a surface water modeling value.  
- * Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+**Notes:**
 
-If a facility has sources in more than one river segment, there will be multiple rows in the table showing the same facility with different river segments. The map numbers corresponding to the same facility will overlap on the map. 
+ * Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
+ * If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting.
+ * If facility only has groundwater sources, it will not have a surface water modeling value.
+ * Permit exemption status is based on those who identified as exempt during the 2009 RFI.
+ * If a facility has sources in more than one river segment, there will be multiple rows in the table showing the same facility with different river segments. The map numbers corresponding to the same facility will overlap on the map. 
 
 \pagebreak
 
