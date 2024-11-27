@@ -328,7 +328,9 @@ fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title, rivmap_
     rsegs[is.na(rsegs$bin), "bin"] <- 2+length(rivseg_pct_vect)
     
     class(rsegs$bin) <- "numeric"
-    metric_fill <- ggplot2::geom_sf(data = rsegs, inherit.aes = FALSE, mapping = aes(fill = as.factor(bin)), alpha = 0.7 )
+    metric_fill <- ggplot2::geom_sf(data = rsegs, inherit.aes = FALSE, 
+                                    mapping = aes(fill = as.factor(bin)), 
+                                    alpha = 0.7, show.legend = TRUE)
     metric_scale_fill <- ggplot2::scale_fill_manual(values = c(rivmap_ramp[,"rivmap_colors"], 
                                                                map_style_set$color$sf["tidal",], 
                                                                map_style_set$color$sf["unmodeled",]), #from config
