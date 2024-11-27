@@ -57,7 +57,7 @@ locality_set <-
 
 
 #to run a single render statement within the loop, define region or locality name here
-origin_name <- "SoutheastVirginia" 
+origin_name <- "MiddleJames_3" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
@@ -129,9 +129,7 @@ for (x in 1:length(region_set)) {
   # source('/var/www/R/config.R')
 }
 
-origin_name <- '51049'
-basepath='/var/www/R'
-source('/var/www/R/config.R')
+
 #### Run all localities ##########################
 for (x in locality_set) {
   origin_name <- x
