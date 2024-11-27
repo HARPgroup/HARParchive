@@ -651,7 +651,7 @@ if (nrow(insidegwma) > 0) {
 
 Table 1 accompanies the facility map(s) shown above. The "Map Number" in the table corresponds to the number within the bubbles in the map(s) above. Facilities that are geographically close together may partially or fully overlap each other on the map. Where this occurs, although not all Map Numbers will be visible on the map, the bubbles will be darker due to the overlap.
 
-The table includes active, inactive, and proposed facilities. Abandoned facilities are not included. Inactive facilities are marked with an asterisk, and proposed facilities are marked with a double asterisk.
+The table includes active, inactive, and proposed facilities. Abandoned facilities are not included. Inactive facilities are marked with an asterisk (\*), and proposed facilities are marked with a double asterisk (\*\*).
 
 When the groundwater fraction listed is 1.0, then the facility does not have surface water withdrawals, and does not have surface water modelling values.
 
