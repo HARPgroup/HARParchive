@@ -124,19 +124,19 @@ run_sets <- list(
       ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
-        metric='7q10', 
-        data_set = 'rseg_no_geom',
-        column_name='percentDiff_7q10_runid_11_runid_17', 
-        run_label = '7Q10 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
-        show_map = TRUE,
+        data_set = 'facils_nogeom',
+        metric='unmet30_mgd', #replace with unmet demand req 
+        column_name='runid_11_unmet30_mgd', 
+        run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
+        show_map = FALSE,
         ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
-        sort_col = 'percentDiff_7q10_runid_11_runid_17',
-        floor = NULL, 
-        ceiling = NULL, 
+        tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
+        sort_col = 'runid_13_unmet30_mgd',
+        floor = NULL, #floor = 0.001, 
+        ceiling = NULL,
         n_entries = 999,
-        sort = 'increasing',
-        exlude_NAs = FALSE
+        sort = 'decreasing',
+        exlude_NAs = TRUE #exlude_NAs = FALSE
       ),
       list(
         metric='Smin_L30_mg', 
@@ -152,21 +152,6 @@ run_sets <- list(
         n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
-      ), 
-      list(
-        data_set = 'facils_nogeom',
-        metric='unmet30_mgd', #replace with unmet demand req 
-        column_name='runid_11_unmet30_mgd', 
-        run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
-        show_map = FALSE,
-        ramp = 'default',
-        tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
-        sort_col = 'runid_13_unmet30_mgd',
-        floor = NULL, #floor = 0.001, 
-        ceiling = NULL,
-        n_entries = 999,
-        sort = 'decreasing',
-        exlude_NAs = TRUE #exlude_NAs = FALSE
       )
   ),
   permit_dev = list(
