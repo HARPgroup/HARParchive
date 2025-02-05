@@ -119,7 +119,6 @@ f_model <- om_vahydro_metric_grid(
   metric=FALSE, runids=facdf, featureid='all', 
   entity_type='dh_feature', bundle='facility',
   ftype='all', model_version=model_version,
-  base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
   ds=ds
 )
 
