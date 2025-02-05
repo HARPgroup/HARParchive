@@ -52,11 +52,7 @@ library(officer)
 #tinytex::install_tinytex() #need to run if you don't have tinytex
 library(tinytex)
 
-#gather config info to log into vahydro  
-basepath='/var/www/R'
-source('/var/www/R/config.R')
-ds <- RomDataSource$new(site, rest_uname)
-ds$get_token(rest_pw)
+
 ```
 
 ```{r UserInputs, echo=FALSE}

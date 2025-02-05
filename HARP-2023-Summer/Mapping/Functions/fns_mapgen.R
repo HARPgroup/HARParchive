@@ -219,7 +219,7 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
     sf::st_geometry(rsegs) <- "geometry"
     sf::st_crs(rsegs) <- crs_default
     #rsegs <- sf::st_transform(rsegs, crs_default)
-    polyg_borders <- rbind(polyg_borders, data.frame(rsegs[,c("name", "bundle")] )  )
+    polyg_borders <- rbind(polyg_borders, data.frame(rsegs[,c("name")], bundle = "watershed" )  )
   }
   
   if (origin_type=="region") {

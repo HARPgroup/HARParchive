@@ -28,8 +28,6 @@ library(rapportools)
 library(stringr)
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
-ds <- RomDataSource$new(site, rest_uname)
-ds$get_token(rest_pw)
 github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
@@ -121,12 +119,16 @@ f_model <- om_vahydro_metric_grid(
   metric=FALSE, runids=facdf, featureid='all', 
   entity_type='dh_feature', bundle='facility',
   ftype='all', model_version=model_version,
-  base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
   ds=ds
 )
 
 #---Watershed/Riverseg Data---
-rsegs <- fn_download_read(url=paste(site,"/vahydro_riversegs_export",sep=""), filetype="csv", zip=FALSE) 
+## Pulled with this query:
+# SELECT hydroid, name, hydrocode AS rseg, hydrocode, ST_AsText(dh_geofield_geom) 
+# FROM dh_feature rseg LEFT JOIN field_data_dh_geofield geo ON rseg.hydroid = geo.entity_id 
+# WHERE rseg.ftype = 'vahydro'
+
+rsegs <- read.csv("C:/Users/ejp42531/Documents/github/HARParchive/HARP-2023-Summer/Mapping/Data/rseg_geom.csv") 
   #pulls csv with All vahydro watershed features
   #note: potential NULLs for newly carved data^
 
@@ -402,12 +404,13 @@ model_data_river <- om_vahydro_metric_grid(
   base_url=paste(site,"/entity-model-prop-level-export",sep=''), #http://deq1.bse.vt.edu/d.dh
   ds=ds
 )
+
 #Match the riverseg column in rsegs to the equivalent column in model_data_river. Match provides a vector of the indices in model_data_river for the riverseg in rsegs. Then, grab all model_data_river at these rows and cbind to rsegs
 
 joinData <- model_data_river[match(rsegs$riverseg,model_data_river$riverseg),]
 
 ## For those that dont match, riverseg must be added from rsegs (NA in joinData)
-rsegs <- cbind(rsegs[,c("hydroid","name","ftype","bundle","riverseg")],joinData[,-grep("riverseg",names(joinData))])
+rsegs <- cbind(rsegs[,c("hydroid","name","riverseg")],joinData[,-grep("riverseg",names(joinData))])
 
 
 #----Calculate Rseg Metric % Diff ----
