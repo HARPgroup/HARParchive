@@ -128,7 +128,7 @@ f_model <- om_vahydro_metric_grid(
 # FROM dh_feature rseg LEFT JOIN field_data_dh_geofield geo ON rseg.hydroid = geo.entity_id 
 # WHERE rseg.ftype = 'vahydro'
 
-rsegs <- read.csv("C:/Users/ejp42531/Documents/github/HARParchive/HARP-2023-Summer/Mapping/Data/rseg_geom.csv") 
+rsegs <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Data/rseg_geom.csv")) 
   #pulls csv with All vahydro watershed features
   #note: potential NULLs for newly carved data^
 
