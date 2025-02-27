@@ -741,13 +741,14 @@ The following maps and table show modeling results for future 2040 demands. The 
     bins = as.data.frame(rivmap_ramps[[ramp]][,"rivseg_pct_vect"]) #rivseg_pct_vect set in config
     bins$classid <- index(bins)
     names(bins) <- c("val", "bin")
+    bins$val <- as.numeric(bins$val)
     #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
   
     rivseg_classes <- sqldf( #sorting the data into bins based on their range 
       paste0("select a.riverseg, min(b.bin) as bin
       from rsegs as a 
       left outer join bins as b 
-      on (a.", display_column," <= b.val) 
+      on (a.", display_column," <= b.val )
       group by a.riverseg" )
     )
     #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))

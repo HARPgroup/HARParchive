@@ -145,7 +145,7 @@ run_sets <- list(
         run_label = 'Lowest 30 Day Minimum Storage (MG)', 
         show_map = TRUE,
         ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'), 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_13'), 
         sort_col = 'runid_13_Smin_L30_mg',
         floor = NULL, 
         ceiling = NULL, 
