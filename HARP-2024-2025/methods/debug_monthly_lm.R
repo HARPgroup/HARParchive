@@ -107,40 +107,62 @@ week_rain_data <- sqldf("select * from week_data where nldas2_p_cfs > 0")
 mon_lm_stats(week_data, "nldas2_p_cfs", "usgs_cfs", "mo")
 nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2", gageid)
 nldas2_lm$plot
-mo_data=week_data[which((week_data[,"mo"] == 1)),]
-mo_rain_data=week_data[which((week_rain_data[,"mo"] == 1)),]
-weekmo_data <- lm(mo_data[,"usgs_cfs"] ~ mo_data[,"nldas2_p_cfs"])
-weekmo_rain_data <- lm(mo_rain_data[,"usgs_cfs"] ~ mo_rain_data[,"nldas2_p_cfs"])
-dsum <- summary(weekmo_data)
-drsum <- summary(weekmo_rain_data)
-mo_data$model <- dsum$coefficients[1,1] + dsum$coefficients[2,1] * mo_data$nldas2_p_cfs
+week_data$model <- NA
 
-plot(weekmo_data)
-plot_out$atts$lms[[i]] <- weekmo_data
-
-plot(week_data$usgs_cfs ~ week_data$nldas2_p_cfs)
-abline(dsum)
-
-aav <- sqldf(
-  "select yr,avg(nldas2_p_cfs) as nldas2, avg(usgs_cfs) as usgs,
+for (mo in 1:length(month.name)) {
+  moname = month.name[mo]
+  mo_data=week_data[which((week_data[,"mo"] == mo)),]
+  weekmo_data <- lm(mo_data[,"usgs_cfs"] ~ mo_data[,"nldas2_p_cfs"])
+  dsum <- summary(weekmo_data)
+  mo_data$model <- dsum$coefficients[1,1] + dsum$coefficients[2,1] * mo_data$nldas2_p_cfs
+  week_data[which((week_data[,"mo"] == mo)),]$model <- mo_data$model
+  
+  plot(week_data$usgs_cfs ~ week_data$nldas2_p_cfs)
+  abline(dsum)
+  
+  mav <- sqldf(
+    "select yr,avg(nldas2_p_cfs) as nldas2, avg(usgs_cfs) as usgs,
    avg(model) as model
    from mo_data
    group by yr"
+  )
+  
+  plot(
+    mav$usgs ~ mav$yr, col="green", pch=19,
+    main = paste(moname,"USGS vs NLDAS2 predicted for",gageid)
+  )
+  #points(
+  #  mav$nldas2 ~ mav$yr, col="blue", pch=4
+  #)
+  points(
+    mav$model ~ mav$yr, add=TRUE, col="purple", pch=19
+  )
+  legend("topright", legend=c("USGS", "NLDAS2 Model"),  
+         fill = c("green", "purple") 
+  )
+}
+
+aav <- sqldf(
+  "select yr, mo,avg(nldas2_p_cfs) as nldas2, avg(usgs_cfs) as usgs,
+   avg(model) as model
+   from week_data
+   group by yr, mo"
 )
+aav$yrmo <- as.Date(paste(aav$yr,aav$mo, '01',sep='-'))
 
 plot(
-  aav$usgs ~ aav$yr, col="green", pch=19
+  aav$usgs ~ aav$yrmo, col="green", pch=19,
+  main = paste("All Months USGS vs NLDAS2 predicted for",gageid)
 )
 #points(
 #  aav$nldas2 ~ aav$yr, col="blue", pch=4
 #)
 points(
-  aav$model ~ aav$yr, add=TRUE, col="purple", pch=19
+  aav$model ~ aav$yrmo, add=TRUE, col="purple", pch=19
 )
 legend("topright", legend=c("USGS", "NLDAS2 Model"),  
        fill = c("green", "purple") 
 )
-
 plot(week_data$usgs ~ week_data$yr,main="USGS Flows over time")
 obsreg=lm(week_data$usgs ~ week_data$yr )
 abline(obsreg)
