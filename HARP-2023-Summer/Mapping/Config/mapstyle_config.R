@@ -22,76 +22,6 @@
 #- - - - - - - - - - - 
 #Everything in custom aesthetics can be adjusted, if not changed, then defaults(below custom) will be used
 
-#----Human-readable metric names: add here any new metric names being used and their readable version----
-readable <- data.frame(rbind(
-                  #scenarios:
-                  c('runid_0', 'Pre-Condition'),
-                  c('runid_1', 'Historical Condition'),
-                  c('runid_3', 'Permit Term Max'),
-                  c('runid_11', '2020 Demand Scenario'),
-                  c('runid_12', '2030 Demand Scenario'),
-                  c('runid_13', '2040 Demand Scenario'),
-                  c('runid_14', 'Median Climate Change Scenario (50/50)- 2020 Demand'),
-                  c('runid_15', 'Dry Climate Change Scenario (10/10) - 2020 Demand'),
-                  c('runid_16', 'Wet Climate Change Scenario (90/90) - 2020 Demand'),
-                  c('runid_17', 'Dry Climate Change Scenario (10/20) - 2040 Demand'),
-                  c('runid_18', '2020 Exempt User Runs'),
-                  c('runid_19','Median Climate Change Scenario (50/50)- 2040 Demand'),
-                  c('runid_20', 'Wet Climate Change Scenario (90/90) - 2040 Demand'),
-                  c('runid_21', '2015 Demand 2010'),
-                  c('runid_22', '2015 Demand 2040'),
-                  #metrics:
-                  c('fiveyr_avg_mgy', 'Five Year Avg Use (MGY)'),
-                  c('wd_mgd', 'Withdraws (MGD)'),
-                  c('gw_demand_mgd', 'Ground Water Demand (MGD)'),
-                  c('ps_mgd', 'Point Source (MGD)'),
-                  c('wsp2020_2040_mgy', 'Water Supply Plan 2020-2040 Demand (MGY)'),
-                  c('l90_Qout', '90 Day Low Flow'),
-                  c('l30_Qout', '30 Day Low Flow'),
-                  c('Smin_L30_mg', 'Lowest 30 Day Minimum Storage (MG)'),
-                  c('unmet30_mgd', 'Highest 30 Day Potential Unmet Demand (MGD)'),
-                  #table column names:
-                  c('name', 'Name'),
-                  c('riverseg', 'River Segment ID'),
-                  c('five_yr_avg', '5-yr Avg Use (MGY)'),
-                  c('runid_11_wd_mgd', '2020 Demand Scenario Withdraws (MGD)'),
-                  c('runid_13_wd_mgd', '2040 Demand Scenario Withdraws (MGD)'),
-                  c('runid_11_l90_Qout', '2020 90 Day Low Flow'),
-                  c('runid_13_l90_Qout', '2040 90 Day Low Flow'),
-                  c('percentDiff_l90_Qout_runid_11_runid_13', 'Percent Difference in 90 Day Low Flow From 2020-2040'),
-                  c('runid_11_l30_Qout', '2020 30 Day Low Flow'),
-                  c('runid_13_l30_Qout', '2040 30 Day Low Flow'),
-                  c('percentDiff_l30_Qout_runid_11_runid_13', 'Percent Difference in 30 Day Low Flow From 2020-2040'),
-                  c('runid_11_7q10', '2020 7Q10'),
-                  c('runid_13_7q10', '2040 7Q10'),
-                  c('percentDiff_7q10_runid_11_runid_13', 'Percent Difference in 7Q10 From 2020-2040'),
-                  c('runid_11_consumptive_use_frac', '2020 Consumptive Use Fraction'),
-                  c('runid_13_consumptive_use_frac', '2040 Consumptive Use Fraction'),
-                  c('percentDiff_Qout_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
-                  c('percentDiff_Qout_runid_0_runid_13', 'Percent Change in Flow in 2040'),
-                  c('runid_11_Qout', '2020 Average Flow'),
-                  c('runid_13_Qout', '2040 Average Flow'),
-                  c('runid_0_Qout', 'Base Flow'),
-                  c('runid_17_l90_Qout', '2040 Dry Climate Change 90 Day Low Flow'),
-                  c('runid_17_l30_Qout', '2040 Dry Climate Change 30 Day Low Flow'),
-                  c('percentDiff_l90_Qout_runid_11_runid_17', 'Percent Difference in 90 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
-                  c('percentDiff_l30_Qout_runid_11_runid_17', 'Percent Difference in 30 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
-                  c('runid_17_7q10', '2040 Dry Climate Change 7Q10'),
-                  c('percentDiff_7q10_runid_11_runid_17', 'Percent Difference in 7Q10 From 2020-2040 (Dry Climate Scenario)'),
-                  c('runid_11_Smin_L30_mg', '2020 Lowest 30 Day Minimum Storage (MG)'),
-                  c('runid_13_Smin_L30_mg', '2040 Lowest 30 Day Minimum Storage (MG)'),
-                  c('percentDiff_Smin_L30_mg_runid_11_runid_17', 'Percent Difference in Lowest 30 Day Minimum Storage From 2020-2040 (Dry Climate Scenario)'),
-                  c('runid_11_unmet30_mgd', '2020 Highest 30 Day Potential Unmet Demand (MGD)'),
-                  c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)'),
-                  c('runid_17_unmet30_mgd', '2040 Dry Climate Change 30 day Potential Unmet Demand (MGD)'),
-                  c('gw_frac', 'GW Fraction')
-                  
-))
-colnames(readable) <- c('computer', 'human')
-
-# adapt this to permit us to store pre-configured sets
-# run_set is parameter to use in WSP_Regional_Summaries.Rmd
-
 #----Run Sets----
 # run_sets: complex, allows us to render with fewer arguments to Rmarkdown
 # format:
@@ -113,8 +43,8 @@ run_sets <- list(
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_13',
         floor = NULL, #table only displays values above this (not equal to)
         ceiling = NULL, #table only displays values below this (not equal to)
-        n_entries = NULL, #max num. of table entries
-        sort_decreasing = FALSE,
+        n_entries = 999, #max num. of table entries
+        sort = 'increasing', #Options: 'increasing', 'decreasing', or NULL --> orders table entries by increasing or decreasing values of the specified sort_col
         exlude_NAs = FALSE
       ),
       list(
@@ -128,8 +58,8 @@ run_sets <- list(
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = FALSE,
+        n_entries = 999,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
       list(
@@ -143,23 +73,23 @@ run_sets <- list(
         sort_col = 'percentDiff_7q10_runid_11_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = FALSE,
+        n_entries = 999,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
       list(
         metric='Qout', 
         data_set = 'rseg_no_geom',
-        column_name='percentDiff_Qout_runid_0_runid_13', 
+        column_name='percentDiff_Qout_runid_1000_runid_13', 
         run_label = 'Overall Change in Flow in 2040', 
         show_map = TRUE,
         ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_0_Qout','runid_13_Qout', 'percentDiff_Qout_runid_0_runid_13'),
-        sort_col = 'percentDiff_Qout_runid_0_runid_13',
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_1000_Qout','runid_13_Qout', 'percentDiff_Qout_runid_1000_runid_13'),
+        sort_col = 'percentDiff_Qout_runid_1000_runid_13',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = FALSE,
+        n_entries = 999,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
       list(
@@ -173,8 +103,8 @@ run_sets <- list(
         sort_col = 'percentDiff_l90_Qout_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = FALSE,
+        n_entries = 999,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
       list(
@@ -188,25 +118,25 @@ run_sets <- list(
         sort_col = 'percentDiff_l30_Qout_runid_11_runid_17',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = FALSE,
+        n_entries = 999,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
 #      list(metric='water_available_mgd', column_name='water_available_mgd_runid_13'),
       list(
-        metric='7q10', 
-        data_set = 'rseg_no_geom',
-        column_name='percentDiff_7q10_runid_11_runid_17', 
-        run_label = '7Q10 Day Low Flow (Percent Change 2020 to Dry Climate Change)', 
-        show_map = TRUE,
+        data_set = 'facils_nogeom',
+        metric='unmet30_mgd', #replace with unmet demand req 
+        column_name='runid_11_unmet30_mgd', 
+        run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
+        show_map = FALSE,
         ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_7q10', 'runid_17_7q10', 'percentDiff_7q10_runid_11_runid_17'),
-        sort_col = 'percentDiff_7q10_runid_11_runid_17',
-        floor = NULL, 
-        ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = TRUE,
-        exlude_NAs = FALSE
+        tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
+        sort_col = 'runid_13_unmet30_mgd',
+        floor = NULL, #floor = 0.001, 
+        ceiling = NULL,
+        n_entries = 999,
+        sort = 'decreasing',
+        exlude_NAs = TRUE #exlude_NAs = FALSE
       ),
       list(
         metric='Smin_L30_mg', 
@@ -215,27 +145,12 @@ run_sets <- list(
         run_label = 'Lowest 30 Day Minimum Storage (MG)', 
         show_map = TRUE,
         ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_17'), 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_13'), 
         sort_col = 'runid_13_Smin_L30_mg',
         floor = NULL, 
         ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = TRUE,
-        exlude_NAs = FALSE
-      ), 
-      list(
-        data_set = 'facils_nogeom',
-        metric='unmet30_mgd', #replace with unmet demand req 
-        column_name='runid_11_unmet30_mgd', 
-        run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
-        show_map = TRUE,
-        ramp = 'default',
-        tables_cols = c('facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
-        sort_col = 'runid_11_unmet30_mgd',
-        floor = NULL, 
-        ceiling = NULL, 
-        n_entries = NULL,
-        sort_decreasing = FALSE,
+        n_entries = 999,
+        sort = 'increasing',
         exlude_NAs = FALSE
       )
   ),
@@ -253,7 +168,7 @@ run_sets <- list(
         floor = NULL, 
         ceiling = NULL, 
         n_entries = NULL,
-        sort_decreasing = FALSE,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
       list(
@@ -268,7 +183,7 @@ run_sets <- list(
         floor = NULL, 
         ceiling = NULL, 
         n_entries = NULL,
-        sort_decreasing = FALSE,
+        sort = 'increasing',
         exlude_NAs = FALSE
       ),
       list(
@@ -283,7 +198,7 @@ run_sets <- list(
         floor = NULL, 
         ceiling = NULL, 
         n_entries = NULL,
-        sort_decreasing = TRUE,
+        sort = 'increasing',
         exlude_NAs = FALSE
       )
     )
@@ -293,7 +208,7 @@ run_sets <- list(
 
 #----Rivseg Maps Customization----
 #For riverseg drought metric maps 
-rivmap_ramps <- list( #a specific ramp per map can be chosen via runset
+rivmap_ramps <- list( #a specific ramp per map & corresponding highlight limit per table can be chosen via runset
   'default' = cbind(rivseg_pct_vect = c(-20,-10,-2,2,10,20,500), #vector of values for rivseg drought maps
                     #^last value should be higher than any % difference value expected, since classification is done using <=
                     rivmap_colors = c("firebrick2","darkorange","#FFCC99",
@@ -306,7 +221,7 @@ rivmap_ramps <- list( #a specific ramp per map can be chosen via runset
                                      "+10 to +20",
                                      " > +20"), #last label should be greater than 2nd-to-last value in pct vector 
                     #^needs to be same length as rivseg_pct_vect
-                   highlight_limit = -10 #sets upper limit of % difference for highlighting values/rows in the riverseg table
+                   highlight_limit = -10 #sets upper limit of % difference for highlighting values/rows in the riverseg TABLE
               )
 )
 
@@ -324,6 +239,83 @@ rivmap_ramps <- list( #a specific ramp per map can be chosen via runset
 #                  " > +20") #last label should be greater than 2nd-to-last value in pct vector 
 # #^needs to be same length as rivseg_pct_vect
 # rseg_highlight_limit <- -10 #sets upper limit of % difference for highlighting values/rows in the riverseg table
+
+#----Overrides for Custom Bbox----
+#Edit here:
+custom_bboxes <- list(
+  'SoutheastVirginia'= cbind(c(xmin=-77.75660,xmax=-75.77736),c(ymin=36.4, ymax=37.4))
+)
+
+#----Human-readable metric names: add here any new metric names being used and their readable version----
+readable <- data.frame(rbind(
+  #scenarios:
+  c('runid_1000', 'Pre-Condition'),
+  c('runid_1', 'Historical Condition'),
+  c('runid_3', 'Permit Term Max'),
+  c('runid_11', '2020 Demand Scenario'),
+  c('runid_12', '2030 Demand Scenario'),
+  c('runid_13', '2040 Demand Scenario'),
+  c('runid_14', 'Median Climate Change Scenario (50/50)- 2020 Demand'),
+  c('runid_15', 'Dry Climate Change Scenario (10/10) - 2020 Demand'),
+  c('runid_16', 'Wet Climate Change Scenario (90/90) - 2020 Demand'),
+  c('runid_17', 'Dry Climate Change Scenario (10/20) - 2040 Demand'),
+  c('runid_18', '2020 Exempt User Runs'),
+  c('runid_19','Median Climate Change Scenario (50/50)- 2040 Demand'),
+  c('runid_20', 'Wet Climate Change Scenario (90/90) - 2040 Demand'),
+  c('runid_21', '2015 Demand 2010'),
+  c('runid_22', '2015 Demand 2040'),
+  #metrics:
+  c('fiveyr_avg_mgy', 'Five Year Avg Use (MGY)'),
+  c('wd_mgd', 'Withdraws (MGD)'),
+  c('gw_demand_mgd', 'Ground Water Demand (MGD)'),
+  c('ps_mgd', 'Point Source (MGD)'),
+  c('wsp2020_2040_mgy', 'Water Supply Plan 2020-2040 Demand (MGY)'),
+  c('l90_Qout', '90 Day Low Flow (cfs)'),
+  c('l30_Qout', '30 Day Low Flow (cfs)'),
+  c('Smin_L30_mg', 'Lowest 30 Day Minimum Storage (MG)'),
+  c('unmet30_mgd', 'Highest 30 Day Potential Unmet Demand (MGD)'),
+  #table column names:
+  c('name', 'Name'),
+  c('riverseg', 'River Segment ID'),
+  c('five_yr_avg', '5-yr Avg Use (MGY)'),
+  c('runid_11_wd_mgd', '2020 Demand Scenario Withdraws (MGD)'),
+  c('runid_13_wd_mgd', '2040 Demand Scenario Withdraws (MGD)'),
+  c('runid_11_l90_Qout', '2020 90 Day Low Flow (cfs)'),
+  c('runid_13_l90_Qout', '2040 90 Day Low Flow (cfs)'),
+  c('percentDiff_l90_Qout_runid_11_runid_13', 'Percent Difference in 90 Day Low Flow From 2020-2040'),
+  c('runid_11_l30_Qout', '2020 30 Day Low Flow (cfs)'),
+  c('runid_13_l30_Qout', '2040 30 Day Low Flow (cfs)'),
+  c('percentDiff_l30_Qout_runid_11_runid_13', 'Percent Difference in 30 Day Low Flow From 2020-2040'),
+  c('runid_11_7q10', '2020 7Q10 (cfs)'),
+  c('runid_13_7q10', '2040 7Q10 (cfs)'),
+  c('percentDiff_7q10_runid_11_runid_13', 'Percent Difference in 7Q10 From 2020-2040'),
+  c('runid_11_consumptive_use_frac', '2020 Consumptive Use Fraction'),
+  c('runid_13_consumptive_use_frac', '2040 Consumptive Use Fraction'),
+  c('percentDiff_Qout_runid_11_runid_13', 'Percent Change in Flow From 2020-2040'),
+  c('percentDiff_Qout_runid_1000_runid_13', 'Percent Consumptive Use in 2040'),
+  c('runid_11_Qout', '2020 Average Flow (cfs)'),
+  c('runid_13_Qout', '2040 Average Flow (cfs)'),
+  c('runid_1000_Qout', 'Base Flow (cfs)'),
+  c('runid_17_l90_Qout', '2040 Dry Climate Change 90 Day Low Flow (cfs)'),
+  c('runid_17_l30_Qout', '2040 Dry Climate Change 30 Day Low Flow (cfs)'),
+  c('percentDiff_l90_Qout_runid_11_runid_17', 'Percent Difference in 90 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
+  c('percentDiff_l30_Qout_runid_11_runid_17', 'Percent Difference in 30 Day Low Flow From 2020-2040 (Dry Climate Scenario)'),
+  c('runid_17_7q10', '2040 Dry Climate Change 7Q10 (cfs)'),
+  c('percentDiff_7q10_runid_11_runid_17', 'Percent Difference in 7Q10 From 2020-2040 (Dry Climate Scenario)'),
+  c('runid_11_Smin_L30_mg', '2020 Lowest 30 Day Minimum Storage (MG)'),
+  c('runid_13_Smin_L30_mg', '2040 Lowest 30 Day Minimum Storage (MG)'),
+  c('percentDiff_Smin_L30_mg_runid_11_runid_17', 'Percent Difference in Lowest 30 Day Minimum Storage From 2020-2040 (Dry Climate Scenario)'),
+  c('runid_11_unmet30_mgd', '2020 Highest 30 Day Potential Unmet Demand (MGD)'),
+  c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)'),
+  c('runid_17_unmet30_mgd', '2040 Dry Climate Change 30 day Potential Unmet Demand (MGD)'),
+  c('gw_frac', 'GW Fraction'),
+  c('Facility_hydroid', 'VAHydro ID')
+  
+))
+colnames(readable) <- c('computer', 'human')
+
+# adapt this to permit us to store pre-configured sets
+# run_set is parameter to use in WSP_Regional_Summaries.Rmd
 
 #----NHD flowline & waterbody classification & substitution:----
 #flowlines:
@@ -349,17 +341,11 @@ metrc_ramps = list(
 #----Basemap URL----
 # location of data for the map background. 
 # these are inputs for fn_basemap(), located in fns_mapgen.R
-map_server <- "https://gismaps.vdem.virginia.gov/arcgis/rest/services" 
+map_server <- "https://vginmaps.vdem.virginia.gov/arcgis/rest/services" 
 base_layer = "Download/LandCover_Downloads/MapServer/0" #VA LandCover -> very sparse
 
 #--
 styles <- list()
-#----Overrides for Custom Bbox----
-#Edit here:
-custom_bboxes <- list(
-  'SoutheastVirginia'= cbind(c(xmin=-77.75660,xmax=-75.77736),c(ymin=36.4, ymax=37.4))
-)
-
 #----Custom Aesthetics:----
 styles$custom$color$sf <- data.frame(row.names=c("lightenBase","county","nhd","roads","citypts","rsegs","region","shadow","tidal", "unmodeled"),
                                color=c("honeydew","#0033337F","deepskyblue3","black","black","sienna1","black", "#4040408F","#5F5C87","#828284")
@@ -807,7 +793,7 @@ styles$colorblind$l <- data.frame(class="smallTown",
                               fillcode="NA"
 )
 
-#----Creating Final List of Map Styles Data Frames:----
+#----Creating Final List of Map Styles Data Frames: (NOT for User Editing)----
 for(i in 1:length(styles)){
   end <- length(styles[[i]])
   
