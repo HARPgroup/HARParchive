@@ -3,6 +3,7 @@ library("sqldf")
 library("dataRetrieval")
 library("lubridate")
 library("R6")
+library("zoo")
 
 basepath='/var/www/R';
 source("/var/www/R/config.R")
@@ -107,6 +108,7 @@ week_rain_data <- sqldf("select * from week_data where nldas2_p_cfs > 0")
 mon_lm_stats(week_data, "nldas2_p_cfs", "usgs_cfs", "mo")
 nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2", gageid)
 nldas2_lm$plot
+nldas2_lm$data
 week_data$model <- NA
 
 for (mo in 1:length(month.name)) {
@@ -164,6 +166,8 @@ legend("topright", legend=c("USGS", "NLDAS2 Model"),
        fill = c("green", "purple") 
 )
 plot(week_data$usgs ~ week_data$yr,main="USGS Flows over time")
+mean(week_data$model, na.rm=TRUE)
+mean(week_data$usgs_cfs, na.rm=TRUE)
 obsreg=lm(week_data$usgs ~ week_data$yr )
 abline(obsreg)
 summary(obsreg)

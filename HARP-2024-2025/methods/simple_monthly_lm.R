@@ -9,18 +9,18 @@ source("/var/www/R/config.R")
 source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/R/fac_utils.R")
 source("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2024-2025/functions/lm_analysis_plots.R")
 
-gageid = '02031000' # Culpepper 01667500, Strasburg 01634000, Ruckersville 01665500, Mechums 02031000
+gageid = '01613900' # Culpepper 01667500, Strasburg 01634000, Ruckersville 01665500, Mechums 02031000
 hydrocode = paste0('usgs_ws_', gageid)
-prism_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/PRISM/out/", hydrocode, "-PRISM-all.csv"))
+prism_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/PRISM/precip/", hydrocode, "_precip_daily.csv"))
 prism_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(prism_data$obs_date)), month(as.Date(prism_data$obs_date)), day(as.Date(prism_data$obs_date)), week(as.Date(prism_data$obs_date)) )
 
-daymet_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/daymet/out/", hydrocode, "-daymet-all.csv"))
+daymet_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/daymet/precip/", hydrocode, "_precip_daily.csv"))
 daymet_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(daymet_data$obs_date)), month(as.Date(daymet_data$obs_date)), day(as.Date(daymet_data$obs_date)), week(as.Date(daymet_data$obs_date)) )
 
-nldas2_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/out/", hydrocode, "-nldas2-all.csv"))
+nldas2_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/nldas2/precip/", hydrocode, "_precip_daily.csv"))
 nldas2_data[,c('yr', 'mo', 'da', 'wk')] <- cbind(year(as.Date(nldas2_data$obs_date)), month(as.Date(nldas2_data$obs_date)), day(as.Date(nldas2_data$obs_date)), week(as.Date(nldas2_data$obs_date)) )
 nldas2_data <- sqldf(
-  "select featureid, min(obs_date) as obs_date, yr, mo, da, 
+  "select min(obs_date) as obs_date, yr, mo, da, 
      sum(precip_mm) as precip_mm, sum(precip_in) as precip_in
    from nldas2_data 
    group by yr, mo, da
@@ -103,9 +103,33 @@ week_data <- sqldf(
 )
 week_data$mo <- month(week_data$week_begin)
 
-
+mon_lm_stats(week_data, "nldas2_p_cfs", "usgs_cfs", "mo")
 nldas2_lm <- mon_lm(week_data, "nldas2_p_cfs", "usgs_cfs", "mo", "nldas2", gageid)
 nldas2_lm$plot
+mo_data=week_data[which((week_data[,"mo"] == 1)),]
+weekmo_data <- lm(mo_data[,"usgs_cfs"] ~ mo_data[,"nldas2_p_cfs"])
+dsum <- summary(weekmo_data)
+week_data$model <- dsum$coefficients[1,1] + dsum$coefficients[2,1] * week_data$nldas2_p_cfs
+
+plot(weekmo_data)
+plot_out$atts$lms[[i]] <- weekmo_data
+
+plot(week_data$usgs_cfs ~ week_data$nldas2_p_cfs)
+abline(dsum)
+
+aav <- sqldf(
+  "select yr,avg(nldas2_p_cfs) as nldas2, avg(usgs_cfs) as usgs,
+   avg(model) as model
+   from week_data
+   group by yr"
+)
+
+barplot(as.matrix(aav[,c('usgs', 'nldas2', 'model')]) ~ aav$yr )
+
+barplot(aav$usgs)
+barplot(aav$nldas2, add = TRUE, col = "red")
+barplot(aav$nldas2, col = "red")
+
 
 prism_lm <- mon_lm(week_data, "prism_p_cfs", "usgs_cfs", "mo", "prism", gageid)
 prism_lm$plot
