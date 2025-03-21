@@ -152,7 +152,23 @@ run_sets <- list(
         n_entries = 999,
         sort = 'increasing',
         exlude_NAs = FALSE
+      ),
+      list(
+        metric='WA_90_mgd', 
+        data_set = 'rseg_no_geom', 
+        column_name='runid_13_WA_90_mgd', 
+        run_label = 'Water Availability Rate during lowest 90 day flow period', 
+        show_map = TRUE, 
+        ramp = 'default', 
+        tables_cols = c('name', 'riverseg', 'Metric', 'runid_13_WA_90_mgd'), 
+        sort_col = 'runid_13_WA_90_mgd', 
+        floor = NULL, 
+        ceiling = NULL, 
+        n_entries = 999, 
+        sort = 'decreasing', 
+        exlude_NAs = FALSE 
       )
+    )
   ),
   permit_dev = list(
     riverseg_metrics=list( 
@@ -203,7 +219,6 @@ run_sets <- list(
       )
     )
   )
-)
 )
 
 #----Rivseg Maps Customization----
