@@ -1,0 +1,44 @@
+final_data_83_87 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/1983_1987_final_data")
+final_data_88_92 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/1988_1992_final_data")
+final_data_93_97 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/1993_1997_final_data")
+final_data_98_03 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/1998_2003_final_data")
+final_data_04_08 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/2004_2008_final_data")
+final_data_09_13 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/2009_2013_final_data")
+final_data_14_18 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/2014_2018_final_data")
+final_data_19_23 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/2019_2023_final_data")
+
+
+gageWatershedSF_83_87 <- create_SF()
+gageWatershedSF_83_87$CV <- final_data$CV[match(final_data_83_87$hydrocode, gageWatershedSF_83_87$hydrocode)]
+gageWatershedSF_88_92 <- create_SF()
+gageWatershedSF_88_92$CV <- final_data$CV[match(final_data_88_92$hydrocode, gageWatershedSF_88_92$hydrocode)]
+gageWatershedSF_93_97 <- create_SF()
+gageWatershedSF_93_97$CV <- final_data$CV[match(final_data_93_97$hydrocode, gageWatershedSF_93_97$hydrocode)]
+gageWatershedSF_98_03 <- create_SF()
+gageWatershedSF_98_03$CV <- final_data$CV[match(final_data_98_03$hydrocode, gageWatershedSF_98_03$hydrocode)]
+gageWatershedSF_04_08 <- create_SF()
+gageWatershedSF_04_08$CV <- final_data$CV[match(final_data_04_08$hydrocode, gageWatershedSF_04_08$hydrocode)]
+gageWatershedSF_09_13 <- create_SF()
+gageWatershedSF_09_13$CV <- final_data$CV[match(final_data_09_13$hydrocode, gageWatershedSF_09_13$hydrocode)]
+gageWatershedSF_14_18 <- create_SF()
+gageWatershedSF_14_18$CV <- final_data$CV[match(final_data_14_18$hydrocode, gageWatershedSF_14_18$hydrocode)]
+gageWatershedSF_19_23 <- create_SF()
+gageWatershedSF_19_23$CV <- final_data$CV[match(final_data_19_23$hydrocode, gageWatershedSF_19_23$hydrocode)]
+
+
+ggplot(gageWatershedSF_83_87) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 1983-1987")
+ggplot(gageWatershedSF_88_92) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 1988-1992")
+ggplot(gageWatershedSF_93_97) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 1993-1997")
+ggplot(gageWatershedSF_98_03) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 1998-2003")
+ggplot(gageWatershedSF_04_08) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 2004-2008")
+ggplot(gageWatershedSF_09_13) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 2009-2013")
+ggplot(gageWatershedSF_14_18) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 2014-2018")
+ggplot(gageWatershedSF_19_23) + 
+  geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 2019-2023")
