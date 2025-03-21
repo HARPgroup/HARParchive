@@ -9,6 +9,8 @@ output:
     # reference_docx: 51049_wsp.docx
     toc: true
     number_sections: true
+    page_margins:
+      gutter: 0.0
 
 #Here is the main editable part of the rmd, planners should adjust parameters as they see fit for their goals, see README documentation for more details on each parameter
 #Can edit here or in a render command 
