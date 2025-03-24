@@ -4,6 +4,7 @@ library(ggplot2)
 library(dplyr)
 library(cowplot)
 library(units)
+library(RCurl)
 
 
 
@@ -18,19 +19,38 @@ yearly_summary <- function(df,beginningyear,endyear){
   #creating a yearly summary with each year and its total precip
   yearly_summary <- 
     fn$sqldf(
-      "SELECT COUNT(daily_precip) AS ndays_with_data, SUM(CASE WHEN daily_precip IS NULL THEN 1 ELSE 0 END) AS ndays_missing, MIN(yr) as start_year, MAX(yr) as end_year, SUM(daily_precip) AS total_precip
+      "SELECT COUNT(daily_precip) AS ndays_with_data, 
+      SUM(CASE WHEN daily_precip IS NULL THEN 1 ELSE 0 END) AS ndays_missing, 
+      MIN(yr) as start_year, MAX(yr) as end_year, SUM(daily_precip) AS total_precip
   FROM daily_summary
   where yr >= '$beginningyear'
   and yr <= '$endyear'"
     )
 }
-#hydrocode <- "usgs_ws_02019500"
+#hydrocode <- "usgs_ws_02071000"
 #beginningyear <- '2018'
 #endyear <- '2018'
 model_comparison <- function(hydrocode,beginningyear,endyear){
-  prism <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/PRISM/precip/",hydrocode,"_precip.csv"))
-  daymet <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/daymet/precip/",hydrocode,"_precip.csv"))
-  nldas2 <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/nldas2/precip/",hydrocode,"_precip.csv"))
+  default_dataframe <- data.frame(yr = numeric(),
+                                 mo = numeric(),
+                                 da = numeric(),
+                                 obs_date = as.Date(character()),
+                                 precip_in = numeric())
+ if (url.exists(paste0("http://deq1.bse.vt.edu:81/met/PRISM/precip/",hydrocode,"_precip.csv"))){
+   prism <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/PRISM/precip/",hydrocode,"_precip.csv"))
+ } else{
+   prism <- default_dataframe
+ }
+  if (url.exists(paste0("http://deq1.bse.vt.edu:81/met/daymet/precip/",hydrocode,"_precip.csv"))){
+    daymet <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/daymet/precip/",hydrocode,"_precip.csv"))
+  } else{
+    daymet <- default_dataframe
+  }
+  if (url.exists(paste0("http://deq1.bse.vt.edu:81/met/nldas2/precip/",hydrocode,"_precip.csv"))){
+    nldas2 <- read.csv(paste0("http://deq1.bse.vt.edu:81/met/nldas2/precip/",hydrocode,"_precip.csv"))
+  } else{
+    nldas2 <- default_dataframe
+  }
   prism_sum <- yearly_summary(prism,beginningyear,endyear)
   daymet_sum <- yearly_summary(daymet,beginningyear,endyear)
   nldas_sum <- yearly_summary(nldas2,beginningyear,endyear)
@@ -51,7 +71,8 @@ model_comparison <- function(hydrocode,beginningyear,endyear){
     j.daymet_ndays_with_data,j.prism_ndays_with_data,nldas_sum.ndays_with_data as nldas2_ndays_with_data,
     j.daymet_missing, j.prism_missing, nldas_sum.ndays_missing as nldas2_missing
   FROM j
-  FULL OUTER JOIN nldas_sum on j.start_year=nldas_sum.start_year"
+  FULL OUTER JOIN nldas_sum on j.start_year=nldas_sum.start_year
+    where j.start_year is not NULL"
   )
   ## tidies data -- pivot longer
   #j3 <- sqldf(
@@ -81,8 +102,9 @@ create_SF <- function(){
   gageWatershedSF <- st_make_valid(gageWatershedSF)
   #Add shape area in coordinate system units (likely meaningless in crs 4326)
   gageWatershedSF$area <- st_area(gageWatershedSF)
-  gageWatershedSF <- gageWatershedSF |> filter(gage != "02071000")
+  return(gageWatershedSF)
 }
+
 CV_analysis <- function(beginningyear,endyear){
   for (i in  1:nrow(gageWatershedSF)){
     analytic_data <- model_comparison(gageWatershedSF$hydrocode[[i]],beginningyear,endyear)
@@ -105,7 +127,7 @@ final_data <- sqldf(
      left join gageWatershedSF as b on
    (a.hydrocode = b.hydrocode)"
 )
-
+  
 write.csv(final_data, "~/HarpData/Harp2025(correct)/1998_2003_final_data")
 write.csv(stat_data, "~/HarpData/Harp2025(correct)/1998_2003_stat_data")
 
