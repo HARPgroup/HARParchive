@@ -595,11 +595,12 @@ if (!is.null(nrow(insidegwma))) {
     aquifer <- 'Potomac'
     
     ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
-    potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                                maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                                maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                                aquifer_shp = potomac, origin_shape)
-    
+    potomac_map <- fn_gw_mapgen(
+      bbox, crs_default,  mp_layer, featr_type, 
+      maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+      maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+      aquifer_shp = potomac, origin_shape)
+    map_objects[[length(map_objects) + 1]] <- potomac_map
     ## Saves the file
     ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
            plot = potomac_map,width=25,height=20)
@@ -610,11 +611,12 @@ if (!is.null(nrow(insidegwma))) {
     ### Aquia
     aquifer <- 'Aquia'
     
-    aquia_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = aquia, origin_shape)
-    
+    aquia_map <- fn_gw_mapgen(
+      bbox, crs_default,  mp_layer, featr_type, 
+      maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+      maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+      aquifer_shp = aquia, origin_shape)
+    map_objects[[length(map_objects) + 1]] <- aquia_map
     ggsave(filename = paste0(export_path,origin,'_Aquia.png'),
            plot = aquia_map,width=25,height=20)
     
@@ -624,11 +626,12 @@ if (!is.null(nrow(insidegwma))) {
     ### Piney Point 
     aquifer <- 'Piney Point'
     
-    pineypoint_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                                   maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                                   maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                                   aquifer_shp = pineypoint, origin_shape)
-    
+    pineypoint_map <- fn_gw_mapgen(
+      bbox, crs_default,  mp_layer, featr_type, 
+      maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+      maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+      aquifer_shp = pineypoint, origin_shape)
+    map_objects[[length(map_objects) + 1]] <- pineypoint_map
     ## Piney Point cant have a space in the filename
     ggsave(filename = paste0(export_path,origin,'_Piney_Point.png'),
            plot = pineypoint_map,width=25,height=20)
