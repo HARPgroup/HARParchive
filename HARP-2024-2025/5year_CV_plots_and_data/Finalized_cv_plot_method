@@ -27,7 +27,7 @@ yearly_summary <- function(df,beginningyear,endyear){
   and yr <= '$endyear'"
     )
 }
-#hydrocode <- "usgs_ws_02071000"
+#hydrocode <- 'usgs_ws_02038000'
 #beginningyear <- '2018'
 #endyear <- '2018'
 model_comparison <- function(hydrocode,beginningyear,endyear){
@@ -115,7 +115,7 @@ CV_analysis <- function(beginningyear,endyear){
 gageWatershedSF <- create_SF()
 stat_data <- data.frame()
 final_data <- data.frame()
-stat_data <- CV_analysis(1998,2003)
+stat_data <- CV_analysis(2018,2023)
 
 gageWatershedSF <- st_drop_geometry(gageWatershedSF)
 gageWatershedSF$area <- as.numeric(gageWatershedSF$area)
@@ -127,9 +127,9 @@ final_data <- sqldf(
      left join gageWatershedSF as b on
    (a.hydrocode = b.hydrocode)"
 )
-  
-write.csv(final_data, "~/HarpData/Harp2025(correct)/1998_2003_final_data")
-write.csv(stat_data, "~/HarpData/Harp2025(correct)/1998_2003_stat_data")
+
+write.csv(final_data, "~/HarpData/Harp2025(correct)/2018_2023_final_data")
+write.csv(stat_data, "~/HarpData/Harp2025(correct)/2018_2023_stat_data")
 
 gageWatershedSF <- create_SF()
 gageWatershedSF$CV <- final_data$CV[match(final_data$hydrocode, gageWatershedSF$hydrocode)]
