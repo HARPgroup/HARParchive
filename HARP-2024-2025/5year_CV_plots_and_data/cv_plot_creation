@@ -16,8 +16,6 @@ create_SF <- function(){
   return(gageWatershedSF)
 }
 
-write.csv(gageWatershedSF,"~/HarpData/Harp2025(correct)/gagewatershedsf")
-
 
 final_data_83_87 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/1983_1987_final_data")
 final_data_88_92 <- read.csv("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/master/HARP-2024-2025/5year_CV_plots_and_data/1988_1992_final_data")
@@ -45,7 +43,6 @@ gageWatershedSF_13_17$CV <- final_data_13_17$CV[match(final_data_13_17$hydrocode
 gageWatershedSF_18_23 <- create_SF()
 gageWatershedSF_18_23$CV <- final_data_18_23$CV[match(final_data_18_23$hydrocode, gageWatershedSF_18_23$hydrocode)]
 
-gageWatershedSF$CV <- final_data$CV[match(final_data$hydrocode, gageWatershedSF$hydrocode)]
 
 ggplot(gageWatershedSF_83_87) + 
   geom_sf(aes(fill = CV)) + ggtitle("CV Plot for 1983-1987")
