@@ -97,10 +97,10 @@ create_SF <- function(watershedWKT = "http://deq1.bse.vt.edu:81/met/usgsGageWate
     #Get the watershed coverages and geometries from the server
     gageWatershedSF <- fn$sqldf(
       connection = ds$connection,
-      "SELECT hydrocode,ST_asText(dh_geofield_geom) as wkt
+      paste0("SELECT hydrocode,ST_asText(dh_geofield_geom) as ",wktField,"
        FROM dh_feature_fielded
        WHERE bundle = '$bundle'
-       AND ftype = '$ftype'"
+       AND ftype = '$ftype'")
     )
     #Get the gage numbers as their own field and store a copy of the data
     gageWatershedSF <- gageWatershedSF[!is.na(gageWatershedSF$wkt),]
