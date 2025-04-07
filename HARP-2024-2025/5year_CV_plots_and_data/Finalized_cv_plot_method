@@ -29,7 +29,7 @@ yearly_summary <- function(df,beginningyear,endyear){
     )
   return(yearly_summary)
 }
-#hydrocode <- "usgs_ws_02071000"
+#hydrocode <- 'usgs_ws_02038000'
 #beginningyear <- '2018'
 #endyear <- '2023'
 model_comparison <- function(hydrocode,beginningyear,endyear){
@@ -133,6 +133,10 @@ CV_analysis <- function(beginningyear,endyear,
   }
   return(stat_data)
 }
+
+gageWatershedSF <- create_SF()
+stat_data <- data.frame()
+final_data <- data.frame()
 
 #Get the geometries of all VA USGS watersheds
 gageWatershedSF2 <- create_SF()
