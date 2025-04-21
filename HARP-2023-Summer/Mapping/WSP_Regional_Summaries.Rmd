@@ -192,6 +192,7 @@ if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom
 
 ```
 
+
 ```{r Get NHD in Bbox, echo=FALSE, message=FALSE, warning=FALSE}
 
 # NHD data within the bbox

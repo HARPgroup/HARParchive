@@ -335,7 +335,7 @@ fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title, rivmap_
                                                                map_style_set$color$sf["tidal",], 
                                                                map_style_set$color$sf["unmodeled",]), #from config
                                            breaks = seq(1:(2+length(rivseg_pct_vect))), #append all these lists to incorporate bins for tidal segs & unmodeled data
-                                           labels = c(rivmap_ramp[,"rivmap_labs"], "Tidal", "Unmodeled"),
+                                           labels = c(rivmap_ramp[,"rivmap_labs"], "Unmodeled - Tidal", "Unmodeled"),
                                            limits = as.factor(seq(1:(2+length(rivseg_pct_vect)))),
                                            name = str_wrap(rseg_leg_title, width = 20)
                                            )

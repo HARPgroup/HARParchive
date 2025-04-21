@@ -138,28 +138,28 @@ run_sets <- list(
         sort = 'decreasing',
         exlude_NAs = TRUE #exlude_NAs = FALSE
       ),
-      list(
-        metric='Smin_L30_mg', 
-        data_set = 'rseg_no_geom',
-        column_name='runid_13_Smin_L30_mg', 
-        run_label = 'Lowest 30 Day Minimum Storage (MG)', 
-        show_map = TRUE,
-        ramp = 'default',
-        tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_13'), 
-        sort_col = 'runid_13_Smin_L30_mg',
-        floor = NULL, 
-        ceiling = NULL, 
-        n_entries = 999,
-        sort = 'increasing',
-        exlude_NAs = FALSE
-      ),
+      # list(
+      #   metric='Smin_L30_mg', 
+      #   data_set = 'rseg_no_geom',
+      #   column_name='runid_13_Smin_L30_mg', 
+      #   run_label = 'Lowest 30 Day Minimum Storage (MG)', 
+      #   show_map = TRUE,
+      #   ramp = 'default',
+      #   tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_Smin_L30_mg', 'runid_13_Smin_L30_mg', 'percentDiff_Smin_L30_mg_runid_11_runid_13'), 
+      #   sort_col = 'runid_13_Smin_L30_mg',
+      #   floor = NULL, 
+      #   ceiling = NULL, 
+      #   n_entries = 999,
+      #   sort = 'increasing',
+      #   exlude_NAs = FALSE
+      # ),
       list(
         metric='WA_90_mgd', 
         data_set = 'rseg_no_geom', 
         column_name='runid_13_WA_90_mgd', 
         run_label = 'Water Availability Rate during lowest 90 day flow period', 
         show_map = TRUE, 
-        ramp = 'default', 
+        ramp = 'WA_availability', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_13_WA_90_mgd'), 
         sort_col = 'runid_13_WA_90_mgd', 
         floor = NULL, 
@@ -237,7 +237,21 @@ rivmap_ramps <- list( #a specific ramp per map & corresponding highlight limit p
                                      " > +20"), #last label should be greater than 2nd-to-last value in pct vector 
                     #^needs to be same length as rivseg_pct_vect
                    highlight_limit = -10 #sets upper limit of % difference for highlighting values/rows in the riverseg TABLE
-              )
+              ),
+  'WA_availability' = cbind(rivseg_pct_vect = c(-25,-5,0,5,25,100,5000), #vector of values for rivseg drought maps
+                            #^last value should be higher than any % difference value expected, since classification is done using <=
+                            rivmap_colors = c("firebrick2","darkorange","#FFCC99",
+                                              "white","palegreen","limegreen","green4"),#colors for fills based on % diff
+                            rivmap_labs = c(" <= -25", #less than or equal to first value in pct vector
+                                            "-25 to -5",
+                                            "-5 to 0",
+                                            "0 to +5",
+                                            "+5 to +25",
+                                            "+25 to +100",
+                                            " > +100"), #last label should be greater than 2nd-to-last value in pct vector 
+                            #^needs to be same length as rivseg_pct_vect
+                            highlight_limit = -10 #sets upper limit of % difference for highlighting values/rows in the riverseg TABLE
+  )
 )
 
 # rivseg_pct_vect <- c(-20,-10,-2,2,10,20,500) #vector of values for rivseg drought maps
