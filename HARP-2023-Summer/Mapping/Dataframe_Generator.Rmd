@@ -81,7 +81,11 @@ if (overwrite_files==TRUE) {
 
 #----Pull Data----
 #---Facility Data---
-foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+
+#foundational measuring pt(mp)/sources data
+foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) 
+## Integar 64 data needs to be stored as numeric
+foundatn_mp$CEDS_Facility_Id <- as.numeric(foundatn_mp$CEDS_Facility_Id)
 
 if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
   if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
@@ -230,9 +234,9 @@ if(featr_type == "source"){
 }
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("
-   SELECT facility_hydroid,facility,Use_Type,latitude,longitude,fips_code,locality,ows_planner,facility_status,
-    Total_Permit_Limit_MGY,gw_frac,wsp_2040_mgy,wsp2020_2040_mgy,fac_CEDSid,
-    SUM(five_yr_avg) as sum  -- Creating an aggregated column for the five_yr_avg
+   SELECT facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,locality,facility_status,
+    Total_Permit_Limit_MGY,gw_frac,wsp2040_mgy AS wsp_2040_mgy,wsp2020_mgy AS wsp2020_2040_mgy,fac_CEDSid,
+    SUM(fiveyr_avg_mgy) as sum  -- Creating an aggregated column for the fiveyr_avg_mgy
    FROM foundatn_mp
    GROUP BY Facility_hydroid
   ") # Not selecting any source related fields, as these are innacurate to the facility (and even the soruce)

@@ -130,7 +130,7 @@ run_sets <- list(
         run_label = 'Highest 30 Day Potential Unmet Demand (MGD)', 
         show_map = FALSE,
         ramp = 'default',
-        tables_cols = c('Facility', 'Facility_hydroid', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
+        tables_cols = c('facility', 'CEDS_Facility_Id', 'riverseg', 'runid_11_unmet30_mgd',  'runid_13_unmet30_mgd', 'runid_17_unmet30_mgd' ,'gw_frac'),
         sort_col = 'runid_13_unmet30_mgd',
         floor = NULL, #floor = 0.001, 
         ceiling = NULL,
@@ -159,6 +159,7 @@ run_sets <- list(
         column_name='runid_13_WA_90_mgd', 
         run_label = 'Water Availability Rate during lowest 90 day flow period', 
         show_map = TRUE, 
+        hide_table = TRUE,
         ramp = 'WA_availability', 
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_13_WA_90_mgd'), 
         sort_col = 'runid_13_WA_90_mgd', 
@@ -338,7 +339,9 @@ readable <- data.frame(rbind(
   c('runid_13_unmet30_mgd', '2040 Highest 30 Day Potential Unmet Demand (MGD)'),
   c('runid_17_unmet30_mgd', '2040 Dry Climate Change 30 day Potential Unmet Demand (MGD)'),
   c('gw_frac', 'GW Fraction'),
-  c('Facility_hydroid', 'VAHydro ID')
+  c('Facility_hydroid', 'VAHydro ID'),
+  c('CEDS_Facility_Id', 'CEDS ID'),
+  c('facility', 'Facility')
   
 ))
 colnames(readable) <- c('computer', 'human')
