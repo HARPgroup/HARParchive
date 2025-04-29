@@ -192,6 +192,7 @@ if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom
 
 ```
 
+
 ```{r Get NHD in Bbox, echo=FALSE, message=FALSE, warning=FALSE}
 
 # NHD data within the bbox
@@ -457,8 +458,8 @@ facils_table$facility[!is.na(facils_table$facility_status) &
 table <- data.frame(
   Map_Number = facils_table$NUM,
   Facility =facils_table$facility,
-  VAHydro_ID = facils_table$featureid, 
-  Locality = facils_table$locality, 
+  VAHydro_ID = facils_table$CEDS_Facility_Id, 
+  Locality = facils_table$Locality, 
   GW_Fraction = facils_table$gw_frac)
 
 #for source type only add mp name and source type to table
@@ -823,7 +824,7 @@ for (k in 1:length(run_config$riverseg_metrics)){
   display_column <- run_config$riverseg_metrics[[k]]$column_name
   
   # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "facils_nogeom"
-  if (exists(data_set)) {
+  if (exists(data_set) & is.null(run_config$riverseg_metrics[[k]]$hide_table)) {
     rseg_display <- get(data_set)
     
     display_metric <- run_config$riverseg_metrics[[k]]$metric
@@ -889,6 +890,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     assign(paste0('table', k), ft2, envir = globalenv())
   
+  } else {
+    assign(paste0('table', k), NA, envir = globalenv())
   }
 }
 ```
@@ -955,10 +958,15 @@ for (k in 1:length(run_config$riverseg_metrics)){
   } else {
     fig_md = ''
   }
+  
+  #figure
+  cat(fig_md)
+   
+  if(any(!is.na(get(paste0('table', k))))) {
     #table
-    cat(fig_md)
     cat(knitr::knit_print(get(paste0('table', k))))
     cat("\n\n\\pagebreak\n")
+  }
 }
 
 if(message_nonexisting_cols){
