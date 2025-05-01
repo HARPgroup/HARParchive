@@ -511,6 +511,7 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
   #begin mapping:
   map <- ggplot() + coord_sf(xlim=bbox_coords$lng,ylim=bbox_coords$lat)
+  map$errors = c()
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
                                                       title=ggplot2::element_text(size=40), #setting text sizes
                                                       legend.title = ggplot2::element_text(size=25), 

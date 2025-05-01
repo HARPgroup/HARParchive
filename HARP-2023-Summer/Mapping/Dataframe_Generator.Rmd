@@ -12,6 +12,7 @@ params:
   rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"] #l30_Qout, l90_Qout, 7q10
   baseline_runid_list: [ "runid_11", "runid_1000" ]
   crs_default: 4326
+  region_extent: FALSE #region_extent = c(-77.66502, 37.12323, -76.78439, 37.58390)
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
                                   #if FALSE --> all featrs in the associated basins will be plotted
   overwrite_files: TRUE #if FALSE -> will stop execution if rivseg and feature files already exist
@@ -42,6 +43,13 @@ if (is.logical(foundation_path)) {
   message("No variable 'foundation_path' was passed into the knit parameters. Defaulting to the user config foundation_location, which may be invalid for HARP analysts.")
   foundation_path <- foundation_location
 }
+
+if (!is.logical(region_extent)) {
+  names(region_extent) = c("xmin","ymin","xmax","ymax")
+  region_extent = st_as_sfc(st_bbox(region_extent), crs=crs_default)
+  region_extent = st_set_crs(region_extent,crs_default)
+}
+
 
 #note: the variables "github_location" and "export_path" should be defined in config.local
 #github_location provides easy access to functions & dataset resources ; export_path is where generated dataframes will output
@@ -373,13 +381,17 @@ if (origin_type=="basin") { #finding upstream riversegs for basin maps
 }
 #---Sources/featrs---
 #filtering data to only points within the extent of interest, either locality/region boundary or the basins/riversegs intersecting the extent
-if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
-  featrs <- st_filter(featrs, rsegs)
-} else if (limit_featrs_to_origin==TRUE){
-  if(origin_type=="locality"){
-    featrs <- st_filter(featrs, counties[counties$name==origin, ])
-  } else if (origin_type=="region") {
-    featrs <- st_filter(featrs, regions[regions$region==origin,])
+if (!is.logical(region_extent)) {
+  featrs <- st_filter(featrs, region_extent)
+} else {
+  if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
+    featrs <- st_filter(featrs, rsegs)
+  } else if (limit_featrs_to_origin==TRUE){
+    if(origin_type=="locality"){
+      featrs <- st_filter(featrs, counties[counties$name==origin, ])
+    } else if (origin_type=="region") {
+      featrs <- st_filter(featrs, regions[regions$region==origin,])
+    }
   }
 }
 ```

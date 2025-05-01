@@ -24,7 +24,6 @@ params:
   featrs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_featrs_sf.csv"
   featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
   featrs_file_table_column: ["Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"]
-
   rsegs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
@@ -35,6 +34,7 @@ params:
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["auto"] #either 'auto' to force automatic for all, or 'custom'
   show_map: TRUE #either TRUE or FALSE
+  region_extent: FALSE #region_extent = c(-77.66502, 37.12323, -76.78439, 37.58390)
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -76,7 +76,7 @@ crs_default <- params$crs_default
 map_style <- params$map_style
 bbox_type <- params$bbox_type
 show_map <- params$show_map
-    
+
 ```
 
 ```{r TOC, echo = FALSE}
@@ -131,6 +131,14 @@ legend_titling <- function(metric, runid_list){
 for(i in 1:length(params)){
   assign(names(params[i]), params[[i]])
 }
+
+region_extent <- params$region_extent
+if (!is.logical(region_extent)) {
+  names(region_extent) = c("xmin","ymin","xmax","ymax")
+  region_extent = st_as_sfc(st_bbox(region_extent), crs=crs_default)
+  region_extent = st_set_crs(region_extent,crs_default)
+}
+
 generate_rmetrics = TRUE
 run_config = NULL
 if (!is.null(params$run_set)) {
@@ -282,15 +290,12 @@ If a local government or regional planning unit boundary intersects the groundwa
 # Legend Bins
 
 #create human-readable title based on origin & type
+origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
+title_main <- paste0( gsub("_", " ", origin_readable) , " Region")
 if (origin_type == "basin") {
   title_main <- (paste("Basin Upstream of", rsegs$name[rsegs$riverseg==origin] , origin, sep=" "))
 } else if (origin_type == "locality") {
-  origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
   title_main <- paste0(counties[["name"]][counties[["dh_fips"]]==origin]," Locality")
-} else if (origin_type == "region") {
-  origin_readable <- gsub("([a-z])([A-Z])","\\1 \\2", origin)
-  title_main <- paste0( gsub("_", " ", origin_readable) , " Region")
-  
 } 
 
 if (show_map == TRUE) {
@@ -566,87 +571,100 @@ GWMA_wkt <- st_as_sf(GWMA_wkt, wkt = "Geometry", crs = st_crs(4326))
 
 ## Need to determine if the area intersects the aquifer to create the maps
 #### Or at least the critical cell part
-if (origin_type == 'region') {
-  ## Gets the shape to use as a boundary
-  origin_shape <- regions[regions$region == origin,]
-} else if (origin_type == 'locality') {
-  origin_shape <- regions[regions$region == counties$Region[counties$hydrocode == origin],]
+if (!is.logical(region_extent)) {
+  message("Using value from region_extent for origin_shape")
+  origin_shape <- region_extent
+} else {
+  if (origin_type == 'region') {
+    ## Gets the shape to use as a boundary
+    origin_shape <- regions[regions$region == origin,]
+  } else if (origin_type == 'locality') {
+    origin_shape <- regions[regions$region == counties$Region[counties$hydrocode == origin],]
+  } else {
+    region_extent = st_as_sfc(st_bbox(rsegs), crs=crs_default)
+    origin_shape = st_set_crs(region_extent,crs_default)
+  }
 }
 
 ## Checking for intersection
 insidegwma <- st_intersection(origin_shape,GWMA_wkt )
 
 ## First checks all of them, to determine if there is any intersection. If so, add section title
-if (nrow(insidegwma) > 0) {
+if (!is.null(nrow(insidegwma))) {
+  if (nrow(insidegwma) > 0) {
+    
+    cat('\n## Groundwater Critical Cell Maps \n')
+    
+    ### Potomac
+    aquifer <- 'Potomac'
+    
+    ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
+    potomac_map <- fn_gw_mapgen(
+      bbox, crs_default,  mp_layer, featr_type, 
+      maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+      maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+      aquifer_shp = potomac, origin_shape)
+    map_objects[[length(map_objects) + 1]] <- potomac_map
+    ## Saves the file
+    ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
+           plot = potomac_map,width=25,height=20)
+    
+    ## Includes the saved file
+    cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
+    
+    ### Aquia
+    aquifer <- 'Aquia'
+    
+    aquia_map <- fn_gw_mapgen(
+      bbox, crs_default,  mp_layer, featr_type, 
+      maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+      maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+      aquifer_shp = aquia, origin_shape)
+    map_objects[[length(map_objects) + 1]] <- aquia_map
+    ggsave(filename = paste0(export_path,origin,'_Aquia.png'),
+           plot = aquia_map,width=25,height=20)
+    
+    ## Includes the saved file
+    cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
+    
+    ### Piney Point 
+    aquifer <- 'Piney Point'
+    
+    pineypoint_map <- fn_gw_mapgen(
+      bbox, crs_default,  mp_layer, featr_type, 
+      maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
+      maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+      aquifer_shp = pineypoint, origin_shape)
+    map_objects[[length(map_objects) + 1]] <- pineypoint_map
+    ## Piney Point cant have a space in the filename
+    ggsave(filename = paste0(export_path,origin,'_Piney_Point.png'),
+           plot = pineypoint_map,width=25,height=20)
+    
+    ## Includes the saved file
+    cat(paste0('![](',export_path,origin,'_Piney_Point.png)'))
+    
+  ### Yorktown Eastover
+  # if (length(potomac_int) > 0 & show_map == TRUE) {  
+  #   ## If there is no intersection, then the length of the output is 0, so cant check the value
+  #   #### So it only gets here if there IS intersection
+  #   
+  #   aquifer <- 'Potomac'
+  #   
+  #   potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
+  #                               maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+  #                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+  #                               aquifer_shp = potomac)
+  #   
+  # }
   
-  cat('\n## Groundwater Critical Cell Maps \n')
+    ## Adds a pagebreak IF there are GW maps
   
-  ### Potomac
-  aquifer <- 'Potomac'
-  
-  ## Calls fn_gw_mapgen. Basically a stripped version of fn_mapgen that adds in aquifer_shp
-  potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                              maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                              maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                              aquifer_shp = potomac, origin_shape)
-  
-  ## Saves the file
-  ggsave(filename = paste0(export_path,origin,'_',aquifer,'.png'),
-         plot = potomac_map,width=25,height=20)
-  
-  ## Includes the saved file
-  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
-  
-  ### Aquia
-  aquifer <- 'Aquia'
-  
-  aquia_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                            maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                            maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                            aquifer_shp = aquia, origin_shape)
-  
-  ggsave(filename = paste0(export_path,origin,'_Aquia.png'),
-         plot = aquia_map,width=25,height=20)
-  
-  ## Includes the saved file
-  cat(paste0('![](',export_path,origin,'_',aquifer,'.png)'))
-  
-  ### Piney Point 
-  aquifer <- 'Piney Point'
-  
-  pineypoint_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-                                 maptitle=paste0(origin_readable," Critical Cells in ", aquifer), 
-                                 maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-                                 aquifer_shp = pineypoint, origin_shape)
-  
-  ## Piney Point cant have a space in the filename
-  ggsave(filename = paste0(export_path,origin,'_Piney_Point.png'),
-         plot = pineypoint_map,width=25,height=20)
-  
-  ## Includes the saved file
-  cat(paste0('![](',export_path,origin,'_Piney_Point.png)'))
-  
-### Yorktown Eastover
-# if (length(potomac_int) > 0 & show_map == TRUE) {  
-#   ## If there is no intersection, then the length of the output is 0, so cant check the value
-#   #### So it only gets here if there IS intersection
-#   
-#   aquifer <- 'Potomac'
-#   
-#   potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-#                               maptitle=paste0(origin_readable," critical cells in ", aquifer), 
-#                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-#                               aquifer_shp = potomac)
-#   
-# }
+    cat("\n\n\\pagebreak\n")
+    
+    ## End of GW mapping section
+  }
 
-  ## Adds a pagebreak IF there are GW maps
-
-  cat("\n\n\\pagebreak\n")
-  
-  ## End of GW mapping section
 }
-
 ```
 ## Facility Table (Table 1):
 
@@ -985,9 +1003,7 @@ if(message_nonexisting_cols){
 
 ```{r Generate Errors Summary, echo=FALSE}
 #if there are any mapping errors or other messages to the user, output a separate file containing them
-allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
-allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
-#allmaps = map_objects
+allmaps = map_objects
 maperrors <- data.frame(maptitle=character(0), errors=character(0), 
                         mapnum=character(0), var_name=character(0) )
 for(i in 1:length(allmaps)){
@@ -995,13 +1011,15 @@ for(i in 1:length(allmaps)){
     if (is.null(allmaps[[i]][["mapnum"]])) {
       allmaps[[i]][["mapnum"]] = 2
     }
-    maperrors <- rbind(maperrors,
-                       data.frame(maptitle = allmaps[[i]][["labels"]][["title"]],
-                                  errors = allmaps[[i]][["errors"]],
-                                  mapnum = allmaps[[i]][["mapnum"]],
-                                  var_name = names(allmaps[i])
-                                  )
-                       )
+    maperrors <- rbind(
+      maperrors,
+      data.frame(
+        maptitle = allmaps[[i]][["labels"]][["title"]],
+        errors = paste(allmaps[[i]][["errors"]], collapse = " "),
+        mapnum = allmaps[[i]][["mapnum"]],
+        var_name = names(allmaps[i])
+      )
+    )
   }
 }
 
