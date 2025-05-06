@@ -138,7 +138,7 @@ rsegs <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/
 
 #---County Data---
 cnty_fips <- fread("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data/counties_sf.csv")
-cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
+cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_050625.csv') #csv connects county names to their planning regions
 
 #---Cities & Roads---
 if(base_layer_data==TRUE){
