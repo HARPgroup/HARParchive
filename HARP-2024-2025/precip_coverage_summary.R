@@ -54,7 +54,7 @@ vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'num_re
 
 vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'precip_annual_max_in', precip_summary$precip_annual_max_in, ds)
 
-vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'precip_annual_min_in', precip_summary$precip_annual_max_in, ds)
+vahydro_post_metric_to_scenprop(scenario$pid, 'om_class_Constant', NULL, 'precip_annual_min_in', precip_summary$precip_annual_min_in, ds)
 
 
 

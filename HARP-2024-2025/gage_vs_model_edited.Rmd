@@ -1,0 +1,1094 @@
+---
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+author: ""
+title: "`r params$doc_title`"
+output: 
+  officedown::rdocx_document:
+    mapstyles:
+      Normal: ['First Paragraph']
+    page_margins:
+      bottom: 0.5
+      top: 0.5
+      right: 1
+      left: 0.0
+      header: 0.0
+      footer: 0.0
+      gutter: 0.0
+params: 
+  doc_title: "USGS Gage vs Model Model"
+  elid: 251491
+  runid: 200
+  gageid: '02054530'
+  summary_text: ''
+  crit_pd_start: FALSE
+  crit_pd_end: FALSE
+  model_output_file: FALSE
+  estimated_flow_file: FALSE
+  area_factor: 1.0
+  intake_da: FALSE
+  model_qvar: "Qout"
+  model_da: FALSE
+  test_wd_rate: 0.0
+  drop_cache: FALSE
+  lowflow_year_zoom: [1999, 2002, 2023]
+---
+
+```{r setup, include=FALSE}
+library("dataRetrieval")
+library("zoo")
+library("hydrotools")
+library("flextable")
+library(lubridate)
+
+basepath='/var/www/R'
+source('/var/www/R/config.R')
+source("https://raw.githubusercontent.com/HARPgroup/hydro-tools/master/R/fac_utils.R") #Used until fac_utils is packaged
+
+elid <- params$elid
+runid <- params$runid
+gageid <- params$gageid
+summary_text <- params$summary_text
+crit_pd_start <- params$crit_pd_start
+crit_pd_end <- params$crit_pd_end
+area_factor <- as.numeric(params$area_factor)
+model_da <- params$model_da
+model_qvar <- params$model_qvar
+model_output_file <- params$model_output_file
+estimated_flow_file <- params$estimated_flow_file
+drop_cache <- params$drop_cache
+lowflow_year_zoom <- params$lowflow_year_zoom
+test_wd_rate <- params$test_wd_rate
+intake_da <- params$intake_da
+
+safe_yield_caveats <- "**Comparison to Historical “Safe Yield” Estimates**\n
+This method will yield considerably lower values than “safe yield” estimates that were historically based on the 1Q30 in a stream.  The reason for this has to do with both the theoretical underpinnings of the concept of “safe yield”, and the modern understanding of what is required to maintain stream flows to insure beneficial uses at the point of intake as well as for downstream uses.  Historical “Safe Yield” estimates based on the 1Q30 (the single lowest flow that is expected to occur 1 day out of every 30 years) were used as an estimate of the theoretical maximum yield that could be safely counted on from a given stream.   However, without reservoir storage to insure a stable water supply, counting on the “availability” of the 1Q30 implies that the water user could drain 100% of the stream flow 1 day out of every 30 years, something that by definition would not insure adequate flows for downstream beneficial uses such as waste assimilative capacity, aquatic habitat, withdrawals, and dissolved oxygen.  Moreover, the 1Q30 is not the lowest flow in the stream, but rather a recurring low flow, indicating that at longer time periods (50 years, 100 years) even lower flow values can be expected, and therefore, periods when the safe yield value would not be met from stream flow alone.  While current assessments of water availability may be more conservative in terms of the flow needs of aquatic life, the 1Q30 based “safe yield” estimates were never a statement of actual water that can be withdrawn from a stream and also maintain other beneficial uses in the watershed.
+"
+```
+
+```{r getdata, include=FALSE}
+if (!is.logical(model_output_file)) {
+  model_data <- read.table(model_output_file, header = TRUE, sep = ",")
+  model_flows <- zoo(as.numeric(as.character( model_data[,model_qvar] )), order.by = make_datetime(model_data$year, model_data$month, model_data$day, as.integer(model_data$hour)) )
+} else {
+  # standard OM output
+  model_data <- om_get_rundata(elid, runid, site=omsite)
+  model_flows <- zoo(as.numeric(as.character( model_data[,model_qvar] )), order.by = index(model_data) );
+}
+# mstart <- as.Date(min(index(model_flows)))
+# mend <- as.Date(max(index(model_flows)))
+model_data <- as.data.frame(model_data[,c("year", "month", "day", model_qvar)])
+# insure Qout
+if (model_qvar != "Qout") {
+  colnames(model_data)[colnames(model_data) == "Qout"] <- "Qout_save"
+  colnames(model_data)[colnames(model_data) == model_qvar] <- "Qout" 
+}
+mstart <- zoo::as.Date(as.POSIXct(min(index(model_flows)),origin="1970-01-01"))
+mend <- zoo::as.Date(as.POSIXct(max(index(model_flows)),origin="1970-01-01"))
+if (month(mend) == 1) {
+  # We have a wrap around due to date funkiness
+  mend <- as.Date(paste(year(mend)-1,'12','31',sep="-"))
+}
+
+#historic <- dataRetrieval::readNWISdv(gageid,'00060')
+if (drop_cache == TRUE) {
+  drop_cache(memo_readNWISsite)(gageid)
+  drop_cache(memo_readNWISdv)(gageid,'00060')
+}
+historic <- memo_readNWISdv(gageid,'00060')
+gage_info <- memo_readNWISsite(gageid)
+gage_name <- gage_info$station_nm
+if (!is.logical(model_da)) {
+  # auto-calc area_factor
+  area_factor <- as.numeric(model_da) / gage_info$drain_area_va
+  if (!is.logical(intake_da)) {
+    # we need to scale both model output and gage output
+    # but we need a model_da as well so fail if that is false
+    if (is.logical(model_da)) {
+      message("Intake drainage area (intake_da) has been supplied, but no model_da has been supplied, quitting.  Supply model_da or set intake_da = FALSE.")
+    }
+    area_factor <- as.numeric(intake_da) / gage_info$drain_area_va
+    model_data$Qout <- model_data$Qout * (as.numeric(intake_da) / model_da )
+  }
+}
+
+if (!is.logical(intake_da)) {
+  # we need to scale both model output and gage output
+  area_factor <- as.numeric(intake_da) / gage_info$drain_area_va
+}
+historic$X_00060_00003 <- historic$X_00060_00003 * area_factor
+#gage_flows <- zoo(as.numeric(as.character( historic$X_00060_00003 )), order.by = as.POSIXct(historic$Date));
+gage_flows_all <- zoo(as.numeric(as.character( historic$X_00060_00003 )), order.by = historic$Date);
+gage_flows <- window(gage_flows_all, start = mstart, end = mend)
+# make something we can use with om_flow_table 
+gage_data <- as.data.frame(gage_flows)
+names(gage_data) <- c("X_00060_00003")
+gage_data$year <- year(as.Date(index(gage_flows)))
+gage_data$month <- month(as.Date(index(gage_flows)))
+gage_data$day <- day(as.Date(index(gage_flows)))
+
+gstart <- as.Date(min(index(gage_flows)))
+gend <- as.Date(max(index(gage_flows)))
+model_flows <- window(model_flows, start = gstart, end = gend)
+# merge datasets
+historic$year <- year(historic$Date)
+historic$month <- month(historic$Date)
+historic$day <- day(historic$Date)
+both_data <- sqldf(
+  "select a.year, a.month, a.day, a.X_00060_00003 as flow, b.Qout as Qout
+   from historic as a 
+   left outer join model_data as b
+   on (a.year = b.year and a.month = b.month and a.day = b.day)
+   where b.Qout is not null
+  ")
+# compare means
+# mean(model_flows)
+# mean(gage_flows)
+
+# do IHA
+model_loflows <- IHA::group2(model_flows, year="calendar")
+gage_loflows <- IHA::group2(gage_flows, year="calendar")
+gage_loflows_all <- IHA::group2(gage_flows_all, year="calendar")
+#gage_moflows <- IHA::group1(gage_flows, FUN="mean")
+#g1gage8 <- quantile(gage_moflows[,"August"])
+
+title_param <- paste0("\nrunid #",runid, " Gage area-weighted ", round(area_factor,2))
+
+#l90 data ####################################################### 
+model_l90 <- model_loflows[c("year","90 Day Min")]
+gage_l90 <- gage_loflows[c("year","90 Day Min")]
+cmp_l90 <- sqldf(
+  'select a.year, b."90 Day Min" as gage_l90, c."90 Day Min" as model_l90 
+   from gage_loflows as a 
+   left outer join gage_l90 as b 
+   on (a.year = b.year) 
+   left outer join model_l90 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_l90, model_l90)
+names(cmp_l90) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_l90$USGS,cmp_l90$Model))
+
+#h90 data ####################################################### 
+model_h90 <- model_loflows[c("year","90 Day Max")]
+gage_h90 <- gage_loflows[c("year","90 Day Max")]
+cmp_h90 <- sqldf(
+  'select a.year, b."90 Day Max" as gage_h90, c."90 Day Max" as model_h90 
+   from gage_loflows as a 
+   left outer join gage_h90 as b 
+   on (a.year = b.year) 
+   left outer join model_h90 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_l90, model_l90)
+names(cmp_h90) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_h90$USGS,cmp_h90$Model))
+
+#h30 data ####################################################### 
+model_h30 <- model_loflows[c("year","30 Day Max")]
+gage_h30 <- gage_loflows[c("year","30 Day Max")]
+cmp_h30 <- sqldf(
+  'select a.year, b."30 Day Max" as gage_h30, c."30 Day Max" as model_h30 
+   from gage_loflows as a 
+   left outer join gage_h30 as b 
+   on (a.year = b.year) 
+   left outer join model_h30 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_l30, model_l30)
+names(cmp_h30) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_h30$USGS,cmp_h30$Model))
+
+#h7 data ####################################################### 
+model_h7 <- model_loflows[c("year","7 Day Max")]
+gage_h7 <- gage_loflows[c("year","7 Day Max")]
+cmp_h7 <- sqldf(
+  'select a.year, b."7 Day Max" as gage_h7, c."7 Day Max" as model_h7 
+   from gage_loflows as a 
+   left outer join gage_h7 as b 
+   on (a.year = b.year) 
+   left outer join model_h7 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_l7, model_l7)
+names(cmp_h7) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_h7$USGS,cmp_h7$Model))
+
+#h1 data ####################################################### 
+model_h1 <- model_loflows[c("year","1 Day Max")]
+gage_h1 <- gage_loflows[c("year","1 Day Max")]
+cmp_h1 <- sqldf(
+  'select a.year, b."1 Day Max" as gage_h1, c."1 Day Max" as model_h1 
+   from gage_loflows as a 
+   left outer join gage_h1 as b 
+   on (a.year = b.year) 
+   left outer join model_h1 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_l1, model_l1)
+names(cmp_h1) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_h1$USGS,cmp_h1$Model))
+
+#Mean data ####################################################### 
+cmp_qmean <- sqldf("select year, avg(flow) as usgs_mean, avg(Qout) as model_mean from both_data group by year order by year")
+names(cmp_qmean) <- c("Year", "USGS", "Model")
+
+#l30 data ####################################################### 
+model_l30 <- model_loflows[c("year","30 Day Min")]
+gage_l30 <- gage_loflows[c("year","30 Day Min")]
+cmp_l30 <- sqldf(
+  'select a.year, b."30 Day Min" as gage_l30, c."30 Day Min" as model_l30 
+   from gage_loflows as a 
+   left outer join gage_l30 as b 
+   on (a.year = b.year) 
+   left outer join model_l30 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+names(cmp_l30) <- c("Year", "USGS", "Model")
+
+#l7 data ######################################################## 
+
+model_l7 <- model_loflows[c("year","7 Day Min")]
+gage_l7 <- gage_loflows[c("year","7 Day Min")]
+cmp_l7 <- sqldf(
+  'select a.year, b."7 Day Min" as gage_l7, c."7 Day Min" as model_l7 
+   from gage_loflows as a 
+   left outer join gage_l7 as b 
+   on (a.year = b.year) 
+   left outer join model_l7 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+names(cmp_l7) <- c("Year", "USGS", "Model")
+
+#l1 data ######################################################## 
+
+model_l1 <- model_loflows[c("year","1 Day Min")]
+gage_l1 <- gage_loflows[c("year","1 Day Min")]
+cmp_l1 <- sqldf(
+  'select a.year, b."1 Day Min" as gage_l1, c."1 Day Min" as model_l1 
+   from gage_loflows as a 
+   left outer join gage_l1 as b 
+   on (a.year = b.year) 
+   left outer join model_l1 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+names(cmp_l1) <- c("Year", "USGS", "Model")
+
+model_m01 <- model_loflows[c("year","1 Day Max")]
+gage_m01 <- gage_loflows[c("year","1 Day Max")]
+cmp_m01 <- sqldf(
+  'select a.year, b."1 Day Max" as gage_m01, c."1 Day Max" as model_m01 
+   from gage_loflows as a 
+   left outer join gage_m01 as b 
+   on (a.year = b.year) 
+   left outer join model_m01 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_m01, model_m01)
+names(cmp_m01) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+
+
+model_m03 <- model_loflows[c("year","3 Day Max")]
+gage_m03 <- gage_loflows[c("year","3 Day Max")]
+cmp_m03 <- sqldf(
+  'select a.year, b."3 Day Max" as gage_m03, c."3 Day Max" as model_m03 
+   from gage_loflows as a 
+   left outer join gage_m03 as b 
+   on (a.year = b.year) 
+   left outer join model_m03 as c 
+   on (a.year = c.year)
+   order by a.year'
+)
+#cbind(gage_loflows$year, gage_m03, model_m03)
+names(cmp_m03) <- c("Year", "USGS", "Model")
+#set ymax to largest value in the 2 data sets, in order to generate plots with consistent axis limits
+ymax_val <- max(c(cmp_l90$USGS,cmp_l90$Model))
+hymax_val <- max(c(cmp_m01$USGS,cmp_m01$Model))
+
+#Mean data ####################################################### 
+cmp_qmean <- sqldf("select year, avg(flow) as usgs_mean, avg(Qout) as model_mean from both_data group by year order by year")
+names(cmp_qmean) <- c("Year", "USGS", "Model")
+
+
+# turn off scientific notation (makes plot legends look nicer)
+options(scipen=999)
+```
+
+# Appendix X - Model Calibration Analysis:
+```{r SummaryText, echo=FALSE, results = "asis"}
+cat(summary_text)
+
+if (test_wd_rate > 0) {
+  cat(safe_yield_caveats)
+}
+```
+
+```{r available_withdrawal, echo=FALSE, results='asis'}
+#######################
+# Estimate Water Availability if requested
+
+if (test_wd_rate > 0) {
+  
+  gage_data$gage_available_mgd <- (gage_data$X_00060_00003 * test_wd_rate / 100.0) / 1.547
+  model_data$model_available_mgd <- (model_data$Qout * test_wd_rate / 100.0) / 1.547
+  gage_avail_table = om_flow_table(gage_data, 'gage_available_mgd')
+  model_avail_table = om_flow_table(model_data, 'model_available_mgd')
+  # now format but do not display yet
+  model_avail <- qflextable(model_avail_table)
+  gage_avail <- qflextable(gage_avail_table)
+  set_caption(gage_avail,paste("Estimated water availability based on withdrawal limited to", test_wd_rate, "% of flow from", mstart,"to",mend,"based on the flow record from USGS",  gageid, "area weighted to model intake."))
+  set_caption(model_avail,paste("Estimated water availability based on withdrawal limited to", test_wd_rate, "% of flow from", mstart,"to",mend,"based on the model simulated flow."))
+  
+  if (test_wd_rate > 0) {
+    cat(paste("### Gage estimated water availability during modeled time period  of", mstart, "to", mend))
+    gage_avail
+  }
+  
+  if (test_wd_rate > 0) {
+    cat(paste("### Model estimated water availability during modeled time period  of", mstart, "to", mend))
+    model_avail
+  }
+}
+
+```
+
+## Flow Duration Curve Plot:
+```{r fdc-plot, fig.width=6, fig.height=6, dev='png', echo=FALSE, message=FALSE, results='hide'}
+fdc_dat.df <- both_data[c("flow", "Qout")]
+legend_text <- c("gage","model")
+fdc_plot <- hydroTSM::fdc(cbind(fdc_dat.df),
+                          yat = c(1, 5, 10, 50, 100, seq(0,round(max(fdc_dat.df),0), by = 500)),
+                          leg.txt = legend_text,
+                          main=paste("Flow Duration Curve ", gageid, ":", gage_name,"\n","(Model Flow Period ",gstart," to ",gend,")",sep=""),
+                          ylab = "Flow (cfs)",
+                          ylim=c(min(fdc_dat.df), max(fdc_dat.df)),
+                          cex.main=1,
+                          cex.axis=0.9,
+                          cex.lab=1,
+                          leg.cex=1,
+                          pch = NA
+                          )
+```
+
+<!-- ## Scatter Plot USGS vs. Model -->
+<!-- ```{r scatter-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE} -->
+<!-- plot( -->
+<!--   model_flows ~ -->
+<!--   gage_flows -->
+<!-- ) -->
+<!-- ``` -->
+
+\newpage
+
+## L90 Model Performance Bar Plot:
+```{r l90-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_l90,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 90 Day Low Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_l90$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_l90$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_l90$USGS),1), side=2, line=0, las=1, at=min(cmp_l90$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_l90$Model),1), side=4, line=0, las=1, at=(min(cmp_l90$Model)), cex=0.6, col="black")
+```
+## L90 Range Comparison Plot:
+```{r l90-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_l90$USGS, cmp_l90$Model, ylim=c(0,ymax_val), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 90-day low flows")
+```
+
+## H90 Model Performance Bar Plot:
+```{r h90-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val_hf <- max(c(cmp_h90$USGS,cmp_h90$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_h90,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 90 Day High Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val_hf),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_h90$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_h90$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_h90$USGS),1), side=2, line=0, las=1, at=min(cmp_h90$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_h90$Model),1), side=4, line=0, las=1, at=(min(cmp_h90$Model)), cex=0.6, col="black")
+```
+## H90 Range Comparison Plot:
+```{r h90-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_h90$USGS, cmp_h90$Model, ylim=c(0,ymax_val_hf), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 90-day high flows")
+```
+
+## H30 Model Performance Bar Plot:
+```{r h30-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val_hf <- max(c(cmp_h30$USGS,cmp_h30$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_h30,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 30 Day High Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val_hf),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_h30$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_h30$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_h30$USGS),1), side=2, line=0, las=1, at=min(cmp_h30$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_h30$Model),1), side=4, line=0, las=1, at=(min(cmp_h30$Model)), cex=0.6, col="black")
+```
+## H30 Range Comparison Plot:
+```{r h30-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_h30$USGS, cmp_h30$Model, ylim=c(0,ymax_val_hf), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 30-day high flows")
+```
+
+## H7 Model Performance Bar Plot:
+```{r h7-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val_hf <- max(c(cmp_h7$USGS,cmp_h7$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_h7,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 7 Day High Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val_hf),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_h7$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_h7$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_h7$USGS),1), side=2, line=0, las=1, at=min(cmp_h7$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_h7$Model),1), side=4, line=0, las=1, at=(min(cmp_h7$Model)), cex=0.6, col="black")
+```
+## H7 Range Comparison Plot:
+```{r h7-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_h7$USGS, cmp_h7$Model, ylim=c(0,ymax_val_hf), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 7-day high flows")
+```
+
+## H1 Model Performance Bar Plot:
+```{r h1-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val_hf <- max(c(cmp_h1$USGS,cmp_h1$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_h1,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 1 Day High Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val_hf),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_h1$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_h1$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_h1$USGS),1), side=2, line=0, las=1, at=min(cmp_h1$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_h1$Model),1), side=4, line=0, las=1, at=(min(cmp_h1$Model)), cex=0.6, col="black")
+```
+## H1 Range Comparison Plot:
+```{r h1-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_h1$USGS, cmp_h1$Model, ylim=c(0,ymax_val_hf), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 1-day high flows")
+```
+
+## L30 Model Performance Bar Plot:
+```{r l30-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val <- max(c(cmp_l30$USGS,cmp_l30$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_l30,
+  col=c("blue", "black"),
+  main=paste("USGS vs Model, 30 Day Low Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_l30$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_l30$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_l30$USGS),1), side=2, line=0, las=1, at=min(cmp_l30$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_l30$Model),1), side=4, line=0, las=1, at=(min(cmp_l30$Model)), cex=0.6, col="black")
+gfa <- IHA::group2(gage_flows_all)
+gfadf <- as.data.frame(gfa$`30 Day Min`)
+names(gfadf) <- c('usgs')
+gfadf$year <- as.numeric(gfa$year)
+gfadf <- sqldf("select a.year, a.usgs, CASE WHEN b.Model IS NULL THEN 0.0 ELSE b.Model END as Model from gfadf as a left outer join cmp_l30 as b on (a.year = b.Year) order by a.year")
+barplot(
+  cbind(usgs, Model) ~ year, data=gfadf,
+  col=c("blue", "black"),
+  main=paste("USGS vs Model, 30 Day Low Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+```
+## L30 Range Comparison Plot:
+```{r l30-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val <- max(c(cmp_l30$USGS,cmp_l30$Model))
+boxplot(cmp_l30$USGS, cmp_l30$Model, ylim=c(0,ymax_val), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 30-day low flows")
+```
+
+## L7 Model Performance Bar Plot:
+```{r l7-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val <- max(c(cmp_l7$USGS,cmp_l7$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_l7,
+  col=c("blue", "black"),
+  main=paste("USGS vs Model, 7 Day Low Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_l7$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_l7$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_l7$USGS),1), side=2, line=0, las=1, at=min(cmp_l7$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_l7$Model),1), side=4, line=0, las=1, at=(min(cmp_l7$Model)), cex=0.6, col="black")
+
+```
+## L7 Range Comparison Plot:
+```{r l7-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_l7$USGS, cmp_l7$Model, ylim=c(0,ymax_val), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 7-day low flows")
+```
+
+## L1 Model Performance Bar Plot:
+```{r l1-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val <- max(c(cmp_l1$USGS,cmp_l1$Model))
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_l1,
+  col=c("blue", "black"),
+  main=paste("USGS vs Model, 1 Day Low Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_l1$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_l1$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_l1$USGS),1), side=2, line=0, las=1, at=min(cmp_l1$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_l1$Model),1), side=4, line=0, las=1, at=(min(cmp_l1$Model)), cex=0.6, col="black")
+
+```
+## L1 Range Comparison Plot:
+```{r l1-barplot)
+rmarkdown::render(
+'/usr/local/home/git/vahydro/R/examples/gage_vs_model.Rmd',
+, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_l1$USGS, cmp_l1$Model, ylim=c(0,ymax_val), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 1-day low flows")
+```
+## m01 Model Performance Bar Plot:
+```{r m01-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_m01,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 1 Day High Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,hymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_m01$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_m01$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_m01$USGS),1), side=2, line=0, las=1, at=min(cmp_m01$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_m01$Model),1), side=4, line=0, las=1, at=(min(cmp_m01$Model)), cex=0.6, col="black")
+```
+## m01 Range Comparison Plot:
+```{r m01-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_m01$USGS, cmp_m01$Model, ylim=c(0,ymax_val), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 3-day high flows")
+```
+
+## m03 Model Performance Bar Plot:
+```{r m03-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_m03,
+  col=c("blue", "black"),
+  main=paste(gage_name, " USGS vs Model, 3 Day High Flow ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,hymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_m03$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_m03$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_m03$USGS),1), side=2, line=0, las=1, at=min(cmp_m03$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_m03$Model),1), side=4, line=0, las=1, at=(min(cmp_m03$Model)), cex=0.6, col="black")
+```
+
+## m03 Range Comparison Plot:
+```{r m03-barplot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+boxplot(cmp_m03$USGS, cmp_m03$Model, ylim=c(0,ymax_val), names = c("USGS", "Model"), main = "Comparison of range of modeled vs observed 3-day high flows")
+
+
+## Qmean Model Performance Bar Plot:
+```{r qmean-plot, fig.width=7, fig.height=4.8, dev='png', echo=FALSE}
+ymax_val = max(cmp_qmean$USGS, cmp_qmean$Model)
+barplot(
+  cbind(USGS, Model) ~ Year, data=cmp_qmean,
+  col=c("blue", "black"),
+  main=paste("USGS vs Model, Qmean ",title_param,sep=""),
+  beside=TRUE,
+  ylab = "Streamflow (cfs)",
+  ylim = c(0,ymax_val),
+  cex.main=0.8,
+  cex.axis=0.9,
+  cex.lab=1,
+  cex.names=0.7
+)
+legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+abline(h=min(cmp_qmean$USGS), col="blue", lty = "dashed")
+abline(h=min(cmp_qmean$Model), col="black", lty = "dashed")
+mtext(round(min(cmp_qmean$USGS),1), side=2, line=0, las=1, at=min(cmp_qmean$USGS), cex=0.6, col="blue")
+mtext(round(min(cmp_qmean$Model),1), side=4, line=0, las=1, at=(min(cmp_qmean$Model)), cex=0.6, col="black")
+
+```
+
+
+## Model Performance Scatterplots:
+```{r l90-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
+
+par(mfrow=c(1,2))
+
+# L90 Scatterplot
+m90 <- max(c(max(cmp_l90$Model), max(cmp_l90$USGS)))
+lm90 <- lm(cmp_l90$Model ~ cmp_l90$USGS)
+plot(cmp_l90$Model ~ cmp_l90$USGS, ylim=c(0,m90), xlim=c(0,m90),
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model, 90 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(lm90,lwd=2,col="blue")
+abline(0,1,col="black")
+title(ylab="VAHydro 90 Day Low Flow", line=2, cex.lab=0.8)
+title(xlab="USGS 90 Day Low Flow", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm90)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm90)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+
+# L90 Error Scatterplot
+l90_err <- (cmp_l90$Model - cmp_l90$USGS)
+l90_err_pct <- 100.0 * (cmp_l90$Model - cmp_l90$USGS) / cmp_l90$USGS
+lm90_err <- lm(l90_err ~ gage_loflows$year)
+q90_compare <- (quantile(cmp_l90$Model) - quantile(cmp_l90$USGS))/quantile(cmp_l90$USGS)
+plot(l90_err ~ cmp_l90$Year,
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model Error, 90 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(reg=lm90_err,lwd=2,col="blue")
+abline(0,0,col="black")
+title(ylab="90 Day Low Flow Error", line=2, cex.lab=0.8)
+title(xlab="Year", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm90_err)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm90_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+```
+
+```{r l30-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
+
+par(mfrow=c(1,2))
+
+# l30 Scatterplot
+m30 <- max(c(max(cmp_l30$Model), max(cmp_l30$USGS)))
+lm30 <- lm(cmp_l30$Model ~ cmp_l30$USGS)
+plot(cmp_l30$Model ~ cmp_l30$USGS, ylim=c(0,m30), xlim=c(0,m30),
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model, 30 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(lm30,lwd=2,col="blue")
+abline(0,1,col="black")
+title(ylab="VAHydro 30 Day Low Flow", line=2, cex.lab=0.8)
+title(xlab="USGS 30 Day Low Flow", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm30)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm30)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+
+# l30 Error Scatterplot
+l30_err <- (cmp_l30$Model - cmp_l30$USGS)
+l30_err_pct <- 100.0 * (cmp_l30$Model - cmp_l30$USGS) / cmp_l30$USGS
+lm30_err <- lm(l30_err ~ gage_loflows$year)
+
+plot(l30_err ~ cmp_l30$Year,
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model Error, 30 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(reg=lm30_err,lwd=2,col="blue")
+abline(0,0,col="black")
+title(ylab="30 Day Low Flow Error", line=2, cex.lab=0.8)
+title(xlab="Year", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm30_err)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm30_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+```
+
+```{r l7-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
+
+par(mfrow=c(1,2))
+
+# L7 Scatterplot
+m7 <- max(c(max(cmp_l7$Model), max(cmp_l7$USGS)))
+lm7 <- lm(cmp_l7$Model ~ cmp_l7$USGS)
+plot(cmp_l7$Model ~ cmp_l7$USGS, ylim=c(0,m7), xlim=c(0,m7),
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model, 7 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(lm7,lwd=2,col="blue")
+abline(0,1,col="black")
+title(ylab="VAHydro 7 Day Low Flow", line=2, cex.lab=0.8)
+title(xlab="USGS 7 Day Low Flow", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm7)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm7)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+
+# L7 Error Scatterplot
+l7_err <- (cmp_l7$Model - cmp_l7$USGS)
+l7_err_pct <- 100.0 * (cmp_l7$Model - cmp_l7$USGS) / cmp_l7$USGS
+lm7_err <- lm(l7_err ~ gage_loflows$year)
+
+plot(l7_err ~ cmp_l7$Year,
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model Error, 7 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(reg=lm7_err,lwd=2,col="blue")
+abline(0,0,col="black")
+title(ylab="7 Day Low Flow Error", line=2, cex.lab=0.8)
+title(xlab="Year", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm7_err)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm7_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+```
+
+```{r l1-errorplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
+
+par(mfrow=c(1,2))
+
+# L1 Scatterplot
+m1 <- max(c(max(cmp_l1$Model), max(cmp_l1$USGS)))
+lm1 <- lm(cmp_l1$Model ~ cmp_l1$USGS)
+plot(cmp_l1$Model ~ cmp_l1$USGS, ylim=c(0,m1), xlim=c(0,m1),
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model, 1 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(lm1,lwd=2,col="blue")
+abline(0,1,col="black")
+title(ylab="VAHydro 1 Day Low Flow", line=2, cex.lab=0.8)
+title(xlab="USGS 1 Day Low Flow", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm1)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm1)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+
+# L1 Error Scatterplot
+l1_err <- (cmp_l1$Model - cmp_l1$USGS)
+l1_err_pct <- 100.0 * (cmp_l1$Model - cmp_l1$USGS) / cmp_l1$USGS
+lm1_err <- lm(l1_err ~ gage_loflows$year)
+
+plot(l1_err ~ cmp_l1$Year,
+     cex = 0.8,
+     cex.main=0.8,
+     cex.axis=0.7,
+     cex.lab=0.8,
+     col = "blue",
+     main=paste("USGS vs Model Error, 1 Day Low Flow ",title_param,sep=""),
+     xlab = "",
+     ylab = ""
+     )
+abline(reg=lm1_err,lwd=2,col="blue")
+abline(0,0,col="black")
+title(ylab="1 Day Low Flow Error", line=2, cex.lab=0.8)
+title(xlab="Year", line=2.25, cex.lab=0.8)
+legend("topleft",legend=paste("R2: ", format(summary(lm1_err)$r.squared,digits=3),"\n",
+                              "p: ", format(summary(lm1_err)$coefficients[2,4],digits=3),"\n",sep=""), cex=0.7)
+```
+
+\newpage
+
+## Metrics Table:
+```{r LoadMetricsTable, include=FALSE}
+######################
+model_l90_min = which.min(as.numeric(model_l90[,"90 Day Min"]))
+model_l90_Qout = round(model_loflows[model_l90_min,]$"90 Day Min",6)
+model_l90_year = model_loflows[model_l90_min,]$"year"
+gage_l90_min = which.min(as.numeric(gage_l90[,"90 Day Min"]))
+gage_l90_Qout = round(gage_loflows[gage_l90_min,]$"90 Day Min",6)
+gage_l90_year = gage_loflows[gage_l90_min,]$"year"
+######################
+model_l30_min = which.min(as.numeric(model_l30[,"30 Day Min"]))
+model_l30_Qout = round(model_loflows[model_l30_min,]$"30 Day Min",6)
+model_l30_year = model_loflows[model_l30_min,]$"year"
+gage_l30_min = which.min(as.numeric(gage_l30[,"30 Day Min"]))
+gage_l30_Qout = round(gage_loflows[gage_l30_min,]$"30 Day Min",6)
+gage_l30_year = gage_loflows[gage_l30_min,]$"year"
+######################
+model_l7_min = which.min(as.numeric(model_l7[,"7 Day Min"]))
+model_l7_Qout = round(model_loflows[model_l7_min,]$"7 Day Min",6)
+model_l7_year = model_loflows[model_l7_min,]$"year"
+gage_l7_min = which.min(as.numeric(gage_l7[,"7 Day Min"]))
+gage_l7_Qout = round(gage_loflows[gage_l7_min,]$"7 Day Min",6)
+gage_l7_year = gage_loflows[gage_l7_min,]$"year"
+######################
+model_l1_min = which.min(as.numeric(model_l1[,"1 Day Min"]))
+model_l1_Qout = round(model_loflows[model_l1_min,]$"1 Day Min",6)
+model_l1_year = model_loflows[model_l1_min,]$"year"
+gage_l1_min = which.min(as.numeric(gage_l1[,"1 Day Min"]))
+gage_l1_Qout = round(gage_loflows[gage_l1_min,]$"1 Day Min",6)
+gage_l1_year = gage_loflows[gage_l1_min,]$"year"
+
+metrics_table <- data.frame("stat"=character(),"gage"=double(),"gage_year"=character(),"model"=double(),"model_year"=character())
+metrics_table = rbind(metrics_table,c("l90",round(gage_l90_Qout,2),gage_l90_year,round(model_l90_Qout,2),model_l90_year))
+metrics_table = rbind(metrics_table,c("l30",round(gage_l30_Qout,2),gage_l30_year,round(model_l30_Qout,2),model_l30_year))
+metrics_table = rbind(metrics_table,c("l7",round(gage_l7_Qout,2),gage_l7_year,round(model_l7_Qout,2),model_l7_year))
+metrics_table = rbind(metrics_table,c("l1",round(gage_l1_Qout,2),gage_l1_year,round(model_l1_Qout,2),model_l1_year))
+colnames(metrics_table) <- c("stat","gage","gage_year","model","model_year")
+
+usgs_fx <- qflextable(om_flow_table(gage_data, 'X_00060_00003'))
+set_caption(usgs_fx,"USGS non-exceedence chart.")
+model_fx <- qflextable(om_flow_table(model_data, 'Qout'))
+set_caption(model_fx,"Model non-exceedence chart.")
+
+historic_fx <- qflextable(om_flow_table(historic, "X_00060_00003"))
+# note: to print this out for use in a TE,
+# enter:  kable(historic_fx$body$dataset,'markdown')
+set_caption(historic_fx,paste("Historic non-exceedence chart at USGS", gageid, "from", as.Date(min(historic$Date)),"to",as.Date(max(historic$Date)),"area weighted to model intake."))
+
+######################
+# assemble flows for scatterplots
+both_flows <- as.data.frame(cbind(as.numeric(gage_flows), as.numeric(model_flows)))
+names(both_flows) <- c('usgs', 'model')
+lt_mean_flows <- sqldf(paste("select * from both_flows where usgs <", gage_info$drain_area_va))
+lt_low_flows <- sqldf(paste("select * from both_flows where usgs <", median(gage_l90$`90 Day Min`)))
+
+
+```
+
+```{r MetricsTable, echo=FALSE}
+
+cat(paste("### USGS gage flows during modeled time period  of", mstart, "to", mend))
+usgs_fx
+
+cat(paste("### Model flows during modeled time period  of", mstart, "to", mend))
+model_fx 
+
+cat(paste("Historic non-exceedence chart at USGS", gageid, "from", as.Date(min(historic$Date)),"to",as.Date(max(historic$Date)),"area weighted to model intake."))
+historic_fx 
+
+```
+
+```{r l1-scatterplots, fig.width=8, fig.height=4.5, dev='png', echo=FALSE}
+
+plot(lt_low_flows$model ~ lt_low_flows$usgs,xlim=c(0,max(max(lt_low_flows$model), max(lt_low_flows$usgs))), ylim=c(0,max(max(lt_low_flows$model), max(lt_low_flows$usgs))))
+
+plot(lt_mean_flows$model ~ lt_mean_flows$usgs, ylim=c(0, gage_info$drain_area_va))
+```
+
+```{r CriticalPdChart, echo=FALSE}
+
+# lowflow_year_zoom default = c(1999, 2002, 2023)
+if (is.character(lowflow_year_zoom)) {
+  if (lowflow_year_zoom == "auto") {
+    lowflow_year_zoom <- as.matrix(gage_loflows_all[which(gage_loflows_all$`30 Day Min` <= sort(gage_loflows_all$`30 Day Min`)[3]),]["year"])
+  }
+}
+low_table <- round(gage_loflows_all[which(gage_loflows_all$year %in% lowflow_year_zoom),][c("year", "1 Day Min", "3 Day Min", "7 Day Min", "30 Day Min", "90 Day Min")], 1)
+low_model_table <- round(model_loflows[which(model_loflows$year %in% lowflow_year_zoom),][c("year", "1 Day Min", "3 Day Min", "7 Day Min", "30 Day Min", "90 Day Min")], 1)
+
+usgs_low_table <- qflextable(low_table)
+set_caption(usgs_low_table,"USGS drought year non-exceedence chart.")
+usgs_low_table
+
+model_low_table <- qflextable(low_model_table)
+set_caption(model_low_table,"Model drought year non-exceedence chart.")
+model_low_table
+twidth <- function(tdata, pwidth=7.5) {
+  datcols <- length(names(tdata$body$dataset))
+  num_width <- pwidth/datcols
+  for (i in 1:datcols) {
+    tdata <- width(tdata, j = i, width = num_width) # riverseg
+  }
+  return(tdata)
+}
+gl1_all <- gage_loflows_all[which(gage_loflows_all$`1 Day Min` == min(gage_loflows_all$`1 Day Min`)),]
+gl1_all <- gl1_all[c("year", "1 Day Min", "3 Day Min", "7 Day Min", "30 Day Min", "90 Day Min")]
+ml1_all <- model_loflows[which(model_loflows$`1 Day Min` == min(model_loflows$`1 Day Min`)),]
+ml1_all <- ml1_all[c("year", "1 Day Min", "3 Day Min", "7 Day Min", "30 Day Min", "90 Day Min")]
+gl1_all_table <- qflextable(gl1_all)
+gl1_all_table <- twidth(gl1_all_table)
+set_caption(gl1_all_table,"Extreme flow during year(s) with minimum USGS observed daily flow.")
+ml1_all_table <- qflextable(ml1_all)
+ml1_all_table <- twidth(ml1_all_table)
+set_caption(ml1_all_table,"Extreme flow during year(s) with minimum simulated daily flow.")
+
+if (!(is.logical(crit_pd_end) & is.logical(crit_pd_start)) ) {
+  cp_sy <- year(as.Date(crit_pd_start))
+  cp_sm <- month(as.Date(crit_pd_start))
+  cp_sd <- day(as.Date(crit_pd_start))
+  cp_ey <- year(as.Date(crit_pd_end))
+  cp_em <- month(as.Date(crit_pd_end))
+  cp_ed <- day(as.Date(crit_pd_end))
+} else {
+  # try to guess, if they overlap
+  ndx = which.min(as.numeric(gage_l90[,"90 Day Min"]));
+  l90_Qout = round(gage_l90[ndx,]$"90 Day Min",6);
+  l90_year = gage_l90[ndx,]$"year";
+  crit_pd_start <- paste0(l90_year, "-01-01")
+  crit_pd_end <- paste0(l90_year, "-12-31")
+  cp_sy <- year(as.Date(crit_pd_start))
+  cp_sm <- month(as.Date(crit_pd_start))
+  cp_sd <- day(as.Date(crit_pd_start))
+  cp_ey <- year(as.Date(crit_pd_end))
+  cp_em <- month(as.Date(crit_pd_end))
+  cp_ed <- day(as.Date(crit_pd_end))
+}
+crit_pd_data <- sqldf(
+  paste(
+    "select year, month, avg(flow) as usgs, avg(Qout) as model",
+    "from both_data ",
+    "where ",
+    "(year,month,day) BETWEEN (", paste(cp_sy, cp_sm, cp_sd,sep=","), 
+    ") AND (", paste(cp_ey, cp_em, cp_ed,sep=","), ")",
+    "group by year, month",
+    "order by year, month"
+  )
+)
+if (nrow(crit_pd_data) > 0) {
+  crit_pd_data$yearmo <- paste(crit_pd_data$year, crit_pd_data$month, sep="-")
+  ymax_val <- max(crit_pd_data$usgs, crit_pd_data$model)
+  barplot(
+    cbind(usgs, model) ~ yearmo, data=crit_pd_data,
+    #crit_pd_data[,c('usgs', 'model')] ~ crit_pd_data$year, 
+    col=c("blue", "black"),
+    main=paste("USGS vs Model, Critical Low Flow Period",title_param, crit_pd_start, crit_pd_end,sep=""),
+    beside=TRUE,
+    ylab = "Streamflow (cfs)",
+    ylim = c(0,ymax_val),
+    cex.main=0.8,
+    cex.axis=0.9,
+    cex.lab=1,
+    cex.names=0.7
+  )
+  legend("topleft",legend=c("USGS", "Model"),fill=c("blue", "black"),cex=1)
+  abline(h=min(cmp_l90$USGS), col="blue", lty = "dashed")
+  abline(h=min(cmp_l90$Model), col="black", lty = "dashed")
+  mtext(round(min(cmp_l90$USGS),1), side=2, line=0, las=1, at=min(cmp_l90$USGS), cex=0.6, col="blue")
+  mtext(round(min(cmp_l90$Model),1), side=4, line=0, las=1, at=(min(cmp_l90$Model)), cex=0.6, col="black")
+  
+  cp_all <- sqldf(
+    paste(
+      "select year, month, day, avg(flow) as usgs, avg(Qout) as model",
+      "from both_data ",
+      "where ",
+      "(year,month,day) BETWEEN (", paste(cp_sy, cp_sm, cp_sd,sep=","), 
+      ") AND (", paste(cp_ey, cp_em, cp_ed,sep=","), ")",
+      "group by year, month, day",
+      "order by year, month, day"
+    )
+  )
+  
+  plot(cp_all$usgs ~ ISOdate(cp_all$year, cp_all$month, cp_all$day), type = "l", col="blue",
+    main=paste("USGS vs Model, Critical Low Flow Period",title_param, crit_pd_start, crit_pd_end,sep="")
+  )
+  lines(cp_all$model ~ ISOdate(cp_all$year, cp_all$month, cp_all$day), col="black")
+}
+
+if (!is.logical(estimated_flow_file)) {
+
+  full_data <- sqldf(
+    "select a.year, a.month, a.day, a.X_00060_00003 as flow_usgs, b.Qout as flow_model
+     from historic as a 
+     full join model_data as b
+     on (a.year = b.year and a.month = b.month and a.day = b.day)
+     where b.Qout is not null
+    "
+  )
+  full_data$flow_usgs <- round(full_data$flow_usgs, 1)
+  full_data$flow_model <- round(full_data$flow_model, 1)
+  write.csv(full_data, paste(export_path, estimated_flow_file,sep="/"))
+
+}
+```
