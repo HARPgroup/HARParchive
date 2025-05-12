@@ -74,7 +74,8 @@ model_comparison <- function(hydrocode,beginningyear,endyear){
     FULL JOIN nldas_sum ON prism_sum.start_year = nldas_sum.start_year"
   )
   
-  #Compute mean precip and differences from mean, invluded CV
+  
+  #Compute mean precip and differences from mean, included CV
   analytics <- j |>
     mutate(meanPrecip = mean(c(prism_precip,daymet_precip,nldas_precip))) |> 
     mutate(var = var(c(prism_precip,daymet_precip,nldas_precip)))|>
