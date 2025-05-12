@@ -140,9 +140,9 @@ dev.off()
 #for a point
 gageNo <- '01634000'
 #Get precip for the gage
-nldasPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/simple_lm_nldas2_tiled/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
-daymetPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/simple_lm_daymet/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
-prismPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/simple_lm_PRISM/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
+nldasPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/nldas2/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
+daymetPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/daymet/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
+prismPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/PRISM/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
 nldasPrecip$obs_date <- as.Date(nldasPrecip$obs_date)
 daymetPrecip$obs_date <- as.Date(daymetPrecip$obs_date)
 prismPrecip$obs_date <- as.Date(prismPrecip$obs_date)
