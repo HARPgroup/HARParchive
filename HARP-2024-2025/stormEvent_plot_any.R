@@ -207,12 +207,15 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
 }
 
 # Example storm_plot function uses
-storm_plot("usgs_ws_01613900")
-storm_plot("usgs_ws_01629500")
-storm_plot("usgs_ws_01646000", date = "2007-08-10")
-storm_plot("usgs_ws_01646000", date = "2003-01-01", bufferDays = 60)
-#Incorporate model data:
-storm_plot("usgs_ws_01646000", date = "2003-01-01", bufferDays = 30,
-           modelScenarios = c("pubsheds","mubsheds","lubsheds"),
-           riverseg = "PM7_4581_4580")
-
+# storm_plot("usgs_ws_01613900")
+# storm_plot("usgs_ws_01629500")
+# storm_plot("usgs_ws_01646000", date = "2007-08-10")
+# storm_plot("usgs_ws_01646000", date = "2003-01-01", bufferDays = 60)
+# #Incorporate model data:
+# p <- storm_plot("usgs_ws_01646000", date = "2003-01-01", bufferDays = 30,
+#            modelScenarios = c("pubsheds","mubsheds","lubsheds"),
+#            riverseg = "PM7_4581_4580")
+# 
+# png('stormPlot.PNG',width = 4, height = 4, res = 300,units = 'in')
+# p
+# dev.off()
