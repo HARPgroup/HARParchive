@@ -7,6 +7,8 @@
 #to include model Qout (often lubsheds, mubsheds, pubsheds)
 #riverseg is necessary if modelScenarios is populated, although if left blank
 #the function will try to find the river model via spatial overlap
+#Or populate modelList with the a list of data frames of model data. must be
+#identical
 
 library(sqldf)
 library(ggplot2)
@@ -17,7 +19,8 @@ library(ggplot2)
 # hydrocode <- 'usgs_ws_01646000'
 
 storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
-                       modelScenarios = NULL, riverseg = NULL){
+                       modelScenarios = NULL, riverseg = NULL,
+                       modelList = NULL){
   #Get precip for the gage
   nldasPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/nldas2/precip/',hydrocode,'_precip_daily.csv'))
   daymetPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/daymet/precip/',hydrocode,'_precip_daily.csv'))
@@ -44,42 +47,37 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
   flowToPlot$timestamp <- as.Date(flowToPlot$timestamp)
   #Union precip data together in one long style data frame and limit to dates in
   #flowToPlot
-  combinePrecip <- sqldf("
+  combinePrecipALL <- sqldf("
     SELECT np.*, 'nldas' as precipDataSource
     FROM nldasPrecip as np
-    INNER JOIN flowToPlot as fp
+    LEFT JOIN flowToPlot as fp
     ON (fp.timestamp = np.obs_date)
     UNION ALL
     SELECT dp.*, 'daymet' as precipDataSource
     FROM daymetPrecip as dp
-    INNER JOIN flowToPlot as fp
+    LEFT JOIN flowToPlot as fp
     ON fp.timestamp = dp.obs_date
     UNION ALL
     SELECT pp.*, 'prism' as precipDataSource
     FROM prismPrecip as pp
-    INNER JOIN flowToPlot as fp
+    LEFT JOIN flowToPlot as fp
     ON fp.timestamp = pp.obs_date
     ORDER BY obs_date,precipDataSource
   ")
   
-  ##Plotting in ggplot
-  scale_factor <- mean(max(combinePrecip$obs_flow) / max(combinePrecip$precip_in,na.rm = TRUE))
+  combinePrecip <- combinePrecipALL[combinePrecipALL$obs_date >= min(flowToPlot$timestamp) &
+                                      combinePrecipALL$obs_date <= max(flowToPlot$timestamp),]
   
   # Create a baseflow data frame that is of equal length to the combinePrecip df
-  baseQ <- sqldf("
-    WITH nums AS (
-       SELECT 1 AS n
-       UNION ALL
-       SELECT 2
-       UNION ALL
-       SELECT 3
-    )
-    SELECT
-      timestamp,
-      baseQ
-    FROM flowToPlot
-    CROSS JOIN nums;
-")
+  combinePrecip <- sqldf("
+    SELECT *
+    FROM combinePrecip
+    LEFT JOIN flowToPlot
+    ON flowToPlot.timestamp = combinePrecip.obs_date
+  ")
+  
+  ##Plotting in ggplot
+  scale_factor <- mean(max(combinePrecip$obs_flow) / max(combinePrecip$precip_in,na.rm = TRUE))
   
   #Get all stats of storms included on plot:
   stormStatsForPlot <- stormStats[stormStats$startDate >= min(combinePrecip$obs_date) & 
@@ -87,7 +85,7 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
   
   #Check if user has requested any model data be included on plot:
   model_out <- NULL
-  if(!is.null(modelScenarios)){
+  if(!is.null(modelScenarios) & is.null(modelList)){
     #If user did not provide the river segment, try to guess it with spatial
     #contain
     if(is.null(riverseg)){
@@ -133,7 +131,18 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
       #Bind data into a single data frame (in case of multiple modelScenarios)
       model_out <- do.call(rbind,model_out)
     }
-    
+    #Names for the plot legend
+    modelLegend <- modelScenarios
+  }else if(!is.null(modelList)){
+    #Otherwise the user has passed in a list of data frames containing the
+    #model data
+    #Bind data into a single data frame (in case of multiple modelList)
+    model_out <- do.call(rbind,modelList)
+    #Include only relevant model data
+    model_out <- model_out[model_out$date <= max(combinePrecip$obs_date) & 
+                             model_out$date >= min(combinePrecip$obs_date),]
+    #Names for the plot legend
+    modelLegend <- names(modelList)
   }
   
   
@@ -145,9 +154,9 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
              position = "dodge",
              color = "black")+
     geom_line(mapping = aes(y = obs_flow / scale_factor, color = "Streamflow"), 
-              group = 1, linewidth = 1)+
-    geom_line(mapping = aes(y = baseQ$baseQ / scale_factor, color = "Baseflow"),
-              linetype = "dashed")+
+              group = 1, linewidth = 1) +
+    geom_line(mapping = aes(y = baseQ / scale_factor, color = "Baseflow"),
+              linetype = "dashed") +
     annotate(
       geom = 'point',
       x = as.Date(stormStatsForPlot$startDate),
@@ -178,10 +187,10 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
             legend.position.inside = c(0.85,0.75))
   }else{
     #Assign colors to each model output flow from terrain.colors()
-    numColors <- length(modelScenarios) + 1
+    numColors <- length(modelLegend) + 1
     manualColors <- c(rep("black",2),
       terrain.colors(numColors)[-numColors])
-    names(manualColors) <- c("Baseflow","Streamflow",modelScenarios)
+    names(manualColors) <- c("Baseflow","Streamflow",modelLegend)
     
     p <- p + 
       geom_line(data = model_out,
@@ -203,7 +212,8 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
             legend.position.inside = c(0.85,0.75))
   }
     
-  return(p)
+  return(list(p = p,
+              combinePrecip = combinePrecip))
 }
 
 # Example storm_plot function uses
@@ -212,10 +222,11 @@ storm_plot <- function(hydrocode, bufferDays = 3, date = "2020-02-22",
 # storm_plot("usgs_ws_01646000", date = "2007-08-10")
 # storm_plot("usgs_ws_01646000", date = "2003-01-01", bufferDays = 60)
 # #Incorporate model data:
-# p <- storm_plot("usgs_ws_01646000", date = "2003-01-01", bufferDays = 30,
-#            modelScenarios = c("pubsheds","mubsheds","lubsheds"),
+# p <- storm_plot(hydrocode = "usgs_ws_01646000", date = "2007-06-01", bufferDays = 60,
+#            modelScenarios = c("pubsheds","mubsheds","lubsheds","subsheds"),
 #            riverseg = "PM7_4581_4580")
 # 
 # png('stormPlot.PNG',width = 4, height = 4, res = 300,units = 'in')
-# p
+# p$p
 # dev.off()
+
