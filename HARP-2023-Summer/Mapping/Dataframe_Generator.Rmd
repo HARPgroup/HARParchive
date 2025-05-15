@@ -158,7 +158,7 @@ if(base_layer_data==TRUE){
 cnty_fips$name <- sub(" County", "", cnty_fips$name) # fix any names followed by " County" to match the names of counties in the regions df
 # rename Region col in base set to prevent conflict
 colnames(cnty_fips)[colnames(cnty_fips) == 'Region'] <- 'us_region'
-cnty_fips <- sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
+cnty_fips <- sqldf("SELECT a.*, b.CPU as Region
                 FROM cnty_fips as a
                 LEFT OUTER JOIN cnty_regions as b
                 WHERE (a.name = b.County)
@@ -235,10 +235,12 @@ if(featr_type == "source"){
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("
    SELECT facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,locality,facility_status,
-    Total_Permit_Limit_MGY,gw_frac,wsp2040_mgy AS wsp_2040_mgy,wsp2020_mgy AS wsp2020_2040_mgy,fac_CEDSid,
-    SUM(fiveyr_avg_mgy) as sum  -- Creating an aggregated column for the fiveyr_avg_mgy
+    Total_Permit_Limit_MGY,gw_frac,wsp_2040_mgy AS wsp_2040_mgy,wsp2020_2040_mgy AS wsp2020_2040_mgy,fac_CEDSid,
+    SUM(five_yr_avg) as sum  -- Creating an aggregated column for the fiveyr_avg_mgy
    FROM foundatn_mp
-   GROUP BY Facility_hydroid
+   GROUP BY Facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,
+   locality,facility_status,Total_Permit_Limit_MGY,gw_frac,
+   wsp_2040_mgy,wsp2020_2040_mgy,fac_CEDSid
   ") # Not selecting any source related fields, as these are innacurate to the facility (and even the soruce)
   ## Need to replace the MP five_yr_avg with the aggregated column 
   f_foundatn$five_yr_avg <- f_foundatn$sum
