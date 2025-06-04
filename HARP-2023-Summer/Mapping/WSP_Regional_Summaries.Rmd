@@ -171,7 +171,6 @@ roads_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/roads
 facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default, remove=FALSE)
-regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
 roads <- sf::st_as_sf(read.csv(roads_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
@@ -198,11 +197,14 @@ if(bbox_type == "custom" & origin %in% names(custom_bboxes)){ #search for custom
 # NHD data within the bbox
 if (show_map == TRUE) {
   st_crs(bbox) <- crs_default
-  #if (exists("memo_plot_nhdplus")){
+  nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
+  
+  ## Sometimes returns a list of NULLS in te cache. If thats the case, then clear the cache
+  if (is.null(nhd$flowline)) {
+    forget(memo_plot_nhdplus)
     nhd  <- memo_plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-  #} else {
-   # nhd  <- plot_nhdplus(bbox = bbox, actually_plot = FALSE)
-  #}
+  }
+  
   nhdlabs <- fn_nhd_labs(data=nhd)
 }
 ```
