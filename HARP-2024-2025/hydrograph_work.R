@@ -4,112 +4,62 @@ library(dataRetrieval)
 #potomac (01646500)
 #vail (09066325)
 
-#IMPORT SHENANDOAH DATA
-shenandoah_data <- readNWISdata(sites = "01634000", 
-             parameterCd = "00060",
-             startDate = "1990-01-01", 
-             endDate = "2020-12-31")
+get_discharge_plot <- function(site, year, title) {
+  start <- paste0(year, "-01-01")
+  end <- paste0(year, "-12-31")
+  
+  #retrieve data
+  data <- readNWISdata(
+    sites = site,
+    parameterCd = "00060",
+    startDate = start,
+    endDate = end
+  )
+  
+  #clean with SQL
+  clean_data <- sqldf("SELECT dateTime, x_00060_00003 AS Discharge_cfs FROM data")
+  
+  #make plot
+  p <- ggplot(clean_data, aes(dateTime, Discharge_cfs)) +
+    geom_line(color = "steelblue", size = 1) +
+    theme_minimal(base_size = 14) +
+    xlab("Date") +
+    ylab("Discharge (cfs)") +
+    ggtitle(title)
+  
+  return(p)
+}
 
-#SHENANDOAH SQL STUFF
-library(sqldf)
-shenandoah_sql <- sqldf(
-  "Select dateTime, x_00060_00003 as Discharge_cfs
-  from shenandoah_data
-  "
+va_sites <- list(
+  "01634000" = "N F Shenandoah River Near Strasburg, VA",
+  "01668000" = "Rappahannock River Near Fredericksburg, VA",
+  "01646500" = "Potomac River Near Little Falls Pump Station"
 )
 
-#SHENANDOAH PLOT
-library(ggplot2)
-shenandoah_plot <- ggplot(data = shenandoah_sql,
-             aes(dateTime, Discharge_cfs)) +
-  geom_line()
-shenandoah_plot
-#revised
-shenandoah_plot <- shenandoah_plot +
-  theme_minimal(base_size = 14) +
-  geom_line(color = "steelblue", size = 1) +
-  xlab("Date") +
-  ylab("Discharge (cfs)") +
-  ggtitle("N F Shenandoah River Near Strasburg, VA")
-shenandoah_plot
+#VA years to loop over
+years <- c(1999, 2018)
 
-#IMPORT RAPPAHANNOCK DATA
-rappahannock_data <- readNWISdata(sites = "01668000",
-                                  parameterCd = "00060",
-                                  startDate = "1990-01-01",
-                                  endDate = "2020-12-31")
+#store all plots for VA sites
+va_plots <- list()
+for (site in names(va_sites)) {
+  for (yr in years) {
+    key <- paste(site, yr, sep = "_")
+    va_plots[[key]] <- get_discharge_plot(site, yr, paste(va_sites[[site]], "(", yr, ")", sep = ""))
+  }
+}
 
-#RAPPAHANNOCK SQL STUFF
-rappahannock_sql <- sqldf(
-  "Select dateTime, x_00060_00003 as Discharge_cfs
-  from rappahannock_data
-  "
-)
+vail_2003 <- get_discharge_plot("09066325", 2003, "Gore Creek Discharge at Vail, CO (2003)")
+vail_2007 <- get_discharge_plot("09066325", 2007, "Gore Creek Discharge at Vail, CO (2007)")
 
-#RAPPAHANNOCK PLOT
-rappahannock_plot <- ggplot(data = rappahannock_sql,
-             aes(dateTime, Discharge_cfs)) +
-  geom_line()
-rappahannock_plot
-#revised
-rappahannock_plot <- rappahannock_plot +
-  theme_minimal(base_size = 14) +
-  geom_line(color = "steelblue", size = 1) +
-  xlab("Date") +
-  ylab("Discharge (cfs)") +
-  ggtitle("Rappahannock River Near Fredericksburg, VA")
-rappahannock_plot
+#VA plots
+library(patchwork)
+for (site in names(va_sites)) {
+  p1999 <- va_plots[[paste(site, 1999, sep = "_")]]
+  p2018 <- va_plots[[paste(site, 2018, sep = "_")]]
+  
+  combined_plot <- p1999 + p2018 + plot_layout(ncol = 2)
+  print(combined_plot)
+}
 
-#IMPORT POTOMAC DATA
-potomac_data <- readNWISdata(sites = "01646500", 
-                                parameterCd = "00060",
-                                startDate = "1990-01-01", 
-                                endDate = "2020-12-31")
-
-#POTOMAC SQL STUFF
-potomac_sql <- sqldf(
-  "Select dateTime, x_00060_00003 as Discharge_cfs
-  from potomac_data
-  "
-)
-
-#POTOMAC PLOT
-potomac_plot <- ggplot(data = potomac_sql,
-                            aes(dateTime, Discharge_cfs)) +
-  geom_line()
-potomac_plot
-#revised
-potomac_plot <- potomac_plot +
-  theme_minimal(base_size = 14) +
-  geom_line(color = "steelblue", size = 1) +
-  xlab("Date") +
-  ylab("Discharge (cfs)") +
-  ggtitle("Potomac River Near Wash, DC Little Falls Pump Station")
-potomac_plot
-
-#IMPORT VAIL DATA
-vail_data <- readNWISdata(sites = "09066325",
-                          parameterCd = "00060",
-                          startDate = "2010-01-01",
-                          endDate = "2010-12-31")
-
-#VAIL SQL STUFF
-vail_sql <- sqldf(
-  "Select dateTime, x_00060_00003 as Discharge_cfs
-  from vail_data
-  "
-)
-
-#VAIL PLOT
-vail_plot <- ggplot(data = vail_sql,
-                       aes(dateTime, Discharge_cfs)) +
-  geom_line()
-vail_plot
-#revised
-vail_plot <- vail_plot +
-  theme_minimal(base_size = 14) +
-  geom_line(color = "steelblue", size = 1) +
-  xlab("Date") +
-  ylab("Discharge (cfs)") +
-  ggtitle("Gore Creek Discharge at Vail, CO (2010)")
-vail_plot
+#vail plots
+vail_2003 + vail_2007 + plot_layout(ncol = 2)
