@@ -4,7 +4,13 @@ library(dataRetrieval)
 #potomac (01646500)
 #vail (09066325)
 
-get_discharge_plot <- function(site, year, title) {
+ymax_lookup <- list(
+  "01634000" = 25000,   #Shenandoah
+  "01668000" = 75000,   #Rappahannock
+  "01646500" = 150000   #Potomac
+)
+
+get_discharge_plot <- function(site, year, title, ymax = NULL) {
   start <- paste0(year, "-01-01")
   end <- paste0(year, "-12-31")
   
@@ -26,9 +32,16 @@ get_discharge_plot <- function(site, year, title) {
     xlab("Date") +
     ylab("Discharge (cfs)") +
     ggtitle(title)
+  if (!is.null(ymax)) {
+    p <- p + coord_cartesian(ylim = c(0, ymax))
+  }
   
   return(p)
 }
+
+#plot maximums
+ymax_va <- 150000
+ymax_vail <- 1800
 
 va_sites <- list(
   "01634000" = "N F Shenandoah River Near Strasburg, VA",
@@ -44,12 +57,14 @@ va_plots <- list()
 for (site in names(va_sites)) {
   for (yr in years) {
     key <- paste(site, yr, sep = "_")
-    va_plots[[key]] <- get_discharge_plot(site, yr, paste(va_sites[[site]], "(", yr, ")", sep = ""))
+    title <- paste(va_sites[[site]], "(", yr, ")", sep = "")
+    ymax_val <- ymax_lookup[[site]] #site specific
+    va_plots[[key]] <- get_discharge_plot(site, yr, title, ymax = ymax_val)
   }
 }
 
-vail_2003 <- get_discharge_plot("09066325", 2003, "Gore Creek Discharge at Vail, CO (2003)")
-vail_2007 <- get_discharge_plot("09066325", 2007, "Gore Creek Discharge at Vail, CO (2007)")
+vail_2003 <- get_discharge_plot("09066325", 2003, "Gore Creek Discharge at Vail, CO (2003)", ymax = ymax_vail)
+vail_2007 <- get_discharge_plot("09066325", 2007, "Gore Creek Discharge at Vail, CO (2007)", ymax = ymax_vail)
 
 #VA plots
 library(patchwork)
