@@ -11,7 +11,7 @@ suppressPackageStartupMessages(library(lubridate))
 # Discharge in cfs (00060)
 
 
-plot.gage <- function(gage_id, gage_name, start_date, end_date, y_max){
+plot.gage <- function(gage_id, gage_name, start_date, end_date, y_max=0){
   # Download gage data from USGS
   gage_data <- readNWISdata(sites = gage_id,
                             parameterCD = "00060",
@@ -24,6 +24,10 @@ plot.gage <- function(gage_id, gage_name, start_date, end_date, y_max){
   from gage_data
   "
   )
+  
+ if(y_max == 0){
+   y_max <- max(gage_data$flow_cfs)
+ }
   # Create Desired Plot
   gage_plot <- ggplot(data = gage_data, mapping = aes(x = obs_date, y = flow_cfs))+
     geom_line(size = 0.5, color = "navy")+
@@ -37,6 +41,7 @@ plot.gage <- function(gage_id, gage_name, start_date, end_date, y_max){
   # Return plot
   return(gage_plot)
 }
+
 
 # Wet years: 2018 and 1992
 
