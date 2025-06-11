@@ -1,0 +1,135 @@
+﻿OBJECTID_1,Name,Label_Name,STATE_NAME,STATE_ABBR,FIPS,FIPS_NUM,FIPS_State,FIPS_Count,Major_Basi,Planner,RPA,CoordOrg,DER
+1,Accomack,Accomack,Virginia,VA,51001,51001,51,1,Chesapeake Bay,Andrew Noyes,Eastern Shore,A-NPDC,Eastern Shore
+2,Albemarle,Albemarle,Virginia,VA,51003,51003,51,3,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 1, ,Middle James
+3,Alleghany,Alleghany,Virginia,VA,51005,51005,51,5,Upper James River Basin,Kati Burton,Upper James River 2,RV-ARC,Upper James
+4,Amelia,Amelia,Virginia,VA,51007,51007,51,7,Roanoke Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+5,Amherst,Amherst,Virginia,VA,51009,51009,51,9,Roanoke Basin,Gouri Mahadwar,Middle James River 2, ,Middle James
+6,Appomattox,Appomattox,Virginia,VA,51011,51011,51,11,Roanoke Basin,Gouri Mahadwar,Middle James River 2, ,Middle James
+7,Arlington,Arlington,Virginia,VA,51013,51013,51,13,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+8,Augusta,Augusta,Virginia,VA,51015,51015,51,15,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 1,CSPDC,Shenandoah
+9,Bath,Bath,Virginia,VA,51017,51017,51,17,Upper James River Basin,Gouri Mahadwar,Upper James River 1,CSPDC,Upper James
+10,Bedford,Bedford,Virginia,VA,51019,51019,51,19,Roanoke Basin,Kati Burton,Roanoke River 1, ,Roanoke
+11,Bland,Bland,Virginia,VA,51021,51021,51,21,New River Basin,Kati Burton,New River 2, ,New River
+12,Botetourt,Botetourt,Virginia,VA,51023,51023,51,23,Upper James River Basin,Kati Burton,Upper James River 2,RV-ARC,Upper James
+13,Brunswick,Brunswick,Virginia,VA,51025,51025,51,25,Chowan and Dismal,Andrew Noyes,Chowan River 1, ,Chowan
+14,Buchanan,Buchanan,Virginia,VA,51027,51027,51,27,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2,CPPDC,Big Sandy
+15,Buckingham,Buckingham,Virginia,VA,51029,51029,51,29,Roanoke Basin,Gouri Mahadwar,Middle James River 1, ,Middle James
+16,Campbell,Campbell,Virginia,VA,51031,51031,51,31,Roanoke Basin,Gouri Mahadwar,Middle James River 2, ,Roanoke
+17,Caroline,Caroline,Virginia,VA,51033,51033,51,33,Rappahannock and York Basin,Hannah Somers,Northern Coastal Plain 3, ,Northern Coastal Plain
+18,Carroll,Carroll,Virginia,VA,51035,51035,51,35,New River Basin,Kati Burton,New River 2, ,New River
+19,Charles City,Charles City,Virginia,VA,51036,51036,51,36,James River Basin,Andrew Noyes,York and James River 1,Crater PDC,York James
+20,Charlotte,Charlotte,Virginia,VA,51037,51037,51,37,Roanoke Basin,Andrew Noyes,Roanoke River 3, ,Roanoke
+21,Chesterfield,Chesterfield,Virginia,VA,51041,51041,51,41,James River Basin,Gouri Mahadwar,Middle James River 3,Crater PDC,Middle James
+22,Clarke,Clarke,Virginia,VA,51043,51043,51,43,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 2,NSVRC,Shenandoah
+23,Craig,Craig,Virginia,VA,51045,51045,51,45,Upper James River Basin,Kati Burton,Upper James River 2,RV-ARC,Upper James
+24,Culpeper,Culpeper,Virginia,VA,51047,51047,51,47,Rappahannock and York Basin,Hannah Somers,Northern Piedmont 1,RRRC,Northern Piedmont
+25,Cumberland,Cumberland,Virginia,VA,51049,51049,51,49,Roanoke Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+26,Dickenson,Dickenson,Virginia,VA,51051,51051,51,51,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2,CPPDC,Big Sandy
+27,Dinwiddie,Dinwiddie,Virginia,VA,51053,51053,51,53,Chowan and Dismal,Gouri Mahadwar,Middle James River 3,Crater PDC,Chowan
+28,Essex,Essex,Virginia,VA,51057,51057,51,57,Rappahannock and York Basin,Hannah Somers,Northern Coastal Plain 2,MPPDC,Northern Coastal Plain
+29,Fairfax,Fairfax,Virginia,VA,51059,51059,51,59,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+30,Fauquier,Fauquier,Virginia,VA,51061,51061,51,61,Potomac Basin,Hannah Somers,Northern Piedmont 1,RRRC,Northern Virginia
+31,Floyd,Floyd,Virginia,VA,51063,51063,51,63,New River Basin,Kati Burton,New River 1,NRVRC,New River
+32,Fluvanna,Fluvanna,Virginia,VA,51065,51065,51,65,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 1, ,Middle James
+33,Franklin,Franklin,Virginia,VA,51067,51067,51,67,Roanoke Basin,Kati Burton,Roanoke River 1,RV-ARC,Roanoke
+34,Frederick,Frederick,Virginia,VA,51069,51069,51,69,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 2,NSVRC,Shenandoah
+35,Giles,Giles,Virginia,VA,51071,51071,51,71,New River Basin,Kati Burton,New River 1,NRVRC,New River
+36,Gloucester,Gloucester,Virginia,VA,51073,51073,51,73,Rappahannock and York Basin,Andrew Noyes,York and James River 2,HRPDC,Northern Coastal Plain
+37,Goochland,Goochland,Virginia,VA,51075,51075,51,75,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+38,Grayson,Grayson,Virginia,VA,51077,51077,51,77,New River Basin,Kati Burton,New River 2, ,New River
+39,Greene,Greene,Virginia,VA,51079,51079,51,79,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 1, ,Northern Piedmont
+40,Greensville,Greensville,Virginia,VA,51081,51081,51,81,Chowan and Dismal,Andrew Noyes,Chowan River 2,Crater PDC,Chowan
+41,Halifax,Halifax,Virginia,VA,51083,51083,51,83,Roanoke Basin,Andrew Noyes,Roanoke River 3, ,Roanoke
+42,Hanover,Hanover,Virginia,VA,51085,51085,51,85,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+43,Henrico,Henrico,Virginia,VA,51087,51087,51,87,James River Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+44,Henry,Henry,Virginia,VA,51089,51089,51,89,Roanoke Basin,Kati Burton,Roanoke River 2, ,Roanoke
+45,Highland,Highland,Virginia,VA,51091,51091,51,91,Upper James River Basin,Gouri Mahadwar,Upper James River 1,CSPDC,Upper James
+46,Isle of Wight,Isle of Wight,Virginia,VA,51093,51093,51,93,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Southeast
+47,James City,James City,Virginia,VA,51095,51095,51,95,James River Basin,Andrew Noyes,York and James River 2,HRPDC,York James
+48,King and Queen,King and Queen,Virginia,VA,51097,51097,51,97,Rappahannock and York Basin,Hannah Somers,Northern Coastal Plain 2,MPPDC,Northern Coastal Plain
+49,King George,King George,Virginia,VA,51099,51099,51,99,Potomac Basin,Hannah Somers,Northern Coastal Plain 3, ,Northern Coastal Plain
+50,King William,King William,Virginia,VA,51101,51101,51,101,Rappahannock and York Basin,Hannah Somers,Northern Coastal Plain 2,MPPDC,Northern Coastal Plain
+51,Lancaster,Lancaster,Virginia,VA,51103,51103,51,103,Potomac Basin,Hannah Somers,Northern Coastal Plain 1, ,Northern Coastal Plain
+52,Lee,Lee,Virginia,VA,51105,51105,51,105,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee 1, ,Big Sandy
+53,Loudoun,Loudoun,Virginia,VA,51107,51107,51,107,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+54,Louisa,Louisa,Virginia,VA,51109,51109,51,109,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 1, ,Northern Piedmont
+55,Lunenburg,Lunenburg,Virginia,VA,51111,51111,51,111,Roanoke Basin,Andrew Noyes,Chowan River 1, ,Chowan
+56,Madison,Madison,Virginia,VA,51113,51113,51,113,Rappahannock and York Basin,Hannah Somers,Northern Piedmont 1,RRRC,Northern Piedmont
+57,Mathews,Mathews,Virginia,VA,51115,51115,51,115,Rappahannock and York Basin,Hannah Somers,Northern Coastal Plain 2,MPPDC,Northern Coastal Plain
+58,Mecklenburg,Mecklenburg,Virginia,VA,51117,51117,51,117,Roanoke Basin,Andrew Noyes,Roanoke River 3, ,Roanoke
+59,Middlesex,Middlesex,Virginia,VA,51119,51119,51,119,Rappahannock and York Basin,Hannah Somers,Northern Coastal Plain 2,MPPDC,Northern Coastal Plain
+60,Montgomery,Montgomery,Virginia,VA,51121,51121,51,121,New River Basin,Kati Burton,New River 1,NRVRC,New River
+61,Nelson,Nelson,Virginia,VA,51125,51125,51,125,Roanoke Basin,Gouri Mahadwar,Middle James River 2, ,Middle James
+62,New Kent,New Kent,Virginia,VA,51127,51127,51,127,James River Basin,Andrew Noyes,York and James River 2, ,York James
+63,Northampton,Northampton,Virginia,VA,51131,51131,51,131,Chesapeake Bay,Andrew Noyes,Eastern Shore,A-NPDC,Eastern Shore
+64,Northumberland,Northumberland,Virginia,VA,51133,51133,51,133,Potomac Basin,Hannah Somers,Northern Coastal Plain 1, ,Northern Coastal Plain
+65,Nottoway,Nottoway,Virginia,VA,51135,51135,51,135,Roanoke Basin,Andrew Noyes,Chowan River 1, ,Chowan
+66,Orange,Orange,Virginia,VA,51137,51137,51,137,Rappahannock and York Basin,Hannah Somers,Northern Piedmont 1,RRRC,Northern Piedmont
+67,Page,Page,Virginia,VA,51139,51139,51,139,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 2,NSVRC,Shenandoah
+68,Patrick,Patrick,Virginia,VA,51141,51141,51,141,New River Basin,Kati Burton,Roanoke River 2, ,Roanoke
+69,Pittsylvania,Pittsylvania,Virginia,VA,51143,51143,51,143,Roanoke Basin,Kati Burton,Roanoke River 2, ,Roanoke
+70,Powhatan,Powhatan,Virginia,VA,51145,51145,51,145,Roanoke Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+71,Prince Edward,Prince Edward,Virginia,VA,51147,51147,51,147,Roanoke Basin,Andrew Noyes,Chowan River 1, ,Middle James
+72,Prince George,Prince George,Virginia,VA,51149,51149,51,149,James River Basin,Gouri Mahadwar,Middle James River 3,Crater PDC,Chowan
+73,Prince William,Prince William,Virginia,VA,51153,51153,51,153,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+74,Pulaski,Pulaski,Virginia,VA,51155,51155,51,155,New River Basin,Kati Burton,New River 1,NRVRC,New River
+75,Rappahannock,Rappahannock,Virginia,VA,51157,51157,51,157,Rappahannock and York Basin,Hannah Somers,Northern Piedmont 1,RRRC,Northern Piedmont
+76,Richmond,Richmond,Virginia,VA,51159,51159,51,159,Potomac Basin,Hannah Somers,Northern Coastal Plain 1, ,Northern Coastal Plain
+77,Roanoke,Roanoke,Virginia,VA,51161,51161,51,161,Roanoke Basin,Kati Burton,Roanoke River 1,RV-ARC,Roanoke
+78,Rockbridge,Rockbridge,Virginia,VA,51163,51163,51,163,Upper James River Basin,Gouri Mahadwar,Upper James River 1,CSPDC,Upper James
+79,Rockingham,Rockingham,Virginia,VA,51165,51165,51,165,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 1,CSPDC,Shenandoah
+80,Russell,Russell,Virginia,VA,51167,51167,51,167,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2,CPPDC,Big Sandy
+81,Scott,Scott,Virginia,VA,51169,51169,51,169,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee 1, ,Big Sandy
+82,Shenandoah,Shenandoah,Virginia,VA,51171,51171,51,171,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 2,NSVRC,Shenandoah
+83,Smyth,Smyth,Virginia,VA,51173,51173,51,173,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2, ,Big Sandy
+84,Southampton,Southampton,Virginia,VA,51175,51175,51,175,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Chowan
+85,Spotsylvania,Spotsylvania,Virginia,VA,51177,51177,51,177,Rappahannock and York Basin,Hannah Somers,Northern Piedmont 2, ,Northern Piedmont
+86,Stafford,Stafford,Virginia,VA,51179,51179,51,179,Potomac Basin,Hannah Somers,Northern Piedmont 2, ,Northern Piedmont
+87,Surry,Surry,Virginia,VA,51181,51181,51,181,James River Basin,Andrew Noyes,Southeast Virginia,HRPDC,Chowan
+88,Sussex,Sussex,Virginia,VA,51183,51183,51,183,Chowan and Dismal,Andrew Noyes,Chowan River 2,Crater PDC,Chowan
+89,Tazewell,Tazewell,Virginia,VA,51185,51185,51,185,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2,CPPDC,Big Sandy
+90,Warren,Warren,Virginia,VA,51187,51187,51,187,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 2,NSVRC,Shenandoah
+91,Washington,Washington,Virginia,VA,51191,51191,51,191,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2, ,Big Sandy
+92,Westmoreland,Westmoreland,Virginia,VA,51193,51193,51,193,Potomac Basin,Hannah Somers,Northern Coastal Plain 1, ,Northern Coastal Plain
+93,Wise,Wise,Virginia,VA,51195,51195,51,195,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee 1, ,Big Sandy
+94,Wythe,Wythe,Virginia,VA,51197,51197,51,197,New River Basin,Kati Burton,New River 2, ,New River
+95,York,York,Virginia,VA,51199,51199,51,199,James River Basin,Andrew Noyes,York and James River 2,HRPDC,York James
+96,Alexandria,Alexandria,Virginia,VA,51510,51510,51,510,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+97,Bristol,Bristol,Virginia,VA,51520,51520,51,520,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee River 2, ,Big Sandy
+98,Buena Vista,Buena Vista,Virginia,VA,51530,51530,51,530,Upper James River Basin,Gouri Mahadwar,Upper James River 1,CSPDC,Upper James
+99,Charlottesville,Charlottesville,Virginia,VA,51540,51540,51,540,Rappahannock and York Basin,Gouri Mahadwar,Middle James River 1, ,Middle James
+100,Chesapeake,Chesapeake,Virginia,VA,51550,51550,51,550,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Southeast
+101,Colonial Heights,Colonial Heights,Virginia,VA,51570,51570,51,570,James River Basin,Gouri Mahadwar,Middle James River 3,Crater PDC,Middle James
+102,Covington,Covington,Virginia,VA,51580,51580,51,580,Upper James River Basin,Kati Burton,Upper James River 2,RV-ARC,Upper James
+103,Danville,Danville,Virginia,VA,51590,51590,51,590,Roanoke Basin,Kati Burton,Roanoke River 2, ,Roanoke
+104,Emporia,Emporia,Virginia,VA,51595,51595,51,595,Chowan and Dismal,Andrew Noyes,Chowan River 2,Crater PDC,Chowan
+105,Fairfax City,City of Fairfax,Virginia,VA,51600,51600,51,600,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+106,Falls Church,Falls Church,Virginia,VA,51610,51610,51,610,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+107,Franklin City,City of Franklin,Virginia,VA,51620,51620,51,620,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Chowan
+108,Fredericksburg,Fredericksburg,Virginia,VA,51630,51630,51,630,Rappahannock and York Basin,Hannah Somers,Northern Piedmont 2, ,Northern Piedmont
+109,Galax,Galax,Virginia,VA,51640,51640,51,640,New River Basin,Kati Burton,New River 2, ,New River
+110,Hampton,Hampton,Virginia,VA,51650,51650,51,650,James River Basin,Andrew Noyes,York and James River 2,HRPDC,York James
+111,Harrisonburg,Harrisonburg,Virginia,VA,51660,51660,51,660,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 1,CSPDC,Shenandoah
+112,Hopewell,Hopewell,Virginia,VA,51670,51670,51,670,James River Basin,Gouri Mahadwar,Middle James River 3,Crater PDC,Middle James
+113,Lexington,Lexington,Virginia,VA,51678,51678,51,678,Upper James River Basin,Gouri Mahadwar,Upper James River 1,CSPDC,Upper James
+114,Lynchburg,Lynchburg,Virginia,VA,51680,51680,51,680,Roanoke Basin,Gouri Mahadwar,Middle James River 2, ,Middle James
+115,Manassas,Manassas,Virginia,VA,51683,51683,51,683,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+116,Manassas Park,Manassas Park,Virginia,VA,51685,51685,51,685,Potomac Basin,Hannah Somers,Northern Virginia,NVRC,Northern Virginia
+117,Martinsville,Martinsville,Virginia,VA,51690,51690,51,690,Roanoke Basin,Kati Burton,Roanoke River 2, ,Roanoke
+118,Newport News,Newport News,Virginia,VA,51700,51700,51,700,James River Basin,Andrew Noyes,York and James River 2,HRPDC,York James
+119,Norfolk,Norfolk,Virginia,VA,51710,51710,51,710,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Southeast
+120,Norton,Norton,Virginia,VA,51720,51720,51,720,Tennesseee and Big Sandy River Basin,Kati Burton,Big Sandy Upper Tennessee 1, ,Big Sandy
+121,Petersburg,Petersburg,Virginia,VA,51730,51730,51,730,James River Basin,Gouri Mahadwar,Middle James River 3,Crater PDC,Middle James
+122,Poquoson,Poquoson,Virginia,VA,51735,51735,51,735,James River Basin,Andrew Noyes,York and James River 2,HRPDC,York James
+123,Portsmouth,Portsmouth,Virginia,VA,51740,51740,51,740,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Southeast
+124,Radford,Radford,Virginia,VA,51750,51750,51,750,New River Basin,Kati Burton,New River 1,NRVRC,New River
+125,Richmond City,City of Richmond,Virginia,VA,51760,51760,51,760,James River Basin,Gouri Mahadwar,Middle James River 3, ,Middle James
+126,Roanoke City,City of Roanoke,Virginia,VA,51770,51770,51,770,Roanoke Basin,Kati Burton,Roanoke River 1,RV-ARC,Roanoke
+127,Salem,Salem,Virginia,VA,51775,51775,51,775,Roanoke Basin,Kati Burton,Roanoke River 1,RV-ARC,Roanoke
+128,Staunton,Staunton,Virginia,VA,51790,51790,51,790,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 1,CSPDC,Shenandoah
+129,Suffolk,Suffolk,Virginia,VA,51800,51800,51,800,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Southeast
+130,Virginia Beach,Virginia Beach,Virginia,VA,51810,51810,51,810,Chowan and Dismal,Andrew Noyes,Southeast Virginia,HRPDC,Southeast
+131,Waynesboro,Waynesboro,Virginia,VA,51820,51820,51,820,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 1,CSPDC,Shenandoah
+132,Williamsburg,Williamsburg,Virginia,VA,51830,51830,51,830,James River Basin,Andrew Noyes,York and James River 2,HRPDC,York James
+133,Winchester,Winchester,Virginia,VA,51840,51840,51,840,Shenandoah River Basin,Gouri Mahadwar,Shenandoah River 2,NSVRC,Shenandoah
+0, , , , , ,0, , ,Tennesseee and Big Sandy River Basin, ,,,

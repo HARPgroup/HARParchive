@@ -1,15 +1,15 @@
 ---
 title: "Dataframe_Generator"
 params:
-  origin: ["Roanoke_1"] #name of a region (Roanoke_1), locality (use FIPS, i.e, 51015 = Augusta county), or a rivseg ID (JL7_7070_0001)
+  origin: ["Chowan_2"] #name of a region (Roanoke_1), locality (use FIPS, i.e, 51015 = Augusta county), or a rivseg ID (JL7_7070_0001)
   origin_type: ["region"] #basin, locality, or region
   featr_type: ["facility"] #source or facility
-  runid_list: ["runid_11", "runid_13", "runid_17", "runid_0"]
+  runid_list: ["runid_11", "runid_13", "runid_17", "runid_1000"]
   model_version: ["vahydro-1.0"]
   metric_mod: ["wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"] #wd_mgd, ps_mgd
   metric_feat: ["wsp2020_2040_mgy"] #wsp2020_2040_mgy, NA
   foundation_path: FALSE
-  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"] #l30_Qout, l90_Qout, 7q10
+  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"] #l30_Qout, l90_Qout, 7q10
   baseline_runid_list: [ "runid_11", "runid_1000" ]
   crs_default: 4326
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
@@ -81,11 +81,15 @@ if (overwrite_files==TRUE) {
 
 #----Pull Data----
 #---Facility Data---
-foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) #foundational measuring pt(mp)/sources data
+
+#foundational measuring pt(mp)/sources data
+foundatn_mp <- fread(paste0(foundation_path, "/foundation_dataset_mgy.csv")) 
+## Integar 64 data needs to be stored as numeric
+foundatn_mp$CEDS_Facility_Id <- as.numeric(foundatn_mp$CEDS_Facility_Id)
 
 if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
-  if ("wsp_2040_mgy" %in% colnames(foundatn_mp)) {
-    foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp_2040_mgy
+  if ("wsp2040_mgy" %in% colnames(foundatn_mp)) {
+    foundatn_mp$wsp2020_2040_mgy <- foundatn_mp$wsp2040_mgy
   }
 }
 
@@ -133,8 +137,13 @@ rsegs <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/
   #note: potential NULLs for newly carved data^
 
 #---County Data---
-cnty_fips <- fread("https://raw.githubusercontent.com/HARPgroup/HARParchive/master/HARP-2023-Summer/Mapping/Data/counties_sf.csv")
-cnty_regions <- fread('https://github.com/HARPgroup/HARParchive/raw/master/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_053122.csv') #csv connects county names to their planning regions
+counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+
+#---Region Data---
+regions_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/regions_sf.csv')
+regions <- sf::st_as_sf(read.csv(regions_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+
 
 #---Cities & Roads---
 if(base_layer_data==TRUE){
@@ -149,31 +158,6 @@ if(base_layer_data==TRUE){
 
 ``` {r base_layers}
 
-#----Filter/Process Data----
-#---Counties---
-cnty_fips$name <- sub(" County", "", cnty_fips$name) # fix any names followed by " County" to match the names of counties in the regions df
-# rename Region col in base set to prevent conflict
-colnames(cnty_fips)[colnames(cnty_fips) == 'Region'] <- 'us_region'
-cnty_fips <- sqldf("SELECT a.*, b.VMDWA_Reg2 as Region
-                FROM cnty_fips as a
-                LEFT OUTER JOIN cnty_regions as b
-                WHERE (a.name = b.County)
-                ") #add region column to county data; WHERE instead of ON means only counties in regional planning areas are kept
-counties <- cnty_fips[grep(51,cnty_fips$dh_fips),] #remove counties outside of VA using the fips code
-counties <- sf::st_as_sf(counties, wkt = fn_geoCol(counties), crs=crs_default) #convert to sf based on geometry column found by fn_geoCol() (developer-defined fn from fns_spatial.R)
-
-#---Regions---
-regions_split <- split(counties, counties$Region) #creates a list containing a sf data frame per each region, which all contain the county polygons corresponding to that region
-for(i in 1:length(regions_split)){ #merge counties into one polygon for each region
-  if(i==1){
-    regions <- st_union(regions_split[[i]])
-  }
-  if(i!=1){
-    regions <- rbind( regions, st_union(regions_split[[i]]) )
-  } #note: had to do this in IF statements instead of resetting regions_split[i] <- regions_split[[i]] because keeping it in list form causes st_union() to put geom into sfg format, which causes problems with st_filter() in the rsegs filtering chunk
-}
-regions <- sf::st_as_sf(data.frame(region=names(regions_split), geo=regions, row.names=NULL), crs=crs_default)
-rm(regions_split)
 
 if(base_layer_data==TRUE){
 #---Cities---
@@ -230,16 +214,18 @@ if(featr_type == "source"){
 }
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("
-   SELECT facility_hydroid,facility,Use_Type,latitude,longitude,fips_code,locality,ows_planner,facility_status,
-    Total_Permit_Limit_MGY,gw_frac,wsp_2040_mgy,wsp2020_2040_mgy,fac_CEDSid,
-    SUM(five_yr_avg) as sum  -- Creating an aggregated column for the five_yr_avg
+   SELECT facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,locality,facility_status,
+    Total_Permit_Limit_MGY,gw_frac,wsp2040_mgy AS wsp_2040_mgy,wsp2020_2040_mgy AS wsp2020_2040_mgy,fac_CEDSid,
+    SUM(fiveyr_avg_mgy) as sum  -- Creating an aggregated column for the fiveyr_avg_mgy
    FROM foundatn_mp
-   GROUP BY Facility_hydroid
+   GROUP BY Facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,
+   locality,facility_status,Total_Permit_Limit_MGY,gw_frac,
+   wsp_2040_mgy,wsp2020_2040_mgy,fac_CEDSid
   ") # Not selecting any source related fields, as these are innacurate to the facility (and even the soruce)
   ## Need to replace the MP five_yr_avg with the aggregated column 
   f_foundatn$five_yr_avg <- f_foundatn$sum
   
-  f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp_2040_mgy
+  f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp2040_mgy
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
   f_model$Facility_hydroid <- f_model$featureid 
   f_merge <- merge(x=f_model, #merge/full join foundational & modeled facil data

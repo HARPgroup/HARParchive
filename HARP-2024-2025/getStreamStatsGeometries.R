@@ -11,7 +11,7 @@ test <- dataRetrieval::readNWISsite(siteNumber  = "01634000")
 testWshed <- streamStats_Delineation_single(state = 'VA', # StreamStats state info e.g. 'VA'
                                            longitude = test$dec_long_va, # longitude value, numeric
                                            latitude = test$dec_lat_va, # latitude value, numeric
-                                           uid = "01634000" # Unique station identifier to append to dataset
+                                           UID = "01634000" # Unique station identifier to append to dataset
 )
 
 

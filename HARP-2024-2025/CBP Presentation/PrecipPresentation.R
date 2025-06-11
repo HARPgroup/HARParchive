@@ -30,33 +30,51 @@ gageWatershedSF <- st_make_valid(gageWatershedSF)
 gageWatershedSF$area <- st_area(gageWatershedSF)
 gageWatershedSF <- gageWatershedSF[order(gageWatershedSF$area),]
 
+#Read in daily rasters for the same day, April 16, 2024
+nldas <- rast("http://deq1.bse.vt.edu:81/met/Presentation/plots/nldas2_414123816.tiff")
+daymet <- rast("http://deq1.bse.vt.edu:81/met/Presentation/plots/daymet_110401307.tiff")
+prism <- rast("http://deq1.bse.vt.edu:81/met/Presentation/plots/prism_1.tiff")
+breaksRaster <- seq(length.out = 255, 0, max(c(terra::minmax(nldas,compute = TRUE)[2],
+                                               terra::minmax(daymet,compute = TRUE)[2],
+                                               terra::minmax(prism,compute = TRUE)[2])))
+breaksRaster <- unique(round(breaksRaster,0))
+#An optional color pallette. Not used below, but was used in some testing:
+colPallete <- colorRampPalette(c('brown3','yellow','blue','green'))
+
+
 #Create image of NLDAS raster
-nldas <- raster("http://deq1.bse.vt.edu:81/met/Presentation/plots/nldas2_414123816.tiff")
 png('nldas.png',width = 6,height = 4,units = 'in',res = 300)
 plot(nldas,axes = TRUE,
      ylim = c(36,40),
      xlim = c(-84,-76),
-     main = 'NLDAS2 Precipitation (mm) On April 16, 2024')
+     main = 'NLDAS2 Precipitation (mm) On April 16, 2024',
+     type = "continuous",
+     breaks = breaksRaster, 
+     col = rev(terrain.colors(length(breaksRaster))))
 plot(gageWatershedSF$wkt,add = TRUE,lwd = 0.1)
 dev.off()
 
 #Create image of daymet raster
-daymet <- raster("http://deq1.bse.vt.edu:81/met/Presentation/plots/daymet_110401307.tiff")
 png('daymet.png',width = 6,height = 4,units = 'in',res = 300)
 plot(daymet,axes = TRUE,
      ylim = c(36,40),
      xlim = c(-84,-76),
-     main = 'daymet Precipitation (mm) On April 16, 2024')
+     main = 'daymet Precipitation (mm) On April 16, 2024',
+     type = "continuous",
+     breaks = breaksRaster, 
+     col = rev(terrain.colors(length(breaksRaster))))
 plot(gageWatershedSF$wkt,add = TRUE,lwd = 0.1)
 dev.off()
 
 #Create image of PRISM raster
-prism <- raster("http://deq1.bse.vt.edu:81/met/Presentation/plots/prism_1.tiff")
 png('PRISM.png',width = 6,height = 4,units = 'in',res = 300)
 plot(prism,axes = TRUE,
      ylim = c(36,40),
      xlim = c(-84,-76),
-     main = 'PRISM Precipitation (mm) On April 16, 2024')
+     main = 'PRISM Precipitation (mm) On April 16, 2024',
+     type = "continuous",
+     breaks = breaksRaster, 
+     col = rev(terrain.colors(length(breaksRaster))))
 plot(gageWatershedSF$wkt,add = TRUE,lwd = 0.1)
 dev.off()
 
@@ -122,9 +140,9 @@ dev.off()
 #for a point
 gageNo <- '01634000'
 #Get precip for the gage
-nldasPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/simple_lm_nldas2_tiled/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
-daymetPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/simple_lm_daymet/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
-prismPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/simple_lm_PRISM/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
+nldasPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/nldas2/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
+daymetPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/daymet/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
+prismPrecip <- read.csv(paste0('http://deq1.bse.vt.edu:81/met/PRISM/precip/usgs_ws_',gageNo,'_precip_daily.csv'))
 nldasPrecip$obs_date <- as.Date(nldasPrecip$obs_date)
 daymetPrecip$obs_date <- as.Date(daymetPrecip$obs_date)
 prismPrecip$obs_date <- as.Date(prismPrecip$obs_date)

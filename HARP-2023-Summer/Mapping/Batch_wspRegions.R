@@ -39,6 +39,7 @@ region_set <-
 
 
 
+
 locality_set <- 
   c(
     "51001",	"51003",	"51005",	"51007",	"51009",	"51011",	"51013",	"51015",	"51017",	"51019",
@@ -46,7 +47,8 @@ locality_set <-
     "51041",	"51043",	"51045",	"51047",	"51049",	"51051",	"51053",	"51057",	"51059",	"51061",
     "51063",	"51065",	"51067",	"51069",	"51071",	"51073",	"51075",	"51077",	"51079",	"51081",
     "51083",	"51085",	"51087",	"51089",	"51091",	"51093",	"51095",	"51097",	"51099",	"51101",
-    "51103",	"51105",	"51107",	"51109",	"51111",	"51113",	"51115",	"51117",	"51119",	"51121",
+    "51103",	"51105",	"51107",	"51109",	"51111",
+    "51113",	"51115",	"51117",	"51119",	"51121",
     "51125",	"51127",	"51131",	"51133",	"51135",	"51137",	"51139",	"51141",	"51143",	"51145",
     "51147",	"51149",	"51153",	"51155",	"51157",	"51159",	"51161",	"51163",	"51165",	"51167",
     "51169",	"51171",	"51173",	"51175",	"51177",	"51179",	"51181",	"51183",	"51185",	"51187",
@@ -59,12 +61,13 @@ locality_set <-
 
 #to run a single render statement within the loop, define region or locality name here
 
-origin_name <- "MiddleJames_3" 
+origin_name <- "Chowan_2" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
   origin_name <- region_set[x]
   print(paste0("Rendering ",origin_name))
+  #RENDER DATAFRAME GENERATOR - REGION
   for (k in 1:5) {
     tryCatch({
       rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
@@ -75,19 +78,19 @@ for (x in 1:length(region_set)) {
                           metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"), 
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy", 
-                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"), 
+                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"), 
                           runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                           crs_default = 4326, 
                           limit_featrs_to_origin = FALSE,
                           overwrite_files = TRUE, 
-                          base_layer_data = FALSE
-                        ))
-      break
+                          base_layer_data = FALSE)
+                        )
+        break
     }, error =function(repeatit) {
       print(paste0('DF gen ',origin_name,'Fail Attempt: ',k))
     })
   }
-  #RENDER DATAFRAME GENERATOR
+
 
   
   # #check if file exists and may be open, which will cause document render to fail after generating doc successfully
@@ -99,7 +102,7 @@ for (x in 1:length(region_set)) {
 
    for (k in 1:5) {
      tryCatch({
-       #RENDER WSP REGIONAL SUMMARY DOC
+       #RENDER WSP REGIONAL SUMMARY DOC - REGION
        rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
                          output_file =  paste0(export_path, origin_name, "_wsp"),
                          # output_format = "word_document",
@@ -132,7 +135,8 @@ for (x in 1:length(region_set)) {
 }
 
 
-origin_name <- '51013'
+
+origin_name <- '51011'
 basepath='/var/www/R'
 source('/var/www/R/config.R')
 
@@ -140,7 +144,7 @@ source('/var/www/R/config.R')
 for (x in locality_set) {
   origin_name <- x
   print(paste0("Rendering ",origin_name))
-  
+  ## DF GENERATOR - LOCALITY
   for (k in 1:5) {
     tryCatch({
       rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"),
@@ -151,18 +155,19 @@ for (x in locality_set) {
                           metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"),
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy",
-                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "Smin_L30_mg"), 
+                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"), 
                           runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                           crs_default = 4326,
                           limit_featrs_to_origin = FALSE,
                           overwrite_files = TRUE,
-                          base_layer_data = FALSE))
+                          base_layer_data = FALSE)
+                        )
       break
     }, error = function(repeatit) {
       print(paste0('df gen ',origin_name,'Fail Attempt: ',k))
     })
   }
-  
+  ## SUMMARY - LOCALITY
   for (k in 1:5) {
     tryCatch({
       rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"),
