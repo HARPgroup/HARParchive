@@ -146,100 +146,100 @@ gridExtra::grid.arrange(aa,bb,cc, top="Minimum Yearly Flows for Different Timesp
 
 # Groundwater Needs ----
 # Perform Group 2 function
-cs_90_day_min <- perform.group2("01632000", "90 Day Min")
-mtj_90_day_min <- perform.group2("01633000", "90 Day Min")
-sb_90_day_min <- perform.group2("01634000", "90 Day Min")
+cs_7_day_min <- perform.group2("01632000", "7 Day Min")
+mtj_7_day_min <- perform.group2("01633000", "7 Day Min")
+sb_7_day_min <- perform.group2("01634000", "7 Day Min")
 
 # Combine data from all three gages
 # min_90_day_cfs in cfs
 # specific_90_day_min in in/day
 # specific_monthly in in/month
 # specific_yearly in in/yr
-shenandoah_90_day_min <- sqldf::sqldf(
-  "select year, reg_flow as min_90_day_cfs, specific_flow as specific_90_day_min,
+shenandoah_7_day_min <- sqldf::sqldf(
+  "select year, reg_flow as min_7_day_cfs, specific_flow as specific_7_day_min,
     monthly as specific_monthly, yearly as specific_yearly,
-    'Cootes Store' as Location from cs_90_day_min
+    'Cootes Store' as Location from cs_7_day_min
     union all
-    select year, reg_flow as min_90_day_cfs, specific_flow as specific_90_day_min,
+    select year, reg_flow as min_7_day_cfs, specific_flow as specific_7_day_min,
     monthly as specific_monthly, yearly as specific_yearly,
-    'Mount Jackson' as Location from mtj_90_day_min
+    'Mount Jackson' as Location from mtj_7_day_min
     union all
-    select year, reg_flow as min_90_day_cfs, specific_flow as specific_90_day_min,
+    select year, reg_flow as min_7_day_cfs, specific_flow as specific_7_day_min,
     monthly as specific_monthly, yearly as specific_yearly,
-    'Strasburg' as Location from sb_90_day_min
+    'Strasburg' as Location from sb_7_day_min
     "
 )
 
 
-# Plot inches/year required to maintain minimum flow histogram
+# Plot inches/year required to maintain minimum flow histogram ----
 # Cootes Store
-CS <- ggplot(data = cs_90_day_min)+
+CS <- ggplot(data = cs_7_day_min)+
   geom_density(mapping = aes(x=yearly),
                fill="plum2",
                color="plum",
                alpha=0.5)+
-  geom_vline(xintercept = mean(cs_90_day_min$yearly), color="plum")+
+  geom_vline(xintercept = mean(cs_7_day_min$yearly), color="plum")+
   theme_bw()+
   theme(plot.title = element_text(hjust = 0.5))+
   xlab("Watershed Flow (in/yr)")+
   ylab("Density")+
   ggtitle("Cootes Store")+
   geom_text(aes(x = 11, y = 0.25,
-                label = paste0("Mean = ", round(mean(cs_90_day_min$yearly),2)," in/yr")),
+                label = paste0("Mean = ", round(mean(cs_7_day_min$yearly),2)," in/yr")),
             stat = "unique")+
-  coord_cartesian(xlim = c(0,15), ylim = c(0,0.3))
+  coord_cartesian(xlim = c(0,10), ylim = c(0,3))
   
 # Mount Jackson
-MTJ <- ggplot(data = mtj_90_day_min)+
+MTJ <- ggplot(data = mtj_7_day_min)+
     geom_density(mapping = aes(x=yearly),
                  fill="olivedrab2",
                  color="olivedrab3",
                  alpha=0.5)+
-    geom_vline(xintercept = mean(mtj_90_day_min$yearly), color="olivedrab3")+
+    geom_vline(xintercept = mean(mtj_7_day_min$yearly), color="olivedrab3")+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
     xlab("Watershed Flow (in/yr)")+
     ylab("Density")+
     ggtitle("Mount Jackson")+
     geom_text(aes(x = 11, y = 0.25,
-                label = paste0("Mean = ", round(mean(mtj_90_day_min$yearly),2)," in/yr")),
+                label = paste0("Mean = ", round(mean(mtj_7_day_min$yearly),2)," in/yr")),
             stat = "unique")+
-  coord_cartesian(xlim = c(0,15), ylim = c(0,0.3))
+  coord_cartesian(xlim = c(0,10), ylim = c(0,3))
   
 # Strasburg
-SB <- ggplot(data = sb_90_day_min)+
+SB <- ggplot(data = sb_7_day_min)+
     geom_density(mapping = aes(x=yearly),
                  fill="lightblue2",
                  color="lightblue3",
                  alpha=0.5)+
-    geom_vline(xintercept = mean(sb_90_day_min$yearly), color="lightblue3")+
+    geom_vline(xintercept = mean(sb_7_day_min$yearly), color="lightblue3")+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
     xlab("Watershed Flow (in/yr)")+
     ylab("Density")+
     ggtitle("Strasburg")+
     geom_text(aes(x = 11, y = 0.25,
-                label = paste0("Mean = ", round(mean(sb_90_day_min$yearly),2)," in/yr")),
+                label = paste0("Mean = ", round(mean(sb_7_day_min$yearly),2)," in/yr")),
             stat = "unique")+
-  coord_cartesian(xlim = c(0,15), ylim = c(0,0.3))
+  coord_cartesian(xlim = c(0,10), ylim = c(0,3))
 
 # Entire NF Shenandoah
-NFS <- ggplot(data = shenandoah_90_day_min)+
+NFS <- ggplot(data = shenandoah_7_day_min)+
   geom_density(mapping = aes(x=specific_yearly),
                  fill="brown3",
                  color="brown",
                  alpha=0.5)+
-  geom_vline(xintercept = mean(shenandoah_90_day_min$specific_yearly), color="brown")+
+  geom_vline(xintercept = mean(shenandoah_7_day_min$specific_yearly), color="brown")+
   theme_bw()+
   theme(plot.title = element_text(hjust = 0.5))+
   xlab("Watershed Flow (in/yr)")+
   ylab("Density")+
   ggtitle("NF Shenandoah")+
   geom_text(aes(x = 11, y = 0.25,
-                label = paste0("Mean = ", round(mean(shenandoah_90_day_min$specific_yearly),2)," in/yr")),
+                label = paste0("Mean = ", round(mean(shenandoah_7_day_min$specific_yearly),2)," in/yr")),
             stat = "unique")+
-  coord_cartesian(xlim = c(0,15), ylim = c(0,0.3))
+  coord_cartesian(xlim = c(0,10), ylim = c(0,3))
 
 # Yearly 0-15, monthly 0-1.25, daily 0-0.045
 
-gridExtra::grid.arrange(CS,MTJ,SB,NFS, top="Yearly Water Needs to Meet 90 Day Minimum Flow")
+gridExtra::grid.arrange(CS,MTJ,SB,NFS, top="Yearly Water Needs to Meet 7 Day Minimum Flow")
