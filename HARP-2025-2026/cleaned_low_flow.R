@@ -63,9 +63,9 @@ ggplot(df_30day_min_recent, aes(x = year, y = Flow, color = SiteName)) +
 
 
 
-#PLAYING AROUND WITH SOME NUMBERS (very much a work in progress)
+#PLAYING AROUND WITH SOME NUMBERS (very much a work in progress, cleaned up and improved in low_flow_calculations.R)
 #read in group2 data:
-flows2 <- dataRetrieval::readNWISdv("01632000",parameterCd = "00060")
+flows2 <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060") #Mount Jackson
 flows2 <- dataRetrieval::renameNWISColumns(flows2)
 # #Convert flows to zoo
 flows_zoo2 <- zoo::as.zoo(x = flows2$Flow)
@@ -76,12 +76,13 @@ df2 <- flows_zoo_critical
 
 
 DOR_flow <- df2 %>%
-  filter(`30 Day Min` == min(`30 Day Min`, na.rm = TRUE)) %>%
-  pull(`30 Day Min`)
-duration_days <- 30 #this number can be adjusted, just a placeholder for now
+  filter(`7 Day Min` == min(`7 Day Min`, na.rm = TRUE)) %>%
+  pull(`7 Day Min`)
+duration_days <- 15 #this number can be adjusted, just a placeholder for now (typical drought duration)
 volume_cuft <- DOR_flow * 86400 * duration_days  #cfs × sec/day × days
-watershed_area_sqft <- 210 * 640 * 43560 #210 is the drainage area pertaining to Cootes Store
+watershed_area_sqft <- 508 * 640 * 43560 #770 is the drainage area pertaining to Mount Jackson
 storage_in_inches <- (volume_cuft / watershed_area_sqft) * 12
+storage_in_inches
 
 #DOR expressed in watershed inches per day
 DOR_cfs <- DOR_flow
@@ -89,3 +90,39 @@ DOR_cfs <- DOR_flow
 DOR_volume_daily_cuft <- DOR_cfs * 86400
 # Convert to inches over watershed
 inches_per_day <- (DOR_volume_daily_cuft / watershed_area_sqft) * 12
+inches_per_day
+
+
+
+
+#Mount Jackson 1999 Exploration:
+flows_1999 <- flows2 %>%
+  filter(lubridate::year(Date) == 1999)
+ggplot(flows_1999, aes(x = Date, y = Flow)) +
+  geom_line(color = "darkred") +
+  labs(title = "Mount Jackson Daily Flows (1999) for 7-Day Min", y = "Flow (cfs)", x = "Date") +
+  theme_minimal()
+#inspect the summer months:
+flows_1999_may_aug <- flows2 %>%
+  filter(year(Date) == 1999, month(Date) %in% 5:8)
+ggplot(flows_1999_may_aug, aes(x = Date, y = Flow)) +
+  geom_line(color = "darkred") +
+  labs(title = "Mount Jackson Daily Flows (May–August 1999) for 7-Day Min", y = "Flow (cfs)", x = "Date") +
+  theme_minimal()
+#additional comparison, pick a wetter year like 1998 (happens to be the year before)
+flows_1998 <- flows2 %>%
+  filter(lubridate::year(Date) == 1998)
+ggplot(flows_1998, aes(x = Date, y = Flow)) +
+  geom_line(color = "darkred") +
+  labs(title = "Mount Jackson Daily Flows (1998) for 7-Day Min", y = "Flow (cfs)", x = "Date") +
+  theme_minimal()
+
+#comparing against other years for reference:
+flows_compare <- flows2 %>%
+  filter(lubridate::year(Date) %in% c(1998, 1999, 2000))
+
+ggplot(flows_compare, aes(x = Date, y = Flow, color = factor(lubridate::year(Date)))) +
+  geom_line() +
+  labs(title = "Flow Comparison: 1998–2000 (7-Day Min)", color = "Year", y = "Flow (cfs)") +
+  theme_minimal()
+
