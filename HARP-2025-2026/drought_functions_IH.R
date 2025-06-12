@@ -60,9 +60,9 @@ return(class)
 
 # Function to create a summary table of periods determined as a drought from classify.drought
 # result = dataframe output from classify.drought
-# max_drought_days = number of days with "drought" conditions in a row considered to be real drought
-#   e.g. max_drought_days = 7 would remove any "drought" periods less than 7 days long
-create.drought.sum <- function(classify_result, max_drought_days){
+# min_drought_days = number of days with "drought" conditions in a row considered to be real drought
+#   e.g. min_drought_days = 7 would remove any "drought" periods less than 7 days long
+create.drought.sum <- function(classify_result, min_drought_days){
 # Require packages
   require(sqldf)
 
@@ -100,7 +100,7 @@ drought_event_sum$period_drought_days <- sum(drought_event_sum$ndays)
 # Remove any droughts lasting less than input number of days
 drought_event_sum <- sqldf(sprintf(
   "select * from drought_event_sum where ndays > %f
-  ", max_drought_days))
+  ", min_drought_days))
 
 
 return(drought_event_sum)
