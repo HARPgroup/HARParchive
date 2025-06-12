@@ -3,9 +3,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(gridExtra)
-
-
-
+library(sqldf)
 #Group 1
  flows <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060")
  flows <- dataRetrieval::renameNWISColumns(flows)
@@ -183,5 +181,155 @@ ggplot(temp_flow_combined, aes(x = Wtemp, y = Flow, color = Location)) +
   ggtitle("Water Temperature vs. Discharge (CFS), 2007–2009") +
   theme_minimal()
 
+# Calculate thresholds
+threshold_MJ <- quantile(flows$Flow, 0.10, na.rm = TRUE)
+threshold_CS <- quantile(flows2$Flow, 0.10, na.rm = TRUE)
+threshold_S  <- quantile(flows3$Flow, 0.10, na.rm = TRUE)
+
+# Add drought flags
+flows$DroughtDay  <- flows$Flow  < threshold_MJ
+flows2$DroughtDay <- flows2$Flow < threshold_CS
+flows3$DroughtDay <- flows3$Flow < threshold_S
+
+flows <- flows[!is.na(flows$DroughtDay), ]
+flows2 <- flows2[!is.na(flows$DroughtDay), ]
+flows3 <- flows3[!is.na(flows$DroughtDay), ]
+
+analyze_drought <- function(df, site_name = "") {
+  rle_out <- rle(df$DroughtDay)
+  lengths <- rle_out$lengths
+  values <- rle_out$values
+  ends <- cumsum(lengths)
+  starts <- c(1, head(ends, -1) + 1)
+  
+  drought_starts <- starts[values == TRUE]
+  drought_ends <- ends[values == TRUE]
+  
+  drought_event_df <- data.frame(
+    StartDate = df$Date[drought_starts],
+    EndDate   = df$Date[drought_ends]
+  )
+  
+  drought_event_df$DaysBetween <- c(NA, as.numeric(difftime(
+    drought_event_df$StartDate[-1],
+    drought_event_df$EndDate[-nrow(drought_event_df)],
+    units = "days"
+  )))
+  
+  max_drought_length <- max(lengths[values == TRUE])
+  longest_index <- which(lengths == max_drought_length & values == TRUE)[1]
+  longest_start_row <- starts[longest_index]
+  longest_end_row <- ends[longest_index]
+  
+  longest_start <- df$Date[longest_start_row]
+  longest_end   <- df$Date[longest_end_row]
+  
+  cat("\n===== Drought Analysis for", site_name, "=====\n")
+  cat("Longest drought lasted", max_drought_length, "days\n")
+  cat("From", longest_start, "to", longest_end, "\n")
+  
+  return(drought_event_df)
+}
 
 
+drought_MJ <- analyze_drought(flows, "Mount Jackson")
+drought_CS <- analyze_drought(flows2, "Cootes Store")
+drought_S  <- analyze_drought(flows3, "Strasburg")
+
+# Add a gage name column for easy identification
+drought_MJ$Site <- "Mount Jackson"
+drought_CS$Site <- "Cootes Store"
+drought_S$Site  <- "Strasburg"
+
+drought_MJ$Duration <- as.numeric(drought_MJ$EndDate - drought_MJ$StartDate)
+drought_CS$Duration <- as.numeric(drought_CS$EndDate - drought_CS$StartDate)
+drought_S$Duration <- as.numeric(drought_S$EndDate - drought_S$StartDate)
+
+filtered_MJ_Drought <- sqldf("select * from drought_MJ where Duration > 7")
+filtered_CS_Drought <- sqldf("select * from drought_CS where Duration > 7")
+filtered_S_Drought <- sqldf("select * from drought_S where Duration > 7")
+# Combine all into one dataframe
+
+all_droughts <- rbind(drought_MJ, drought_CS, drought_S)
+all_droughts$Duration <- as.numeric(all_droughts$EndDate - all_droughts$StartDate)
+
+
+# Plot drought periods as horizontal line segments
+ggplot(all_droughts) +
+  geom_segment(aes(x = StartDate, xend = EndDate, y = Site, yend = Site, color = Site), 
+               linewidth = 35, alpha = 0.7) +
+  scale_x_date(date_labels = "%Y", date_breaks = "10 years") +
+  labs(title = "Drought Periods by Gage",
+       x = "Date",
+       y = "Site",
+       fill = "duaration") +
+  theme_minimal()
+
+ggplot(filtered_MJ_Drought, aes(x = Duration)) +
+  geom_histogram(bins= 30, fill = "limegreen", color = "black") +
+  labs(title = "Time Between Droughts: Mount Jackson",
+       x = "Drought Duration",
+       y = "Frequency/Count") +
+  theme_minimal()
+
+ggplot(filtered_CS_Drought, aes(x = Duration)) +
+  geom_histogram(bins = 30, fill = "salmon", color = "black") +
+  labs(title = "Time Between Droughts: Cootes Store",
+       x = "Drought Duration",
+       y = "Frequency/Count") +
+  theme_minimal()
+
+ggplot(filtered_S_Drought, aes(x = Duration)) +
+  geom_histogram(bins = 30, fill = "lightblue", color = "black") +
+  labs(title = "Time Between Droughts: Strasburg",
+       x = "Drought Duration",
+       y = "Frequency/Count") +
+  theme_minimal()
+
+flows$DroughtPeriod <- NA
+for (i in 1:nrow(drought_MJ)) {
+  flows$DroughtPeriod[flows$Date >= drought_MJ$StartDate[i] & 
+                        flows$Date <= drought_MJ$EndDate[i]] <- "Drought"
+}
+
+ggplot(flows, aes(x = Date, y = Flow)) +
+  ylim(0, 300)+
+  geom_line() +
+  geom_line(data = subset(flows, DroughtPeriod == "Drought"), 
+            aes(x = Date, y = Flow), color = "red") +
+  labs(title = "Flow Time Series with Droughts Highlighted Mount Jackson",
+       y = "Flow (CFS)",
+       x = "Date") +
+  theme_minimal()
+
+flows2$DroughtPeriod <- NA
+for (i in 1:nrow(drought_CS)) {
+  flows2$DroughtPeriod[flows2$Date >= drought_CS$StartDate[i] & 
+                        flows2$Date <= drought_CS$EndDate[i]] <- "Drought"
+}
+
+ggplot(flows2, aes(x = Date, y = Flow)) +
+  ylim(0, 300)+
+  geom_line() +
+  geom_line(data = subset(flows2, DroughtPeriod == "Drought"), 
+            aes(x = Date, y = Flow), color = "red") +
+  labs(title = "Flow Time Series with Droughts Highlighted Cootes Store",
+       y = "Flow (CFS)",
+       x = "Date") +
+  theme_minimal()
+
+flows3$DroughtPeriod <- NA
+for (i in 1:nrow(drought_S)) {
+  flows3$DroughtPeriod[flows3$Date >= drought_S$StartDate[i] & 
+                         flows3$Date <= drought_S$EndDate[i]] <- "Drought"
+}
+
+ggplot(flows3, aes(x = Date, y = Flow)) +
+  ylim(0, 300)+
+  geom_line() +
+  geom_line(data = subset(flows3, DroughtPeriod == "Drought"), 
+            aes(x = Date, y = Flow), color = "red") +
+  labs(title = "Flow Time Series with Droughts Highlighted Strasburg",
+       y = "Flow (CFS)",
+       x = "Date") +
+  theme_minimal()
