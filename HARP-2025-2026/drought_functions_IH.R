@@ -79,7 +79,7 @@ classify_result$Drought_ID[which(classify_result$Class == "Under")] <- event_ids
 # get subset with only dorught event data
 drought_data <- subset(classify_result, !is.na(Drought_ID))
 
-drought_event_sum <- data.frame(matrix(,nrow=max(result$Drought_ID, na.rm=T), ncol=0))
+drought_event_sum <- data.frame(matrix(,nrow=max(classify_result$Drought_ID, na.rm=T), ncol=0))
 
 # create columns from drought data
 start_dates <- aggregate(drought_data$Date ~ drought_data$Drought_ID, FUN = min)
