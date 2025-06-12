@@ -94,13 +94,13 @@ drought_event_sum$end_date <- end_dates$`drought_data$Date`
 drought_event_sum$ndays <- durations$`drought_data$Date`
 drought_event_sum$mean_flow <- mean_flows$`drought_data$Flow`
 
-#Add helpfull date columns
-drought_event_sum$period_drought_days <- sum(drought_event_sum$ndays)
-
 # Remove any droughts lasting less than input number of days
 drought_event_sum <- sqldf(sprintf(
   "select * from drought_event_sum where ndays > %f
   ", min_drought_days))
+
+#Add helpfull date columns
+drought_event_sum$period_drought_days <- sum(drought_event_sum$ndays)
 
 
 return(drought_event_sum)

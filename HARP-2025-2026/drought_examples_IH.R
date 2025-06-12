@@ -139,19 +139,20 @@ for (j in seq_along(gage_abbr)) {
   
   # create plot
   plots[[i]] <- ggplot(data=df)+
-    geom_density(mapping = aes(x=yearly, y=after_stat(count)),
+    geom_histogram((mapping = aes(x=yearly)),
                  fill=colors[j],
                  color=colors[j],
-                 alpha=0.5)+
+                 alpha=0.5,
+                 binwidth = 0.1)+
     geom_vline(xintercept = yearly_mean, color=colors[j])+
     theme_bw()+
     theme(plot.title = element_text(hjust = 0.5))+
-    xlab("Watershed Flow (in/yr)")+
+    xlab("Water Needs (in/yr)")+
     ylab("Count")+
     ggtitle(paste0(i))+
-    geom_text(x = 3, y = 250, 
+    geom_text(x = 3, y = 25, 
               label = paste0("Mean = ", round(yearly_mean, 3), " in/yr"))+
-    coord_cartesian(xlim = c(0,4), ylim = c(0,300))
+    coord_cartesian(xlim = c(0,4), ylim = c(0,40))
 }
 
 # Plot inches/year required to maintain minimum flow histogram ----
