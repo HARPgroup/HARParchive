@@ -1,11 +1,13 @@
 # Function to classify flows for a selected period as 
 # either OVER or UNDER the mean min from X number of days min flow for that period
 # e.g. if mean 90 day min flow = 30 cfs, any flow over 30 is marked as over
-# gageid = USGS Gage to be classified
+# gageid = USGS Gage to be classified, nto needed if using model data
+# model_path = path to model data to be classified, not needed is using USGS
 # daynum = numeric (1, 3, 7, 30, or 90)
 # startDate = start date of period as "YYYY-MM-DD"
 # endDate = end date of period as "YYYY-MM-DD"
-classify.drought <- function(gageid, daynum, startDate="1925-01-01", endDate="2024-12-31"){
+# functionIN = function bo applied to selected column to determine threshold
+classify.drought <- function(gageid=NULL, model_path=NULL ,daynum, startDate="1925-01-01", endDate="2024-12-31", functionIn = mean, ...){
 # Require packages
   require(dataRetrieval)
   require(lubridate)
@@ -13,29 +15,49 @@ classify.drought <- function(gageid, daynum, startDate="1925-01-01", endDate="20
   require(hydrotools)
   require(sqldf)
   
-# Get data from data retrieval
-flow_data <-  dataRetrieval::readNWISdv(gageid,
-                                        parameterCd = "00060",
-                                        startDate = startDate,
-                                        endDate = endDate)
-flow_data <- dataRetrieval::renameNWISColumns(flow_data)
+if(is.null(model_path)){
+       flow_data <-  dataRetrieval::readNWISdv(gageid,
+                                               parameterCd = "00060",
+                                               startDate = startDate,
+                                               endDate = endDate)
+       flow_data <- dataRetrieval::renameNWISColumns(flow_data)
+} else {
+  flow_data <- read.csv(model_path)
+  
+  flow_data$Date <- as.Date(paste(sep = "-", flow_data$year, flow_data$month, flow_data$day))
+  
+  flow_data <- flow_data[flow_data$Date > startDate & flow_data$Date < endDate, ]
+  
+  
+  # flow_data <- sqldf(sprintf(
+  #   "select * from flow_data
+  #  where Date >= '%s' and Date <= '%s'",
+  #   startDate, endDate
+  # ))
+  # 
+  flow_data$Flow <- flow_data$Qout
+  
+  }
+  
 
 # Add helpful date columns
-flow_data$Month <- month(flow_data$Date)
-flow_data$Year <- year(flow_data$Date)
+flow_data$month <- month(flow_data$Date)
+flow_data$year <- year(flow_data$Date)
 
 # Convert flows to zoo
 flows_zoo <- zoo::as.zoo(x=flow_data$Flow)
 zoo::index(flows_zoo) <- flow_data$Date
 # Use group 2 to get low and high flows
+
 flows <- as.data.frame(hydrotools::group2(flows_zoo,"water",mimic.tnc = TRUE))
 
-# Get averget()# Get average from each min column
-min_1 = mean(flows$`1 Day Min`)
-min_3 = mean(flows$`3 Day Min`)
-min_7 =  mean(flows$`7 Day Min`)
-min_30 = mean(flows$`30 Day Min`)
-min_90 = mean(flows$`90 Day Min`)
+
+# Get threshold from each min column
+min_1 = functionIn(flows$`1 Day Min`, ...)
+min_3 = functionIn(flows$`3 Day Min`, ...)
+min_7 =  functionIn(flows$`7 Day Min`, ...)
+min_30 = functionIn(flows$`30 Day Min`, ...)
+min_90 = functionIn(flows$`90 Day Min`, ...)
 
 # correctly set num vairable
 daynum <- ifelse(daynum==1, min_1,
@@ -146,3 +168,4 @@ perform.group2 <- function(gageid, col_to_norm){
   
   return(flows)
 }
+
