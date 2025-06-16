@@ -55,12 +55,14 @@ zoo::index(flows_zoo6) <- flows6$Date
 #Use group 2 to get critical period flows and stats:
 G2_Strasburg<- hydrotools::group2(flows_zoo6,"water",mimic.tnc = TRUE)
 
+###Drought Definition and Analysis
+
 # Calculate thresholds
 threshold_MJ <- quantile(flows$Flow, 0.10, na.rm = TRUE)
 threshold_CS <- quantile(flows2$Flow, 0.10, na.rm = TRUE)
 threshold_S  <- quantile(flows3$Flow, 0.10, na.rm = TRUE)
 
-# Add drought flags
+# Add drought identifiers (TRUE)/(FALSE)
 flows$DroughtDay  <- flows$Flow  < threshold_MJ
 flows2$DroughtDay <- flows2$Flow < threshold_CS
 flows3$DroughtDay <- flows3$Flow < threshold_S
@@ -69,6 +71,7 @@ flows <- flows[!is.na(flows$DroughtDay), ]
 flows2 <- flows2[!is.na(flows$DroughtDay), ]
 flows3 <- flows3[!is.na(flows$DroughtDay), ]
 
+#Create a function to analyze the distance between droughtsS
 analyze_drought <- function(df, site_name = "") {
   rle_out <- rle(df$DroughtDay)
   lengths <- rle_out$lengths
@@ -105,7 +108,7 @@ analyze_drought <- function(df, site_name = "") {
   return(drought_event_df)
 }
 
-
+#analyze the data for the 3 gages of interest
 drought_MJ <- analyze_drought(flows, "Mount Jackson")
 drought_CS <- analyze_drought(flows2, "Cootes Store")
 drought_S  <- analyze_drought(flows3, "Strasburg")
@@ -115,6 +118,7 @@ drought_MJ$Site <- "Mount Jackson"
 drought_CS$Site <- "Cootes Store"
 drought_S$Site  <- "Strasburg"
 
+#add a duration column
 drought_MJ$Duration <- as.numeric(drought_MJ$EndDate - drought_MJ$StartDate)
 drought_CS$Duration <- as.numeric(drought_CS$EndDate - drought_CS$StartDate)
 drought_S$Duration <- as.numeric(drought_S$EndDate - drought_S$StartDate)
@@ -122,11 +126,8 @@ drought_S$Duration <- as.numeric(drought_S$EndDate - drought_S$StartDate)
 filtered_MJ_Drought <- sqldf("select * from drought_MJ where Duration > 7")
 filtered_CS_Drought <- sqldf("select * from drought_CS where Duration > 7")
 filtered_S_Drought <- sqldf("select * from drought_S where Duration > 7")
-# Combine all into one dataframe
 
-all_droughts <- rbind(drought_MJ, drought_CS, drought_S)
-all_droughts$Duration <- as.numeric(all_droughts$EndDate - all_droughts$StartDate)
-
+#Create histograms to analyze drought durations and Days between events
 MJ_Duration <- ggplot(filtered_MJ_Drought, aes(x = Duration)) +
   geom_histogram(bins= 30, fill = "limegreen", color = "black") +
   labs(title = "Length of Droughts: Mount Jackson",
@@ -169,8 +170,7 @@ S_Days <- ggplot(filtered_S_Drought, aes(x = DaysBetween)) +
        y = "Frequency/Count") +
   theme_minimal()
 
-grid.arrange(MJ_Duration,MJ_Days, ncol=2, top="Mount Jackson Drought Events")
-
-grid.arrange(CS_Duration,CS_Days, ncol=2, top="Cootes Store Drought Events")
-
-grid.arrange(S_Duration,S_Days, ncol=2, top="Strasburg Drought Events")
+#Display plotting histograms in pairs
+grid.arrange(MJ_Duration,MJ_Days, ncol=2, top="Mount Jackson Drought Events 10% Threshold CFS")
+grid.arrange(CS_Duration,CS_Days, ncol=2, top="Cootes Store Drought Events 10% Threshold CFS")
+grid.arrange(S_Duration,S_Days, ncol=2, top="Strasburg Drought Events 10% Threshold CFS")
