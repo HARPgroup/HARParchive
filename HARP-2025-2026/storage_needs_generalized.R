@@ -71,3 +71,21 @@ mean_table <- calculate_storage_needs_flex(
   end_year = 2020
 )
 
+
+
+
+
+
+site_ids <- c("01632000", "01633000", "01634000") #change this depending on which station data you want to see
+
+mean_90day_table <- purrr::map_dfr(
+  site_ids,
+  ~calculate_storage_needs_flex(
+    site_no = .x,
+    day_metric = "90 Day Min",
+    duration_days = 50,
+    flow_summary_func = max,
+    start_year = 1925,
+    end_year = 2024
+  )
+)
