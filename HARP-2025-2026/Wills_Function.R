@@ -1,4 +1,6 @@
 library(purrr)
+library(dfr)
+library(ggplot2)
 calculate_storage_needs_flex <- function(site_no, 
                                          day_metric = "7 Day Min", 
                                          flow_summary_func = min, 
@@ -66,15 +68,67 @@ calculate_storage_needs_flex <- function(site_no,
 #max, max, 7, 30, 90, 10th percentile max 7 30 90
 
 site_ids <- c("01632000", "01633000", "01634000")
-#mean 7-day min between 2000-2020:
-max_table_90_10th <- purrr::map_dfr(
+
+test5 <- purrr::map_dfr(
   site_ids,
   ~calculate_storage_needs_flex(
   site_no =.x,
   day_metric = "90 Day Max",
   duration_days = 30,
-  flow_summary_func = function(x) quantile(x, 0.10, na.rm = TRUE),
-  start_year = 1925,
+  flow_summary_func = max,
+  start_year = 1924,
   end_year = 2024
  )
 )
+
+          regulartable(test5)
+          
+          
+#bar plot
+          
+          site_ids <- c("01632000", "01633000", "01634000")
+          duration <- c(30)
+          duration_names <- c("7 Day Max", "30 Day Max", "90 Day Max")
+          
+bar_Max <- purrr::map2_dfr(duration_names, duration, function(metric, dur) {
+  purrr::map_dfr(site_ids, ~calculate_storage_needs_flex(
+    site_no = .x,
+    day_metric = metric,
+    flow_summary_func = max,
+    duration_days = dur,
+    start_year = 1984,
+    end_year = 2024
+  
+  ))
+})
+
+ggplot(bar_Max, aes(SiteName, y=Storage_inches, fill = FlowMetric))+
+  geom_col(position = position_dodge(width=0.9))+
+  geom_text(aes(label = round(Storage_inches, 4)),
+            position = position_dodge(width = 0.9),
+            vjust = -0.3, size =3)+
+  labs(title = "Storage Needed by Duration and Site Max",
+      x = "Site", y = "Storage in inches") + 
+  theme_minimal()
+
+Bar_10th <- purrr::map2_dfr(duration_names, duration, function(metric, dur) {
+  purrr::map_dfr(site_ids, ~calculate_storage_needs_flex(
+    site_no = .x,
+    day_metric = metric,
+    flow_summary_func = function(x) quantile(x, 0.10, na.rm = TRUE),
+    duration_days = dur,
+    start_year = 1984,
+    end_year = 2024
+    
+  ))
+})
+
+ggplot(Bar_10th, aes(SiteName, y=Storage_inches, fill = FlowMetric))+
+  geom_col(position = position_dodge(width=0.9))+
+  geom_text(aes(label = round(Storage_inches, 4)),
+                position = position_dodge(width = 0.9),
+                vjust = -0.3, size =3)+
+  labs(title = "Storage Needed by Duration and Site 10th Percentile",
+       x = "Site", y = "Storage in inches") + 
+  theme_minimal()
+

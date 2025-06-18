@@ -27,10 +27,6 @@ library(dplyr)
  G1_Strasburg <- hydrotools::group1(flows_zoo3,"water",FUN = min)
  
  
- #Averaging May
- mean(G1_Cootes_Store$May, na.rm = TRUE)
- 
- summarise(G1_Cootes_Store, Average = mean(January, na.rm = T))
  
 #Group 2
   flows4 <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060")
