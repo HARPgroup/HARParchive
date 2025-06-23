@@ -1,56 +1,73 @@
+#Function to import USGS Data in the correct format for classify.drought, and rename columns
+# basicaaly the same as readNWIS data + renameNWIS columns combined, but no need for param code or dates
+dr.data <- function(gageid, startDate="1925-01-01", endDate="2024-12-31"){
+  require(dataRetrieval)
+  require(lubridate)
+  # get flow data from relevant period
+  dr_data <- readNWISdata(site = gageid,
+               parameterCd = "00060",
+               startDate = startDate,
+               endDate = endDate)
+  # rename columns
+  dr_data <- renameNWISColumns(dr_data)
+  
+  # make sure date column is called Date
+  if ("dateTime" %in% names(dr_data)){
+    dr_data$Date <- dr_data$dateTime
+  }
+  
+  # Add helpful date columns
+  dr_data$month <- month(dr_data$Date)
+  dr_data$year <- year(dr_data$Date)
+  
+  return(dr_data)
+}
+
+# Function to clean model data so that is can be put into classify.drought
+clean.model <- function(modelPath, startdate = "1984-01-01", endDate = "2024-12-31"){
+  # read in model data from path
+  flow_data <- read.csv(modelPath)
+  # create date column from year, month and day cols
+  flow_data$Date <- as.Date(paste(sep = "-", flow_data$year, flow_data$month, flow_data$day))
+  # filter by relevant start and end dates
+  flow_data <- flow_data[flow_data$Date > startDate & flow_data$Date < endDate, ]
+  # rename flow columns so that is mathes with any usgs data
+  flow_data$Flow <- flow_data$Qout
+  
+  return(flow_data)
+}
+
+
 # Function to classify flows for a selected period as 
 # either OVER or UNDER the mean min from X number of days min flow for that period
 # e.g. if mean 90 day min flow = 30 cfs, any flow over 30 is marked as over
-# gageid = USGS Gage to be classified, nto needed if using model data
-# model_path = path to model data to be classified, not needed is using USGS
+# dataObject = either the data object in env or filepath to data
 # daynum = numeric (1, 3, 7, 30, or 90)
 # startDate = start date of period as "YYYY-MM-DD"
 # endDate = end date of period as "YYYY-MM-DD"
 # functionIN = function bo applied to selected column to determine threshold
-classify.drought <- function(gageid=NULL, model_path=NULL ,daynum, startDate="1925-01-01", endDate="2024-12-31", functionIn = mean, ...){
+classify.drought <- function(dataObject ,daynum, startDate="1925-01-01", endDate="2024-12-31", functionIn = mean, ...){
 # Require packages
-  require(dataRetrieval)
   require(lubridate)
   require(zoo)
   require(hydrotools)
   require(sqldf)
   
-if(is.null(model_path)){
-       flow_data <-  dataRetrieval::readNWISdv(gageid,
-                                               parameterCd = "00060",
-                                               startDate = startDate,
-                                               endDate = endDate)
-       flow_data <- dataRetrieval::renameNWISColumns(flow_data)
-} else {
-  flow_data <- read.csv(model_path)
-  
-  flow_data$Date <- as.Date(paste(sep = "-", flow_data$year, flow_data$month, flow_data$day))
-  
-  flow_data <- flow_data[flow_data$Date > startDate & flow_data$Date < endDate, ]
-  
-  
-  # flow_data <- sqldf(sprintf(
-  #   "select * from flow_data
-  #  where Date >= '%s' and Date <= '%s'",
-  #   startDate, endDate
-  # ))
-  # 
-  flow_data$Flow <- flow_data$Qout
-  
+  # get data from funciton input
+  if(is.character(dataObject)){
+    flow_data <- read.csv(dataObject)
+  } else if (is.data.frame(dataObject)){
+    flow_data <- dataObject
+  } else {
+    stop("dataObject in incorrect form, must be filepath or dataframe")
   }
-  
-
-# Add helpful date columns
-flow_data$month <- month(flow_data$Date)
-flow_data$year <- year(flow_data$Date)
 
 # Convert flows to zoo
 flows_zoo <- zoo::as.zoo(x=flow_data$Flow)
 zoo::index(flows_zoo) <- flow_data$Date
+
 # Use group 2 to get low and high flows
-
 flows <- as.data.frame(hydrotools::group2(flows_zoo,"water",mimic.tnc = TRUE))
-
 
 # Get threshold from each min column
 min_1 = functionIn(flows$`1 Day Min`, ...)
@@ -66,7 +83,7 @@ daynum <- ifelse(daynum==1, min_1,
                                ifelse(daynum==30, min_30,
                                       ifelse(daynum==90, min_90)))))
 
-# Creete dat frame
+# Creete data frame
 class <- sqldf(sprintf(
   "select Date, Year, Month, Flow, 'Under' as Class 
   from flow_data where Flow < %f
