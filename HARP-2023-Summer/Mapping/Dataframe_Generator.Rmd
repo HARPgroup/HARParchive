@@ -97,6 +97,8 @@ if (!( "wsp2020_2040_mgy" %in% colnames(foundatn_mp)) ) {
 foundatn_mp$MP_CEDSid  <- as.numeric(foundatn_mp$MP_CEDSid)
 foundatn_mp$fac_CEDSid <- as.numeric(foundatn_mp$fac_CEDSid)
 
+## Ensuring the facility name is the correct case
+names(foundatn_mp)[names(foundatn_mp) == "Facility"] <- "facility"
 
 facdf <- data.frame()
 allrunid_list = unique(c(runid_list, baseline_runid_list))
@@ -241,6 +243,9 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
   # Also: we should *not* be doing this -- or if we do, we need to alert the user in the exceptions
   # or in an appendix
   featrs <- featrs[featrs[,fn_geoCol(featrs)]!="" & !is.na(featrs[,fn_geoCol(featrs)]),] #omits facilities with blank or NA geometry
+  ## Removing abadnoned facilities
+  featrs <- featrs[!(grepl('Abandoned',featrs$facility_status)),]
+  
   featrs <- sf::st_as_sf(featrs, wkt = fn_geoCol(featrs), crs=crs_default) #convert to sf
 }
 #connect facilities to the watersheds they are in:
