@@ -528,10 +528,9 @@ for (i in 1:length(featrs_file_table_column)) {
 }
 names(table) <- mgsub(names(table), pattern="_", replacement=" ") #formatting for flextable headers, line breaks happen at spaces not underscores
 
-ft1 <- fn_tablegen(featr_type = "facility", table = table, 
+ft1 <- fn_tablegen(table = table, 
                    columns = "all", alignment = "left", 
-                   origin_type = origin_type, metric = rivseg_metric[i], 
-                   origin = origin, tabletitle = title_main, num = "1.1",
+                   tabletitle = title_main, num = "1.1",
                    highlight_col = FALSE, highlight_limit = NULL) #execute flextable function
 # ft1 <- add_header_lines(ft1, values= "Table 1.1") #add subtite
 ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't cut off in facil/source tables
@@ -884,10 +883,9 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
     rivtablenum <- k + 1 #for heading numbering, use 1 + rivtablenum since we already printed a table
   
-    ft2 <- fn_tablegen(featr_type = FALSE, table = rivTables[[k]],
+    ft2 <- fn_tablegen(table = rivTables[[k]],
                        columns = cols_present, alignment = "left", 
-                       metric = display_metric, origin_type = origin_type,  
-                       origin = origin , tabletitle = display_title,
+                       tabletitle = display_title,
                        num=rivtablenum, highlight_col = display_column, 
                        highlight_limit = rivmap_ramps[[ramp]][1,"highlight_limit"]) #flextable function 
     
