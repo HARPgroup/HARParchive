@@ -25,15 +25,15 @@ params:
   featrs_file_map_bubble_column: ["wsp2020_2040_mgy"] #runid & metric
   featrs_file_table_column: ["Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"]
 
-  rsegs_file: "C:/Users/ejp42531/Documents/R Exports//SoutheastVirginia_rsegs_sf.csv"
+  rsegs_file: "C:/Users/ejp42531/Documents/R Exports/SoutheastVirginia_rsegs_sf.csv"
   rivseg_metric: ["l30_Qout", "l90_Qout"] #right now these arent exact column names in the resegs_file
   run_set: ['wsp_2020_2040'] # new method of specifying river metric maps and tables
-  runid_list: ["runid_11", "runid_13", "runid_17", "runid_0"] #list of runids used for facil and rseg data
+  runid_list: ["runid_11", "runid_13", "runid_17", "runid_1000"] #list of runids used for facil and rseg data
 
   # aesthetic changes
   crs_default: 4326 #default coordinate system
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
-  bbox_type: ["auto"] #either 'auto' to force automatic for all, or 'custom'
+  bbox_type: ["custom"] #either 'auto' to force automatic for all, or 'custom'
   show_map: TRUE #either TRUE or FALSE
 ---
 
@@ -47,6 +47,7 @@ library(sp)
 library(sf)
 library(nhdplusTools)
 library(png)
+library(zoo)
 library(flextable)
 library(pandoc)
 library(officedown)
@@ -91,7 +92,8 @@ block_toc()
 github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 if (!exists("HARParchive_location")){
-  HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"}
+  HARParchive_location <- "https://raw.githubusercontent.com/HARPgroup/HARParchive/master"
+}
   
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R")) #load functions for dealing with spatial data
 source(paste0(HARParchive_location,"/HARP-2023-Summer/Mapping/Functions/fns_mapgen.R")) #load mapping function
@@ -487,7 +489,7 @@ for (i in 1:length(featrs_file_table_column)){
     #### Check if its  a modelling column
     if (grepl('runid_',featrs_file_table_column[i])) {
       ## Rewrite column when GWFrac = 1
-      table[table$GWFrac == 1 & !is.na(table$GWFrac),featrs_file_table_column[i]] <- "No model"
+      table[table$GW_Fraction == 1 & !is.na(table$GW_Fraction),featrs_file_table_column[i]] <- "No model"
       
     }
     
@@ -556,9 +558,9 @@ pineypoint <- st_transform(pineypoint,4326)
 pineypoint <- st_set_crs(pineypoint,4326)
 
 # ## Yorktown-Eastover
-# yorktown <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Yorktown-Eastover/YEAQ_Critical_Cells_in_2040.shp'))
-# yorktown <- st_transform(yorktown,4326)
-# yorktown <- st_set_crs(yorktown,4326)
+yorktown <- read_sf(dsn = paste0(onedrive_location,'/OWS/GIS/Aquaveo GW Model/2020 State Plan/Yorktown-Eastover/YEAQ_Critical_Cells_in_2040.shp'))
+yorktown <- st_transform(yorktown,4326)
+yorktown <- st_set_crs(yorktown,4326)
 
 ## Reading in the GWMA layer
 GWMA_wkt <- read.csv(paste(github_location,'/HARParchive/GIS_layers/GWMA_wkt.csv',sep=''))
@@ -578,10 +580,33 @@ if (origin_type == 'region') {
 ## Checking for intersection
 insidegwma <- st_intersection(origin_shape,GWMA_wkt )
 
-## First checks all of them, to determine if there is any intersection. If so, add section title
-if (nrow(insidegwma) > 0) {
+## Checks if the region intersects the GWMA
+#### Built in an exception for the Eastern Shore, since it only needs the Yorktown Eastover aquifer
+if (origin_shape$region == "Eastern_Shore") {
   
   cat('\n## Groundwater Critical Cell Maps \n')
+
+  ## Yorktown Eastover
+  aquifer <- 'Yorktwon Eastover'
+  
+  yorktowneastover_map <- fn_gw_mapgen(
+    bbox, crs_default,  mp_layer, featr_type,
+    maptitle=paste0(origin_readable," critical cells in ", aquifer),
+    maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
+    aquifer_shp = yorktown, origin_shape = origin_shape)
+  
+  ## Save the file
+  ggsave(filename = paste0(export_path,origin,'_Yorktown_Eastover.png'),
+         plot = yorktowneastover_map,width=25,height=20)
+  
+  ## Includes the saved file
+  cat(paste0('![](',export_path,origin,'_Yorktown_Eastover.png)'))
+  
+  
+  cat("\n\n\\pagebreak\n")
+
+  
+} else if (nrow(insidegwma) > 0) {
   
   ### Potomac
   aquifer <- 'Potomac'
@@ -628,19 +653,14 @@ if (nrow(insidegwma) > 0) {
   ## Includes the saved file
   cat(paste0('![](',export_path,origin,'_Piney_Point.png)'))
   
-### Yorktown Eastover
-# if (length(potomac_int) > 0 & show_map == TRUE) {  
-#   ## If there is no intersection, then the length of the output is 0, so cant check the value
-#   #### So it only gets here if there IS intersection
-#   
-#   aquifer <- 'Potomac'
-#   
-#   potomac_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type, 
-#                               maptitle=paste0(origin_readable," critical cells in ", aquifer), 
+# ## Yorktown Eastover
+# 
+#   aquifer <- 'Yorktwon Eastover'
+# 
+#   yorktowneastover_map <- fn_gw_mapgen(bbox, crs_default,  mp_layer, featr_type,
+#                               maptitle=paste0(origin_readable," critical cells in ", aquifer),
 #                               maplabs, nhd, roads, map_style_set, rivmap_ramp=NULL,
-#                               aquifer_shp = potomac)
-#   
-# }
+#                               aquifer_shp = yorktown)
 
   ## Adds a pagebreak IF there are GW maps
 
@@ -987,57 +1007,57 @@ if(message_nonexisting_cols){
 
 ```{r Generate Errors Summary, echo=FALSE}
 #if there are any mapping errors or other messages to the user, output a separate file containing them
-allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
-allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
-#allmaps = map_objects
-maperrors <- data.frame(maptitle=character(0), errors=character(0), 
-                        mapnum=character(0), var_name=character(0) )
-for(i in 1:length(allmaps)){
-  if(!is.null(allmaps[[i]][["errors"]])){
-    if (is.null(allmaps[[i]][["mapnum"]])) {
-      allmaps[[i]][["mapnum"]] = 2
-    }
-    maperrors <- rbind(maperrors,
-                       data.frame(maptitle = allmaps[[i]][["labels"]][["title"]],
-                                  errors = allmaps[[i]][["errors"]],
-                                  mapnum = allmaps[[i]][["mapnum"]],
-                                  var_name = names(allmaps[i])
-                                  )
-                       )
-  }
-}
-
-if(nrow(maperrors)==0){
-  maperrors <- rbind(maperrors, data.frame(maptitle="none", errors="none", 
-                        mapnum="none", var_name="none"))
-}
-tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("maptitle","mapnum","var_name"),
-                        i = ~ duplicated(maperrors$var_name),
-                        value = as_paragraph('')
-                        )
-tbl_maperrors <- set_table_properties(tbl_maperrors, layout = "autofit")
-
-
-#other messages:
-if(nrow(messages)==0){
-  messages <- rbind(messages,
-                      data.frame(pertaining_to="none",
-                       message="none", var_name="none")
-                      )
-}
-tbl_usermessages <- flextable(messages)
-tbl_usermessages <- set_table_properties(tbl_usermessages, layout = "autofit")
-
-#output to .html:
-emesg_file_path <- paste0(export_path, origin, "_ErrorsAndMessages.html")
-twrite_test <- try(
-  save_as_html("Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
-    path = emesg_file_path
-    )
-)
-if (class(twrite_test) == "try-error") {
-  message(paste("Notice: Problem writing ", emesg_file_path))
-}
+# allmaps <- grep("gg", eapply(.GlobalEnv, class), value=TRUE)
+# allmaps <- mget(names(allmaps), .GlobalEnv, mode = "list")
+# #allmaps = map_objects
+# maperrors <- data.frame(maptitle=character(0), errors=character(0), 
+#                         mapnum=character(0), var_name=character(0) )
+# for(i in 1:length(allmaps)){
+#   if(!is.null(allmaps[[i]][["errors"]])){
+#     if (is.null(allmaps[[i]][["mapnum"]])) {
+#       allmaps[[i]][["mapnum"]] = 2
+#     }
+#     maperrors <- rbind(maperrors,
+#                        data.frame(maptitle = allmaps[[i]][["labels"]][["title"]],
+#                                   errors = allmaps[[i]][["errors"]],
+#                                   mapnum = allmaps[[i]][["mapnum"]],
+#                                   var_name = names(allmaps[i])
+#                                   )
+#                        )
+#   }
+# }
+# 
+# if(nrow(maperrors)==0){
+#   maperrors <- rbind(maperrors, data.frame(maptitle="none", errors="none", 
+#                         mapnum="none", var_name="none"))
+# }
+# tbl_maperrors <- mk_par(x = flextable(maperrors), j = c("maptitle","mapnum","var_name"),
+#                         i = ~ duplicated(maperrors$var_name),
+#                         value = as_paragraph('')
+#                         )
+# tbl_maperrors <- set_table_properties(tbl_maperrors, layout = "autofit")
+# 
+# 
+# #other messages:
+# if(nrow(messages)==0){
+#   messages <- rbind(messages,
+#                       data.frame(pertaining_to="none",
+#                        message="none", var_name="none")
+#                       )
+# }
+# tbl_usermessages <- flextable(messages)
+# tbl_usermessages <- set_table_properties(tbl_usermessages, layout = "autofit")
+# 
+# #output to .html:
+# emesg_file_path <- paste0(export_path, origin, "_ErrorsAndMessages.html")
+# twrite_test <- try(
+#   save_as_html("Messages to User:" = tbl_usermessages, "Errors With Mapping:" = tbl_maperrors,
+#     path = emesg_file_path
+#     )
+# )
+# if (class(twrite_test) == "try-error") {
+#   message(paste("Notice: Problem writing ", emesg_file_path))
+# }
 
 
 ```
