@@ -4,7 +4,6 @@ library(tidyr)
 library(ggplot2)
 library(gridExtra)
 library(sqldf)
-library(ggforce)
 
 flows_MJ <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060")
 flows_MJ <- dataRetrieval::renameNWISColumns(flows_MJ)
@@ -202,8 +201,8 @@ hydrograph_S <- ggplot(flows_S, aes(x = Date, y = Flow, color = DroughtPeriod)) 
   theme(legend.position = "none")
 
 hydrograph_MJ_zoom <- ggplot(flows_MJ, aes(x = Date, y = Flow, color = DroughtPeriod)) +
-  geom_line() +
-  scale_color_manual(values = c("Drought" = "red", "Normal" = "black")) +
+  geom_point(size=0.4) +
+  scale_color_manual(values = c("Drought" = "red", "Normal" = "transparent")) +
   ylim(0, 500)+
   labs(title = "Zoomed in",
        y = "Flow (CFS)",
@@ -212,9 +211,9 @@ hydrograph_MJ_zoom <- ggplot(flows_MJ, aes(x = Date, y = Flow, color = DroughtPe
 
 
 hydrograph_CS_zoom <- ggplot(flows_CS, aes(x = Date, y = Flow, color = DroughtPeriod)) +
-  geom_line() +
-  scale_color_manual(values = c("Drought" = "red", "Normal" = "black")) +
-  ylim(0, 500)+
+  geom_point(size=0.4) +
+  scale_color_manual(values = c("Normal" = "transparent", "Drought" = "red"))+
+  ylim(0, 100)+
   labs(title = "Zoomed in",
        y = "Flow (CFS)",
        x = "Date") +
@@ -223,9 +222,9 @@ hydrograph_CS_zoom <- ggplot(flows_CS, aes(x = Date, y = Flow, color = DroughtPe
 
 
 hydrograph_S_zoom <- ggplot(flows_S, aes(x = Date, y = Flow, color = DroughtPeriod)) +
-  geom_line() +
-  scale_color_manual(values = c("Drought" = "red", "Normal" = "black")) +
-  ylim(0, 500)+
+  geom_point(size=0.4) +
+  scale_color_manual(values = c("Drought" = "red", "Normal" = "transparent")) +
+  ylim(0, 300)+
   labs(title = "Zoomed in",
        y = "Flow (CFS)",
        x = "Date") +
