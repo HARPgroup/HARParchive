@@ -24,8 +24,8 @@ Make sure to have installed all the following packages to ensure all functions a
 -   hydrotools
 -   mgsub
 -   sp
--   rgeos
 -   sf
+-   lwgeom
 -   nhdplusTools
 -   ggmap
 -   raster
@@ -66,20 +66,21 @@ This information can be generated via render or via direct parameter changes in 
 A current working render is as follows:
 
 ```         
-rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
-                  params = list(
-                      origin = "JL6_7430_7320", 
-                      origin_type = "basin", 
-                      featr_type = "facility", 
-                      metric_mod = "wd_mgd", 
-                      model_version = "vahydro-1.0",
-                      metric_feat = "wsp2020_2040_mgy", 
-                      rivseg_metric = c("l30_Qout", "7q10", "Smin_L30_mg"), 
-                      runid_list = c("runid_11", "runid_13", "runid_17", "runid_19"), 
-                      crs_default = 4326, 
-                      limit_featrs_to_origin = FALSE,
-                      overwrite_files = TRUE, 
-                      base_layer_data = FALSE))
+rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 
+                      params = list(
+                        origin = "Chowan_2", 
+                        origin_type = "region", 
+                        featr_type = "facility", 
+                        metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"), 
+                        model_version = "vahydro-1.0",
+                        metric_feat = "wsp2020_2040_mgy", 
+                        rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"), 
+                        runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
+                        crs_default = 4326, 
+                        limit_featrs_to_origin = FALSE,
+                        overwrite_files = TRUE, 
+                        base_layer_data = FALSE)
+                      )
 ```
 
 ### Parameters
@@ -90,13 +91,9 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
 
     -   **locality**: locality/county of interest, for map type locality
 
-    -   
+    -   **region**: region of interest, must match a region name in <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv>
 
-        ```         
-        **region**: region of interest, must match a region name in <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Regions_ProposedReg_053122.csv>
-        ```
-
--   **Possible regions** :`BigSandy_UpperTennessee_1`, `BigSandy_UpperTennessee_2`, `Chowan_1`, `Chowan_2`, `Eastern_Shore`, `MiddleJames_1`, `MiddleJames_2`, `MiddleJames_3`, `NewRiver_1`, `NewRiver_2`, `NorthernCoastalPlain_1`, `NorthernCoastalPlain_2`, `NorthernCoastalPlain_3`, `NorthernPiedmont_1`, `NorthernPiedmont_2`, `NorthernVirginia`, `Roanoke_1`, `Roanoke_2`, `Roanoke_3`, `Shenandoah_1`, `Shenandoah_2`, `SoutheastVirginia`, `UpperJames_1`, `UpperJames_2`, `York_James_1`, `York_James_2`
+    -   **Possible regions** :`BigSandy_UpperTennessee_1`, `BigSandy_UpperTennessee_2`, `Chowan_1`, `Chowan_2`, `Eastern_Shore`, `MiddleJames_1`, `MiddleJames_2`, `MiddleJames_3`, `NewRiver_1`, `NewRiver_2`, `NorthernCoastalPlain_1`, `NorthernCoastalPlain_2`, `NorthernCoastalPlain_3`, `NorthernPiedmont_1`, `NorthernPiedmont_2`, `NorthernVirginia`, `Roanoke_1`, `Roanoke_2`, `Roanoke_3`, `Shenandoah_1`, `Shenandoah_2`, `SoutheastVirginia`, `UpperJames_1`, `UpperJames_2`, `York_James_1`, `York_James_2`
 
 -   **origin_type**: what type of origin the name above is categorized under
 
@@ -163,26 +160,26 @@ This RMD pulls in the csv files created in `Dataframe_Generator.R` and forms the
 
 This information can be generated via render or via direct parameter changes in document.
 
-A current working render is as follows:
+A current working render is as follows (pulled from Batch_wspRegions.R):
 
 ```         
-rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
-                  output_file = paste0(export_path, "/JL6_7430_7320test"),
-                  output_format = "word_document",
-                  params = list(
-                      origin = "JL6_7430_7320", 
-                      origin_type = "basin", 
-                      featr_type = "facility", 
-                      featrs_file = paste0(export_path, "/JL6_7430_7320_featrs_sf.csv"), 
-                      featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
-                      featrs_file_table_column = c("runid_11_wd_mgd","runid_13_wd_mgd","five_yr_avg","wsp2020_2040_mgy"), 
-                      rsegs_file = paste0(export_path, "/JL6_7430_7320_rsegs_sf.csv"), 
-                      run_set = "wsp_2020_2040", 
-                      runid_list = c("runid_11", "runid_13", "runid_17" ,"runid_19"), 
-                      crs_default = 4326, 
-                      map_style = "custom", 
-                      bbox_type = "auto",
-                      show_map = TRUE))
+rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
+                        output_file =  paste0(export_path, "Chowan_2_wsp"),
+                        # output_format = "word_document",
+                        params = list(
+                          origin = "Chowan_2", 
+                          origin_type = "region", 
+                          featr_type = "facility", 
+                          featrs_file = paste0(export_path, "/", origin_name, "_featrs_sf.csv"), 
+                          featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
+                          featrs_file_table_column = c("Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"), 
+                          rsegs_file = paste0(export_path, "/", origin_name,"_rsegs_sf.csv"), 
+                          run_set = "wsp_2020_2040", 
+                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
+                          crs_default = 4326, 
+                          map_style = "custom", 
+                          bbox_type = "custom",
+                          show_map = TRUE))
 ```
 
 ### Parameters
@@ -200,21 +197,26 @@ When completing these, it is imperative everything aligns with input parameters 
     -   *Possible input* : generally `wsp_2020_2040` but for case studies `permit_dev`
 -   **map_style** : determining map aesthetics like colors, fonts, font size
     -   *Possible Input* : `colorblind`, `default`, `custom`
--   **bbox_type** : either auto or vahydro(pulls box from vahydro values), the vahydro type only functional for river segments
-    -   *Possible Input* : `auto`, `vahydro`
+-   **bbox_type** : either auto or custom. Custom pulls bounds from a preset list, auto sets a buffer around origin of interest
+    -   *Possible Input* : `auto`, `custom`
 -   **show_map** : generaton of map in the rmd or not, `FALSE` for no generation
 
 ### Related Documents/Functions
 
 -   *fns_spatial* : Defines all HARP-analyst-written functions for dealing with spatial data, see above section for details
--   *fn_mapgen*: contains the mapping process used to create all map types (facils/sources only and rivserseg maps)gen
+-   *fn_mapgen*: contains the mapping process used to create all map types (facils/sources only and rivserseg maps)
     -   Uses **fn_filter_map** : contains process of filtering flowlines, labels etc. to be mapped based on size of boundary box, only called within mapping function
+-   *fn_gw_mapgen*: contains the mapping process for critical cell maps in the GWMA
 -   *fn_tablegen*: creates a flextable from data frame provided (and soon the columns specified within that data)
 -   *fn_labelprep* : general actions for label processing, run on nhd labels and road labels after each of their respective functions
 -   *fn_nhd_labs* : contains nhd-specific actions for labeling (flowlines and waterbodies); want to do away with this function since it only filters NHD data (this can be done with the rest of the data processing)
 -   *mapstyle_config* : contains aesthetic customization for mapping (all map types), including unique styling for each label type (rivers/streams, counties, cities etc.)
 -   *riversegmaps_config* : contains customizations specific for rivseg drought maps, including values and colors for % difference ranges
 -   *fn_get_memo_nhdplus*: for the memoise function
+
+## Text/Narrative Files
+
+These files are where narrative for the individual sections can edited. The files are located at <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Section_Narratives> , one folder above this one. They are separate from the main RMD so that it only pulls in narrative for the desired sections when generating a document. Also this can make it easier to be able to edit text without digging through the code. The names of these files line up with the list of riversg metrics in Mapstyle_config, so be sure to update any of those names in both places, otherwise this text will not be pulled in. They are all inserted as plain text, so formatting such as bold, italics, are not read through.
 
 ## Config Files
 
@@ -424,10 +426,171 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
                       show_map = TRUE))
 ```
 
-### Example Images
+# Code breakdown
 
-to edit later
+This section will go through the blocks of codes in both rmds to explain their purpose and what they are doing.
 
-## Other Documents In Use:
+## Datafrane_Generator.Rmd
 
-to edit later
+### Setup
+
+Loads in required packages, sets up ds connection, calls in custom functions. It also assigns objects to the input parameters. Foundation location is read in from the config file, HARP students set it to GitHub. 
+
+### Loading_data
+
+Checks if the files to be generated already exist in the desired location. If they do AND overwrite_files is TRUE, then the code stops here. Otherwise it removes the files if they exist, and continues. 
+
+Reads in the foundation data, facility modeling data (from the server), mapping geometries (counties, regions, rsegs)
+
+### Base_layers
+
+This section only runs if base_layer_data is TRUE. By default, it is false and this section will not run. The purpose of this section is to create the background map layers, such as roads and cities. These files already exist, so there is no need to run this section unless something happens to them.
+
+### Creating_featrs_rsegs
+
+The foundation is read in at an MP level. This section groups it by facility then joins it with the modelling data. It then adds on what river segment the facility is in. Since some river segments overlap, it looks for the smallest one it is in. `featrs` is the object that contains the facilities (or whatever level the map is being generated at), `rsegs` is the object containing the river segments.
+
+### Filtering_featrs_rsegs
+
+This filters the `featrs` and `rsegs` object to the origin, so the specific region of interest if origin_type = 'region'. Only includes rsegs that are at least 1% contained within the origin. This ensures river segments with the slightest bit of overlap on the border are not included.
+
+If you are trying to get a list of all features and river segments (not filtered), then skip/comment out this section.
+
+### Getting_rseg_modelling
+
+Adds the modelling data onto the `rsegs` object. Created % difference columns based on runid for 2020.
+
+### Saving FIles
+
+This is the last code block, which just saves the `featrs` and `rsegs` objects into csvs. The `rsegs` csv is too large to open in excel due to the detailed geometries, but it can be read into the Summaries RMD. This is also where the base layers are saved if base_layer_data were TRUE. 
+
+## WSP_Regional_Summaries.Rmd
+
+Sections in an rmd can make debugging a bit easier when there is an error while rendering. The summaries rmd does much more work than the dataframe generator, so was much more prone to errors. As a result, there are many sections, some of which do very little work to make it clear where an event affecting the document is or where an error would occur in a common place.
+
+### Setup
+
+Reads in packages.
+
+### UserInputs
+
+Assigns objects to all parameters defined for the RMD.
+
+### TOC
+
+Creates the table of contents using `block_toc()` from the officedown package. This section is only a single line, but it needs to be its own section because of how the package works.
+
+### Load Functions & Configs
+
+Reads in custom function files and the config files from GitHub. Tries to pull everything from your local git if the `HARParchive_location` (which is defined in our personal config files) exists, otherwise it pulls it from the GitHub website. Also defines a function for titling the legend based on the metric and runid to be used in the mapping later.
+
+### Data_Configuration
+
+Setting up the runsets based on the config file. `riverseg_metric` is a vector of all the sections to be included in the final document. `run_config$riverseg_metrics` is the list of all the settings for each of the sections, such as the legend scale, title, column names for the table, all the aesthetics of the map and table.
+
+### Load Data
+
+Reads in the data from the df_generator output. Also reads in the base files, whether they were generated or not. `rsegs` is still the object for river segments but now `facils` is the name of the features object.
+
+### Bbox
+
+Creates the bounding box for the maps (same one is used for all maps). If bbox_type is TRUE (which it is by default), it looks for the origin name (i.e. Chowan_2) in the list of custom defined bboxes. If its not there, then it sets it automatically as it would if `bbox_type` were FALSE. This is why its kept TRUE by default, because it only applies when a custom box has been defined.
+
+To create it automatically, it sets a 0.02 latitude/longitude buffer around `rsegs`. Since `rsegs` contains all segments that intersect the origin, this is buffer is more than enough to capture the whole region.
+
+### Get NHD in Bbox
+
+Pulls in the NHD lines and data within the bounding box. Pulling NHD lines generally takes a while, so this uses `memo_plot_nhdplus`, which is a custom `memoize` function that tries to cache the result. This generally works to save a lot of time, but sometimes it can cache a `NULL` result, causing the maps to fail. There is an `if` statement here to forget the cached result if its pulling a `NULL` and try again.
+
+This and many other sections are wrapped entirely in an `if show_maps == TRUE` statement, where basically anything that sets up the maps will only run if the `show_maps` paremeter is `TRUE`, The summary can be run without generating any maps (just tables) and all sections like this are skipped, causing it to run much faster.
+
+### Filter NHD
+
+Filters nhd to leave only major rivers and water bodies, and does some slight renaming. Although this saves the filtered result as `ndh2`, which I am not sure if this is actually used...
+
+### Prep Text Labels
+
+Another 1 line section. Puts together the labels for the maps, combining the nhd names, cities, roads, and counties.
+
+### Create Map 1
+
+This section creates the first map in the document, showing all the features on the map with differently sized and labelled bubbles. Unlike the rest of the maps, there is no rseg coloring. First it creates a clean looking title based on the name, so BigSanyUpperTennesse_1 becomes 'Big Sandy Upper Tennessee 1'. Then it orders the `facils` data frame so the number column can be added (this is the number shown in the table and map). The data is also sorted into bins based on the legend (this is what is used to determine what size to make each bubble). It looks for the column named in the parameter `featrs_file_map_bubble_column`. 
+
+
+Everything is fed into `fn_mapgen`. This is a large custom function in the *fns_mapgen.R* that stitches everything up to this point into a map. There are many inputsdescribed below. This function can take up to a minute to run, which makes the map generation the slowest part of this RMD (mostly the river segment maps since there are more of them). Once generated, the map is saved to a file in the `export_path` folder, set in our config files.
+
+
+- bbox: The bounding box, created in the bbox section
+- crs_default: Defined in the parameter `crs_default` parameter. Default is 4326
+- mp_layer: This is the ordered `facils` df. Like `facils`, the object name is independent of the type of feature being mapped. If `featr_type` is facilities, mp_layer still shows facilities/
+- metric_unit: Detmerines the scale of the legend for the feature bubbles (mgy vs. mgd)
+- featr_type: Parameter `feater_type`
+- maptitle: This is set at the beginning of this section
+- mapnum: This differentiates the initial map from the rseg maps. This is set to 1, meaning there should be no color filling of the river segments
+- rseg_leg_title: Riversegment legend title (does not apply to Map 1)
+- map_server: The URL to pull the basemap from VDEM. This argument is deprecated since there is no need for a basemap to start from.
+- base_Layer: The URL of which layer to pull from the VDEM  map. Also deprecated
+- maplabs: The labels to put on the map, as defined in the **Prop Text Labels** section
+- nhd: The nhd lines pulled in the **NHD** section
+- roads: Pulls in the road layer from the **Load Data** section
+- rsegs: The geometries and data of the river segments, will always be `rsegs`
+- map_style_set: This is based on the type of style of map set in the parameter `map-style`. This determines aesthetic things like text font and color, fill color, and border colors.
+- rivmap_ramp: The scale to use for the river segment map legends. This does not apply to Map 1.
+
+### Vie_Map_1
+
+This section includes Map 1 into the document. For each table and map, if there are expected flaws (i.e. the data does not contain a `featrs_file_map_bubble_column` column) a message is generated and stored in the `messages` data frame. This is compiled and saved in the **Generate Errors Summary** at the end to show any problems encountered.
+
+### Create Table 1
+
+This section created the feature table after Map 1, showing the 2020 vs 2040 projected uses, feature info like name, number corresponding to the map, and rseg name/id. This section was set upo based on heavy testing of facilities, not sources.
+
+First, the names in `facils` are adjusted based on status, adding an asterisk to indicate proposed/inactive features. Then the `table` dataframe is established pulling  out the specific columns needed and naming them appropriately. The order they are added to `table` is the order they appear in the document. Like many other places in the document, a for loop was set up to add the parameter `featrs_file_table_column` to `table` so it can take any number of columns. Within the for loop, it detects a modeling column and replaces NAs with 'No Model' for GW facilities (where GW fraction = 1).
+
+Column names, label names, and titles are often retrieved from the dataframe `readable`, which is a table of computer friendlu names and their readable counterparts (gw_frac -> GW Fraction). The `table` dataframe is then converted to a flextable (an HTML table that looks nice in the final cdocument) with the `fn_tablegen` custom function. It takes the following inputs
+
+- table: The `table` object
+- columns: What columns should be selected. "all" indicates all columns from `table` are to be displayed
+- tabletitle: Title of the table
+- num = Unlike with the maps, table 1 does not behave differently than the others. This argument is just to set the title of the table (1.1 for this section).
+- highlight_col/highlight_limit: This determines if a column should e conditionaly highlighted yellow (used to indicate very negative values for river segments in the section maps). Not used for table 1.1
+
+### GW_Maps
+
+This section creates the aquifer critical cell maps for regions/origins that intersect the Groundwater Management Area. It reads in shapefiles for the critical cells from the OWS onedrive, as well as for the GWMA. The critical cell shaoefiles are the actual geometries of the critical cells, as in a series of rectangles and their coordinates rather than a raster. This is what was received from Aquaveo in 2023. 
+
+For regions within the GWMA, the critical cell map for each aquifer is overlain on the region, even if there are no critical cells within the bounding box. There is an exception built in for the Eastern Shore, which was purposefully avoided for the rest of the document. The only map that matters for the Eastern shore is the Yorktown Eastover aquifer, and this does not affect any other region. So a manual exception as built in to include only that map for that region, and not include it in any others.
+
+Otherwise, if the origin/region is inside the GWMA, a map for the Potomac, Aquia, and Piney point aquifer is created. This section saves these pictures and includes them in the document all within this `if` statement. The  maps are generated using the `fn_gw_mapgen` custom function. This function is very similar to `fn_mapgen`, but a bit simplified since not as many layers are required for the GW maps. Namely, the river segments and NHD lines were removed. Two arguments were added **aquifer_shp**, which uses the shapefiles for the critical cell maps, and **origin_shape**, which uses the geometry of the origin/region to shade anything outside its borders and make it obvious which cells are contained. This section is after the **Create Map 1** section since it reuses most of the same arguments, with the exception of the title, which is defined based on the aquifer being mapped.
+
+### View Table 1
+
+Puts table 1 into the document (this is done by just letting `ft1`, the flextable object, print which puts it in the document). At the beginning and end of this section, there is a `block_section()` function call from the `officer` package. This is what controls this section only to be landscape, while the rest of the document is in portrait. 
+
+### Create Map 2
+
+While this section is called Map 2, it refers to all other maps. These are all the section maps, each river segment metric and shading them to show their relative values based on the `rivmap_ramp`. Since it is one section for all the different metrics (defined in `run_config$riverseg_metrics`), it is all ran within a large `for` loop. The beginning of each iteration determines if the map is supposed to be displayed (the `show_map` parameter defined in the config for each metric).
+
+The `run_config$riverseg_metrics` determines how the map will be set up, determining which dataset to use (all use the `rseg` dataset, with the exception of unmet demand), what column to look for (generally one of the % difference columns calculated in dataframe_generator), what to title the graph, what to title the table columns, the legend ramp, and how to sort the table.
+
+Similair to Map 1, the rsegs are binned based on the ramp defined in `run_config$riverseg_metrics`. `fn_mapgen` is used to create the maps again, with mostly the same inputs. The differences are called out below. These maps are then saved as files.
+
+- mapnum is set to 2, which means it will run `fn_polygonFill`, which colors in the rsegs based on the metric
+- rsegs: Uses the `rsegs_sf` object, which is `rsegs` that now includes the bins for the metric
+- rivmap_ramp: Pulls the legend ramp defined in `run_config$riverseg_metrics`
+
+### Create Table 2 UPDATED
+
+This section creates the tables that go under the rseg maps in each section. As stated bef6re, the config file dictates what columns to include from what dataframe. This section pulls those listed columns and applies some formatting (round numbers to 1 decimal point, replace blanks with NAs, sort data, filter any above/below specified values, limit how many rows to display). The options in the config runset determine how to apply this formatting, i.e. whether to include NAs, which way to sort, if any filtering should be applied.
+
+Most of this formatting is done with the custom function `fn_filter_table`, which takes the data table and the metric config as arguments and applies the specified formatting described above. `fn_tablegen` then creates the flextable, this time using the highlight_col and limit arguments on the percent difference column displayed in the respective map.
+
+### View Rivseg Maps and Tables
+
+This section fills out the rest of the document after Table 1. For each metric, it starts with a section header. Then it pulls in the relevant narrative textfiles in HARP-2023-Summer/Section_Narratives (tries to pull a text file with the same name as the `run_config$riverseg_metrics[[k]]$run_label`. If this does not exist it just moves on. If it does it includes the contents as plain text). 
+
+The figure file is pulled in if the `show_map` parameter of the config metric is `TRUE` (which generally all are except for Unmet Demand), and includes the table if it exists (which all should have run except for Water Availability). This is once again a loop for each metric, so it repeats for each metric resulting in different sections of the final report.
+
+### Generate Errors Summary
+
+This section compiles all the messages put together for each graph and table section into an HTML document. The purpose of this is often maps showed weird behaviors that did not cause the script to break but did not run how it should have. This document will show any common problems that occurred.

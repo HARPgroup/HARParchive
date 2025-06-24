@@ -777,15 +777,15 @@ The following maps and table show modeling results for future 2040 demands. The 
         END as bin
       from rsegs as a 
       left outer join bins as b 
-      on (a.", display_column," <= b.val )
+        on (a.", display_column," <= b.val )
       left outer join (
         select max(val) as maxval, max(bin) as maxbin,
           min(val) as minval, min(bin) as minbin
         from bins
       ) as bmax 
-      on (
-        1 = 1 
-      )
+        on (
+          1 = 1 
+        )
       group by a.riverseg" )
     )
     #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
@@ -823,12 +823,6 @@ The following maps and table show modeling results for future 2040 demands. The 
   }
 ```
 
-```{r Display Map 2, out.width = '100%', out.height='100%', echo=FALSE, eval=FALSE}
-
-if (show_map == TRUE) {
-  knitr::include_graphics(rivmapfilename)
-}
-```
 
 
 ```{r Create Table 2 UPDATED, echo=FALSE, message=FALSE, warning=FALSE}
@@ -856,9 +850,8 @@ for (k in 1:length(run_config$riverseg_metrics)){
 
     #assemble our table, with the columns in order defined by table_cols
     # cols present
-    # Megan: can you insert into error messages if cols_present <> table_cols?
     cols_present <- table_cols[which(table_cols %in% names(rseg_display))]
-    message_nonexisting_cols <- any(!table_cols %in% cols_present) # Megan: done!
+    message_nonexisting_cols <- any(!table_cols %in% cols_present) 
     rseg_display <- rseg_display[cols_present] #need to make sure table_cols and column_name properly done in mapstyle_config or will get error here
 
     ## 08-13-24 Added Code: Rounding all numeric columns to 1 decimal point
@@ -891,14 +884,11 @@ for (k in 1:length(run_config$riverseg_metrics)){
     
     new_cols <- colnames(rivTables[[k]])
     for (i in 1:length(colnames(rivTables[[k]]))) {
-      if (colnames(rivTables[[k]])[i] %in% readable$computer)
-        {
+      if (colnames(rivTables[[k]])[i] %in% readable$computer) {
         new_cols[i] <- readable$human[readable$computer==colnames(rivTables[[k]])[i]]
-        }
-      else
-        {
-          next
-        }
+      } else {
+        next
+      }
       }
 
     ref_table <- data.frame( #human readable column names
