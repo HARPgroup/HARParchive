@@ -30,10 +30,17 @@ plot.zero.inflows <- function(gw_data, landseg, landtype,
   zero_inflow <- gw_data[gw_data[[inflow_col]] == 0, ]
   
   # Daily sum for second variable
-  daily_sc <- aggregate(gw_data[[second_col]], by = list(Date = gw_data$date), FUN = sum)
+  if(second_axis == "S"){
+    daily_sc <- aggregate(gw_data[[second_col]], by = list(Date = gw_data$date), FUN = mean)
+  }else{
+    daily_sc <- aggregate(gw_data[[second_col]], by = list(Date = gw_data$date), FUN = sum)
+  }
+  
   daily_sc$month <- month(daily_sc$Date)
   #Monthly average for second varial
+  
   monthly_sc <- aggregate(daily_sc$x, by = list(Month = daily_sc$month), FUN = mean)
+  
   
   # Scale factor for second axis matching
   bar_counts <- table(zero_inflow$month)
@@ -87,3 +94,4 @@ plot.zero.inflows(N51171,
                   landtype = "Forested", 
                   zone = "UZ", 
                   second_axis = "S")
+
