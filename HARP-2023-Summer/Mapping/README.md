@@ -147,8 +147,7 @@ rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/
 ### Related Documents/Functions
 
 -   *fn_download_read* : used for files that need to be downloaded prior to reading in the data; typically necessary for downloading & unpacking less-straightforward filetypes like .zip files, .shp files, etc.
--   *fns_spatial* : Defines all HARP-analyst-written functions for dealing with spatial data
--   *fn_centroid_coords*: for adding centroid coordinates to a data frame based on the geometry contained, used mostly for labeling purposes
+
 
 ## WSP_Regional_Summaries.RMD
 
@@ -175,24 +174,38 @@ When completing these, it is imperative everything aligns with input parameters 
     -   *Possible Input* : `auto`, `custom`
 -   **show_map** : generaton of map in the rmd or not, `FALSE` for no generation
 
-### Related Documents/Functions
+### Related Functions
+
 
 -   *fns_spatial* : Defines all HARP-analyst-written functions for dealing with spatial data, see above section for details
--   *fn_mapgen*: contains the mapping process used to create all map types (facils/sources only and rivserseg maps)
-    -   Uses **fn_filter_map** : contains process of filtering flowlines, labels etc. to be mapped based on size of boundary box, only called within mapping function
--   *fn_gw_mapgen*: contains the mapping process for critical cell maps in the GWMA
--   *fn_tablegen*: creates a flextable from data frame provided (and soon the columns specified within that data)
+    - *fn_geoCol*: Determines the geometry column of a dataframe 
+    - *fn_sqldf_sf*: Allows sqldf on spatial dataframes. Drops the spatial column, performs the query, then merges it with the original object to return the geometry
+    - *fn_centroid_coords*: Gets the coordinates of the centroid of an sf dataframe and adds an X and Y column for those coordinates
+-   *fn_mapgen*: contains the mapping process used to create all map types (facils/sources only and rivserseg maps). Broken down into several steps to build each map, applying one supporting function at a time to build each layer. The supporting functions, all contained within `functions/fns_mapgen.R`, are described below
+    -   Uses **fn_filter_map** (in dunxriona.fn_filter_map.R): contains process of filtering flowlines, labels etc. to be mapped based on size of boundary box, only called within mapping function
+    - *fn_catchMapErrors*: Catch common errors encountered during development and allow the function to proceed. Each step of map generation was wrapped in this function
+    - *fn_labelsAndFilters*: Takes all the map labels and determines what to include based on the size and extents of the map. Sets text sizes and filters the labels based on total extent of the map.
+    - *fn_shadow*: Shades the map outside of the area of interest, the river segments intersecting the origin
+    - *fn_mp_bubbles*: Adds the feature bubbles, sized to their metric (default is wsp2020_2040_mgy)
+    - *fn_borders*: Puts in different colored borders for the origin, localities within the origin, and riversegments
+    - *fn_polygonFill*: Colors in the river segments based on the `rivmap_ramp` and sets up the associated legend
+    - *fn_nhdLines*: Plots the NHD flowlines and water bodies within the origin
+    - *fn_roadsAndCityPoints*: Creates the roads and cities layer of the map
+    - *fn_textRepe*: Puts in labels for roads, cities, counties, river segments, and water bodies. There is a lot of potential labels, especially adding in the bubble layers. This function attempts to fit everything, and will cut out labels in a very crowded area of the map
+-   *fn_gw_mapgen*: contains the mapping process for critical cell maps in the GWMA. Same base code as `fn_mapgen` but with an extra input to add in aquifer geometry and no rsegs.
+-   *fn_tablegen*: creates a flextable from a provided dataframe, or the columns selected from within that dataframe (default is "all")
 -   *fn_labelprep* : general actions for label processing, run on nhd labels and road labels after each of their respective functions
+-   *fn_get_memo_nhdplus.R*: Wraps nhd functions (namely `plot_nhdplus`) in the memoise function, so that it caches the result. This does not change the inputs of the `plot_nhdplus` function.
 -   *fn_nhd_labs* : contains nhd-specific actions for labeling (flowlines and waterbodies); want to do away with this function since it only filters NHD data (this can be done with the rest of the data processing)
 -   *mapstyle_config* : contains aesthetic customization for mapping (all map types), including unique styling for each label type (rivers/streams, counties, cities etc.)
 -   *riversegmaps_config* : contains customizations specific for rivseg drought maps, including values and colors for % difference ranges
--   *fn_get_memo_nhdplus*: for the memoise function
 
-## Text/Narrative Files
+
+### Text/Narrative Files
 
 These files are where narrative for the individual sections can edited. The files are located at <https://github.com/HARPgroup/HARParchive/blob/master/HARP-2023-Summer/Section_Narratives> , one folder above this one. They are separate from the main RMD so that it only pulls in narrative for the desired sections when generating a document. Also this can make it easier to be able to edit text without digging through the code. The names of these files line up with the list of riversg metrics in Mapstyle_config, so be sure to update any of those names in both places, otherwise this text will not be pulled in. They are all inserted as plain text, so formatting such as bold, italics, are not read through.
 
-## Config Files
+### Config Files
 
 There are three locations planners will be editing code, the parameters in `Dataframe_Generator` and `WSP_Regional_Summaries`, as well as any config files. The editing of config files is if a specific aesthetic change is desired. The editing of parameters is where the location intended for analysis is inputted.
 
@@ -503,7 +516,7 @@ Everything is fed into `fn_mapgen`. This is a large custom function in the *fns_
 - map_style_set: This is based on the type of style of map set in the parameter `map-style`. This determines aesthetic things like text font and color, fill color, and border colors.
 - rivmap_ramp: The scale to use for the river segment map legends. This does not apply to Map 1.
 
-### Vie_Map_1
+### View_Map_1
 
 This section includes Map 1 into the document. For each table and map, if there are expected flaws (i.e. the data does not contain a `featrs_file_map_bubble_column` column) a message is generated and stored in the `messages` data frame. This is compiled and saved in the **Generate Errors Summary** at the end to show any problems encountered.
 

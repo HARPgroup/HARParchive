@@ -32,7 +32,7 @@ github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fns_spatial.R"),local = TRUE) #load functions for dealing with spatial data
-source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_pct_diff.R"),local = TRUE) #load % difference function 
+# source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_pct_diff.R"),local = TRUE) #load % difference function 
 
 #assign params
 for(i in 1:length(params)){
