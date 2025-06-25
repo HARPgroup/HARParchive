@@ -4,11 +4,10 @@ library(flextable)
 
 #create function
 fn_tablegen <- function(
-    featr_type, table, columns, alignment, 
-    origin_type, metric, origin, tabletitle, num,
+    table, columns, alignment, 
+    tabletitle, num,
     highlight_col = FALSE, highlight_limit
   ) { 
-  #featr_type: either 'facility' (map 1) or 'riverseg' (map 2)
   #table: data frame to be transformed into a flextable 
   #alignment: text alignment in flextable, either 'left', 'center', 'right', or 'justify'
   #columns: a list of columns to display from the dataframe supplied, in the order the columns will be 
