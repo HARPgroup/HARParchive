@@ -156,32 +156,6 @@ rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/
 
 This RMD pulls in the csv files created in `Dataframe_Generator.R` and forms them into the desired maps and tables. The final output of this document is the desired Markdown file for the users input.
 
-### Render
-
-This information can be generated via render or via direct parameter changes in document.
-
-A current working render is as follows (pulled from Batch_wspRegions.R):
-
-```         
-rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/WSP_Regional_Summaries.Rmd"), 
-                        output_file =  paste0(export_path, "Chowan_2_wsp"),
-                        # output_format = "word_document",
-                        params = list(
-                          origin = "Chowan_2", 
-                          origin_type = "region", 
-                          featr_type = "facility", 
-                          featrs_file = paste0(export_path, "/", origin_name, "_featrs_sf.csv"), 
-                          featrs_file_map_bubble_column = "wsp2020_2040_mgy", 
-                          featrs_file_table_column = c("Use_Type","runid_11_wd_mgd","runid_13_wd_mgd","wsp2020_2040_mgy"), 
-                          rsegs_file = paste0(export_path, "/", origin_name,"_rsegs_sf.csv"), 
-                          run_set = "wsp_2020_2040", 
-                          runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
-                          crs_default = 4326, 
-                          map_style = "custom", 
-                          bbox_type = "custom",
-                          show_map = TRUE))
-```
-
 ### Parameters
 
 When completing these, it is imperative everything aligns with input parameters for the `Dataframe_Generator.R` and with the document titles created by it.
@@ -332,10 +306,6 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
                       show_map = TRUE))
 ```
 
-### Example Images
-
-to edit later
-
 ## For working Region example:
 
 ### Dataframe_Generator Render:
@@ -379,11 +349,7 @@ rmarkdown::render(paste0(github_location, "/HARParchive/HARP-2023-Summer/Mapping
                       show_map = TRUE))
 ```
 
-### Example Images
-
-to edit later
-
-## For working Locality example: (Not Currently Running)
+## For working Locality example:
 
 ### Dataframe_Generator Render:
 
