@@ -1,6 +1,3 @@
-#use Q and 1st and 2nd derivative of Q to find period of baseflow
-#Individual_Recession_Plotter and recession_histogram_plotter are more concise version of this code
-
 #load in useful packages
 library(hydrotools)
 library(dplyr)
@@ -10,8 +7,6 @@ library(gridExtra)
 library(sqldf)
 library(grwat)
 library(zoo)
-
-
 
 #load in stream data from USGS
 flows_MJ <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060")
@@ -46,132 +41,6 @@ flows_MJ$dSdt <- c(NA, NA, finite_diff(flows_MJ$Flow, order = 2))
 # Calculate derivatives Strasburg
 flows_S$S <- c(NA, finite_diff(flows_S$Flow))              
 flows_S$dSdt <- c(NA, NA, finite_diff(flows_S$Flow, order = 2)) 
-
-
-# Fraction Derivative Calculator
-frac_change <- function(x, order = 1) {
-  if (order == 1) {
-    return((x[-1] - x[-length(x)]) / x[-length(x)])
-  } else if (order == 2) {
-    first_deriv <- frac_change(x, order = 1)
-    return((first_deriv[-1] - first_deriv[-length(first_deriv)]) / first_deriv[-length(first_deriv)])
-  } else {
-    stop("Only supports order = 1 or 2")
-  }
-}
-
-# Calculate frac derivatives Cootes Store
-flows_CS$S_frac <- c(NA, frac_change(flows_CS$Flow))            
-flows_CS$dSdt_frac <- c(NA, NA, frac_change(flows_CS$Flow, order = 2))
-
-# Calculate frac derivatives Mount Jackson
-flows_MJ$S_frac <- c(NA, frac_change(flows_MJ$Flow))            
-flows_MJ$dSdt_frac <- c(NA, NA, frac_change(flows_MJ$Flow, order = 2))  
-
-# Calculate frac derivatives Strasburg
-flows_S$S_frac <- c(NA, frac_change(flows_S$Flow))              
-flows_S$dSdt_frac <- c(NA, NA, frac_change(flows_S$Flow, order = 2))  
-
-flows_CS$site <- "Cootes Store"
-flows_S$site <- "Strasburg"
-flows_MJ$site <- "Mount Jackson"
-flows_all <- bind_rows(flows_CS, flows_S, flows_MJ)
-
-ggplot(flows_all, aes(x = Date, y = S, color = site)) +
-  geom_line() +
-  labs(title = "First Derivative of Flow (S)",
-       x = "Date", y = "dQ/dt",
-       color = "Gage Site") +
-  theme_minimal()
-
-ggplot(flows_all, aes(x = Date, y = dSdt, color = site)) +
-  geom_line() +
-  labs(title = "Second Derivative of Flow (S)",
-       x = "Date", y = "d²Q/dt²",
-       color = "Gage Site") +
-  theme_minimal()
-
-ggplot(flows_all, aes(x = Date, y = S_frac, color = site)) +
-  geom_line() +
-  labs(title = "First Fractional Change of Flow (S)",
-       x = "Date", y = "Fractional Change",
-       color = "Gage Site") +
-  theme_minimal()
-
-ggplot(flows_all, aes(x = Date, y = dSdt_frac, color = site)) +
-  geom_line() +
-  labs(title = "Second Fractional Change of Flow (S)",
-       x = "Date", y = "d(S_frac)/dt",
-       color = "Gage Site") +
-  theme_minimal()
-
-# Add logical column
-flows_CS$is_recession <- flows_CS$S < 0 & flows_CS$dSdt < 0 
-flows_MJ$is_recession <- flows_MJ$S < 0 & flows_MJ$dSdt < 0 
-flows_S$is_recession <- flows_S$S < 0 & flows_S$dSdt < 0 
-
-# Run length encoding
-rle_out <- rle(flows_CS$is_recession)
-# Convert to data frame with run lengths and values
-runs <- data.frame(lengths = rle_out$lengths,
-                   values = rle_out$values)
-# Find where recession is TRUE and lasts long enough
-runs$recession_flag <- with(runs, values & lengths >= 3)
-# Create a vector marking whether each row is part of a qualifying recession
-recession_rows <- rep(runs$recession_flag, runs$lengths)
-# Add to main data frame
-flows_CS$in_recession <- recession_rows
-
-# Just recession periods
-recessions_only_CS <- flows_CS[flows_CS$in_recession == TRUE, ]
-
-ggplot(flows_CS, aes(x = Date, y = Flow)) +
-  geom_line(color = "gray") +
-  geom_point(data = recessions_only_CS, aes(x = Date, y = Flow), size=0.5, alpha=0.5, color = "red") +
-  labs(title = "Cootes Store Flow with Recession Periods Highlighted")+
-  theme_minimal()
-
-# Run length encoding
-rle_out <- rle(flows_MJ$is_recession)
-# Convert to data frame with run lengths and values
-runs <- data.frame(lengths = rle_out$lengths,
-                   values = rle_out$values)
-# Find where recession is TRUE and lasts long enough
-runs$recession_flag <- with(runs, values & lengths >= 3)
-# Create a vector marking whether each row is part of a qualifying recession
-recession_rows <- rep(runs$recession_flag, runs$lengths)
-# Add to main data frame
-flows_MJ$in_recession <- recession_rows
-
-# Just recession periods
-recessions_only_MJ <- flows_MJ[flows_MJ$in_recession == TRUE, ]
-
-ggplot(flows_MJ, aes(x = Date, y = Flow)) +
-  geom_line(color = "gray") +
-  geom_point(data = recessions_only_MJ, aes(x = Date, y = Flow), size=0.5, alpha=0.5, color = "red") +
-  labs(title = "Mount Jackson Flow  with Recession Periods Highlighted")+
-  theme_minimal()
-
-# Run length encoding
-rle_out <- rle(flows_S$is_recession)
-# Convert to data frame with run lengths and values
-runs <- data.frame(lengths = rle_out$lengths,
-                   values = rle_out$values)
-# Find where recession is TRUE and lasts long enough
-runs$recession_flag <- with(runs, values & lengths >= 3)
-# Create a vector marking whether each row is part of a qualifying recession
-recession_rows <- rep(runs$recession_flag, runs$lengths)
-# Add to main data frame
-flows_S$in_recession <- recession_rows
-
-# Just recession periods
-recessions_only_S <- flows_S[flows_S$in_recession == TRUE, ]
-
-ggplot(flows_CS, aes(x = Date, y = Flow)) +
-  geom_line(color = "gray") +
-  geom_point(data = recessions_only_S, aes(x = Date, y = Flow), size=0.5, alpha=0.5, color = "red") +
-  labs(title = "Strasburg Flow with Recession Periods Highlighted")+
-  theme_minimal()
 
 #Stable Recessions:
 
@@ -214,13 +83,13 @@ flows_S$is_stable_recession <- flows_S$is_S_negative & flows_S$dSdt_recent_neg &
 
 rle_out_CS <- rle(flows_CS$is_stable_recession)
 runs_CS <- data.frame(lengths = rle_out_CS$lengths,
-                   values = rle_out_CS$values)
+                      values = rle_out_CS$values)
 rle_out_MJ <- rle(flows_MJ$is_stable_recession)
 runs_MJ <- data.frame(lengths = rle_out_MJ$lengths,
-                   values = rle_out_MJ$values)
+                      values = rle_out_MJ$values)
 rle_out_S <- rle(flows_S$is_stable_recession)
 runs_S <- data.frame(lengths = rle_out_S$lengths,
-                   values = rle_out_S$values)
+                     values = rle_out_S$values)
 
 # Choose duration filter 
 runs_CS$flag <- with(runs_CS, values & lengths >= 5)
@@ -235,27 +104,6 @@ flows_S$recession_event <- rep(runs_S$flag, runs_S$lengths)
 stable_recessions_only_CS <- flows_CS[flows_CS$is_stable_recession == TRUE, ]
 stable_recessions_only_MJ <- flows_MJ[flows_MJ$is_stable_recession == TRUE, ]
 stable_recessions_only_S <- flows_S[flows_MJ$is_stable_recession == TRUE, ]
-
-ggplot(flows_CS, aes(x = Date, y = Flow)) +
-  geom_line(color = "gray") +
-  geom_point(data = stable_recessions_only_CS, aes(x = Date, y = Flow), size=0.5, alpha=0.5, color = "red") +
-  labs(title = "Cootes Store Flow  with Stable Recession Periods Highlighted")+
-  ylim(0,1500)+
-  theme_minimal()
-
-ggplot(flows_MJ, aes(x = Date, y = Flow)) +
-  geom_line(color = "gray") +
-  geom_point(data = stable_recessions_only_MJ, aes(x = Date, y = Flow), size=0.5, alpha=0.5, color = "red") +
-  labs(title = "Mount Jackson Flow with Stable Recession Periods Highlighted")+
-  ylim(0,1500)+
-  theme_minimal()
-
-ggplot(flows_S, aes(x = Date, y = Flow)) +
-  geom_line(color = "gray") +
-  geom_point(data = stable_recessions_only_S, aes(x = Date, y = Flow), size=0.5, alpha=0.5, color = "red") +
-  labs(title = "Strasburg Flow  with Stable Recession Periods Highlighted")+
-  ylim(0,1500)+
-  theme_minimal()
 
 #Add duration information
 
@@ -314,8 +162,6 @@ analyze_recession <- function(df, site_name = "", min_len = 5, max_len = Inf) {
   
   return(list(df = df, summary = recession_event_df))
 }
-
-    
 
 results_MJ <- analyze_recession(flows_MJ, "Mount Jackson")
 results_CS <- analyze_recession(flows_CS, "Cootes Store")
@@ -396,48 +242,3 @@ S_Days <- ggplot(recession_S, aes(x = DaysBetween)) +
 grid.arrange(MJ_Duration,MJ_Days, ncol=2, top="Mount Jackson Recession Events")
 grid.arrange(CS_Duration,CS_Days, ncol=2, top="Cootes Store Recession Events")
 grid.arrange(S_Duration,S_Days, ncol=2, top="Strasburg Recession Events")
-                                                              
-plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "") {
-  # Get start and end date for this group
-  event <- recession_df %>% filter(GroupID == group_id)
-  
-  if (nrow(event) == 0) {
-    stop("Group ID not found.")
-  }
-  
-  start_date <- event$StartDate
-  end_date <- event$EndDate
-  
-  # Extend window ±3 days
-  window_start <- start_date - 3
-  window_end   <- end_date + 3
-  
-  # Subset flow data to this window
-  subset_df <- flows_df %>%
-    filter(Date >= window_start & Date <= window_end) %>%
-    mutate(InGroup = ifelse(RecessionDay & GroupID == group_id, TRUE, FALSE))
-  
-  # Plot
-  ggplot(subset_df, aes(x = Date, y = Flow)) +
-    geom_line(color = "gray40") +
-    geom_point(data = subset_df %>% filter(InGroup == TRUE),
-               aes(x = Date, y = Flow),
-               color = "red", size = 1.2) +
-    labs(title = paste(site_name, "- Recession Group", group_id),
-         subtitle = paste("From", format(start_date), "to", format(end_date)),
-         x = "Date", y = "Flow (CFS)") +
-    theme_minimal()
-}
-
-###Specific Event Plotter
-##Change group_id to the event you want to analyze
-
-#Cootes Store
-plot_recession_group(flows_CS, recession_CS, group_id = 216, site_name = "Cootes Store")
-
-#Mount Jackson
-plot_recession_group(flows_MJ, recession_MJ, group_id = 24, site_name = "Mount Jackson")
-
-#Strasburg
-plot_recession_group(flows_S, recession_S, group_id = 6, site_name = "Strasburg")
-
