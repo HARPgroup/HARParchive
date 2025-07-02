@@ -35,6 +35,7 @@ params:
   map_style: ["custom"] #determining map aesthetics like colors, fonts, font sizes
   bbox_type: ["custom"] #either 'auto' to force automatic for all, or 'custom'
   show_map: TRUE #either TRUE or FALSE
+  include_gwma: TRUE
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, echo=FALSE}
@@ -77,6 +78,8 @@ crs_default <- params$crs_default
 map_style <- params$map_style
 bbox_type <- params$bbox_type
 show_map <- params$show_map
+
+include_gwma <- params$include_gwma
     
 ```
 
@@ -172,6 +175,7 @@ roads_file <- paste0(HARParchive_location, '/HARP-2023-Summer/Mapping/Data/roads
 
 facils <- sf::st_as_sf(read.csv(featrs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 rsegs <- sf::st_as_sf(read.csv(rsegs_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+region_rsegs = rsegs # save these for later since rsegs is overwritten
 counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default, remove=FALSE)
 cities <- fread(cities_file) #no sf geom in cities file; st_read converts columns to character (need coords to be numeric)
 roads <- sf::st_as_sf(read.csv(roads_file), wkt = "WKT", crs=crs_default, remove=FALSE)
@@ -540,6 +544,8 @@ ft1 <- width(ft1, j= 'River Segment ID', width = 1) #making sure rseg ID isn't c
 
 ```{r GW_Maps, echo = FALSE, message=FALSE, warning=FALSE, out.width = '100%', out.height='100%', results='asis', eval = show_map}
 
+if (include_gwma == TRUE) {
+  
 ## Reading in the shapefiles from the onedrive
 #### Also transforms them innto lat/lon
 ## Potomac
@@ -574,6 +580,10 @@ if (origin_type == 'region') {
   origin_shape <- regions[regions$region == origin,]
 } else if (origin_type == 'locality') {
   origin_shape <- regions[regions$region == counties$Region[counties$hydrocode == origin],]
+} else if (origin_type == 'basin') {
+  # this does not yet work, but it's a placeholder
+  origin_shape = region_rsegs
+  origin_shape$region = origin
 }
 
 ## Checking for intersection
@@ -668,6 +678,7 @@ if (origin_shape$region == "Eastern_Shore") {
   ## End of GW mapping section
 }
 
+}
 ```
 ## Facility Table (Table 1):
 
