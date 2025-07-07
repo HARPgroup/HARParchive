@@ -1,8 +1,6 @@
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(sqldf)
-library(zoo)
 
 #load in stream data from USGS
 flows_MJ <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060")
@@ -14,17 +12,24 @@ flows_CS <- dataRetrieval::renameNWISColumns(flows_CS)
 flows_S <- dataRetrieval::readNWISdv("01634000",parameterCd = "00060")
 flows_S <- dataRetrieval::renameNWISColumns(flows_S)
 
-# Derivative Calculator
-finite_diff <- function(x, delta_t = 1, order = 1) {
-  if (order == 1) {
-    return((x[-1] - x[-length(x)]) / delta_t)
-  } else if (order == 2) {
-    first_deriv <- finite_diff(x, delta_t, order = 1)
-    return(finite_diff(first_deriv, delta_t, order = 1))
-  } else {
-    stop("Only supports first and second derivatives.")
-  }
+normalized_pct_change <- function(x) {
+  pct_change <- 100 * (x[-1] - x[-length(x)]) / x[-length(x)]
+  pct_change[is.infinite(pct_change) | is.nan(pct_change)] <- 0
+  return(pct_change)
 }
+
+flows_CS$S_norm <- c(NA, normalized_pct_change(flows_CS$Flow))
+flows_CS$dSdt_norm <- c(NA, diff(flows_CS$S_norm))
+
+flows_MJ$S_norm <- c(NA, normalized_pct_change(flows_MJ$Flow))
+flows_MJ$dSdt_norm <- c(NA, diff(flows_MJ$S_norm))
+
+flows_S$S_norm <- c(NA, normalized_pct_change(flows_S$Flow))
+flows_S$dSdt_norm <- c(NA, diff(flows_S$S_norm))
+
+flows_CS$is_stable_recession <- abs(flows_CS$dSdt_norm) < 0.1 
+flows_MJ$is_stable_recession <- abs(flows_MJ$dSdt_norm) < 0.1
+flows_S$is_stable_recession <- abs(flows_S$dSdt_norm) < 0.1
 
 #add seasonal information
 flows_CS$Month <- format(flows_CS$Date, "%m")
@@ -57,67 +62,6 @@ flows_S <- flows_S %>%
     )
   )
 
-# Calculate derivatives Cootes Store
-flows_CS$S <- c(NA, finite_diff(flows_CS$Flow))              
-flows_CS$dSdt <- c(NA, NA, finite_diff(flows_CS$Flow, order = 2))  
-
-# Calculate derivatives Mount Jackson
-flows_MJ$S <- c(NA, finite_diff(flows_MJ$Flow))              
-flows_MJ$dSdt <- c(NA, NA, finite_diff(flows_MJ$Flow, order = 2))  
-
-# Calculate derivatives Strasburg
-flows_S$S <- c(NA, finite_diff(flows_S$Flow))              
-flows_S$dSdt <- c(NA, NA, finite_diff(flows_S$Flow, order = 2))
-
-#Stable Recessions:
-flows_CS$is_S_negative <- flows_CS$S <= 0
-flows_MJ$is_S_negative <- flows_MJ$S <= 0
-flows_S$is_S_negative <- flows_S$S <= 0
-
-flows_CS$dSdt_recent_neg <- zoo::rollapplyr(
-  flows_CS$dSdt < 0, 
-  width = 3, #daily buffer for days since second derivative was negative
-  FUN = any, 
-  partial = TRUE, 
-  fill = NA
-)
-
-flows_MJ$dSdt_recent_neg <- zoo::rollapplyr(
-  flows_MJ$dSdt < 0, 
-  width = 3, #width is daily buffer
-  FUN = any, 
-  partial = TRUE, 
-  fill = NA
-)
-
-flows_S$dSdt_recent_neg <- zoo::rollapplyr(
-  flows_S$dSdt < 0, 
-  width = 3, #daily buffer
-  FUN = any, 
-  partial = TRUE, 
-  fill = NA
-)
-
-#To change low flow percentile, change flow quantile
-flows_CS <- flows_CS %>%
-  group_by(Month) %>%
-  mutate(low_flow = Flow < quantile(Flow, 0.15, na.rm = TRUE)) %>%
-  ungroup()
-flows_MJ <- flows_MJ %>%
-  group_by(Month) %>%
-  mutate(low_flow = Flow < quantile(Flow, 0.15, na.rm = TRUE)) %>%
-  ungroup()
-flows_S <- flows_S %>%
-  group_by(Month) %>%
-  mutate(low_flow = Flow < quantile(Flow, 0.15, na.rm = TRUE)) %>%
-  ungroup()
-
-
-flows_CS$is_stable_recession <- flows_CS$is_S_negative & flows_CS$dSdt_recent_neg & flows_CS$low_flow
-flows_MJ$is_stable_recession <- flows_MJ$is_S_negative & flows_MJ$dSdt_recent_neg & flows_MJ$low_flow
-flows_S$is_stable_recession <- flows_S$is_S_negative & flows_S$dSdt_recent_neg & flows_S$low_flow
-
-
 rle_out_CS <- rle(flows_CS$is_stable_recession)
 runs_CS <- data.frame(lengths = rle_out_CS$lengths,
                       values = rle_out_CS$values)
@@ -128,32 +72,25 @@ rle_out_S <- rle(flows_S$is_stable_recession)
 runs_S <- data.frame(lengths = rle_out_S$lengths,
                      values = rle_out_S$values)
 
-# Choose duration filter 
-# I set to 5 but change the lengths greater than or equal to value
-runs_CS$flag <- with(runs_CS, values & lengths >= 5)
-runs_MJ$flag <- with(runs_MJ, values & lengths >= 5)
-runs_S$flag <- with(runs_S, values & lengths >= 5)
-
+# Identify stable recession runs
+runs_CS$flag <- with(runs_CS, values & lengths >= 0)
+runs_MJ$flag <- with(runs_MJ, values & lengths >= 0)
+runs_S$flag  <- with(runs_S,  values & lengths >= 0)
 
 flows_CS$recession_event <- rep(runs_CS$flag, runs_CS$lengths)
 flows_MJ$recession_event <- rep(runs_MJ$flag, runs_MJ$lengths)
-flows_S$recession_event <- rep(runs_S$flag, runs_S$lengths)
+flows_S$recession_event  <- rep(runs_S$flag,  runs_S$lengths)
 
-stable_recessions_only_CS <- flows_CS[flows_CS$is_stable_recession == TRUE, ]
-stable_recessions_only_MJ <- flows_MJ[flows_MJ$is_stable_recession == TRUE, ]
-stable_recessions_only_S <- flows_S[flows_S$is_stable_recession == TRUE, ]
+flows_CS$RecessionDay  <- as.logical(flows_CS$recession_event)
+flows_MJ$RecessionDay <- as.logical(flows_MJ$recession_event)
+flows_S$RecessionDay  <- as.logical(flows_S$recession_event)
 
-#Add duration information
-
-flows_CS$RecessionDay  <- flows_CS$recession_event
-flows_MJ$RecessionDay <- flows_MJ$recession_event
-flows_S$RecessionDay <- flows_S$recession_event
 
 flows_CS  <- flows_CS[!is.na(flows_CS$RecessionDay), ]
 flows_MJ <- flows_MJ[!is.na(flows_MJ$RecessionDay), ]
 flows_S <- flows_S[!is.na(flows_S$RecessionDay), ]
 
-analyze_recession <- function(df, site_name = "", min_len = 5, max_len = Inf) {
+analyze_recession <- function(df, site_name = "", min_len = 0, max_len = Inf) {
   rle_out <- rle(df$RecessionDay)
   lengths <- rle_out$lengths
   values <- rle_out$values
@@ -210,15 +147,15 @@ results_CS$Site <- "Cootes Store"
 results_S$Site  <- "Strasburg"
 
 flows_CS <- results_CS$df
-recession_CS <- results_CS$summary
+recession_CS_norm <- results_CS$summary
 flows_MJ <- results_MJ$df
-recession_MJ <- results_MJ$summary
+recession_MJ_norm <- results_MJ$summary
 flows_S <- results_S$df
-recession_S <- results_S$summary
+recession_S_norm <- results_S$summary
 
-results_MJ$Duration <- as.numeric(recession_MJ$EndDate - recession_MJ$StartDate)+1
-results_CS$Duration <- as.numeric(recession_CS$EndDate - recession_CS$StartDate)+1
-results_S$Duration  <- as.numeric(recession_S$EndDate - recession_S$StartDate)+1
+results_MJ$Duration <- as.numeric(recession_MJ_norm$EndDate - recession_MJ_frac$StartDate)+1
+results_CS$Duration <- as.numeric(recession_CS_norm$EndDate - recession_CS_norm$StartDate)+1
+results_S$Duration  <- as.numeric(recession_S_norm$EndDate - recession_S_norm$StartDate)+1
 
 plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "") {
   # Get start and end date for this group
@@ -232,8 +169,8 @@ plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "
   end_date <- event$EndDate
   
   # Extend window ±3 days
-  window_start <- start_date - 3
-  window_end   <- end_date + 3
+  window_start <- start_date - 30
+  window_end   <- end_date + 30
   
   # Subset flow data to this window
   subset_df <- flows_df %>%
@@ -257,11 +194,14 @@ plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "
 ##Find group ids in recession_site dfs
 
 #Cootes Store
-plot_recession_group(flows_CS, recession_CS, group_id = 10, site_name = "Cootes Store")
+plot_recession_group(flows_CS, recession_CS_norm, group_id = 717, site_name = "Cootes Store")
 
 #Mount Jackson
-plot_recession_group(flows_MJ, recession_MJ, group_id = 116, site_name = "Mount Jackson")
+plot_recession_group(flows_MJ, recession_MJ_norm, group_id = 117, site_name = "Mount Jackson")
 
 #Strasburg
-plot_recession_group(flows_S, recession_S, group_id = 31, site_name = "Strasburg")
+plot_recession_group(flows_S, recession_S_norm, group_id = 301, site_name = "Strasburg")
+
+
+
 

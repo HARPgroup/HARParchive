@@ -48,7 +48,7 @@ flows_S$S <- c(NA, finite_diff(flows_S$Flow))
 flows_S$dSdt <- c(NA, NA, finite_diff(flows_S$Flow, order = 2)) 
 
 
-# Fraction Derivative Calculator
+# Fraction Change Derivative Calculator
 frac_change <- function(x, order = 1) {
   if (order == 1) {
     return((x[-1] - x[-length(x)]) / x[-length(x)])

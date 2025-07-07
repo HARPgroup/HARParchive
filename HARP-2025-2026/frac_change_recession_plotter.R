@@ -14,17 +14,23 @@ flows_CS <- dataRetrieval::renameNWISColumns(flows_CS)
 flows_S <- dataRetrieval::readNWISdv("01634000",parameterCd = "00060")
 flows_S <- dataRetrieval::renameNWISColumns(flows_S)
 
-# Derivative Calculator
-finite_diff <- function(x, delta_t = 1, order = 1) {
+# Fraction Change Derivative Calculator
+frac_change <- function(x, order = 1) {
   if (order == 1) {
-    return((x[-1] - x[-length(x)]) / delta_t)
+    result <- (x[-1] - x[-length(x)]) / x[-length(x)]
+    result[is.infinite(result) | is.nan(result)] <- NA  # <-- must come before return
+    return(result)
   } else if (order == 2) {
-    first_deriv <- finite_diff(x, delta_t, order = 1)
-    return(finite_diff(first_deriv, delta_t, order = 1))
+    first_deriv <- frac_change(x, order = 1)
+    result <- (first_deriv[-1] - first_deriv[-length(first_deriv)]) / first_deriv[-length(first_deriv)]
+    result[is.infinite(result) | is.nan(result)] <- NA  # <-- same fix here
+    return(result)
   } else {
-    stop("Only supports first and second derivatives.")
+    stop("Only supports order = 1 or 2")
   }
 }
+
+
 
 #add seasonal information
 flows_CS$Month <- format(flows_CS$Date, "%m")
@@ -57,46 +63,49 @@ flows_S <- flows_S %>%
     )
   )
 
-# Calculate derivatives Cootes Store
-flows_CS$S <- c(NA, finite_diff(flows_CS$Flow))              
-flows_CS$dSdt <- c(NA, NA, finite_diff(flows_CS$Flow, order = 2))  
+# Calculate frac change derivatives Cootes Store
+flows_CS$S_frac <- c(NA, frac_change(flows_CS$Flow))              
+flows_CS$dSdt_frac <- c(NA, NA, frac_change(flows_CS$Flow, order = 2))  
 
 # Calculate derivatives Mount Jackson
-flows_MJ$S <- c(NA, finite_diff(flows_MJ$Flow))              
-flows_MJ$dSdt <- c(NA, NA, finite_diff(flows_MJ$Flow, order = 2))  
+flows_MJ$S_frac <- c(NA, frac_change(flows_MJ$Flow))              
+flows_MJ$dSdt_frac <- c(NA, NA, frac_change(flows_MJ$Flow, order = 2))  
 
 # Calculate derivatives Strasburg
-flows_S$S <- c(NA, finite_diff(flows_S$Flow))              
-flows_S$dSdt <- c(NA, NA, finite_diff(flows_S$Flow, order = 2))
+flows_S$S_frac <- c(NA, frac_change(flows_S$Flow))              
+flows_S$dSdt_frac <- c(NA, NA, frac_change(flows_S$Flow, order = 2))
 
 #Stable Recessions:
-flows_CS$is_S_negative <- flows_CS$S <= 0
-flows_MJ$is_S_negative <- flows_MJ$S <= 0
-flows_S$is_S_negative <- flows_S$S <= 0
+flows_CS$is_S_frac_negative <- flows_CS$S_frac <= 0
+flows_MJ$is_S_frac_negative <- flows_MJ$S_frac <= 0
+flows_S$is_S_frac_negative <- flows_S$S_frac <= 0
 
-flows_CS$dSdt_recent_neg <- zoo::rollapplyr(
-  flows_CS$dSdt < 0, 
+flows_CS$dSdt_frac_recent_neg <- zoo::rollapplyr(
+  flows_CS$dSdt_frac < 0, 
   width = 3, #daily buffer for days since second derivative was negative
   FUN = any, 
   partial = TRUE, 
   fill = NA
 )
 
-flows_MJ$dSdt_recent_neg <- zoo::rollapplyr(
-  flows_MJ$dSdt < 0, 
+flows_MJ$dSdt_frac_recent_neg <- zoo::rollapplyr(
+  flows_MJ$dSdt_frac < 0, 
   width = 3, #width is daily buffer
   FUN = any, 
   partial = TRUE, 
   fill = NA
 )
 
-flows_S$dSdt_recent_neg <- zoo::rollapplyr(
-  flows_S$dSdt < 0, 
+flows_S$dSdt_frac_recent_neg <- zoo::rollapplyr(
+  flows_S$dSdt_frac < 0, 
   width = 3, #daily buffer
   FUN = any, 
   partial = TRUE, 
   fill = NA
 )
+
+sum(flows_CS$S_frac == 0, na.rm = TRUE)
+
 
 #To change low flow percentile, change flow quantile
 flows_CS <- flows_CS %>%
@@ -113,9 +122,9 @@ flows_S <- flows_S %>%
   ungroup()
 
 
-flows_CS$is_stable_recession <- flows_CS$is_S_negative & flows_CS$dSdt_recent_neg & flows_CS$low_flow
-flows_MJ$is_stable_recession <- flows_MJ$is_S_negative & flows_MJ$dSdt_recent_neg & flows_MJ$low_flow
-flows_S$is_stable_recession <- flows_S$is_S_negative & flows_S$dSdt_recent_neg & flows_S$low_flow
+flows_CS$is_stable_recession <- flows_CS$is_S_frac_negative & flows_CS$dSdt_frac_recent_neg & flows_CS$low_flow
+flows_MJ$is_stable_recession <- flows_MJ$is_S_frac_negative & flows_MJ$dSdt_frac_recent_neg & flows_MJ$low_flow
+flows_S$is_stable_recession <- flows_S$is_S_frac_negative & flows_S$dSdt_frac_recent_neg & flows_S$low_flow
 
 
 rle_out_CS <- rle(flows_CS$is_stable_recession)
@@ -210,15 +219,15 @@ results_CS$Site <- "Cootes Store"
 results_S$Site  <- "Strasburg"
 
 flows_CS <- results_CS$df
-recession_CS <- results_CS$summary
+recession_CS_frac <- results_CS$summary
 flows_MJ <- results_MJ$df
-recession_MJ <- results_MJ$summary
+recession_MJ_frac <- results_MJ$summary
 flows_S <- results_S$df
-recession_S <- results_S$summary
+recession_S_frac <- results_S$summary
 
-results_MJ$Duration <- as.numeric(recession_MJ$EndDate - recession_MJ$StartDate)+1
-results_CS$Duration <- as.numeric(recession_CS$EndDate - recession_CS$StartDate)+1
-results_S$Duration  <- as.numeric(recession_S$EndDate - recession_S$StartDate)+1
+results_MJ$Duration <- as.numeric(recession_MJ_frac$EndDate - recession_MJ_frac$StartDate)+1
+results_CS$Duration <- as.numeric(recession_CS_frac$EndDate - recession_CS_frac$StartDate)+1
+results_S$Duration  <- as.numeric(recession_S_frac$EndDate - recession_S_frac$StartDate)+1
 
 plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "") {
   # Get start and end date for this group
@@ -257,11 +266,11 @@ plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "
 ##Find group ids in recession_site dfs
 
 #Cootes Store
-plot_recession_group(flows_CS, recession_CS, group_id = 10, site_name = "Cootes Store")
+plot_recession_group(flows_CS, recession_CS_frac, group_id = 268, site_name = "Cootes Store")
 
 #Mount Jackson
-plot_recession_group(flows_MJ, recession_MJ, group_id = 116, site_name = "Mount Jackson")
+plot_recession_group(flows_MJ, recession_MJ_frac, group_id = 163, site_name = "Mount Jackson")
 
 #Strasburg
-plot_recession_group(flows_S, recession_S, group_id = 31, site_name = "Strasburg")
+plot_recession_group(flows_S, recession_S_frac, group_id = 108, site_name = "Strasburg")
 
