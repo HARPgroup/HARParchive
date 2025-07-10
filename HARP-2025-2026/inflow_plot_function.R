@@ -78,33 +78,33 @@ plot.zero.inflows <- function(gw_data, landseg, landtype,
   return(plot)
 }
 
+# H51165 <- add.season(H51165, "index")
+# N51165 <- add.season(N51165, "index")
+# N51171 <- add.season(N51171, "index")
+# N54031 <- add.season(N54031, "index")
+# H51165_daily <- add.season(H51165_daily, "Date")
+# N51165_daily <- add.season(N51165_daily, "Date")
+# N51171_daily <- add.season(N51171_daily, "Date")
+# N54031_daily <- add.season(N54031_daily, "Date")
 
-H51165 <- add.season(H51165, "index")
-N51165 <- add.season(N51165, "index")
-N51171 <- add.season(N51171, "index")
-N54031 <- add.season(N54031, "index")
-H51165_daily <- add.season(H51165_daily, "Date")
-N51165_daily <- add.season(N51165_daily, "Date")
-N51171_daily <- add.season(N51171_daily, "Date")
-N54031_daily <- add.season(N54031_daily, "Date")
-
-plot.zero.inflows(N51165, 
-                  landseg = "N51165", 
-                  landtype = "Forested", 
-                  zone = "AGW", 
-                  second_axis = "O")
-
-plot.zero.inflows(H51165, 
-                  landseg = "H51165", 
-                  landtype = "Forested", 
-                  zone = "LZ", 
-                  second_axis = "ET")
-
-plot.zero.inflows(N51171, 
-                  landseg = "N51171", 
-                  landtype = "Forested", 
-                  zone = "UZ", 
-                  second_axis = "S")
+# Examples
+# plot.zero.inflows(N51165, 
+#                   landseg = "N51165", 
+#                   landtype = "Forested", 
+#                   zone = "AGW", 
+#                   second_axis = "O")
+# 
+# plot.zero.inflows(H51165, 
+#                   landseg = "H51165", 
+#                   landtype = "Forested", 
+#                   zone = "LZ", 
+#                   second_axis = "ET")
+# 
+# plot.zero.inflows(N51171, 
+#                   landseg = "N51171", 
+#                   landtype = "Forested", 
+#                   zone = "UZ", 
+#                   second_axis = "S")
 
 plot.inflows <- function(gw_data, landseg, landtype, 
                               zone = c("AGW", "LZ", "UZ"), 
@@ -190,28 +190,26 @@ plot.inflows <- function(gw_data, landseg, landtype,
   return(plot)
 }
 
-
-
-plot.inflows(H51165, 
-             landseg = "H51165", 
-             landtype = "Forested", 
-             zone = "AGW", 
-             second_axis = "O",
-             plot_type = "bar")
-
-
-plot.inflows(N51165_daily, 
-              landseg = "N51165", 
-              landtype = "Forested", 
-              zone = "AGW", 
-              second_axis = "O",
-             plot_type = "bar")
-
-
-
-plot.inflows(N51171_daily, 
-              landseg = "N51171", 
-              landtype = "Forested", 
-              zone = "UZ", 
-              second_axis = "S")
-
+# Examples
+# plot.inflows(H51165, 
+#              landseg = "H51165", 
+#              landtype = "Forested", 
+#              zone = "AGW", 
+#              second_axis = "O",
+#              plot_type = "bar")
+# 
+# 
+# plot.inflows(N51165_daily, 
+#               landseg = "N51165", 
+#               landtype = "Forested", 
+#               zone = "AGW", 
+#               second_axis = "O",
+#              plot_type = "bar")
+# 
+# 
+# 
+# plot.inflows(N51171_daily, 
+#               landseg = "N51171", 
+#               landtype = "Forested", 
+#               zone = "UZ", 
+#               second_axis = "S")

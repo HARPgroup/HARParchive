@@ -2,13 +2,11 @@
 suppressPackageStartupMessages(library(lubridate))
 suppressPackageStartupMessages(library(sqldf))
 suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(ggpubr))
-suppressPackageStartupMessages(library(gridExtra))
 
-H51165 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forH51165_pwater.csv")
-N51165 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51165_pwater.csv")
-N51171 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51171_pwater.csv")
-N54031 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN54031_pwater.csv")
+# H51165 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forH51165_pwater.csv")
+# N51165 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51165_pwater.csv")
+# N51171 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51171_pwater.csv")
+# N54031 <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN54031_pwater.csv")
 
 # Make daily ----
 make.model.daily <- function(data, datecol){
@@ -47,8 +45,7 @@ make.model.daily <- function(data, datecol){
     on (
       a.date = b.date
     )
-    "
-  )
+    ")
   
   # Put back in alphabetical order with Date as first column
   data_daily <- data_daily[c("Date", sort(setdiff(names(data_daily), "Date")))]
@@ -56,79 +53,37 @@ make.model.daily <- function(data, datecol){
   return(data_daily)
 }
 
-H51165_daily <- make.model.daily(H51165, "index")
-N51165_daily <- make.model.daily(N51165, "index")
-N51171_daily <- make.model.daily(N51171, "index")
-N54031_daily <- make.model.daily(N54031, "index")
-
-
-
-#----
+# H51165_daily <- make.model.daily(H51165, "index")
+# N51165_daily <- make.model.daily(N51165, "index")
+# N51171_daily <- make.model.daily(N51171, "index")
+# N54031_daily <- make.model.daily(N54031, "index")
 
 # Calculation for 0s in data
-H_practice <- subset(H51165, year > 1999  & year < 2006)
+model_data <- subset(H51165, year > 1999  & year < 2006)
 
-H_practice$index <- as_datetime(H_practice$index)
+model_data$index <- as_datetime(model_data$index)
 
-H_precalc <- H_practice
-
+model_precalc <- model_data
 
 # create column for change in storage
-H_practice$dAGWS <- c(NA, diff(H_practice$AGWS))
+model_data$dAGWS <- c(NA, diff(model_data$AGWS))
 
 # Use outflows and inflows to calculate Lateral inflow
-H_practice$AGWI <- H_practice$dAGWS + H_practice$AGWO + H_practice$AGWET
+model_data$AGWI <- model_data$dAGWS + model_data$AGWO + model_data$AGWET
 
 # Change any calculated values < 0 to 0
-H_practice$AGWI[H_practice$AGWI < 0] <- 0
+model_data$AGWI[model_data$AGWI < 0] <- 0
 
 # Repeat for Upper and Lower Zones
+model_data$dLZS <- c(NA, diff(model_data$LZS))
 
-H_practice$dLZS <- c(NA, diff(H_practice$LZS))
+model_data$LZI <- model_data$dLZS + model_data$LZET - model_data$PERC
 
-H_practice$LZI <- H_practice$dLZS + H_practice$LZET - H_practice$PERC
-
-H_practice$LZI[H_practice$LZI < 0] <- 0
-
+model_data$LZI[model_data$LZI < 0] <- 0
 
 # Upper
+model_data$dUZS <- c(NA, diff(model_data$UZS))
 
-H_practice$dUZS <- c(NA, diff(H_practice$UZS))
+model_data$UZI <- model_data$dUZS + model_data$UZET + model_data$PERC
 
-H_practice$UZI <- H_practice$dUZS + H_practice$UZET + H_practice$PERC
-
-H_practice$UZI[H_practice$UZI < 0 ] <- 0 
-
-
-# Make summary table for each zones non-zero values ----
-summaries <- list(
-  `UZ Pre`  = summary(H_precalc$UZI == 0),
-  `UZ Post` = summary(H_practice$UZI == 0),
-  `LZ Pre`  = summary(H_precalc$LZI == 0),
-  `LZ Post` = summary(H_practice$LZI == 0),
-  `GW Pre`  = summary(H_precalc$AGWI == 0),
-  `GW Post` = summary(H_practice$AGWI == 0)
-)
-
-sum_table <- do.call(rbind, lapply(names(summaries), function(name) {
-  counts <- summaries[[name]]
-  # make sur all names exist
-  full_counts <- c(`FALSE` = 0, `TRUE` = 0, `NA's` = 0)
-  full_counts[names(counts)] <- counts
-  data.frame(Condition = name, as.list(full_counts), check.names = FALSE)
-}))
-
-sum_table <- sqldf(
-  "select Condition, FALSE, TRUE from sum_table
-  "
-)
-
-names(sum_table)[names(sum_table) == "FALSE"] <- "Non-zeros"
-names(sum_table)[names(sum_table) == "TRUE"] <- "Zeros"
-
-tab_sum <- flextable::flextable(sum_table)
-tab_sum <- flextable::autofit(tab_sum)
-tab_sum <- flextable::set_caption(tab_sum, "Count of 0-Values Before and After Recalculating Inflows (H51165, 2000-2002)")
-tab_sum <- set_table_properties(tab_sum,width = 1,layout = "autofit")
-tab_sum
-
+model_data$UZI[model_data$UZI < 0 ] <- 0 

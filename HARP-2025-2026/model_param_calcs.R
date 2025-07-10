@@ -8,91 +8,54 @@ library(dataRetrieval)
 library(lubridate)
 library(ggplot2)
 
-# Download Model Data (FORESTED)
-cs_model <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51165_pwater.csv")
-mtj_model <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51171_pwater.csv")
-sb_model <- read.csv("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/forN51187_pwater.csv")
+land_code <- "pasN51187"
+site_num <- "01634000"
+
+model_data <- read.csv(paste0("http://deq1.bse.vt.edu:81/p6/out/land/subsheds2/pwater/", land_code,"_pwater.csv"))
 
 # Get data timescale limits
-startDate <- min(cs_model$index)
-endDate <- max(cs_model$index)
+startDate <- min(model_data$index)
+endDate <- max(model_data$index)
 
 # Download USGS Data
 # Cootes Store
-cs_usgs <- readNWISdata(site = "01632000", parameterCd = "00060",
+usgs_data <- readNWISdata(site = site_num, parameterCd = "00060",
                         startDate = as_date(startDate),
                         endDate = as_date(endDate))
-cs_usgs <- renameNWISColumns(cs_usgs)
-cs_usgs$dateTime <- as_date(cs_usgs$dateTime)
-
-# Mount Jackson
-mtj_usgs <- readNWISdata(site = "01633000", parameterCd = "00060",
-                        startDate = as_date(startDate),
-                        endDate = as_date(endDate))
-mtj_usgs <- renameNWISColumns(mtj_usgs)
-
-# Strasburg
-sb_usgs <- readNWISdata(site = "01634000", parameterCd = "00060",
-                        startDate = as_date(startDate),
-                        endDate = as_date(endDate))
-sb_usgs <- renameNWISColumns(sb_usgs)
-
+usgs_data <- renameNWISColumns(usgs_data)
+usgs_data$dateTime <- as_date(usgs_data$dateTime)
 
 # Make model data daily using func from landseg_groundwater_IH.R
-cs_model <- make.model.daily(cs_model, "date")
-mtj_model <- make.model.daily(mtj_model, "date")
-sb_model <- make.model.daily(sb_model, "date")
+model_data <- make.model.daily(model_data, "date")
 
+# creating AGWRC column
+model_data$AGWRC <- model_data$AGWO / c(NA, head(model_data$AGWO, -1))
 
-# comp_QO <- sqldf(
-#   "select a.Date, a.AGWO, b.Flow from cs_model as a
-#   left outer join cs_usgs as b 
-#   on (
-#     a.Date = b.dateTime
-#   )
-#   ")
+usgs_data$AGWRC <- usgs_data$Flow / c(NA, head(usgs_data$Flow, -1))
 
+model_data_valid <- subset(model_data, AGWI == 0)
 
-## Looking into cs only for now
-cs_model$AGWRC <- cs_model$AGWO / c(NA, head(cs_model$AGWO, -1))
-
-cs_usgs$AGWRC <- cs_usgs$Flow / c(NA, head(cs_usgs$Flow, -1))
-
-cs_model_valid <- subset(cs_model, AGWI == 0)
-
-cs_usgs_valid <- sqldf(
-  "select a.* from cs_usgs as a
-   inner join cs_model_valid as b
+usgs_data_valid <- sqldf(
+  "select a.* from usgs_data as a
+   inner join model_data_valid as b
    on( 
     b.Date = a.dateTime
    )
   ")
 
-cs_comp <- sqldf(
-  "select Date, AGWRC, 'MODEL' as Data from cs_model_valid
+comp_data <- sqldf(
+  "select Date, AGWRC, 'MODEL' as Data from model_data_valid
   union all
-  select dateTime as Date, AGWRC, 'USGS' as Data from cs_usgs_valid
+  select dateTime as Date, AGWRC, 'USGS' as Data from usgs_data_valid
   "
 )
 
-ggplot(cs_comp, mapping = aes(x = AGWRC, color = Data, fill = Data))+
-  geom_histogram(bins = 25, alpha =0.2)+
+ggplot(comp_data, mapping = aes(x = AGWRC, color = Data, fill = Data))+
+  geom_density( alpha =0.2)+
   xlim(0,1.5)+
   theme_bw()+
   scale_color_manual(values = c("firebrick","dodgerblue3"))+
   scale_fill_manual(values = c("firebrick","dodgerblue3"))+
-  ylab("Count")+
-  ggtitle("Calculated AGWRCs for days with 0 AGWI (Forested)")+
+  ylab("Density")+
+  ggtitle(paste0("Calculated AGWRCs for days with 0 AGWI (", land_code, ")"))+
   theme(plot.title = element_text(hjust = 0.5))
-
-  
-
-
-
-
-
-
-
-
-
-
