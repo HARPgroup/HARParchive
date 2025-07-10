@@ -82,7 +82,7 @@ rle_out_S <- rle(flows_S$is_stable_recession)
 runs_S <- data.frame(lengths = rle_out_S$lengths,
                      values = rle_out_S$values)
 
-fill_short_gaps <- function(flag_vec, max_gap = 1) {
+fill_short_gaps <- function(flag_vec, max_gap = r) {
   # Replace NA with FALSE
   flag_vec[is.na(flag_vec)] <- FALSE
   
@@ -105,9 +105,9 @@ flag_stable_baseflow <- function(df,
                                  AGWR_col = "AGWR",
                                  delta_col = "delta_AGWR",
                                  max_flow = 300,
-                                 max_AGWR = 0.2,
-                                 max_delta = 0.2,
-                                 max_gap = 1) {   # Add max_gap argument
+                                 max_AGWR = 0.1,
+                                 max_delta = 0.1,
+                                 max_gap = 5) {   # Add max_gap argument
 
   
   # Base logic
@@ -115,7 +115,8 @@ flag_stable_baseflow <- function(df,
   is_small_AGWR <- abs(df[[AGWR_col]]) < max_AGWR
   is_small_delta <- abs(df[[delta_col]]) < max_delta
   
-  initial_flag <- is_low_flow
+  initial_flag <- is_low_flow & is_small_AGWR & is_small_delta
+  
   
   # Fill short gaps of FALSE in initial_flag surrounded by TRUE runs
   final_flag <- fill_short_gaps(initial_flag, max_gap = max_gap)
@@ -201,76 +202,6 @@ recession_S_AGWR <- results_S$summary
 results_MJ$Duration <- as.numeric(recession_MJ_AGWR$EndDate - recession_MJ_AGWR$StartDate)+1
 results_CS$Duration <- as.numeric(recession_CS_AGWR$EndDate - recession_CS_AGWR$StartDate)+1
 results_S$Duration  <- as.numeric(recession_S_AGWR$EndDate - recession_S_AGWR$StartDate)+1
-
-
-#Derivative Plotter
-# ggplot(flows_CS, aes(x = Date)) +
-#   geom_line(aes(y = Flow*10), color = "blue"  , size = 0.75) +
-#   geom_line(aes(y = AGWR), color = "red"  , size = 0.75) +  
-#   scale_y_continuous(
-#     name = "Normalized First Derivative",
-#     sec.axis = sec_axis(~ . / 10, name = "Flow (CFS) * 10")
-#   ) +
-#   labs(title = "Cootes Store: Flow and First Derivative",
-#        x = "Date") +
-#   theme_minimal()
-# 
-# ggplot(flows_MJ, aes(x = Date)) +
-#   geom_line(aes(y = Flow), color = "blue"  , size = 0.75) +
-#   geom_line(aes(y = AGWR), color = "red"  , size = 0.75) +  
-#   scale_y_continuous(
-#     name = "Flow (CFS)",
-#     sec.axis = sec_axis(~ . / 10, name = "Normalized First Derivative")
-#   ) +
-#   labs(title = "Mount Jackson: Flow and First Derivative",
-#        x = "Date") +
-#   theme_minimal()
-# 
-# ggplot(flows_S, aes(x = Date)) +
-#   geom_line(aes(y = Flow), color = "blue"  , size = 0.75) +
-#   geom_line(aes(y = AGWR*10), color = "red"  , size = 0.75) +  
-#   scale_y_continuous(
-#     name = "Flow (CFS)",
-#     sec.axis = sec_axis(~ . / 10, name = "Normalized First Derivative *10")
-#   ) +
-#   labs(title = "Strasburg: Flow and First Derivative",
-#        x = "Date") +
-#   theme_minimal()
-# 
-# 
-# ggplot(flows_CS, aes(x = Date)) +
-#   geom_line(aes(y = Flow*10), color = "blue"  , size = 0.75) +
-#   geom_line(aes(y = delta_AGWR), color = "red"  , size = 0.75) +  
-#   scale_y_continuous(
-#     name = "Normalized Second Derivative",
-#     sec.axis = sec_axis(~ . / 10, name = "Flow (CFS)*10")
-#   ) +
-#   labs(title = "Cootes Store: Flow and Second Derivative",
-#        x = "Date") +
-#   theme_minimal()
-# 
-# ggplot(flows_MJ, aes(x = Date)) +
-#   geom_line(aes(y = Flow), color = "blue"  , size = 0.75) +
-#   geom_line(aes(y = delta_AGWR), color = "red"  , size = 0.75) +  
-#   scale_y_continuous(
-#     name = "Flow (CFS)",
-#     sec.axis = sec_axis(~ . / 10, name = "Normalized Second Derivative")
-#   ) +
-#   labs(title = "Mount Jackson: Flow and Second Derivative",
-#        x = "Date") +
-#   theme_minimal()
-# 
-# ggplot(flows_S, aes(x = Date)) +
-#   geom_line(aes(y = Flow), color = "blue"  , size = 0.75) +
-#   geom_line(aes(y = delta_AGWR*10), color = "red"  , size = 0.75) +  
-#   scale_y_continuous(
-#     name = "Flow (CFS)",
-#     sec.axis = sec_axis(~ . / 10, name = "Normalized Second Derivative*10")
-#   ) +
-#   labs(title = "Strasburg: Flow and Second Derivative",
-#        x = "Date") +
-#   theme_minimal()
-# 
 
 # Cootes Store
 analysis_CS <- flows_CS %>%
@@ -420,10 +351,10 @@ plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "
 ##Find group ids in recession_site dfs
 
 #Cootes Store
-plot_recession_group(flows_CS, recession_CS_AGWR, group_id = 24, site_name = "Cootes Store")
+plot_recession_group(flows_CS, recession_CS_AGWR, group_id = 2, site_name = "Cootes Store")
 
 #Mount Jackson
-plot_recession_group(flows_MJ, recession_MJ_AGWR, group_id = 212, site_name = "Mount Jackson")
+plot_recession_group(flows_MJ, recession_MJ_AGWR, group_id = 1, site_name = "Mount Jackson")
 
 #Strasburg
-plot_recession_group(flows_S, recession_S_AGWR, group_id = 32, site_name = "Strasburg")
+plot_recession_group(flows_S, recession_S_AGWR, group_id = 1, site_name = "Strasburg")
