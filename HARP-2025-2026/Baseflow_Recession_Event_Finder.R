@@ -265,17 +265,17 @@ AGWR_summary_S <- analysis_S %>%
   ) %>%
   arrange(iqr)
 
+analysis_S <- analysis_S %>%
+  left_join(AGWR_summary_S, by = "GroupID")
+
 #join back with flows
 flows_CS <- flows_CS %>%
   left_join(AGWR_summary_S, by = "GroupID")
 
-analysis_S <- analysis_S %>%
-  left_join(AGWR_summary_S, by = "GroupID")
+flows_MJ <- flows_MJ %>%
+  left_join(AGWR_summary_MJ, by = "GroupID")
 
-analysis_S <- analysis_S %>%
-  left_join(AGWR_summary_S, by = "GroupID")
-
-analysis_S <- analysis_S %>%
+flows_S <- flows_S %>%
   left_join(AGWR_summary_S, by = "GroupID")
 
 
@@ -354,7 +354,12 @@ plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "
 plot_recession_group(flows_CS, recession_CS_AGWR, group_id = 2, site_name = "Cootes Store")
 
 #Mount Jackson
-plot_recession_group(flows_MJ, recession_MJ_AGWR, group_id = 1, site_name = "Mount Jackson")
+plot_recession_group(flows_MJ, recession_MJ_AGWR, group_id = 70, site_name = "Mount Jackson")
 
 #Strasburg
 plot_recession_group(flows_S, recession_S_AGWR, group_id = 1, site_name = "Strasburg")
+
+write.csv(analysis_CS, "Cootes_Store_Recession_Quantile.csv", row.names = FALSE)
+write.csv(analysis_MJ, "Mount_Jackson_Recession_Quantile.csv", row.names = FALSE)
+write.csv(analysis_S, "Strasburg_Recession_Quantile.csv", row.names = FALSE)
+
