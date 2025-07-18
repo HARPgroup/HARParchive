@@ -11,17 +11,16 @@ flows_CS <- readNWISdv("01632000", parameterCd = "00060") %>% renameNWISColumns(
 flows_MJ <- readNWISdv("01633000", parameterCd = "00060") %>% renameNWISColumns()
 flows_S  <- readNWISdv("01634000", parameterCd = "00060") %>% renameNWISColumns()
 
-# AGWR = Qt / Qt-1
+##CORE CALCULATIONS##
+#AGWR = Qt / Qt-1
 calc_AGWR <- function(x) {
   c(NA, x[-1] / x[-length(x)])
 }
-
-# delta_AGWR = AGWR_t / AGWR_t-1
+#delta_AGWR = AGWR_t / AGWR_t-1
 calc_delta_AGWR <- function(x) {
   c(NA, x[-1] / x[-length(x)])
 }
-
-# Calculate AGWR and delta_AGWR
+#calculate AGWR and delta_AGWR
 flows_CS$AGWR <- calc_AGWR(flows_CS$Flow)
 flows_CS$delta_AGWR <- calc_delta_AGWR(flows_CS$AGWR)
 
@@ -30,8 +29,7 @@ flows_MJ$delta_AGWR <- calc_delta_AGWR(flows_MJ$AGWR)
 
 flows_S$AGWR <- calc_AGWR(flows_S$Flow)
 flows_S$delta_AGWR <- calc_delta_AGWR(flows_S$AGWR)
-
-# Add seasonal info
+#add seasonal info
 add_month_season <- function(df) {
   df %>% mutate(
     Month = format(Date, "%m"),
@@ -44,12 +42,11 @@ add_month_season <- function(df) {
     )
   )
 }
-
 flows_CS <- add_month_season(flows_CS)
 flows_MJ <- add_month_season(flows_MJ)
 flows_S  <- add_month_season(flows_S)
 
-# Gap filler
+##GAP FILLER##
 gap_fill <- function(flag_vec, max_gap = 5) {
   flag_vec[is.na(flag_vec)] <- FALSE
   rle_out <- rle(flag_vec)
@@ -64,7 +61,7 @@ gap_fill <- function(flag_vec, max_gap = 5) {
   inverse.rle(list(lengths = lengths, values = values))
 }
 
-# Flag stable baseflow days based on delta_AGWR ~ 1 and AGWR < 1
+##FLAG STABLE BASEFLOW DAYS BASED ON delta_AGWR ~ 1 and AGWR < 1##
 flag_stable_baseflow <- function(df,
                                  AGWR_col = "AGWR",
                                  delta_col = "delta_AGWR",
@@ -81,13 +78,12 @@ flag_stable_baseflow <- function(df,
 flows_CS <- flag_stable_baseflow(flows_CS)
 flows_MJ <- flag_stable_baseflow(flows_MJ)
 flows_S  <- flag_stable_baseflow(flows_S)
-
-# Remove NAs
+#remove NAs
 flows_CS <- flows_CS[!is.na(flows_CS$RecessionDay), ]
 flows_MJ <- flows_MJ[!is.na(flows_MJ$RecessionDay), ]
 flows_S  <- flows_S[!is.na(flows_S$RecessionDay), ]
 
-# Recession group analyzer
+##RECESSION GROUP ANALYZER##
 analyze_recession <- function(df, site_name = "", min_len = 0, max_len = Inf) {
   rle_out <- rle(df$RecessionDay)
   lengths <- rle_out$lengths
@@ -127,8 +123,7 @@ analyze_recession <- function(df, site_name = "", min_len = 0, max_len = Inf) {
   
   list(df = df, summary = recession_event_df)
 }
-
-# Apply to all three sites
+#apply to all three sites
 sites <- list(
   MJ = list(data = flows_MJ, name = "Mount Jackson"),
   CS = list(data = flows_CS, name = "Cootes Store"),
@@ -151,8 +146,7 @@ analysis_CS <- results$CS$analysis
 analysis_MJ <- results$MJ$analysis
 analysis_S  <- results$S$analysis
 
-
-# OPTIONAL: Plot a recession group
+##OPTIONAL: PLOT A RECESSION GROUP##
 plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "") {
   event <- recession_df %>% filter(GroupID == group_id)
   if (nrow(event) == 0) stop("Group ID not found.")
@@ -176,14 +170,13 @@ plot_recession_group <- function(flows_df, recession_df, group_id, site_name = "
     ) +
     theme_minimal()
 }
-##COOTES STORE, GROUPID ___##
+#cootes store, GroupID ___ example
 plot_recession_group(
   flows_df    = results$CS$df,
   recession_df = results$CS$summary,
   group_id    = 12,
   site_name   = "Cootes Store"
 )
-
 
 ##COMPUTE IQR##
 AGWR_summary_CS <- analysis_CS %>%
@@ -223,10 +216,6 @@ results$CS$summary <- left_join(results$CS$summary, AGWR_summary_CS, by = "Group
 results$MJ$summary <- left_join(results$MJ$summary, AGWR_summary_MJ, by = "GroupID")
 results$S$summary  <- left_join(results$S$summary,  AGWR_summary_S,  by = "GroupID")
 
-
-
-
-
 ##TRYING TO DO PLOT-BATCH AUTOMATION##
 batch_plot_recessions <- function(flows_df, summary_df, site_name, site_abbr,
                                   iqr_threshold = 0.05, min_duration = 14) {
@@ -249,7 +238,7 @@ batch_plot_recessions <- function(flows_df, summary_df, site_name, site_abbr,
     )
     
     ggsave(
-      filename = paste0("Recession_Plots/", site_abbr, "_Group_", gid, ".png"),
+      filename = paste0("Recession_Plots/", site_abbr, "_Group_", gid, ".jpg"),
       plot     = p,
       width    = 8,
       height   = 5,
@@ -258,9 +247,14 @@ batch_plot_recessions <- function(flows_df, summary_df, site_name, site_abbr,
   }
 }
 
-
-
 batch_plot_recessions(results$CS$df, results$CS$summary, "Cootes Store", "CS")
 batch_plot_recessions(results$MJ$df, results$MJ$summary, "Mount Jackson", "MJ")
 batch_plot_recessions(results$S$df,  results$S$summary,  "Strasburg",     "S")
 
+##COMBINED AGWR SUMMARY##
+combined_events <- bind_rows(
+  results$CS$analysis %>% mutate(site = "CS"),
+  results$MJ$analysis %>% mutate(site = "MJ"),
+  results$S$analysis  %>% mutate(site = "S")
+  )
+summary(combined_events$AGWR)
