@@ -56,7 +56,8 @@ server <- function(input, output, session) {
   
   observeEvent(input$save, {
     i <- current()
-    summary_df$review_checklist[[i]] <<- input$checklist
+    checklist_vals <- if (is.null(input$checklist)) character(0) else input$checklist #handles null
+    summary_df$review_checklist[[i]] <<- checklist_vals
     summary_df$overall_review[i] <<- input$overall
     message(paste("Saved review for group", i))
   })
@@ -71,7 +72,7 @@ server <- function(input, output, session) {
     buffer_start <- start_date - 5
     buffer_end <- end_date
     
-    df %>% 
+    filtered_df <- df %>% 
       filter(Date >= buffer_start & Date <= buffer_end) %>%
       mutate(
         AGWR_flag = case_when(
@@ -79,24 +80,34 @@ server <- function(input, output, session) {
           TRUE ~ "Out of Threshold"
         )
       )
+    
+    list(data = filtered_df, start_date = start_date)
   })
   
   output$flow_plot <- renderPlot({
-    data <- get_event_data()
+    event <- get_event_data()
+    data <- event$data
+    start_date <- event$start_date
+    
     if (nrow(data) == 0) return(NULL)
     
     ggplot(data, aes(x = Date)) +
       geom_line(aes(y = Flow), color = "black") +
-      geom_point(data = data, aes(x = Date, y = Flow), color = "red") +
-      labs(title = paste("Flow during Recession Event", summary_df$GroupID[current()]),
-           y = "Flow (CFS)", x = "") +
-      ylim(0, NA) +  #adds 0 as the minimum y-axis
-      theme_minimal() +
-      scale_x_date(date_labels = "%b %d, %Y")
+      geom_point(aes(y = Flow), color = "red") +
+      geom_vline(xintercept = as.numeric(start_date), linetype = "dotted", color = "blue") +
+      labs(
+        title = paste("Flow during Recession Event", summary_df$GroupID[current()]),
+        y = "Flow (CFS)", x = "Date"
+      ) +
+      ylim(0, NA) +
+      theme_minimal()
   })
   
   output$agwr_plot <- renderPlot({
-    data <- get_event_data()
+    event <- get_event_data()
+    data <- event$data
+    start_date <- event$start_date
+    
     if (nrow(data) == 0) return(NULL)
     
     #threshold definitions
@@ -121,19 +132,13 @@ server <- function(input, output, session) {
     delta_out <- delta_counts["Out"] %||% 0
     
     ggplot(data, aes(x = Date)) +
-      #AGWR line and points
       geom_line(aes(y = AGWR), color = "blue", linetype = "dashed") +
       geom_point(aes(y = AGWR, shape = factor(AGWR_shape)), color = "blue", size = 2, stroke = 1) +
-      
-      #delta_AGWR line and points
       geom_line(aes(y = delta_AGWR), color = "orange", linetype = "dotted") +
       geom_point(aes(y = delta_AGWR, shape = factor(delta_shape)), color = "orange", size = 2, stroke = 1) +
-      
-      #reference lines
       geom_hline(yintercept = 1.0, linetype = "solid", color = "black") +
       geom_hline(yintercept = c(0.97, 1.03), linetype = "dashed", color = "gray50") +
-      
-      #shape legend
+      geom_vline(xintercept = as.numeric(start_date), linetype = "dotted", color = "blue") +
       scale_shape_manual(
         name = "Threshold Status",
         values = c("16" = 16, "1" = 1, "15" = 15, "0" = 0),
@@ -144,7 +149,6 @@ server <- function(input, output, session) {
           "0"  = "dAGWR Out of Threshold"
         )
       ) +
-      
       labs(
         title = paste("AGWR + delta_AGWR – Event", summary_df$GroupID[current()]),
         subtitle = paste0(
@@ -154,7 +158,6 @@ server <- function(input, output, session) {
         y = "AGWR / delta_AGWR",
         x = "Date"
       ) +
-      scale_x_date(date_labels = "%b %d, %Y") +
       theme_minimal() +
       theme(legend.position = "right")
   })
