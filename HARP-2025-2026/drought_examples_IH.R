@@ -1,6 +1,18 @@
 # Examples using drought_functions_IH.R functions
 library(ggplot2)
 
+# Get data
+cs_usgs <- dr.data("01632000", startDate = "2000-01-01", endDate = "2010-12-31")
+mtj_usgs <- dr.data("01633000", startDate = "2000-01-01", endDate = "2010-12-31")
+sb_usgs <- dr.data("01634000", startDate = "2000-01-01", endDate = "2010-12-31")
+
+cs_model <- clean.model("C:/Users/ilona/OneDrive - Virginia Tech/HARP/BrocksGap(CootesStore)_PS2_5550_5560_results.csv", 
+                        startDate = "2000-01-01", endDate = "2010-12-31")
+mtj_model <- clean.model("C:/Users/ilona/OneDrive - Virginia Tech/HARP/MountJackson_PS2_5560_5100_results.csv", 
+                         startDate = "2000-01-01", endDate = "2010-12-31")
+sb_model <- clean.model("C:/Users/ilona/OneDrive - Virginia Tech/HARP/Strasburg_PS3_5100_5080_results.csv", 
+                        startDate = "2000-01-01", endDate = "2010-12-31")
+
 # Cootes Store 2000-2010 ----
 d_opt <- c(1, 3, 7, 30, 90)
 colors <- c("tomato","tan1","olivedrab3","steelblue2","mediumpurple1" )
@@ -101,10 +113,12 @@ gridExtra::grid.arrange(cs,mtj,sb, ncol=3, top="Drought Durations Using n Day Mi
 
 # Above tests indicate using 7 Day mins as 
 # the IQR varies the least from gage to gage
-# Perform group 2 functions of gages using 7 day mins
+# Perform group 2 functions of gages using 7 day mins ----
 CS_7_day_min <- perform.group2("01632000", "7 Day Min")
 MTJ_7_day_min <- perform.group2("01633000", "7 Day Min")
 SB_7_day_min <- perform.group2("01634000", "7 Day Min")
+
+
 
 # Combine data from all three gages
 # min_90_day_cfs in cfs
@@ -177,5 +191,78 @@ gridExtra::grid.arrange(plots[[1]],
                         top = "Yearly Water Needs to Meet 7 Day Minimum Flows")
 
 
+
+# 30 day 10th percentile water needs 2000-2010 ----
+CS_10p_30d_model <- classify.drought("01632000", 
+                                     dataObject = cs_model, 
+                                     daynum = 30 ,
+                                     functionIn = quantile, 0.1)
+MTJ_10p_30d_model <- classify.drought("01633000", 
+                                      dataObject = mtj_model, 
+                                      daynum = 30 ,
+                                      functionIn = quantile, 0.1)
+SB_10p_30d_model <- classify.drought("01634000", 
+                                     dataObject = sb_model, 
+                                     daynum = 30 ,
+                                     functionIn = quantile, 0.1)
+
+NFS_10p_30d_model <- sqldf(
+  "select *, 'Cootes Store' as Location from CS_10p_30d_model
+  union all
+  select *, 'Mount Jackson' as Location from MTJ_10p_30d_model
+  union all
+  select *, 'Strasburg' as Location from SB_10p_30d_model
+  "
+)
+
+gage_abbr <- c("CS","MTJ", "SB","NFS")
+plots <- list()
+
+for (j in seq_along(gage_abbr)) {
+  i<-gage_abbr[j]
+  # set variable df name
+  df_name <- paste0(i, "_10p_30d_model")
+  df <- get(df_name)
+  # get yeraly mean for plots
+  yearly_mean <- mean(df$Yearly_Needs_in)
+  
+  # create plot
+  plots[[i]] <- ggplot(data=df)+
+    geom_histogram((mapping = aes(x=Yearly_Needs_in)),
+                   fill=colors[j],
+                   color=colors[j],
+                   alpha=0.5,
+                   binwidth = 2.5)+
+    geom_vline(xintercept = yearly_mean, color=colors[j])+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))+
+    xlab("Water Needs (in/yr)")+
+    ylab("Count")+
+    ggtitle(paste0(i))+
+    geom_text(x = 35, y = 2000, 
+              label = paste0("Mean = ", round(yearly_mean, 3), " in/yr"))+
+    coord_cartesian(xlim = c(0,50), ylim = c(0,2250))
+}
+
+# Plot inches/year required to maintain minimum flow histogram ----
+
+plots[[1]] <- plots[[1]]+
+  ggtitle("Cootes Store")
+
+plots[[2]] <- plots[[2]]+
+  ggtitle("Mount Jackson")
+
+plots[[3]] <- plots[[3]]+
+  ggtitle("Strasburg")
+
+plots[[4]] <- plots[[4]]+
+  ggtitle("NF Shenandoah")
+
+gridExtra::grid.arrange(plots[[1]],
+                        plots[[2]],
+                        plots[[3]],
+                        plots[[4]],
+                        ncol=2,
+                        top = "Yearly Water Needs to Meet 30 Day Min 10th Percentile Flows (Model, 2000-2010)")
 
 

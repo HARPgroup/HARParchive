@@ -114,3 +114,12 @@ ggplot(data = usgs_flows, mapping = aes(x = dateTime))+
   ggtitle(paste0("Recession Event ", i))+
   theme_bw()+
   theme(plot.title = element_text(hjust = 0.5))
+
+
+ggplot(data = usgs_flows, mapping = aes(x = AGWRC))+
+  geom_point(mapping = aes(y = dAGWRC, color = recession), alpha=0.5)+
+  theme_bw()+
+  scale_color_manual(values = c( "hotpink3", "olivedrab3"))+
+  ggtitle(paste0("AGWRC and dAGWRC for All Days at ", gageid))+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(xlim = c(0,25), ylim = c(0,25))

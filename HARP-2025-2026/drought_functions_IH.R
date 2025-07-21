@@ -24,7 +24,7 @@ dr.data <- function(gageid, startDate="1925-01-01", endDate="2024-12-31"){
 }
 
 # Function to clean model data so that is can be put into classify.drought
-clean.model <- function(modelPath, startdate = "1984-01-01", endDate = "2024-12-31"){
+clean.model <- function(modelPath, startDate = "1984-01-01", endDate = "2024-12-31"){
   # read in model data from path
   flow_data <- read.csv(modelPath)
   # create date column from year, month and day cols
@@ -46,7 +46,7 @@ clean.model <- function(modelPath, startdate = "1984-01-01", endDate = "2024-12-
 # startDate = start date of period as "YYYY-MM-DD"
 # endDate = end date of period as "YYYY-MM-DD"
 # functionIN = function bo applied to selected column to determine threshold
-classify.drought <- function(dataObject ,daynum, startDate="1925-01-01", endDate="2024-12-31", functionIn = mean, ...){
+classify.drought <- function(gageid, dataObject , daynum, startDate="1925-01-01", endDate="2024-12-31", functionIn = mean, ...){
 # Require packages
   require(lubridate)
   require(zoo)
@@ -61,6 +61,13 @@ classify.drought <- function(dataObject ,daynum, startDate="1925-01-01", endDate
   } else {
     stop("dataObject in incorrect form, must be filepath or dataframe")
   }
+  
+# Get drainage area for specific flow  
+info <- dataRetrieval::readNWISsite(gageid)
+  # Extract Drainage area
+da <- info$drain_area_va
+  # convert da to ft2 from mi2
+da <- 5280*5280*da
 
 # Convert flows to zoo
 flows_zoo <- zoo::as.zoo(x=flow_data$Flow)
@@ -85,13 +92,25 @@ daynum <- ifelse(daynum==1, min_1,
 
 # Creete data frame
 class <- sqldf(sprintf(
-  "select Date, Year, Month, Flow, 'Under' as Class 
+  "select Date, Year, Month, Flow as Flow_cfs, 'Under' as Class 
   from flow_data where Flow < %f
   union all
-  select Date, Year, Month, Flow, 'Over' as Class
+  select Date, Year, Month, Flow as Flow_cfs, 'Over' as Class
   from flow_data where Flow > %f
   order by Date
   ", daynum, daynum))
+
+#
+class$Specific_Flow_ipd <- class$Flow/da
+
+#convert specific flow from ft/s to in/day
+class$Specific_Flow_ipd <- class$Specific_Flow*86400*12
+
+# create column for monthly and yearly values
+class$Monthly_Needs_in <- class$Specific_Flow_ipd*30
+class$Yearly_Needs_in <- class$Specific_Flow_ipd*365
+
+
 
 return(class)
 
