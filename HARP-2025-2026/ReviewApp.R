@@ -1,6 +1,10 @@
 library(shiny)
 library(ggplot2)
 library(dplyr)
+library(plotly)
+library(gridExtra)
+library(patchwork)
+library(cowplot)
 
 #load your CS data- replace this with desired loaded object (if not CS, then MJ or S)
 df <- results$CS$df
@@ -19,6 +23,11 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
+      selectizeInput("jump_to", "Jump to Event (type or select):", 
+                     choices = summary_df$GroupID, 
+                     selected = summary_df$GroupID[1], 
+                     options = list(placeholder = 'Type or select GroupID...', create = FALSE)),
+      numericInput("buffer_days", "Days of Antecedent Buffer:", value = 5, min = 0, max = 30, step = 1),
       actionButton("prev", "Previous Event"),
       actionButton("next_btn", "Next Event"),
       br(), br(),
@@ -33,15 +42,16 @@ ui <- fluidPage(
                          )),
       radioButtons("overall", "Overall Review:",
                    choices = c("Looks Good", "Does Not Look Good")),
-      actionButton("save", "Save Review")
+      actionButton("save", "Save Review"),
+      downloadButton("download_plots", "Download Plots (JPG)"),
+      br(), br()
     ),
-    
     mainPanel(
-      plotOutput("flow_plot"),
-      plotOutput("agwr_plot")
+      plotlyOutput("flow_plot"),
+      plotlyOutput("agwr_plot")
     )
   )
-)
+) 
 
 server <- function(input, output, session) {
   current <- reactiveVal(1)
@@ -52,6 +62,19 @@ server <- function(input, output, session) {
   
   observeEvent(input$prev, {
     if (current() > 1) current(current() - 1)
+  })
+  
+  #sync dropdown when Previous/Next are used
+  observe({
+    updateSelectizeInput(session, "jump_to", selected = summary_df$GroupID[current()])
+  })
+  
+  #jump to event by GroupID
+  observeEvent(input$jump_to, {
+    i <- which(summary_df$GroupID == input$jump_to)
+    if (length(i) == 1) {
+      current(i)
+    }
   })
   
   observeEvent(input$save, {
@@ -69,7 +92,7 @@ server <- function(input, output, session) {
     start_date <- summary_df$StartDate[i]
     end_date <- summary_df$EndDate[i]
     
-    buffer_start <- start_date - 5
+    buffer_start <- start_date - input$buffer_days
     buffer_end <- end_date
     
     filtered_df <- df %>% 
@@ -84,17 +107,27 @@ server <- function(input, output, session) {
     list(data = filtered_df, start_date = start_date)
   })
   
-  output$flow_plot <- renderPlot({
+  # Load necessary helper
+  library(gridExtra)
+  
+  flow_ggplot <- reactive({
     event <- get_event_data()
     data <- event$data
     start_date <- event$start_date
     
-    if (nrow(data) == 0) return(NULL)
+    data <- data %>%
+      mutate(
+        threshold_flag = ifelse(AGWR_flag == "In Threshold", "In Threshold", "Out of Threshold")
+      )
     
     ggplot(data, aes(x = Date)) +
       geom_line(aes(y = Flow), color = "black") +
-      geom_point(aes(y = Flow), color = "red") +
+      geom_point(aes(y = Flow, color = threshold_flag), size = 2) +
       geom_vline(xintercept = as.numeric(start_date), linetype = "dotted", color = "blue") +
+      scale_color_manual(
+        name = "Flow Point Status",
+        values = c("In Threshold" = "forestgreen", "Out of Threshold" = "red")
+      ) +
       labs(
         title = paste("Flow during Recession Event", summary_df$GroupID[current()]),
         y = "Flow (CFS)", x = "Date"
@@ -103,69 +136,88 @@ server <- function(input, output, session) {
       theme_minimal()
   })
   
-  output$agwr_plot <- renderPlot({
+  agwr_ggplot <- reactive({
     event <- get_event_data()
     data <- event$data
     start_date <- event$start_date
     
-    if (nrow(data) == 0) return(NULL)
-    
-    #threshold definitions
-    agwr_condition <- data$AGWR < 1.0
-    delta_condition <- data$delta_AGWR >= 0.96 & data$delta_AGWR <= 1.04
-    
-    #classify flags for shape mapping
     data <- data %>%
       mutate(
-        AGWR_flag = ifelse(agwr_condition, "In", "Out"),
-        delta_flag = ifelse(delta_condition, "In", "Out"),
-        AGWR_shape = ifelse(AGWR_flag == "In", 16, 1),       #circle: filled vs open
-        delta_shape = ifelse(delta_flag == "In", 15, 0)      #square: filled vs open
+        AGWR_flag = ifelse(AGWR < 1.0, "AGWR In", "AGWR Out"),
+        delta_flag = ifelse(delta_AGWR >= 0.96 & delta_AGWR <= 1.04,
+                            "dAGWR In", "dAGWR Out"),
+        group_label = case_when(
+          !is.na(AGWR) ~ AGWR_flag,
+          !is.na(delta_AGWR) ~ delta_flag
+        )
       )
-    
-    #count values for display
-    agwr_counts <- table(data$AGWR_flag)
-    delta_counts <- table(data$delta_flag)
-    agwr_in <- agwr_counts["In"] %||% 0
-    agwr_out <- agwr_counts["Out"] %||% 0
-    delta_in <- delta_counts["In"] %||% 0
-    delta_out <- delta_counts["Out"] %||% 0
     
     ggplot(data, aes(x = Date)) +
       geom_line(aes(y = AGWR), color = "blue", linetype = "dashed") +
-      geom_point(aes(y = AGWR, shape = factor(AGWR_shape)), color = "blue", size = 2, stroke = 1) +
+      geom_point(aes(y = AGWR, shape = AGWR_flag, color = AGWR_flag), size = 2, stroke = 1) +
       geom_line(aes(y = delta_AGWR), color = "orange", linetype = "dotted") +
-      geom_point(aes(y = delta_AGWR, shape = factor(delta_shape)), color = "orange", size = 2, stroke = 1) +
+      geom_point(aes(y = delta_AGWR, shape = delta_flag, color = delta_flag), size = 2, stroke = 1) +
       geom_hline(yintercept = 1.0, linetype = "solid", color = "black") +
-      geom_hline(yintercept = c(0.97, 1.03), linetype = "dashed", color = "gray50") +
+      geom_hline(yintercept = c(0.96, 1.04), linetype = "dashed", color = "gray50") +
       geom_vline(xintercept = as.numeric(start_date), linetype = "dotted", color = "blue") +
+      scale_color_manual(
+        name = "Threshold Status",
+        values = c(
+          "AGWR In" = "blue",
+          "AGWR Out" = "blue",
+          "dAGWR In" = "orange",
+          "dAGWR Out" = "orange"
+        )
+      ) +
       scale_shape_manual(
         name = "Threshold Status",
-        values = c("16" = 16, "1" = 1, "15" = 15, "0" = 0),
-        labels = c(
-          "16" = "AGWR In Threshold",
-          "1"  = "AGWR Out of Threshold",
-          "15" = "dAGWR In Threshold",
-          "0"  = "dAGWR Out of Threshold"
+        values = c(
+          "AGWR In" = 16,
+          "AGWR Out" = 1,
+          "dAGWR In" = 15,
+          "dAGWR Out" = 0
         )
       ) +
       labs(
         title = paste("AGWR + delta_AGWR – Event", summary_df$GroupID[current()]),
-        subtitle = paste0(
-          "AGWR: ", agwr_in, " in | ", agwr_out, " out   |   ",
-          "dAGWR: ", delta_in, " in | ", delta_out, " out"
-        ),
-        y = "AGWR / delta_AGWR",
-        x = "Date"
+        y = "AGWR / delta_AGWR", x = "Date"
       ) +
       theme_minimal() +
       theme(legend.position = "right")
   })
+  
+  output$flow_plot <- renderPlotly({
+    ggplotly(flow_ggplot())
+  })
+  
+  output$agwr_plot <- renderPlotly({
+    ggplotly(agwr_ggplot())
+  })
+  
+  output$download_plots <- downloadHandler(
+    filename = function() {
+      paste0("Event_", summary_df$GroupID[current()], "_plots.jpg")
+    },
+    content = function(file) {
+      #unified legend setup
+      g1 <- flow_ggplot() + labs(color = "Flow Point Status")
+      g2 <- agwr_ggplot() + labs(color = "Threshold Status", shape = "Threshold Status")
+      #align both plots
+      g1 <- g1 + theme(legend.position = "right")
+      g2 <- g2 + theme(legend.position = "right")
+      
+      combined <- plot_grid(g1, g2, ncol = 1, rel_heights = c(1, 1.1))
+      
+      jpeg(file, width = 1400, height = 1600, res = 150)
+      grid::grid.draw(combined)
+      dev.off()
+    }
+  )
 }
 
 shinyApp(ui, server)
 
-write.csv(summary_df, "summary_df_export.csv", row.names = FALSE)
-
-summary_df_simple <- summary_df[, !sapply(summary_df, is.list)]
-write.csv(summary_df_simple, "summary_df_export.csv", row.names = FALSE)
+# write.csv(summary_df, "summary_df_export.csv", row.names = FALSE)
+# 
+# summary_df_simple <- summary_df[, !sapply(summary_df, is.list)]
+# write.csv(summary_df_simple, "summary_df_export.csv", row.names = FALSE)
