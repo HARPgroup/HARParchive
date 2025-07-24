@@ -68,6 +68,8 @@ for (x in 1:length(region_set)) {
   origin_name <- region_set[x]
   print(paste0("Rendering ",origin_name))
   #RENDER DATAFRAME GENERATOR - REGION
+  
+  ## Had some spotty connection problems where it took 2 or 3 times to run successfully, so now it runs 5 times after an error
   for (k in 1:5) {
     tryCatch({
       rmarkdown::render(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Dataframe_Generator.Rmd"), 

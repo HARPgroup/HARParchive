@@ -107,8 +107,6 @@ server <- function(input, output, session) {
     list(data = filtered_df, start_date = start_date)
   })
   
-  # Load necessary helper
-  library(gridExtra)
   
   flow_ggplot <- reactive({
     event <- get_event_data()
@@ -183,7 +181,18 @@ server <- function(input, output, session) {
         y = "AGWR / delta_AGWR", x = "Date"
       ) +
       theme_minimal() +
-      theme(legend.position = "right")
+      theme(legend.position = "none")
+    ggplotly(p) %>%
+      layout(
+        legend = list(
+          orientation = "h",    #horizontal layout
+          x = 0,                #left aligned
+          y = -0.2,             #move legend below the plot
+          xanchor = "left",
+          yanchor = "top"
+        ),
+        margin = list(b = 100)  #add bottom margin to prevent overlap
+      )
   })
   
   output$flow_plot <- renderPlotly({

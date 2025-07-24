@@ -133,16 +133,6 @@ fn_labelsAndFilter <- function(labelset=maplabs, bbox_coord_df, nhd, roads, map_
   assign('textsize', textsize, envir = globalenv())
 }
 
-fn_basemap <- function(map_server, base_layer, bbox_coord_df=bbox_coords){ #generates a basemap
-  map_url <- paste(map_server,base_layer,sep ="/")
-  mapdata <- arcpullr::get_spatial_layer(map_url)
-  mapdata <- st_make_valid(mapdata)
-  mapdata <- sf::st_crop(mapdata, c(xmin= min(bbox_coord_df$lng), ymin = min(bbox_coord_df$lat), 
-                                xmax = max(bbox_coord_df$lng), ymax = max(bbox_coord_df$lat))) #crop to our extent 
-  basemap <- ggplot2::geom_sf(data = mapdata)
-  return(basemap)
-}
-
 fn_shadow <- function(rsegs, bbox_sfc, map_style_set){ #generates a "reverse fill" layer that will shadow the area outside the basins of interest
   basin_union <- sf::st_union(rsegs)
   nonbasin <- sf::st_difference(bbox_sfc, basin_union) #method of erasing
@@ -509,6 +499,7 @@ fn_gw_mapgen <- function(bbox, crs_default, mp_layer, featr_type,
   bbox_sfc <- sf::st_as_sfc(sf::st_bbox(bbox))
   #prep labels & filter plotted data:
   fn_labelsAndFilter(maplabs, bbox_coords, nhd, roads, map_style_set, bbox_sf, crs_default, rsegs)
+  
   #begin mapping:
   map <- ggplot() + coord_sf(xlim=bbox_coords$lng,ylim=bbox_coords$lat)
   map <- fn_catchMapErrors(map_layer = ggplot2::theme(text=ggplot2::element_text(size=20), 
