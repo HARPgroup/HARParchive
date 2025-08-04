@@ -317,6 +317,8 @@ readable <- data.frame(rbind(
   c('percentDiff_l90_Qout_runid_11_runid_13', 'Percent Difference in 90 Day Low Flow From 2020-2040'),
   c('runid_11_l30_Qout', '2020 30 Day Low Flow (cfs)'),
   c('runid_13_l30_Qout', '2040 30 Day Low Flow (cfs)'),
+  c('runid_11_l30_Qout_cc', '2020 30 Day Low Flow (cfs)'),
+  c('runid_13_l30_Qout_cc', '2040 30 Day Low Flow (cfs)'),
   c('percentDiff_l30_Qout_runid_11_runid_13', 'Percent Difference in 30 Day Low Flow From 2020-2040'),
   c('runid_11_7q10', '2020 7Q10 (cfs)'),
   c('runid_13_7q10', '2040 7Q10 (cfs)'),
