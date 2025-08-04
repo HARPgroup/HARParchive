@@ -9,7 +9,7 @@ params:
   metric_mod: ["wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"] #wd_mgd, ps_mgd
   metric_feat: ["wsp2020_2040_mgy"] #wsp2020_2040_mgy, NA
   foundation_path: FALSE
-  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"] #l30_Qout, l90_Qout, 7q10
+  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd","l90_cc_Qout","l30_cc_Qout"] #l30_Qout, l90_Qout, 7q10
   baseline_runid_list: [ "runid_11", "runid_1000" ]
   crs_default: 4326
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
@@ -26,6 +26,8 @@ library(data.table)
 library(hydrotools)
 library(rapportools)
 library(stringr)
+library(odbc)
+library(sqldf)
 basepath='/var/www/R'
 source('/var/www/R/config.R') 
 github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"

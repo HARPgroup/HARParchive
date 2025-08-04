@@ -1,7 +1,6 @@
 # This script is to do a batch run of all localities and/or regions for the dataframe generator and WSP Regional Summaries
 
 #load github harddrive locations from harddrive if you have github repositories
-rm(list=ls())
 library("sqldf")
 basepath='/var/www/R'
 source('/var/www/R/config.R')
@@ -80,7 +79,7 @@ for (x in 1:length(region_set)) {
                           metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"), 
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy", 
-                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"), 
+                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd","l90_cc_Qout","l30_cc_Qout"), 
                           runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                           crs_default = 4326, 
                           limit_featrs_to_origin = FALSE,
@@ -198,3 +197,43 @@ for (x in locality_set) {
   }
   
 }
+
+ex <- dbGetQuery(conn = ds$connection, "
+SELECT f.hydroid, f.name, wsp.propvalue AS fac2040, mp.propcode AS mpiput2040,
+TO_TIMESTAMP(wsp.modified)::date AS fac, TO_TIMESTAMP(mp.modified)::date AS modelinput, m.pid,m.propname,
+mpr.propcode AS rseg
+FROM dh_feature f 
+INNER JOIN dh_properties wsp
+  ON f.hydroid = wsp.featureid
+  AND f.bundle = 'facility'
+  AND wsp.propname = 'wsp2020_2040_mgy'
+LEFT JOIN dh_properties gw
+  ON f.hydroid = gw.featureid
+  AND gw.propname = 'gw_frac'
+LEFT JOIN dh_properties m
+  ON f.hydroid = m.featureid
+  AND m.propcode = 'vahydro-1.0'
+LEFT JOIN dh_properties mp
+  ON mp.featureid = m.pid
+  AND mp.propname = 'wsp2020_2040_mgy'
+LEFT JOIN dh_properties mpr
+  ON mpr.featureid = m.pid
+  AND mpr.propname = 'riverseg'
+
+WHERE wsp.propvalue != mp.propcode::numeric
+  AND (gw.propvalue < 1 OR gw.propvalue IS NULL)
+  AND ftype NOT ILIKE '%wsp%'
+")
+
+write.csv(ex, row.names = F, "C:\\Users\\ejp42531\\OneDrive - Commonwealth of Virginia\\OWS\\WSPA\\10_Yr Resubmission_2023/WSP2040_projecton_discrepencies.csv")
+
+## Based on all rsegs (df genrator without the filtering chunk)
+rsegs$tidal <- substr(rsegs$riverseg, nchar(rsegs$riverseg) - 3, nchar(rsegs$riverseg)) == '0000'
+
+nawarsegs <- rsegs[!is.na(rsegs$pid) & !is.na(rsegs$runid_13_l90_Qout) & !rsegs$tidal &
+                     (is.na(rsegs$runid_13_WA_90_mgd) | is.na((rsegs$runid_11_WA_90_mgd))) ,]
+
+write.csv(nawarsegs, row.names = F, "Rsegs no WA.csv")
+
+nomodels <- rsegs[!rsegs$tidal & (is.na(rsegs$runid_13_l90_Qout) | is.na(rsegs$runid_11_l90_Qout)), ]
+write.csv(nawarsegs, row.names = F, "C:\\Users\\ejp42531\\OneDrive - Commonwealth of Virginia\\OWS\\WSPA\\10_Yr Resubmission_2023/rsegs no rund13.csv")
