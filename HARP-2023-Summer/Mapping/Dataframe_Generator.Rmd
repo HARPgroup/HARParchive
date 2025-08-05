@@ -439,6 +439,21 @@ for (j in 2:length(runid_list)) {
   }
 }
 
+## Pulling in the tidal property
+tidals <- sqldf::sqldf("
+SELECT f.hydroid, f.hydrocode, f.name, t.propcode AS Tidal
+
+FROM dh_properties t
+LEFT JOIN dh_properties m
+  ON m.pid = t.featureid
+LEFT JOIN dh_feature f
+  ON f.hydroid = m.featureid
+  
+WHERE t.propname = 'is_tidal'
+", connection = ds$connection)
+
+rsegs$tidal <- as.numeric(rsegs$hydroid %in% tidals$hydroid)
+
 ```
 
 ``` {r Saving_files}
