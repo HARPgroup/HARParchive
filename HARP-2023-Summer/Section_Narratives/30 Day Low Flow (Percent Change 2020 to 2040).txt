@@ -1,2 +1,1 @@
-"30 day low flow" is a short-term drought metric, and is the lowest 30 day flow simulated in the modeling time period. 30 day low flows are often caused by short
-term, acute periods of no rainfall. Water supply systems that do not have reservoir storage or significant groundwater resources to draw upon are particularly vulnerable to changes in the 30 day low flow.
+"30 day low flow" is a short-term drought metric, and is the lowest 30 day flow simulated in the modeling time period. 30 day low flows are often caused by short term, acute periods of no rainfall. Water supply systems that do not have reservoir storage or significant groundwater resources to draw upon are particularly vulnerable to changes in the 30 day low flow.
