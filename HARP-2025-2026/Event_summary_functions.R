@@ -63,11 +63,13 @@ summarize.event <- function(analysis_data,
   
   event_data <- fn$sqldf(
     "select * from data 
-    where GroupID = $eventnum and
-    AGWR < 1 and
-    delta_AGWR < $dAGWRmax and
-    delta_AGWR > $dAGWRmin
+    where GroupID = $eventnum
     ")
+  
+  # and
+  #AGWR < 1 and
+  #delta_AGWR < $dAGWRmax and
+  #delta_AGWR > $dAGWRmin
 
   #new (for integration with app)
   if (nrow(event_data) == 0) {
@@ -148,3 +150,4 @@ plot.event.values <- function(analysis_data,
 
 # Example of how to run function
 # plot.event.values(analysis_S, 99)
+ 
