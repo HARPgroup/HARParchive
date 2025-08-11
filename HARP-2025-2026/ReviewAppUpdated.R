@@ -10,10 +10,10 @@ library(cowplot)
 source("https://raw.githubusercontent.com/HARPgroup/HARParchive/refs/heads/ih_event_analysis/HARP-2025-2026/Event_summary_functions.R")
 
 #load CS (or alternate site) data
-df <- results$CS$df
-summary_df <- results$CS$summary
+df <- results$MJ$df
+summary_df <- results$MJ$summary
 
-#add checklist columns
+#add the checklist columns
 if (!"review_checklist" %in% colnames(summary_df)) {
   summary_df$review_checklist <- replicate(nrow(summary_df), list())
 }
@@ -203,7 +203,7 @@ server <- function(input, output, session) {
   #simple text summary (fixed robustly, was running into a lot of issues here)
   output$event_text <- renderUI({
     i <- current()
-    ev <- summarize.event(analysis_CS, summary_df$GroupID[i])
+    ev <- summarize.event(analysis_MJ, summary_df$GroupID[i])
     
     if (is.null(ev)) {
       return(HTML("<p><em>No summary available for this event</em></p>"))
@@ -228,11 +228,11 @@ server <- function(input, output, session) {
   #event plots stacked
   output$event_plots <- renderPlot({
     gid <- summary_df$GroupID[current()]
-    ev <- tryCatch(summarize.event(analysis_CS, gid), error = function(e) NULL)
+    ev <- tryCatch(summarize.event(analysis_MJ, gid), error = function(e) NULL)
     
     if (!is.null(ev)) {
       suppressWarnings(
-        plot.event.values(analysis_CS, gid)
+        plot.event.values(analysis_MJ, gid)
       )
     }
   })
@@ -245,10 +245,10 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       gid <- summary_df$GroupID[current()]
-      ev <- summarize.event(analysis_CS, gid)
+      ev <- summarize.event(analysis_MJ, gid)
       
       #create the three stacked plots
-      plots <- suppressWarnings(plot.event.values(analysis_CS, gid))
+      plots <- suppressWarnings(plot.event.values(analysis_MJ, gid))
       
       #build the summary text
       start <- summary_df$StartDate[current()]
