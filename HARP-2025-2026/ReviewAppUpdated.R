@@ -114,7 +114,7 @@ server <- function(input, output, session) {
       filter(Date >= buffer_start & Date <= buffer_end) %>%
       mutate(
         AGWR_flag = case_when(
-          AGWR < 1.0 & delta_AGWR >= 0.96 & delta_AGWR <= 1.04 ~ "In Threshold",
+          AGWR < 1.0 & delta_AGWR >= 0.97 & delta_AGWR <= 1.03 ~ "In Threshold",
           TRUE ~ "Out of Threshold"
         )
       )
@@ -155,7 +155,7 @@ server <- function(input, output, session) {
     data <- data %>%
       mutate(
         AGWR_flag = ifelse(AGWR < 1.0, "AGWR In", "AGWR Out"),
-        delta_flag = ifelse(delta_AGWR >= 0.96 & delta_AGWR <= 1.04,
+        delta_flag = ifelse(delta_AGWR >= 0.97 & delta_AGWR <= 1.03,
                             "dAGWR In", "dAGWR Out"),
         group_label = case_when(
           !is.na(AGWR) ~ AGWR_flag,
@@ -169,7 +169,7 @@ server <- function(input, output, session) {
       geom_line(aes(y = delta_AGWR), color = "orange", linetype = "dotted") +
       geom_point(aes(y = delta_AGWR, shape = delta_flag, color = delta_flag), size = 2, stroke = 1) +
       geom_hline(yintercept = 1.0, linetype = "solid", color = "black") +
-      geom_hline(yintercept = c(0.96, 1.04), linetype = "dashed", color = "gray50") +
+      geom_hline(yintercept = c(0.97, 1.03), linetype = "dashed", color = "gray50") +
       geom_vline(xintercept = as.numeric(start_date), linetype = "dotted", color = "blue") +
       scale_color_manual(
         name = "Threshold Status",
