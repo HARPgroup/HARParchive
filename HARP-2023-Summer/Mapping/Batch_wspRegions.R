@@ -1,7 +1,6 @@
 # This script is to do a batch run of all localities and/or regions for the dataframe generator and WSP Regional Summaries
 
 #load github harddrive locations from harddrive if you have github repositories
-rm(list=ls())
 library("sqldf")
 basepath='/var/www/R'
 source('/var/www/R/config.R')
@@ -61,7 +60,7 @@ locality_set <-
 
 #to run a single render statement within the loop, define region or locality name here
 
-origin_name <- "Chowan_2" 
+origin_name <- "Roanoke_2" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
@@ -80,7 +79,7 @@ for (x in 1:length(region_set)) {
                           metric_mod = c("wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"), 
                           model_version = "vahydro-1.0",
                           metric_feat = "wsp2020_2040_mgy", 
-                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"), 
+                          rivseg_metric = c("l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd","l90_cc_Qout","l30_cc_Qout"), 
                           runid_list = c("runid_11", "runid_13", "runid_17", "runid_1000"), 
                           crs_default = 4326, 
                           limit_featrs_to_origin = FALSE,
@@ -128,12 +127,6 @@ for (x in 1:length(region_set)) {
      })
    }
        
-
-  # #clear environment and reload config, so that prior maps don't interfere with next region
-  # rm(list = ls())
-  # library("sqldf")
-  # basepath='/var/www/R'
-  # source('/var/www/R/config.R')
 }
 
 

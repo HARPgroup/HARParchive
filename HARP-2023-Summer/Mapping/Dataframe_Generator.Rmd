@@ -9,7 +9,7 @@ params:
   metric_mod: ["wd_mgd", "unmet1_mgd", "unmet7_mgd", "unmet30_mgd"] #wd_mgd, ps_mgd
   metric_feat: ["wsp2020_2040_mgy"] #wsp2020_2040_mgy, NA
   foundation_path: FALSE
-  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd"] #l30_Qout, l90_Qout, 7q10
+  rivseg_metric: ["l90_Qout", "l30_Qout", "7q10", "Qout", "WA_90_mgd","l90_cc_Qout","l30_cc_Qout"] #l30_Qout, l90_Qout, 7q10
   baseline_runid_list: [ "runid_11", "runid_1000" ]
   crs_default: 4326
   limit_featrs_to_origin: FALSE #if TRUE -> featrs will be cutoff at the region/locality specified
@@ -26,8 +26,10 @@ library(data.table)
 library(hydrotools)
 library(rapportools)
 library(stringr)
+library(odbc)
+library(sqldf)
 basepath='/var/www/R'
-source('/var/www/R/config.R') 
+source('/var/www/R/config.R')
 github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url
@@ -134,7 +136,12 @@ f_model <- om_vahydro_metric_grid(
 # FROM dh_feature rseg LEFT JOIN field_data_dh_geofield geo ON rseg.hydroid = geo.entity_id 
 # WHERE rseg.ftype = 'vahydro'
 
-rsegs <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Data/rseg_geom.csv")) 
+# rsegs <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Data/rseg_geom.csv")) 
+rsegs <- sqldf::sqldf(connection = ds$connection,
+"SELECT hydroid, name, hydrocode AS rseg, hydrocode, dh_geofield AS geom
+FROM dh_feature_fielded
+WHERE ftype = 'vahydro' AND bundle = 'watershed'
+")
   #pulls csv with All vahydro watershed features
   #note: potential NULLs for newly carved data^
 
@@ -436,6 +443,21 @@ for (j in 2:length(runid_list)) {
     }
   }
 }
+
+## Pulling in the tidal property
+tidals <- sqldf::sqldf("
+SELECT f.hydroid, f.hydrocode, f.name, t.propcode AS Tidal
+
+FROM dh_properties t
+LEFT JOIN dh_properties m
+  ON m.pid = t.featureid
+LEFT JOIN dh_feature f
+  ON f.hydroid = m.featureid
+  
+WHERE t.propname = 'is_tidal'
+", connection = ds$connection)
+
+rsegs$tidal <- as.numeric(rsegs$hydroid %in% tidals$hydroid)
 
 ```
 

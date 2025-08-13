@@ -1,2 +1,2 @@
-This table shows the highest 30-day potential unmet demand for a facility.
+This table shows the highest 30 day potential unmet demand for a facility. Potential unmet demand is the portion of surface water demand for a specific facility that is limited by available streamflow as simulated in a given model scenario, including any known operational limits such as flow-by requirements. 
 Facilities with a value for unmet demand are included. Facilities not included in the model, or that otherwise have N/A values for unmet demand in 2040, are not displayed in the table.

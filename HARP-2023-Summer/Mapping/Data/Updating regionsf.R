@@ -1,8 +1,9 @@
 ## Updating the region and counties sf
-mapping <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_050625.csv"))
+library(sf)
+mapping <- read.csv(paste0(github_location,"/HARParchive/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_060925.csv"))
 
-counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/counties2_sf.csv')
-counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=crs_default, remove=FALSE)
+counties_file <- paste0(github_location, '/HARParchive/HARP-2023-Summer/Mapping/Data/counties_sf.csv')
+counties <- sf::st_as_sf(read.csv(counties_file), wkt = "WKT", crs=4326, remove=FALSE)
 
 ## Cant use sqldf for sf dfs, so just writing with a for loop
 for (i in 1:nrow(counties)) {
