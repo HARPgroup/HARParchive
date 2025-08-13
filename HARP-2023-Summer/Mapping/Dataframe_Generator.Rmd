@@ -29,7 +29,7 @@ library(stringr)
 library(odbc)
 library(sqldf)
 basepath='/var/www/R'
-source('/var/www/R/config.R') 
+source('/var/www/R/config.R')
 github_base_uri <- "https://raw.githubusercontent.com/HARPgroup"
 github_uri <- paste0(github_base_uri, "/HARParchive/master")
 source(paste0(github_uri,"/HARP-2023-Summer/Mapping/Functions/fn_download_read.R"),local = TRUE) #load function for downloading & reading zip/shp files by url

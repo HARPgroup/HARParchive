@@ -60,7 +60,7 @@ locality_set <-
 
 #to run a single render statement within the loop, define region or locality name here
 
-origin_name <- "Chowan_2" 
+origin_name <- "Roanoke_2" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
@@ -127,12 +127,6 @@ for (x in 1:length(region_set)) {
      })
    }
        
-
-  # #clear environment and reload config, so that prior maps don't interfere with next region
-  # rm(list = ls())
-  # library("sqldf")
-  # basepath='/var/www/R'
-  # source('/var/www/R/config.R')
 }
 
 
@@ -197,43 +191,3 @@ for (x in locality_set) {
   }
   
 }
-
-ex <- dbGetQuery(conn = ds$connection, "
-SELECT f.hydroid, f.name, wsp.propvalue AS fac2040, mp.propcode AS mpiput2040,
-TO_TIMESTAMP(wsp.modified)::date AS fac, TO_TIMESTAMP(mp.modified)::date AS modelinput, m.pid,m.propname,
-mpr.propcode AS rseg
-FROM dh_feature f 
-INNER JOIN dh_properties wsp
-  ON f.hydroid = wsp.featureid
-  AND f.bundle = 'facility'
-  AND wsp.propname = 'wsp2020_2040_mgy'
-LEFT JOIN dh_properties gw
-  ON f.hydroid = gw.featureid
-  AND gw.propname = 'gw_frac'
-LEFT JOIN dh_properties m
-  ON f.hydroid = m.featureid
-  AND m.propcode = 'vahydro-1.0'
-LEFT JOIN dh_properties mp
-  ON mp.featureid = m.pid
-  AND mp.propname = 'wsp2020_2040_mgy'
-LEFT JOIN dh_properties mpr
-  ON mpr.featureid = m.pid
-  AND mpr.propname = 'riverseg'
-
-WHERE wsp.propvalue != mp.propcode::numeric
-  AND (gw.propvalue < 1 OR gw.propvalue IS NULL)
-  AND ftype NOT ILIKE '%wsp%'
-")
-
-write.csv(ex, row.names = F, "C:\\Users\\ejp42531\\OneDrive - Commonwealth of Virginia\\OWS\\WSPA\\10_Yr Resubmission_2023/WSP2040_projecton_discrepencies.csv")
-
-## Based on all rsegs (df genrator without the filtering chunk)
-rsegs$tidal <- substr(rsegs$riverseg, nchar(rsegs$riverseg) - 3, nchar(rsegs$riverseg)) == '0000'
-
-nawarsegs <- rsegs[!is.na(rsegs$pid) & !is.na(rsegs$runid_13_l90_Qout) & !rsegs$tidal &
-                     (is.na(rsegs$runid_13_WA_90_mgd) | is.na((rsegs$runid_11_WA_90_mgd))) ,]
-
-write.csv(nawarsegs, row.names = F, "Rsegs no WA.csv")
-
-nomodels <- rsegs[!rsegs$tidal & (is.na(rsegs$runid_13_l90_Qout) | is.na(rsegs$runid_11_l90_Qout)), ]
-write.csv(nawarsegs, row.names = F, "C:\\Users\\ejp42531\\OneDrive - Commonwealth of Virginia\\OWS\\WSPA\\10_Yr Resubmission_2023/rsegs no rund13.csv")

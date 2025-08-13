@@ -462,7 +462,7 @@ facils_table$facility[!is.na(facils_table$facility_status) &
 table <- data.frame(
   Map_Number = facils_table$NUM,
   Facility =facils_table$facility,
-  VAHydro_ID = facils_table$CEDS_Facility_Id, 
+  CEDS_Facility_Id = facils_table$CEDS_Facility_Id, 
   Locality = facils_table$Locality, 
   GW_Fraction = facils_table$gw_frac)
 
