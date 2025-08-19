@@ -1,12 +1,12 @@
-What is water availability?   
+**What is water availability?**   
 
 Water availability describes how much water can be expected to be withdrawn and consumed from a river segment, without causing permanent damage to fish and wildlife and habitat, and while accounting for downstream beneficial uses. Water availability calculations account for instream flows after withdrawals are removed, point source discharges are returned, and any unused reservoir storage.   
 
-What is the estimated water availability shown? 
+**What is the estimated water availability shown?** 
 
-Water availability in any given river segment is a representation of availability in the entire watershed up to and including that segment. Each value is cumulative, so in addition to the available instream flow and reservoir storage of the river segment itself, estimated water availability includes available flow and unused reservoir storage from upstream river segments. The values provided are also the middle of a range of possible values, where the range accounts for model error (see 2020 State Water Resources Plan appendix for more information on model error). For each river segment, water availability is provided as a daily rate in MGD over a critical time period. For the purpose of water supply planning, critical time period is a 90-day low flow event (long-term drought).  
+Water availability in any given river segment is a representation of availability in the entire watershed up to and including that segment. Each value is cumulative, so in addition to the available instream flow and reservoir storage of the river segment itself, estimated water availability includes available flow and unused reservoir storage from upstream river segments. The values provided are also the middle of a range of possible values, where the range accounts for model error (see 2020 State Water Resources Plan Appendix section B.2 for more information on model error). For each river segment, water availability is provided as a daily rate in MGD over a critical time period. For the purpose of water supply planning, critical time period is a 90-day low flow event (long-term drought).  
 
-How to use estimated water availability? 
+**How to use estimated water availability?** 
 
 Water availability will vary based on actual future precipitation, climate, and user withdrawals / discharges, as they may change from the current conditions and system operations used in the calculations. Users are also cautioned against planning to use the full amount of estimated water available, as that would imply drawing down the entire available reservoir storage and reducing streams to minimum instream flows. Consider the use of the low flow (7Q10) map and table above in conjunction with water availability information when planning for beneficial uses, such as assimilative capacity, especially in areas of high availability or storage capacity.  
 
