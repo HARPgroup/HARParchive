@@ -32,7 +32,7 @@ region_set <-
     "SoutheastVirginia", #22
     "UpperJames_1", #23
     "UpperJames_2", #24
-    "York_James_1", #25
+    # "York_James_1", #25
     "York_James_2" #26
   )
 
@@ -60,7 +60,7 @@ locality_set <-
 
 #to run a single render statement within the loop, define region or locality name here
 
-origin_name <- "Roanoke_2" 
+origin_name <- "Eastern_Shore" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {
@@ -92,15 +92,7 @@ for (x in 1:length(region_set)) {
     })
   }
 
-
   
-  # #check if file exists and may be open, which will cause document render to fail after generating doc successfully
-   fileName <- paste0(export_path, origin_name, "_wsp")
-  if(file.exists(paste0(export_path, origin_name, "_wsp.docx"))){
-    print("Reminder, close any open version of the regional summary doc before rendering it.")
-    #fileName <- paste0(export_path, origin_name, "_wsp2")
-  }
-
    for (k in 1:5) {
      tryCatch({
        #RENDER WSP REGIONAL SUMMARY DOC - REGION
