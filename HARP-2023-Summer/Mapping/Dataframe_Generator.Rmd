@@ -225,14 +225,18 @@ if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_m
   f_foundatn <- sqldf("
    SELECT facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,locality,facility_status,
     Total_Permit_Limit_MGY,gw_frac,wsp2040_mgy AS wsp_2040_mgy,wsp2020_2040_mgy AS wsp2020_2040_mgy,
-    SUM(fiveyr_avg_mgy) as sum  -- Creating an aggregated column for the fiveyr_avg_mgy
+    SUM(fiveyr_avg_mgy) as five_yr_avg  -- Creating an aggregated column for the fiveyr_avg_mgy
    FROM foundatn_mp
    GROUP BY Facility_hydroid,CEDS_Facility_Id,facility,Use_Type,
    locality,facility_status,Total_Permit_Limit_MGY,gw_frac,
    wsp_2040_mgy,wsp2020_2040_mgy
-  ") # Not selecting any source related fields, as these are innacurate to the facility (and even the soruce)
-  ## Need to replace the MP five_yr_avg with the aggregated column 
-  f_foundatn$five_yr_avg <- f_foundatn$sum
+  ") # Not selecting any source related fields, as these are innacurate when grouped
+  
+  ## Updating Total_Permit_Limit_MGY from GPY to MGY
+  ## Since this is a mixed number/character column, need to parse out the numbers, replace with those numbers divided by a million
+  #### The numbers need to be first converted to numbers, then back to characters
+  f_foundatn$Total_Permit_Limit_MGY[grepl("[0-9]",f_foundatn$Total_Permit_Limit_MGY)] <- 
+    as.character(as.numeric(f_foundatn$Total_Permit_Limit_MGY[grepl("[0-9]",f_foundatn$Total_Permit_Limit_MGY)]) / 1000000)
   
   f_foundatn$wsp_2020_2040_mgy <- f_foundatn$wsp2040_mgy
   f_model <- sqldf("SELECT * FROM f_model WHERE hydrocode not like 'wsp_%'") #filter out WSP entries from facility-level model metric data
