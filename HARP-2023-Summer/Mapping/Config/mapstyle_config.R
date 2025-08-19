@@ -111,7 +111,7 @@ run_sets <- list(
         metric='l30_Qout', 
         data_set = 'rseg_no_geom',
         column_name='percentDiff_l30_cc_Qout_runid_11_runid_17', 
-        run_label = '30 Day Low Flow (Percent Change 2020 to Dry Climate Scneario)', 
+        run_label = '30 Day Low Flow (Percent Change 2020 to Dry Climate Scenario)', 
         show_map = TRUE,
         ramp = 'default',
         tables_cols = c('name', 'riverseg', 'Metric', 'runid_11_l30_cc_Qout','runid_17_l30_cc_Qout', 'percentDiff_l30_cc_Qout_runid_11_runid_17'),

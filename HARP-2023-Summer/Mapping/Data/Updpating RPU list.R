@@ -19,4 +19,4 @@ LEFT JOIN namekey key
   ON key.WSPA = rlist.RPA
 ')
 
-write.csv(rpu, paste0(github_location,'/HARParchive/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_060925'), row.names = F)
+write.csv(rpu, paste0(github_location,'/HARParchive/HARP-2023-Summer/Mapping/Data/Regions_ProposedReg_060925.csv'), row.names = F)
