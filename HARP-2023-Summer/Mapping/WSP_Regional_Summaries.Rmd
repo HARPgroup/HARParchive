@@ -586,7 +586,7 @@ if (origin_shape$region == "Eastern_Shore") {
   cat('\n## Groundwater Critical Cell Maps \n')
 
   ## Yorktown Eastover
-  aquifer <- 'Yorktwon Eastover'
+  aquifer <- 'Yorktown Eastover'
   
   yorktowneastover_map <- fn_gw_mapgen(
     bbox, crs_default,  mp_layer, featr_type,
@@ -606,6 +606,8 @@ if (origin_shape$region == "Eastern_Shore") {
 
   
 } else if (nrow(insidegwma) > 0) {
+  
+  cat('\n## Groundwater Critical Cell Maps \n')
   
   ### Potomac
   aquifer <- 'Potomac'
@@ -675,13 +677,11 @@ Table 1 accompanies the facility map(s) shown above. The "Map Number" in the tab
 
 The table includes active, inactive, and proposed facilities. Abandoned facilities are not included. Inactive facilities are marked with an asterisk (\*), and proposed facilities are marked with a double asterisk (\*\*).
 
-When the groundwater fraction listed is 1.0, then the facility does not have surface water withdrawals, and does not have surface water modelling values.
-
 **Notes:**
 
  * Facilities constructed or otherwise made known to DEQ after the initial plan submission are not show in 2020 scenario.
  * If a facility/source is outside groundwater management area, then it is not subject to groundwater permitting.
- * If facility only has groundwater sources, it will not have a surface water modeling value.
+ * When the groundwater fraction listed is 1.0, then the facility does not have surface water withdrawals, and does not have surface water modelling values.
  * Permit exemption status is based on those who identified as exempt during the 2009 Request for Information (RFI).
  * If a facility has sources in more than one river segment, there will be multiple rows in the table showing the same facility with different river segments. The map numbers corresponding to the same facility will overlap on the map. 
 
@@ -727,6 +727,7 @@ The following maps and table show modeling results for future 2040 demands. The 
   for (i in 1:length(run_config$riverseg_metrics)){ #something going wrong in rsegs df within this loop 
      
      display_map <- run_config$riverseg_metrics[[i]]$show_map
+     ## If display_map is NULL skip this next part (should never happen)
      if (is.null(display_map)) { display_map = FALSE}
      if (display_map == TRUE) {
       display_metric <- run_config$riverseg_metrics[[i]]$metric
@@ -742,34 +743,29 @@ The following maps and table show modeling results for future 2040 demands. The 
       ramp <- run_config$riverseg_metrics[[i]]$ramp
     
       rivmapmetric <- paste0(display_metric) #define title here for mapping so each map has diff metric title, pass into function
-    
-    if(display_metric %in% readable$computer){
-      rivmaplabel <- readable$human[readable$computer==display_metric]
-    }else {
+      
+      if(display_metric %in% readable$computer){
+        rivmaplabel <- readable$human[readable$computer==display_metric]
+      }else {
         rivmaplabel <- rivmapmetric
-    }
-    
-    rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
-    
-  #### Problem with rsegs df happens here 
-    # rseg_sql <- paste('SELECT *, ','percentDiff','_',display_metric,' AS pct_diff 
-    #       FROM rsegs' , sep="") #Renaming metric of interest for generalized sorting into bins
-    # 
-    # rsegs <- fn_sqldf_sf(rseg_sql,"rsegs")
-    #st_write(rsegs, paste0(export_path,"46_rsegs_sf_",rseg_leg_title,".csv"), layer_options = "GEOMETRY=AS_WKT")
-  ####
-    
-    ##Work-around to problem above: change column name
-    rseg_geom <- rsegs$geometry #save geometry before dropping
-    rsegs <- st_drop_geometry(rsegs)
-    bins = as.data.frame(rivmap_ramps[[ramp]][,"rivseg_pct_vect"]) #rivseg_pct_vect set in config
-    bins$classid <- index(bins)
-    names(bins) <- c("val", "bin")
-    bins$val <- as.numeric(bins$val)
-    #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
-  
-    rivseg_classes <- sqldf( #sorting the data into bins based on their range 
-      paste0("select a.riverseg, 
+      }
+      
+      rsegs <- rsegs[ , !names(rsegs) %in% c("pct_diff", "bin")]
+      
+      ## Removing values from rsegs ending in _0000 as they can often not represent real results
+      rsegs[grepl("_0000$", rsegs$riverseg) , display_column] <- NA
+      
+      ##Work-around to problem above: change column name
+      rseg_geom <- rsegs$geometry #save geometry before dropping
+      rsegs <- st_drop_geometry(rsegs)
+      bins = as.data.frame(rivmap_ramps[[ramp]][,"rivseg_pct_vect"]) #rivseg_pct_vect set in config
+      bins$classid <- index(bins)
+      names(bins) <- c("val", "bin")
+      bins$val <- as.numeric(bins$val)
+      #write.csv(bins, paste0(export_path,"47_bins_",rseg_leg_title,".csv"))
+      
+      rivseg_classes <- sqldf( #sorting the data into bins based on their range 
+        paste0("select a.riverseg, 
         CASE 
           WHEN a.", display_column," >= bmax.maxval THEN bmax.maxbin
           WHEN a.", display_column," <= bmax.minval THEN bmax.minbin
@@ -787,37 +783,36 @@ The following maps and table show modeling results for future 2040 demands. The 
           1 = 1 
         )
       group by a.riverseg" )
-    )
-    #write.csv(rivseg_classes, paste0(export_path,"48_rivseg_classes_",rseg_leg_title,".csv"))
-    
-    
-    rsegs <- sqldf( #joining the bins with the metric data 
-      "select a.*, b.bin 
+      )
+      
+      rsegs <- sqldf( #joining the bins with the metric data 
+        "select a.*, b.bin 
       from rsegs as a 
       left outer join rivseg_classes as b 
       on a.riverseg = b.riverseg " , "rsegs") 
-    
-    rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
-    st_crs(rsegs_sf) <- crs_default
-    
-    ##Mapping function
-    map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
-                       maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
-                       map_server, base_layer, maplabs, nhd, roads, 
-                       rsegs=rsegs_sf, map_style_set,
-                       rivmap_ramp=rivmap_ramps[[ramp]])
-    map_objects[[i]] <- map_rivseg
-    #assign map to environment
-    assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
-  
-    ## Save rivseg map
-    rivmapfilename[i] <- paste(export_path, map_name, "_", display_column, ".png", sep="")
-    ggsave(
-      filename = rivmapfilename[i],
-      plot = map_rivseg,
-      width = 25,
-      height = 20)
-    
+      
+      
+      rsegs_sf <- st_as_sf(rsegs, wkt = 'WKT') #this function removes WKT col, so create new df to prevent loop error
+      st_crs(rsegs_sf) <- crs_default
+      
+      ##Mapping function
+      map_rivseg <- fn_mapgen(bbox, crs_default, metric_unit, mp_layer, featr_type, 
+                              maptitle = display_title, mapnum=2, rseg_leg_title=display_title, 
+                              map_server, base_layer, maplabs, nhd, roads, 
+                              rsegs=rsegs_sf, map_style_set,
+                              rivmap_ramp=rivmap_ramps[[ramp]])
+      map_objects[[i]] <- map_rivseg
+      #assign map to environment
+      assign(paste0('map_rivseg', i), map_rivseg, envir = globalenv())
+      
+      ## Save rivseg map
+      rivmapfilename[i] <- paste(export_path, map_name, "_", display_column, ".png", sep="")
+      ggsave(
+        filename = rivmapfilename[i],
+        plot = map_rivseg,
+        width = 25,
+        height = 20)
+      
      }
      
   }
@@ -841,6 +836,11 @@ for (k in 1:length(run_config$riverseg_metrics)){
   # test for existence of data_set variable (i.e. data_set = "rseg_no_geom", or data_set = "facils_nogeom"
   if (exists(data_set) & is.null(run_config$riverseg_metrics[[k]]$hide_table)) {
     rseg_display <- get(data_set)
+    
+    ## If the dataset is rsegs, need to remove tidal / _0000 segments from the results, as they are often not "real"
+    if (data_set == "rseg_no_geom") {
+      rseg_display <- rseg_display[!grepl("_0000$", rseg_display$riverseg) , ]
+    }
     
     display_metric <- run_config$riverseg_metrics[[k]]$metric
     display_title <- run_config$riverseg_metrics[[k]]$run_label

@@ -224,12 +224,12 @@ if(featr_type == "source"){
 if(featr_type == "facility"){ #get facility-level fiveyr_avg_mgy from foundatn_mp by summing all mp values for each facility:
   f_foundatn <- sqldf("
    SELECT facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,locality,facility_status,
-    Total_Permit_Limit_MGY,gw_frac,wsp2040_mgy AS wsp_2040_mgy,wsp2020_2040_mgy AS wsp2020_2040_mgy,fac_CEDSid,
+    Total_Permit_Limit_MGY,gw_frac,wsp2040_mgy AS wsp_2040_mgy,wsp2020_2040_mgy AS wsp2020_2040_mgy,
     SUM(fiveyr_avg_mgy) as sum  -- Creating an aggregated column for the fiveyr_avg_mgy
    FROM foundatn_mp
-   GROUP BY Facility_hydroid,CEDS_Facility_Id,facility,Use_Type,latitude,longitude,
+   GROUP BY Facility_hydroid,CEDS_Facility_Id,facility,Use_Type,
    locality,facility_status,Total_Permit_Limit_MGY,gw_frac,
-   wsp_2040_mgy,wsp2020_2040_mgy,fac_CEDSid
+   wsp_2040_mgy,wsp2020_2040_mgy
   ") # Not selecting any source related fields, as these are innacurate to the facility (and even the soruce)
   ## Need to replace the MP five_yr_avg with the aggregated column 
   f_foundatn$five_yr_avg <- f_foundatn$sum
@@ -291,7 +291,7 @@ featrs <- fn_sqldf_sf(
   left outer join featrs_riverseg_sm as b 
     on (a.featureid = b.featureid)
     and a.riverseg IS NULL
-   GROUP BY a.featureid, a.pid, a.riverseg, b.riverseg  --Very small amount of duplicates created
+   GROUP BY a.featureid, a.pid, a.CEDS_Facility_Id, a.riverseg, b.riverseg  --Very small amount of duplicates created
  ", 
  geomback = 'featrs'
 )
@@ -376,6 +376,7 @@ if (limit_featrs_to_origin==FALSE | origin_type=="basin") {
     featrs <- st_filter(featrs, regions[regions$region==origin,])
   }
 }
+
 ```
 
 ``` {r getting_rseg_modelling}
