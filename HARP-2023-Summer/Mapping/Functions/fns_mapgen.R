@@ -293,27 +293,11 @@ fn_borders <- function(rsegs, counties, regions, origin, bbox_sf, crs_default, t
 
 fn_polygonFill <- function(rsegs, map_style_set, mapnum, rseg_leg_title, rivmap_ramp){
   if (mapnum == 2) {
-    #fill tidal rsegs 
-    # rsegTidal <- subset(rsegs, riverseg %in% grep("0000", rsegs$riverseg, value=TRUE)) #PROBLEM w/ DF
-    # rsegTidal <- sf::st_transform(rsegTidal, crs_default)
-    # #fix tidal df
-    # names(rsegTidal)[1:(ncol(rsegTidal)-6)] <- names(rsegTidal)[2:(ncol(rsegTidal)-5)]
-    # rsegTidal[ncol(rsegTidal)-5] <- NULL
-    # #create tidal map layer
-    # tidal <- ggplot2::geom_sf(data = rsegTidal, inherit.aes = FALSE, aes(fill=bundle), alpha = 1)
-    # tidal_scale_fill <- ggplot2::scale_fill_manual(values = map_style_set$color$sf["tidal",], #color set in config
-    #                                                breaks = "watershed",
-    #                                                labels = "Tidal/Unmodeled",
-    #                                                name = NULL)
-    # rseg_fill <- list(ggnewscale::new_scale("fill"), tidal, tidal_scale_fill)
-    
     
     #rseg fill based on drought metric % difference for rivseg maps:
     rivseg_pct_vect <- rivmap_ramp[,"rivseg_pct_vect"]
     # place Tidal rsegs in a bin that will be listed after the bins with data values: 
-    rsegs[rsegs$riverseg %in% grep("0000", rsegs$riverseg, value=TRUE) 
-          #& is.na(rsegs$bin)
-          , "bin"] <- 1+length(rivseg_pct_vect)
+    rsegs[rsegs$tidal==1, "bin"] <- 1+length(rivseg_pct_vect)
     # place rsegs with no data in an "unmodeled" bin at the end of the list:
     rsegs[is.na(rsegs$bin), "bin"] <- 2+length(rivseg_pct_vect)
     
