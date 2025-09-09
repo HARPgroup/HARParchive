@@ -92,14 +92,15 @@ flag_stable_baseflow <- function(df,
 }
 
 flows_CS <- flag_stable_baseflow(flows_CS, flows_CS$Flow)
-flows_MJ <- flag_stable_baseflow(flows_MJ)
-flows_S  <- flag_stable_baseflow(flows_S)
+flows_MJ <- flag_stable_baseflow(flows_MJ, flows_MJ$Flow)
+flows_S  <- flag_stable_baseflow(flows_S, flows_S$Flow)
 #remove NAs
 flows_CS <- flows_CS[!is.na(flows_CS$RecessionDay), ]
 flows_MJ <- flows_MJ[!is.na(flows_MJ$RecessionDay), ]
 flows_S  <- flows_S[!is.na(flows_S$RecessionDay), ]
 
 ##RECESSION GROUP ANALYZER##
+
 analyze_recession <- function(df, site_name = "", min_len = 0, max_len = Inf) {
   rle_out <- rle(df$RecessionDay)
   lengths <- rle_out$lengths
@@ -116,6 +117,9 @@ analyze_recession <- function(df, site_name = "", min_len = 0, max_len = Inf) {
       group_counter <- group_counter + 1
     }
   }
+  require(tidyr)
+  require(purrr)
+  require(dplyr)
   df$GroupID <- group_id
   
   recession_starts <- starts[!is.na(group_id[starts])]
