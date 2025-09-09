@@ -4,7 +4,8 @@ basepath='/var/www/R'
 source(paste(basepath,'config.R',sep='/'))
 
 #Set the hydrocode of interest
-hydrocode <- 'vahydrosw_wshed_PS2_5550_5560'
+# hydrocode <- 'vahydrosw_wshed_PS2_5550_5560'
+hydrocode <- 'vahydrosw_wshed_PS2_5560_5100'
 # hydrocode <- 'vahydrosw_wshed_PS2_5560_5100'
 # hydrocode <- 'vahydrosw_wshed_PS3_5100_5080'
 pullModelData <- function(hydrocode, filepath) {
@@ -25,4 +26,6 @@ pullModelData <- function(hydrocode, filepath) {
                                  gsub("vahydrosw_wshed_","",wshdFeat$hydrocode),
                                  "_results.csv"))
 }
+
+
 
