@@ -7,6 +7,8 @@ gage_name <- as.character(args[3])
 manual_opt <- as.logical(args[4])
 end_path <- paste0(args[5])
 
+###TESTING SOURCE###
+source("https://raw.githubusercontent.com/HARPgroup/baseflow_storage/refs/heads/main/summarize_event.R")
 source("https://raw.githubusercontent.com/HARPgroup/baseflow_storage/main/MainAnalysisFunctionsPt1.R")
 source("https://raw.githubusercontent.com/HARPgroup/baseflow_storage/refs/heads/main/analyze_recession.R")
 source("https://raw.githubusercontent.com/HARPgroup/baseflow_storage/refs/heads/main/attach_event_stats.R")
@@ -19,7 +21,7 @@ suppressPackageStartupMessages(library(purrr))
 #robust attach_event_stats() that tolerates upstream name drift and avoids suffix collisions
 attach_event_stats <- function(analysis_data, r_lim = 0) {
   suppressPackageStartupMessages({ library(dplyr) })
-  
+
   es <- summarize_event(analysis_data)  # all events
   if (is.null(es) || nrow(es) == 0) return(analysis_data)
   
