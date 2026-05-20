@@ -60,7 +60,7 @@ locality_set <-
 
 #to run a single render statement within the loop, define region or locality name here
 
-origin_name <- "Eastern_Shore" 
+origin_name <- "UpperJames_2" 
 
 ### Run all regions ##########################
 for (x in 1:length(region_set)) {

@@ -1,0 +1,58 @@
+/*Reset selection (text highlighting) to default color*/
+::selection{
+  background-color:#0074ffcc;
+}
+
+.flexRowMain{
+	display: flex;
+	justify-content: space-between;
+}
+
+.flexChild50{
+	flex-basis: 48%;
+}
+
+.caption{
+  font-size:50%;
+  font-weight: bold;
+}
+
+.current,.past,
+h1,h2,
+.title-slide hgroup p,
+.title-slide hgroup h1,
+.title-slide hgroup h2
+{
+  color:black;
+}
+
+.fromBot{
+  position:absolute;
+  bottom: 135px;
+  color:#e6e6e6;
+}
+.smaller{
+  height:500px;
+}
+
+.center{
+  text-align: center;
+}
+
+.reducedBotMargin pre{
+  margin-bottom:0;
+  padding: 5px 0 5px 60px;
+}
+
+.placeholder{
+  margin-bottom:100px;
+}
+
+.capContent{
+  max-height:375px;
+  overflow:auto;
+}
+
+.center .plotly{
+  margin:auto;
+}

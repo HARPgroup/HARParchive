@@ -1,0 +1,191 @@
+---
+title: "Hydrology in R"
+output: html_document
+date: "2026-05-20"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+R is a powerful statistical coding language that has greatly enhanced hydrologic calculations over the past decade. It is a quick and easy to learn language supported by programming communities across the globe. However, first using R can be a formidable task. There is a lot of terminology to learn before you can even understand basic functions and commands. Like many programming languages, it is also very difficult to learn without having a goal in mind. For this reason, I put together a short ‘lab’ that will step through a few basic hydrology calculations in R. Hopefully, after completing this tutorial you’ll understand why R is such an important tool for the modern hydrologist!
+
+## Problem Statement
+Not too far from Seitz Hall is Claytor Lake. One of the top 10 largest reservoirs in the United States, Claytor Lake holds over 232000 ac-ft (75 billion gallons). It releases water periodically to control lake level and meet downstream flow requirements. However, most flow requirments only examine specific components of the river hydrograph (low flows, peaks, mean flow, etc.). After extensive research, environmental managers have realized that dams fundamentally change the river flow regime. That is, they change the magnitude, frequency, timing, rate of change, and duration of peak and low flows. In many hydrologic analyses, scientists try to study stream reaches that lack impoundments for this reason.
+
+The question we want to investigate here is how does the presence of Claytor Lake affect traditional flow calculations? Can we still accuratley predict flow downstream based on area weighted flow? We will examine river discharge above and below Claytor Lake in an attempt to answer this question. **Note** there are more than a few issues with this analysis, but it should get you working with R so you can better answer it on your own!
+
+## Library Initialization
+The power of R stems from its open-source software. Any user can publish code packages so that other coders can use their scripts and fucntions for their own purposes. In other words, there are a number of libraries available in R that contain all sorts of useful functions that can really speed up the coding process! No need to reinvent the wheel here, so let’s load a couple of the most common packages a hydrologist should be familiar with.
+```{r install, eval=FALSE}
+install.packages('dataRetrieval')
+install.packages('dplyr')
+install.packages('lubridate')
+install.packages('ggplot2')
+install.packages('sqldf')
+install.packages('devtools')
+devtools::install_github("HARPgroup/hydro-tools")
+```
+
+Okay, so now we have installed 5 packages. There are hundreds of functions contained in just these 5 packages so its not practical to talk about everything they can do. Instead, let’s take a broad look at each package. Feel free to look at the documentation for each package for a better explanation of their purpose and functions!
+
+1. dataRetrieval
+The dataRetrieval package is published by the USGS and was made for the purpose of automating data downloads. It serves as a useful interface to the National Water Inventory System, where all USGS flow gague data is located. So, we can use the dataRetrieval package to access NWIS (and the updated water data APIs) and automatically download water quality/quantity data for a given time period! We can look at water temeprature, discharge, rating curves, and much more through just a few lines of code. Manual download of this data is a much slower process, as you’ll find out soon.
+
+2. dplyr
+dplyr is a package used to help format R scripts. In essence, it creates functions that group and summarize data to simplify standard R code and standarize its legibility. Many of dplyr’s functions are useful for data formatting and subsetting. We use it here to examine individual months and years of data. If you’re interested in learning more about dplyr, take a look at this community tutorial or the official cheatsheet
+
+3. lubridate
+The lubridate package simplifies date and time manipulations in R. It can be used to quickly extract month, day, year, etc. from long data strings without having to deal with string searches or base R expressions.
+
+4. devtools
+The devtools package is an essential R development package that assists in the development and install of R packages. We use it here to install `hydrotools` directly from the DEQ HARP gitHub page.
+
+5. hydrotools
+This large package was developed by DEQ WSPA and, in part, by HARP. It contains a large number of objects and functions to interact with USGS gage data, DEQ model data, and DEQ databases. This package is essential to ensuring standard code development at the DEQ.
+
+6. ggplot
+ggplot2 is a package that standardizes graphing and plotting in R using the "language of graphics". ggplot is a large package and the full extent of its capabilities go beyond this humble analysis, but luckily it is widely used and there are lots of great resources out there to help. Checkout its [cheatsheet](https://rstudio.github.io/cheatsheets/html/data-visualization.html)
+
+7. sqldf
+sqldf is a package that lets us run Standard Query Language (SQL) style queries on data frames in our global environment. This can help us format and wrangle data in a manner consistent with other DEQ query tools
+
+Good job! Running the following lines will initialize (not download) the packages you’ll need to examine the affects of Claytor Lake on hydrology calculations. This is, of course, the easiest part of any R script but it is by far the most important. ALWAYS look around for relevant R packages before starting a problem. You will avoid countletss headaches by seeing what others have done before you. Packages are not peer-reviewed so be sure to test them before trusting your work! If you don't like the package, you can always code it on your own and you can look at the source code of all functions by simply running it without any parentheses e.g. `hydrotools::om_flow_table`
+``` {R}
+library(dataRetrieval)
+library(dplyr)
+library(hydrotools)
+library(ggplot2)
+library(sqldf)
+```
+
+
+Gage Data
+Claytor Lake is a great study area for us. There is are USGS gauges both upstream and downstream of the dam with over 20 years of daily flow data in them! We can access these using the dataRetrieval package. Let’s first examine upstream flow at the Allisonia gauge.
+
+[USGS 03168000 NEW RIVER AT ALLISONIA, VA](https://waterdata.usgs.gov/monitoring-location/USGS-03168000/#dataTypeId=continuous-00065-0&period=P7D&showFieldMeasurements=true)
+
+We can see from the link that this gage is a few miles upstream of Claytor Lake. Now how do we get the data into R? We can employ any of three strategies. First, we can read in a csv file downloaded form the link above. This wouldn't be advisable because we would need to redownload that file every day. Second, we can use `dataRetrieval`. This package has many functions to get gage data into R including `dataRetrieval::readNWISdv()` and `dataRetrieval::read_waterdata_daily()` (the new and "improved" function). You can learn more about these via their help menu, e.g. `?dataRetrieval::read_waterdata_daily()` But, we are going to use `hydrotools`. DEQ has developed their own "object" that standardizes how we query, analyze, and examine USGS gage data. The object is a little complex, but contains all of the functions and data we need to get the data from the Allisonia gage. You can learn more about it `?hydrotools::WaterGageBase`, which includes an example at the bottom. Lets try to grab the last ten years of daily average streamflow data:
+
+```{r}
+alis_gage <- hydrotools::WaterGageBase$new(
+  gage_id = "03168000",
+  start_date = '2015-01-01',
+  end_date = '2025-12-31'
+)
+```
+
+Now, we have created an R6 object of class `WaterGageBase` that has a bunch of *fields* with data and *methods* to perform additional analysis. So, for instance, run:
+```{r}
+alis_gage$gage_data
+```
+
+Behold! All of the gage data from the Allisonia gage in our requested time period. Let's create a simple plot to read this data:
+```{r}
+ggplot2::ggplot(alis_gage$gage_data) + 
+  geom_line()
+```
+
+Cool, pretty easy to plot 10 years of flow data. Except that plot looks gross. Let’s add some labels and change some `theme` settings. We should also try to use a `log` scale axis here as these flows have a very wide range of values. 
+```{r}
+ggplot2::ggplot(data = alis_gage$gage_data) + 
+  ggplot2::geom_line(
+    ggplot2::aes(x = !!ggplot2::sym(alis_gage$date_col),
+                 y = !!ggplot2::sym(alis_gage$flow_col))) + 
+  ggplot2::scale_y_log10() + 
+  ggplot2::theme_classic() + 
+  ggplot2::xlab("Date") + ggplot2::xlab("Flow (cfs)")
+```
+
+Note that USGS has updated some of their gage services. The names of the data where the dates and flows have changed over time. We use the `date_col` and `flow_col` stored in `alis_gage` to simplify this and keep it consistent. To make ggplot recognize these characters as columns in `gage_data`, we call the non-standard bang-bang evaluators on the symbol e.g `!!sym()`.
+```{r}
+alis_gage$date_col
+alis_gage$flow_col
+```
+
+There's a lot more built into the object we've returned. We can quickly run an analysis to see what typical median flows look like in a month. And we can create a plot of the lowest flows that occur each year!
+```{r}
+alis_gage$nep_table()
+alis_gage$plot_low_flows("lineplot")
+```
+
+# Analysis
+But enough on our object, let's focus on the task at hand. Let’s examine the gage data at Allisonia more closely using hydrologic metrics. First, let’s create a local variable of our gage data and the climatic year. Climate years run April 1st through March 31st and are useful to group periods of drought and floods together. So, classify all flow data by its water year by adding a column to the USGS data frame:
+```{r}
+#Local copies:
+USGS <- alis_gage$gage_data
+date_col <- alis_gage$date_col
+flow_col <- alis_gage$flow_col
+#Create vector to fill
+USGS$WY<-numeric(length(USGS[,date_col]))
+```
+
+The numeric command above says store a vector of the length of the number of data points in the date column of USGS in a new column called water year. All numbers in this vector are zero, not very helpful. So now we need to populate our climate years. We can take two approaches. Your first instinct may be to create a `for` loop to examine each data point in USGS data by itself. We can loop from the first data point to the last. At each data point, we will store an iterator b. We will increase b by one year every time we pass April 1st. b will be initiated as the first year in the dataset. Remember, climate year 2000 takes place starting April 1st, 2000:
+```{r}
+USGS$AY<-numeric(length(USGS[,date_col]))
+b<-year(USGS[1,date_col])
+for (i in 1:length(USGS[,date_col])){
+  USGS$AY[i]<-b-1
+  if(USGS[,date_col][i]>=as.Date(paste0(b,"-04-01"))){
+    b<-b+1
+    USGS$AY[i]<-b-1
+  }
+}
+```
+
+That was fast. Imagine performing this calculation in excel. The same process would be very slow under its base program. But, doesn't that seem like a lot of work to just get the climate year? Can we leverage R's vectors to do this another way?
+```{r}
+USGS$AY <- lubridate::year(USGS[,date_col])
+USGS$AY[lubridate::month(USGS[,date_col]) >= 4] <- USGS$AY[lubridate::month(USGS[,date_col]) >= 4] + 1
+```
+
+By leveraging the vector set-up in R, we can take what was several lines of code and reduce it to just two! When writing `for` loops in R, we should often ask ourselves if there is an easier approach if we can modify a whole column at once. Here, we simply needed to create the right boolean (TRUE or FALSE) vector to find the years that needed to be increased.
+
+Now that we have water year, why don’t we look at annual peak flows? We can do this in two ways. First, we can use the dplyr package. We will group data by YEAR. This organizes the data by year. We could use water year, but our second method doesn’t use water year. So let’s use lubridate to store the month and year of each data point, and then group by year and use `summarize` to find the maximum flows:
+```{r}
+USGS$Month <- lubridate::month(USGS[,date_col])
+USGS$Year <- lubridate::year(USGS[,date_col])
+
+peaks <- USGS |> 
+  dplyr::group_by(Year) |> 
+  dplyr::summarize(MaxFow = max(!!dplyr::sym(flow_col)))
+```
+
+The `group_by()` functions tells `summarize()` how to aggregate the data such that we quickly and easily get the maximum flow for each year. Can we write this another way? Certainly! We can use `SQL`, which will look pretty familiar to anyone who has used `dplyr`. This has the pro of being consistent across time as SQL rarely changes, but `dplyr` is updated often, and the con of being slightly more verbose and we sometimes need to use `paste0()` to format our request:
+```{r}
+peaks <- sqldf::sqldf(
+  paste0(
+    "SELECT u.Year, max(u.",flow_col,") as MaxFlow
+    FROM USGS as u
+    GROUP BY u.Year"
+  )
+)
+```
+
+Neat! But surely the USGS could do this for us? Correct. They record maximum flow in their NWIS system.
+```{r}
+peakUSGS <- dataRetrieval::readNWISpeak("03168000", '2015-01-01', '2025-12-31')
+```
+
+Neat! Now we found a way to get the exact same data in two ways using R. Or did we?
+```{r}
+ggplot() + 
+  geom_line(aes(x = lubridate::year(peakUSGS$peak_dt), y = peakUSGS$peak_va), col = "navy") + 
+  geom_line(aes(x = peaks$Year, y = peaks$MaxFow), col = "firebrick") + 
+  xlab("Year") + ylab("Flow (cfs)") + 
+  theme_classic()
+```
+
+NWIS records the exact maximum flow, on a sub-daily level. Check for yourself by looking at the peakflow for 2024 in peakUSGS. No data point in 2024 is this high in `USGS`. Why? Because we pulled in the daily **average** flows and therefore the peaks have been wiped out!
+
+Okay, enough with the kiddie stuff let’s get to some real hydrology. What do low flows look like at this gage? If we are in a dry period, when should we be concerned about stream levels? How often does a given flow occur per year?
+
+
+
+Next steps:
+1. What are the critical low flows at this site? Can we calculate these ourselves and use the object to confirm?
+2. Do we see a trend in low flows over time?
+3. Can you write an `sqldf` call that will have calculate the average and minimum monthly flows at each gage and have it all in one data frame?
