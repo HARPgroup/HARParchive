@@ -7,22 +7,23 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-## Introduction
+# Introduction
 R is a powerful statistical coding language that has greatly enhanced hydrologic calculations over the past decade. It is a quick and easy to learn language supported by programming communities across the globe. However, first using R can be a formidable task. There is a lot of terminology to learn before you can even understand basic functions and commands. Like many programming languages, it is also very difficult to learn without having a goal in mind. For this reason, I put together a short ‘lab’ that will step through a few basic hydrology calculations in R. Hopefully, after completing this tutorial you’ll understand why R is such an important tool for the modern hydrologist!
 
 ## Problem Statement
-Not too far from Seitz Hall is Claytor Lake. One of the top 10 largest reservoirs in the United States, Claytor Lake holds over 232000 ac-ft (75 billion gallons). It releases water periodically to control lake level and meet downstream flow requirements. However, most flow requirments only examine specific components of the river hydrograph (low flows, peaks, mean flow, etc.). After extensive research, environmental managers have realized that dams fundamentally change the river flow regime. That is, they change the magnitude, frequency, timing, rate of change, and duration of peak and low flows. In many hydrologic analyses, scientists try to study stream reaches that lack impoundments for this reason.
+So far, 2026 has been on track to be one of the driest periods in Virginia history. Streams across the Commonwealth set record low flows in the late winter and Spring. We are going to build some tools to help us identify streams in drought and run some basic forecasts. We will tackle two separate case studies. First, we will look local to VT. Not too far from Seitz Hall is Claytor Lake. One of the top 10 largest reservoirs in the United States, Claytor Lake holds over 232000 ac-ft (75 billion gallons). It releases water periodically to control lake level and meet downstream flow requirements. Large impoundments such as this one can have substantial impacts to downstream hydrology. If we aren't careful, the presence of these dams can skew a large-spatial scale drought analysis. So we will first look at Claytor Lake. What do basic flow statistics teach us about the impact of it's operational rules on seasonal flow availability?
 
-The question we want to investigate here is how does the presence of Claytor Lake affect traditional flow calculations? Can we still accuratley predict flow downstream based on area weighted flow? We will examine river discharge above and below Claytor Lake in an attempt to answer this question. **Note** there are more than a few issues with this analysis, but it should get you working with R so you can better answer it on your own!
+Following this, we will examine two gages in the Shenandoah Valley. One in the North Fork and one in the South Fork. This area is extremely vulnerable to drought impact as there are a large number of towns, farms, and businesses that rely on water in the river itself. We will use a low flow analysis to estimate if the region is likely to experience a severe drought in 2026.
 
 ## Library Initialization
 The power of R stems from its open-source software. Any user can publish code packages so that other coders can use their scripts and fucntions for their own purposes. In other words, there are a number of libraries available in R that contain all sorts of useful functions that can really speed up the coding process! No need to reinvent the wheel here, so let’s load a couple of the most common packages a hydrologist should be familiar with.
 ```{r install, eval=FALSE}
 install.packages('dataRetrieval')
 install.packages('dplyr')
+install.packages('tidyr')
 install.packages('lubridate')
 install.packages('ggplot2')
 install.packages('sqldf')
@@ -35,8 +36,8 @@ Okay, so now we have installed 5 packages. There are hundreds of functions conta
 1. dataRetrieval
 The dataRetrieval package is published by the USGS and was made for the purpose of automating data downloads. It serves as a useful interface to the National Water Inventory System, where all USGS flow gague data is located. So, we can use the dataRetrieval package to access NWIS (and the updated water data APIs) and automatically download water quality/quantity data for a given time period! We can look at water temeprature, discharge, rating curves, and much more through just a few lines of code. Manual download of this data is a much slower process, as you’ll find out soon.
 
-2. dplyr
-dplyr is a package used to help format R scripts. In essence, it creates functions that group and summarize data to simplify standard R code and standarize its legibility. Many of dplyr’s functions are useful for data formatting and subsetting. We use it here to examine individual months and years of data. If you’re interested in learning more about dplyr, take a look at this community tutorial or the official cheatsheet
+2. dplyr + tidyr
+dplyr and tidyr are packages used to help format R scripts. In essence, it creates functions that group and summarize data to simplify standard R code and standarize its legibility. Many of dplyr’s functions are useful for data formatting and subsetting. We use it here to examine individual months and years of data. If you’re interested in learning more about dplyr, take a look at this community tutorial or the official cheatsheet
 
 3. lubridate
 The lubridate package simplifies date and time manipulations in R. It can be used to quickly extract month, day, year, etc. from long data strings without having to deal with string searches or base R expressions.
@@ -54,43 +55,45 @@ ggplot2 is a package that standardizes graphing and plotting in R using the "lan
 sqldf is a package that lets us run Standard Query Language (SQL) style queries on data frames in our global environment. This can help us format and wrangle data in a manner consistent with other DEQ query tools
 
 Good job! Running the following lines will initialize (not download) the packages you’ll need to examine the affects of Claytor Lake on hydrology calculations. This is, of course, the easiest part of any R script but it is by far the most important. ALWAYS look around for relevant R packages before starting a problem. You will avoid countletss headaches by seeing what others have done before you. Packages are not peer-reviewed so be sure to test them before trusting your work! If you don't like the package, you can always code it on your own and you can look at the source code of all functions by simply running it without any parentheses e.g. `hydrotools::om_flow_table`
-``` {R}
+``` {r callPackages}
 library(dataRetrieval)
 library(dplyr)
+library(tidyr)
+library(lubridate)
 library(hydrotools)
 library(ggplot2)
 library(sqldf)
 ```
 
+# Problem 1: Claytor Lake Drought Flow Analysis
 
-Gage Data
+## [USGS 03168000 NEW RIVER AT ALLISONIA, VA](https://waterdata.usgs.gov/monitoring-location/USGS-03168000/#dataTypeId=continuous-00065-0&period=P7D&showFieldMeasurements=true)
+
 Claytor Lake is a great study area for us. There is are USGS gauges both upstream and downstream of the dam with over 20 years of daily flow data in them! We can access these using the dataRetrieval package. Let’s first examine upstream flow at the Allisonia gauge.
-
-[USGS 03168000 NEW RIVER AT ALLISONIA, VA](https://waterdata.usgs.gov/monitoring-location/USGS-03168000/#dataTypeId=continuous-00065-0&period=P7D&showFieldMeasurements=true)
 
 We can see from the link that this gage is a few miles upstream of Claytor Lake. Now how do we get the data into R? We can employ any of three strategies. First, we can read in a csv file downloaded form the link above. This wouldn't be advisable because we would need to redownload that file every day. Second, we can use `dataRetrieval`. This package has many functions to get gage data into R including `dataRetrieval::readNWISdv()` and `dataRetrieval::read_waterdata_daily()` (the new and "improved" function). You can learn more about these via their help menu, e.g. `?dataRetrieval::read_waterdata_daily()` But, we are going to use `hydrotools`. DEQ has developed their own "object" that standardizes how we query, analyze, and examine USGS gage data. The object is a little complex, but contains all of the functions and data we need to get the data from the Allisonia gage. You can learn more about it `?hydrotools::WaterGageBase`, which includes an example at the bottom. Lets try to grab the last ten years of daily average streamflow data:
 
-```{r}
+```{r getAlis}
 alis_gage <- hydrotools::WaterGageBase$new(
   gage_id = "03168000",
   start_date = '2015-01-01',
-  end_date = '2025-12-31'
+  end_date = '2026-12-31'
 )
 ```
 
 Now, we have created an R6 object of class `WaterGageBase` that has a bunch of *fields* with data and *methods* to perform additional analysis. So, for instance, run:
-```{r}
-alis_gage$gage_data
+```{r showData}
+head(alis_gage$gage_data)
 ```
 
 Behold! All of the gage data from the Allisonia gage in our requested time period. Let's create a simple plot to read this data:
-```{r}
+```{r flow_lineplot}
 ggplot2::ggplot(alis_gage$gage_data) + 
-  geom_line()
+  geom_line(aes(x = !!ggplot2::sym(alis_gage$date_col), y = !!ggplot2::sym(alis_gage$flow_col)))
 ```
 
 Cool, pretty easy to plot 10 years of flow data. Except that plot looks gross. Let’s add some labels and change some `theme` settings. We should also try to use a `log` scale axis here as these flows have a very wide range of values. 
-```{r}
+```{r flow_lineplot_clean}
 ggplot2::ggplot(data = alis_gage$gage_data) + 
   ggplot2::geom_line(
     ggplot2::aes(x = !!ggplot2::sym(alis_gage$date_col),
@@ -101,31 +104,25 @@ ggplot2::ggplot(data = alis_gage$gage_data) +
 ```
 
 Note that USGS has updated some of their gage services. The names of the data where the dates and flows have changed over time. We use the `date_col` and `flow_col` stored in `alis_gage` to simplify this and keep it consistent. To make ggplot recognize these characters as columns in `gage_data`, we call the non-standard bang-bang evaluators on the symbol e.g `!!sym()`.
-```{r}
+```{r gage_obj_col}
 alis_gage$date_col
 alis_gage$flow_col
 ```
 
-There's a lot more built into the object we've returned. We can quickly run an analysis to see what typical median flows look like in a month. And we can create a plot of the lowest flows that occur each year!
-```{r}
-alis_gage$nep_table()
-alis_gage$plot_low_flows("lineplot")
-```
 
-# Analysis
-But enough on our object, let's focus on the task at hand. Let’s examine the gage data at Allisonia more closely using hydrologic metrics. First, let’s create a local variable of our gage data and the climatic year. Climate years run April 1st through March 31st and are useful to group periods of drought and floods together. So, classify all flow data by its water year by adding a column to the USGS data frame:
-```{r}
+## Peak Flow Analysis
+But enough on our object, let's focus on the task at hand. Let’s examine the gage data at Allisonia more closely using hydrologic metrics. For fun, let's look at peak flows. First, let’s create a local variable of our gage data and the climatic year. Climate years run April 1st through March 31st and are useful to group periods of drought and floods together. So, classify all flow data by its water year by adding a column to the USGS data frame:
+```{r peak_setup}
 #Local copies:
 USGS <- alis_gage$gage_data
 date_col <- alis_gage$date_col
 flow_col <- alis_gage$flow_col
 #Create vector to fill
-USGS$WY<-numeric(length(USGS[,date_col]))
+USGS$AY<-numeric(length(USGS[,date_col]))
 ```
 
 The numeric command above says store a vector of the length of the number of data points in the date column of USGS in a new column called water year. All numbers in this vector are zero, not very helpful. So now we need to populate our climate years. We can take two approaches. Your first instinct may be to create a `for` loop to examine each data point in USGS data by itself. We can loop from the first data point to the last. At each data point, we will store an iterator b. We will increase b by one year every time we pass April 1st. b will be initiated as the first year in the dataset. Remember, climate year 2000 takes place starting April 1st, 2000:
-```{r}
-USGS$AY<-numeric(length(USGS[,date_col]))
+```{r ay_for}
 b<-year(USGS[1,date_col])
 for (i in 1:length(USGS[,date_col])){
   USGS$AY[i]<-b-1
@@ -137,7 +134,7 @@ for (i in 1:length(USGS[,date_col])){
 ```
 
 That was fast. Imagine performing this calculation in excel. The same process would be very slow under its base program. But, doesn't that seem like a lot of work to just get the climate year? Can we leverage R's vectors to do this another way?
-```{r}
+```{r ay_vector}
 USGS$AY <- lubridate::year(USGS[,date_col])
 USGS$AY[lubridate::month(USGS[,date_col]) >= 4] <- USGS$AY[lubridate::month(USGS[,date_col]) >= 4] + 1
 ```
@@ -145,7 +142,7 @@ USGS$AY[lubridate::month(USGS[,date_col]) >= 4] <- USGS$AY[lubridate::month(USGS
 By leveraging the vector set-up in R, we can take what was several lines of code and reduce it to just two! When writing `for` loops in R, we should often ask ourselves if there is an easier approach if we can modify a whole column at once. Here, we simply needed to create the right boolean (TRUE or FALSE) vector to find the years that needed to be increased.
 
 Now that we have water year, why don’t we look at annual peak flows? We can do this in two ways. First, we can use the dplyr package. We will group data by YEAR. This organizes the data by year. We could use water year, but our second method doesn’t use water year. So let’s use lubridate to store the month and year of each data point, and then group by year and use `summarize` to find the maximum flows:
-```{r}
+```{r peaks}
 USGS$Month <- lubridate::month(USGS[,date_col])
 USGS$Year <- lubridate::year(USGS[,date_col])
 
@@ -155,7 +152,7 @@ peaks <- USGS |>
 ```
 
 The `group_by()` functions tells `summarize()` how to aggregate the data such that we quickly and easily get the maximum flow for each year. Can we write this another way? Certainly! We can use `SQL`, which will look pretty familiar to anyone who has used `dplyr`. This has the pro of being consistent across time as SQL rarely changes, but `dplyr` is updated often, and the con of being slightly more verbose and we sometimes need to use `paste0()` to format our request:
-```{r}
+```{r peaksql}
 peaks <- sqldf::sqldf(
   paste0(
     "SELECT u.Year, max(u.",flow_col,") as MaxFlow
@@ -166,26 +163,389 @@ peaks <- sqldf::sqldf(
 ```
 
 Neat! But surely the USGS could do this for us? Correct. They record maximum flow in their NWIS system.
-```{r}
+```{r peaks_dr}
 peakUSGS <- dataRetrieval::readNWISpeak("03168000", '2015-01-01', '2025-12-31')
 ```
 
 Neat! Now we found a way to get the exact same data in two ways using R. Or did we?
-```{r}
+```{r peak_plot}
 ggplot() + 
   geom_line(aes(x = lubridate::year(peakUSGS$peak_dt), y = peakUSGS$peak_va), col = "navy") + 
-  geom_line(aes(x = peaks$Year, y = peaks$MaxFow), col = "firebrick") + 
+  geom_line(aes(x = peaks$Year, y = peaks$MaxFlow), col = "firebrick") + 
   xlab("Year") + ylab("Flow (cfs)") + 
   theme_classic()
 ```
 
 NWIS records the exact maximum flow, on a sub-daily level. Check for yourself by looking at the peakflow for 2024 in peakUSGS. No data point in 2024 is this high in `USGS`. Why? Because we pulled in the daily **average** flows and therefore the peaks have been wiped out!
 
-Okay, enough with the kiddie stuff let’s get to some real hydrology. What do low flows look like at this gage? If we are in a dry period, when should we be concerned about stream levels? How often does a given flow occur per year?
+## Drought Flows
+Okay, enough with the kiddie stuff let’s get to some real hydrology. What do low flows look like at this gage? If we are in a dry period, when should we be concerned about stream levels? How often does a given flow occur per year? Do the operational rules of the dam impact our analysis?
+
+First, let's start off by calculating monthly flow statistics. This will give us an idea of what the flow regime looks like at different times of year. So how do we do this? You may understand by now there are multiple ways. We can use base R with a `for` loop or vector calculation, we can run a query in `sql`, we could use `dplyr` with `summarize()`, or we can even use our object. Before proceeding, try to write the code you need to get the monthly minimum, median, mean, and maximum flows for the Allisonia gage.
+
+Did you try it? What are your results? When is flow lowest? What is higher, median or mean flows? Does this make sense?
+
+What strategy did you employ? Below, I'll how I accomplish this in `dplyr` and with our gage object:
+```{r alis_lowflows}
+#Using dplyr:
+USGS |> 
+  dplyr::group_by(Month) |> 
+  dplyr::summarize(
+    MinFlow = min(!!sym(flow_col)),
+    MedinFlow = min(!!sym(flow_col)),
+    MeanFlow = min(!!sym(flow_col)),
+    MaxFlow = min(!!sym(flow_col))
+  )
+```
+
+```{r alis_lowflows_obj}
+#Using dplyr:
+alis_gage$nep_table()
+```
+
+What would happen if we changed it to `group_by(Year, Month)`? What would you guess were the driest years?
+
+Let's focus on the output of the gage object. There's a lot of information here! This table provides us the minimum, mean, and 5 - 50 percentile flows for each month. We can read this table as: there is a 5% chance in any given January that daily flow will fall below `alis_gage$nep_table()[1,3]` cfs. Let's repeat this using a gage downstream of Claytor Lake.
+
+## [USGS 03171000 NEW RIVER AT Radford, VA](https://waterdata.usgs.gov/monitoring-location/USGS-03171000/)
+So, let's download the gage data and create the table. Using our object, this is fairly easy:
+```{r claytor}
+clay_gage <- hydrotools::WaterGageBase$new(
+  gage_id = "03171000",
+  start_date = '2015-01-01',
+  end_date = '2026-12-31'
+)
+clay_gage$nep_table()
+```
+
+So now we have both tables. R can make it very easy to compare these. We can simply subtract the tables to see where differences may arise (although we have to remove the non-numeric month column first using `[,-1]` or `dplyr::select()`. What do you expect to see? Remember, gage 03171000 is downstream of our Allisonia gage and therefore has a larger drainage area. 
+
+```{r lowflow_diff}
+clay_gage$nep_table()[,-1] - alis_gage$nep_table()[,-1]
+```
+
+What do you notice? Write down some of your thoughts on GitHub so that we can discuss our findings. Does anything defy your expectations? If we were to run low flow metrics statewide, why is it important to find ways to identify impoundments?
+
+If time permits, can you find a way to assess if the dam is impacting peak flows and **baseflow**?
 
 
 
-Next steps:
-1. What are the critical low flows at this site? Can we calculate these ourselves and use the object to confirm?
+# Problem 2: Drought Assessment of the Shenandoah River
+So we now see that impoundments can have a large impact on hydrology. We have learned that site assessment and research is equally important with running statistics. Let's shift our focus to one of the most drought prone regions in the state, the Shenandoah River. Specifically, we will evaluate flow conditions in the Spring of 2026 to determine flow status. From there, we will run an analysis designed by former HARP students to estimate if the region is likely to experience drought in the summer of 2026.
+
+## Gage Data
+Let's first get our gage data. We will look at two gages. Gage [01634000](https://waterdata.usgs.gov/monitoring-location/USGS-01634000/) is the NF Shenandoah River at Strasburg, VA, and [01631000](https://waterdata.usgs.gov/monitoring-location/USGS-01631000/) is the SF Shenandoah at Front Royal. Click the link to explore the USGS page for these gages. Now let's get some data in R. We will start by pulling the complete flow records for both gages and their drainage areas:
+```{r shen_intro}
+NF_gage <- hydrotools::WaterGageBase$new(gage_id = "01634000")
+SF_gage <- hydrotools::WaterGageBase$new(gage_id = "01631000")
+
+#We can get the drainage area using dataRetrieval or using our object:
+NF_gage_info <- dataRetrieval::read_waterdata_monitoring_location("USGS-01634000")
+
+NF_gage$load_sf_da()
+SF_gage$load_sf_da()
+
+NF_gage$drainage_area;SF_gage$drainage_area
+```
+
+## Normalize Flow
+So, we know the SF Shenandoah gets a lot more flow than the North Fork, it drains over twice the total area! Sometimes, when we are trying to assess different watersheds we may try to *normalize* flow using drainage area. In other words, we use the drainage area to convert flow from cubic feet per second to cfs/sq mi. If our watersheds had identical geology, morphology, precipitation, and land use, we may expect to see similar flows once we've normalized for the size of the site.
+```{r flow_normal}
+NF_gage_data <- NF_gage$gage_data
+SF_gage_data <- SF_gage$gage_data
+
+NF_gage_data$flowNormal <- NF_gage_data[,flow_col] / NF_gage$drainage_area
+SF_gage_data$flowNormal <- SF_gage_data[,flow_col] / SF_gage$drainage_area
+
+```
+
+So, what's an easy way to compare these flows. We will often use box and whisker plots as our first attempt, but we also like what is known as a flow duration curve. We'll create both here. Let's start with the box and whisker plot. These plots take a column of data and find the minimum, 25%, 50%, 75%, and maximum flows and display them on the same plot. They help us get a quick look at flows at each site. We should use both the normalized flow data and the raw data in separate plots to see if we learn anything about our site:
+```{r boxplot}
+combined_shen_data <- sqldf(
+  paste0(
+    "SELECT sf.",date_col," as Date, nf.",flow_col," as NF_flow,
+       sf.",flow_col," as SF_flow,
+       nf.flowNormal as NF_normal, sf.flowNormal as SF_normal
+    FROM SF_gage_data as sf
+    LEFT JOIN NF_gage_data as nf
+    ON sf.",date_col," = nf.",date_col
+  )
+)
+combined_shen_data_long <- combined_shen_data |> 
+  mutate(Date = as.Date(Date)) |> 
+  tidyr::pivot_longer(NF_flow:SF_normal)
+
+combined_shen_data_long |> 
+  filter(name %in% c("NF_flow", "SF_flow")) |> 
+  ggplot() + 
+    geom_boxplot(aes(x = name, y = value)) + 
+  scale_y_log10() + 
+  theme_classic()
+
+combined_shen_data_long |> 
+  filter(name %in% c("NF_normal", "SF_normal")) |> 
+  ggplot() + 
+    geom_boxplot(aes(x = name, y = value)) + 
+  scale_y_log10() + 
+  theme_classic()
+```
+
+Notice that we had to do a bit of data wrangling here. First, we had to get our data together into a single data frame using a `join`. We could have also used `dplyr::left_join()`. Then, we *pivoted* our data set into a long style data frame where we have a `name` and `value` column such that all the data is in just two columns and is identified by name. From there, we could create our plots by filtering on name.
+
+What do these plots teach us about the sites? We can confirm that there is indeed more flow in the SF. Further, the second plot shows us that, on average, slightly more flow per square mile is entering the stream. This makes sense as there are some significant difference in geology and sometimes even climate between the two rivers. What else do you notice?
+
+Let's repeat this analysis, now with monthly flows. Try this on your own first. You'll need to aggregate the data by month within the plot.
+
+```{r month_boxplot}
+combined_shen_data_long |> 
+  mutate(month = lubridate::month(Date)) |> 
+  filter(name %in% c("NF_flow", "SF_flow")) |> 
+  ggplot() + 
+    geom_boxplot(aes(x = as.factor(month), y = value, fill = name)) + 
+    scale_y_log10() + 
+    theme_classic()
+
+combined_shen_data_long |> 
+  mutate(month = lubridate::month(Date)) |> 
+  filter(name %in% c("NF_normal", "SF_normal")) |> 
+  ggplot() + 
+    geom_boxplot(aes(x = as.factor(month), y = value, fill = name)) + 
+    scale_y_log10() + 
+    theme_classic()
+```
+
+The monthly plots provide even more insights. At certain times of year, the discrepancy between these flows is much larger. The NF Shenandoah has much less flow per square mils in the summer than the SF, but its comparable in the Winter. This may be in part due to irrigation on the NF, which consumes a lot of water each summer.
+
+## Drought Status
+Okay, now, let's look at May 20, 2026. The DEQ often assesses drought conditions as follows: a stream is not in drought if flows exceed the 25% daily average flow percentile for that month. A stream is in drought watch/warning/emergency if the flow falls below the 25%/10%/5% daily average flow percentile for that month. Based on these conditions, assess if the stream was in drought on May 20, 2026. If it was, when did the "drought" begin e.g. when was the last day the stream was not in drought? What about the last day the stream was not in drought for 30 days or more? Are these different?
+
+As you develop your code, try to make sure you can easily apply your code to another gage if we want to. What needs to change? How should it be organized to accomplish that? In addition, note how you will "check" your work to make sure your code is functioning as intended.
+
+```{r}
+add_drought_status <- function(gage_data = gage_obj$gage_data, gage_obj,
+                               date_col = gage_obj$date_col, flow_col = gage_obj$flow_col){
+  drought_triggers <- gage_obj$nep_table()
+  
+  drought_triggers$month_num <- which(month.abb == drought_triggers$Month)
+
+  gage_data$month <- lubridate::month(gage_data[,date_col])
+  
+  gage_data$warningTrigger <- drought_triggers$`25%`[match(gage_data$month,drought_triggers$month_num)]
+  gage_data$watchTrigger <- drought_triggers$`10%`[match(gage_data$month,drought_triggers$month_num)]
+  gage_data$emergencyTrigger <- drought_triggers$`5%`[match(gage_data$month,drought_triggers$month_num)]
+  
+  gage_data$currentStatus <- 0
+  gage_data$currentStatus[gage_data[,flow_col] < gage_data[,"warningTrigger"]] <- 1
+  gage_data$currentStatus[gage_data[,flow_col] < gage_data[,"watchTrigger"]] <- 2
+  gage_data$currentStatus[gage_data[,flow_col] < gage_data[,"emergencyTrigger"]] <- 3
+  
+  return(gage_data)
+}
+
+NF_gage_data <- add_drought_status(NF_gage_data, NF_gage)
+SF_gage_data <- add_drought_status(SF_gage_data, SF_gage)
+
+#What is the drought status of our target day?
+target_date <- "2026-05-20"
+NF_gage_data$currentStatus[NF_gage_data[, date_col] == target_date]
+SF_gage_data$currentStatus[SF_gage_data[, date_col] == target_date]
+
+#When is the last day the stream was NOT in drought prior to our day?
+max(NF_gage_data[NF_gage_data$currentStatus == 0 & NF_gage_data[,date_col] < target_date,date_col])
+max(SF_gage_data[SF_gage_data$currentStatus == 0 & SF_gage_data[,date_col] < target_date,date_col])
+
+#When is the last time the stream was NOT in drought for a whole week prior to our day?
+#Find the rolling seven day status:
+NF_gage_data$thirtyDayStatus <- caTools::runmean(NF_gage_data$currentStatus, 30,
+                                                alg = "exact", align = "right", endrule = "NA")
+SF_gage_data$thirtyDayStatus <- caTools::runmean(SF_gage_data$currentStatus, 30,
+                                                alg = "exact", align = "right", endrule = "NA")
+#When was the rolling thirty days status last 0?
+max(NF_gage_data[NF_gage_data$thirtyDayStatus == 0 & NF_gage_data[,date_col] < target_date,date_col], na.rm = TRUE)
+max(SF_gage_data[SF_gage_data$thirtyDayStatus == 0 & SF_gage_data[,date_col] < target_date,date_col], na.rm = TRUE)
+
+```
+
+My solution here is a little complicated. Note down any questions you have and discuss with your teammates. Is your solution different? Note how you approached the problem for discussion.
+
+One issue with drought assessment (and hydrology in general) is the concept of non-stationarity. This is often a central premise for our HARP projects. Basically, non-stationarity implies that the mean and variance of our data set is changing with time. In other words, some hydrology systems change with time due to changes in land cover/runoff, precipitation patterns (climate change), human diversions, and much more. It makes it challenging to rely on long-term historic records if our metrics aren't flexible enough to account for potential non-stationarity. Let's run our analysis again, but this time let's only use the past 40 years to create our drought metrics:
+```{r non_stationarity}
+NF_gage_short <- hydrotools::WaterGageBase$new(gage_id = "01634000",start_date = "1986-01-01")
+SF_gage_short <- hydrotools::WaterGageBase$new(gage_id = "01631000",start_date = "1986-01-01")
+
+NF_gage_data_short <- add_drought_status(gage_obj = NF_gage_short)
+SF_gage_data_short <- add_drought_status(gage_obj = SF_gage_short)
+
+
+#What is the drought status of our target day?
+target_date <- "2026-05-20"
+NF_gage_data$currentStatus[NF_gage_data[, date_col] == target_date]
+SF_gage_data$currentStatus[SF_gage_data[, date_col] == target_date]
+```
+
+In this case, our results were the same. Phew, but did the triggers change? Is there a more appropriate time period to use or how should we proceed if our data may be non-stationary? What are some of the causes?
+```{r}
+#NF
+100 * ((NF_gage_short$nep_table()[,-1] - NF_gage$nep_table()[,-1]) / NF_gage$nep_table()[,-1])
+#SF
+100 * ((SF_gage_short$nep_table()[,-1] - SF_gage$nep_table()[,-1]) / SF_gage$nep_table()[,-1])
+```
+
+### Drought Prediction
+Okay, so we are fairly confident that May, 2026 is dry and likely indicates we are in drought and have been in a drought for at least two months. What can we do with this information? How does this help folks plan for the summer, which may or may not be drier? We will leverage a concept developed by [HARP in 2016](https://pubs.usgs.gov/publication/sir20145145): winter mean flow tends to be correlated with the likelihood of summer drought. Why? We believe that during winter periods evapotranspiration is low so more runoff can enter into groundwater systems. This helps to refill "reservoirs" underground that fuel stream baseflow during dry summer periods. So, smaller winter flows = less recharge = less summer baseflow = higher likelihood of drought. We are going to employ a greatly simplified approach here to evaluate this concept. Let's start by doing an analysis that can seem deceptively simple: let's calculate the mean flow from November - February and then get it into a data frame with the maximum drought status the following August. What makes this complicated? Well, we need to span multiple months and return to our concept of an analysis year. Think about how you would approach this and, if time permits, give it a try. But, my code is below to help you out if you get stuck:
+```{r}
+#Our analysis year starts on November 1st
+NF_gage_data$AY <- lubridate::year(NF_gage_data[,date_col])
+NF_gage_data$AY[NF_gage_data$month >= 11] <- NF_gage_data$AY[NF_gage_data$month >= 11] + 1
+#Get the winter flow from the analysis year in the same data frame with the following August low flow
+winter_august <- NF_gage_data |> 
+  filter(month == 8) |> 
+  group_by(AY) |> 
+  summarize(
+    august_25p = quantile(!!sym(flow_col), 0.25),
+    august_10p = quantile(!!sym(flow_col), 0.10),
+    august_05p = quantile(!!sym(flow_col), 0.05),
+    max_status = max(currentStatus)
+  ) |> 
+  left_join(
+    by = "AY",
+    NF_gage_data |> 
+      filter(month %in% c(11:12, 1 , 2)) |> 
+      group_by(AY) |> 
+      summarize(winter_mean = mean(!!sym(flow_col)))
+  )
+
+```
+
+Now that we have these together, let's create some generic columns that tell us if there was a drought warning, watch, or emergency each year:
+```{r}
+winter_august <- winter_august |> 
+  mutate(
+    was_watch = max_status > 0,
+    was_warn = max_status > 1,
+    was_emer = max_status > 2
+  ) 
+```
+
+Awesome, now let's first see if there is any correlation between the August percentile flows and the previous winter:
+
+```{r}
+winter_august |> 
+  select(-max_status, was_watch : was_emer) |> 
+  tidyr::pivot_longer(c(august_25p : august_05p)) |> 
+ggplot() + 
+  geom_point(aes(x = winter_mean, y = value, col = name)) +
+  ggplot2::scale_x_log10() + 
+  ggplot2::scale_y_log10()
+
+```
+
+What are your conclusions? Does this seem like a useful relationship? How or when could it be applied?
+
+Let's take a different approach: What if we rephrase our questions as "Does a lower winter flow relate to the likelihood of a drought warning occurring in August?" We already have all the data we need! Let's start by creating a boxplot of winter flows colored by whether or not a drought emergency occurred the following summer:
+
+```{r}
+winter_august |> 
+  select(-c(august_25p : august_05p, max_status)) |> 
+  tidyr::pivot_longer(was_watch  : was_emer) |> 
+ggplot() + 
+  geom_boxplot(aes(y = winter_mean, x = name, fill = value)) +
+  ggplot2::scale_y_log10() + 
+  theme_classic()
+
+```
+
+Now that seems like a more meaningful relationship! Clearly, winter flows are much lower in years where a drought warning or emergency was declared. So, let's now run a new regression that relates flow and the likelihood of a August drought emergency. How would we do this? I'll spare you the googling if you haven't taken an advanced statistics class. We can use a binomial distribution to fit the data and a logistic regression to model it. I don't expect you to be able to do all this on your own, but wanted to include it so you can analyze the results:
+
+```{r}
+mllr_df <- winter_august |> 
+  select(-c(august_25p : august_05p, max_status)) |> 
+  tidyr::pivot_longer(was_watch  : was_emer) |> 
+  filter(name == "was_emer") |> 
+  mutate(log_flow = log(winter_mean))
+
+mllr <- glm(as.numeric(value) ~ log_flow, data = mllr_df, family = "binomial")
+summary(mllr)
+
+
+predict(mllr, newdata = data.frame(log_flow = log(c(100,200,300))), type = "response")
+
+```
+So, for every 1 change in the log of Winter mean flow, the log odds of a drought emergency decrease by 1.4. And with a pretty statistically significant result! How can we interpret that more generally? Well, as shown via `predict()` a winter mean flow of 100, 200, or 300 cfs results in a `r paste0(round(100 * predict(mllr, newdata = data.frame(log_flow = log(c(100,200,300))), type = "response")),"%", collapse = ", ")` chance of a drought emergency flow in the following August. 
+
+So, my final question for you, are we likely to encounter a drought emergency flow in August of 2026 in the North Fork and South Fork of the Shenandoah River?
+
+```{r}
+#NF Winter Flow in 2026:
+winter_flow_NF_2026 <- NF_gage_data |> 
+      filter(month %in% c(11:12, 1 , 2),
+             AY == 2026) |> 
+      group_by(AY) |> 
+      summarize(winter_mean = mean(!!sym(flow_col), na.rm = TRUE)) |> 
+  pull(winter_mean)
+#SF Winter Flow in 2026:
+winter_flow_SF_2026 <- SF_gage_data |> 
+      filter(!!sym(date_col) >= as.Date("2025-11-01") & !!sym(date_col) < as.Date("2026-03-01"))|> 
+      summarize(winter_mean = mean(!!sym(flow_col), na.rm = TRUE)) |> 
+  pull(winter_mean)
+
+
+mllr_model <- function(gage_obj, winterMonths = c(11:12, 1:2), targetMonth = 8,
+                 AYS = 11, date_col = gage_obj$date_col, flow_col = gage_obj$flow_col){
+  gage_data <- gage_obj$gage_data
+  #Add drought status
+  gage_data <- add_drought_status(gage_obj = gage_obj)
+  #Our analysis year starts on November 1st
+  gage_data$AY <- lubridate::year(gage_data[,date_col])
+  gage_data$AY[gage_data$month >= AYS] <- gage_data$AY[gage_data$month >= AYS] + 1
+  
+  
+  #Get the winter flow from the analysis year in the same data frame with the following August low flow
+  winter_target <- gage_data |> 
+    filter(month == targetMonth) |> 
+    group_by(AY) |> 
+    summarize(
+      target_25p = quantile(!!sym(flow_col), 0.25),
+      target_10p = quantile(!!sym(flow_col), 0.10),
+      target_05p = quantile(!!sym(flow_col), 0.05),
+      max_status = max(currentStatus)
+    ) |> 
+    left_join(
+      by = "AY",
+      gage_data |> 
+        dplyr::filter(month %in% winterMonths) |> 
+        dplyr::group_by(AY) |> 
+        dplyr::summarize(winter_mean = mean(!!sym(flow_col)), count = n())
+    ) |> 
+    mutate(
+      was_watch = max_status > 0,
+      was_warn = max_status > 1,
+      was_emer = max_status > 2
+    ) 
+  
+  mllr_df <- winter_target |> 
+    select(-c(target_25p : target_05p, max_status)) |> 
+    tidyr::pivot_longer(was_watch  : was_emer) |> 
+    filter(name == "was_emer") |> 
+    mutate(log_flow = log(winter_mean))
+  
+  mllr_log <- glm(as.numeric(value) ~ log_flow, data = mllr_df, family = "binomial")
+
+  return(mllr_log)
+}
+
+mllr_NF <- mllr_model(NF_gage)
+mllr_SF <- mllr_model(SF_gage)
+
+predict(mllr_NF, newdata = data.frame(log_flow = log(winter_flow_NF_2026)), type = "response")
+predict(mllr_SF, newdata = data.frame(log_flow = log(winter_flow_SF_2026)), type = "response")
+```
+
+# Next Up
+So, now what if I asked you to run this regression for every gage in the state? What approach would you take? How could we keep everything organized? This leads to our next intro - HARP Workflows and Architecture!
+
+## Additional Questions:
+1. The gage object can calculate the minimum 7- and 90-day flow each year. How can we leverage these to support our analysis?
 2. Do we see a trend in low flows over time?
-3. Can you write an `sqldf` call that will have calculate the average and minimum monthly flows at each gage and have it all in one data frame?
+3. Boxplot of monthly flows or of annual low flows at and above Claytor Lake (try on your own first, then check object)
+4. What might the differences in the MLLR regression between the NF and SF indicate?
