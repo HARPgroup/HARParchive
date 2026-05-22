@@ -1,0 +1,187 @@
+---
+title: "HARP Code Architecture"
+output: html_document
+date: "2026-05-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+Over the years, HARP analysts have likely created more than 100,000 lines of code for the DEQ. As HARP continued and these code bases grew, it has become increasingly difficult for DEQ staff to maintain these projects. Typically, the HARP analysts themselves can run the code with no issues, but it can be challenging to preserve that knowledge 5 - 10 years later when DEQ staff need to rerun it and the analysts have graduated! DEQ has taken a few different approaches to try to ensure we protect new HARP code to the largest extent possible. Some best practices include: 
+- gitHub documentation: Issues should be created for each new task of a project. The main body of the issue should be edited weekly with documentation, instructions, and remaining tasks. 
+- function documentation: Extensive inline code documentation should be included with each new function created in a project. A git issue should also be created to serve as a potential library for overall function documentation (inputs, outputs, examples)
+- Summary reports: An end-of-year report written by the analysts summarizing the overall project workflow
+
+These solutions have increased the longevity of HARP code, but have still often resulted in the need for DEQ to invest significant time in redeveloping or fixing code after a single component broke due to R package updates. To move towards a more sustainable overall HARP deliverable, DEQ is now trying to restructure HARP projects into workflows that may leverage a HARP R package.
+
+# DEQ Workflows
+So, what do we mean by "workflow"? That generic term has very specific meaning to OWS. For us, it implies a series of scripts that each handle a single task of a large project. Each task writes out a file that a subsequent task may rely on. The final products of these workflows are preserved in the DEQ database through a `POST` operation. These workflow scripts are `bash` files that can be called from the linux command line, allowing them to be rapidly run in bulk on our server. The bash files themselves may call R scripts to do the work itself. 
+
+That may sound a little complicated, so lets break it down a bit more. The underlying theory here is that the vast majority of HARP projects can be broken down into a series of discrete, minimal steps. Each of these steps can then be converted into a script, but must adhere to one our central workflow rules: one script, one purpose. No workflow step should be handling more than one task. It's okay if your workflow step is only five lines of code! Let's use the 2025-2026 HARP baseflow project as an example to understand this principle a little more closely. This workflow is documented in [this meta model issue](https://github.com/HARPgroup/meta_model/issues/190) as well as in this baseflow storage issue [here](https://github.com/HARPgroup/baseflow_storage/issues/60). 
+
+In this project, our HARP analysts put together a series of R functions that can examine a flow record and, using the flow column of that data set, identify periods where the stream was at "baseflow" (flow is steadily declining over a period of time). From there, they ran regressions on these baseflow periods to develop an event-specific decay coefficient that could characterize the baseflow recession in that period. Finally, these events were aggregated to create an overall regression that related baseflow recessions coefficients to median flow. This regression could then power drought forecasts by helping us understand the rate of decline a stream may experience given the existing flow/storage in the system. A flow-recession coefficient table was also created in the workflow to use in DEQ models. This project could be boiled down to the following series of steps, where download is run first, then analyze, then import:
+
+**Download:**
+`01_obtain_flow` = Retrieve USGS gage data and apply light formatting
+
+**Analyze:**
+`01_event_identification` = Read in flow data from download step and flag days in recession based on AGWRC and default thresholds
+`02_baseflow_events` = Read in recession-flow data and identify potential baseflow events
+`03_baseflow_stats` = Use log-linear regression to calculate the recession coefficient from baseflow events
+`04_trim_events` = Trim events by iterating start and end points to find optimal data fit
+`05_trim_stats` = Recalculate the recession coefficients from trimmed baseflow events
+`06_regression_df` = Summarize the events in 05_trim_stats to ensure we have a median flow for each event and the event AGWRC in each row of a csv
+`07_AGWRC_Q_lm` = Conduct a log-linear regression of median event flow and AGWRC from 06_regression_df
+`10_AGWRC_lookup` = Create a lookup table from the regression and baseflow events
+
+**Import**
+`01_regression_coeff` = Import the slope and intercept of regression from Analyze to the DEQ database. Store these coefficients on a model and model scenario on the USGS watershed as determined by config (model = AGWRC-1.0 and scenario = simple_lm)
+
+Each of these steps is a simple `bash` script that performs the following actions:
+1. Sources a config file to control and populate variables like the gageid of interest or the default thresholds in Analyze -> 01
+2. Messages the user that the script is proceeding and shows the command it is calling to load an R script (for debugging)
+3. Run an R script
+4. Writes an output file if needed
+
+Here is Analyze -> `01_event_identification` as an example. We load in `agws_config` and then call `event_identification.R` with the appropriate inputs. Don't stress about the bash code - DEQ will help you develop these. We just want you all to be familiar with the one script, one purpose:
+```{bash eval = FALSE}
+#!/bin/bash
+# Load in the config file for default thresholds and user input variables like gage id
+agws_config=`find_config agws.config`
+if [ "$agws_config" = "" ]; then
+  agws_config="$META_MODEL_ROOT/models/drought/agws/agws.config"
+fi
+. $agws_config
+
+#Message user what this step will do:
+echo "Identifying potential flow recession days baseflow for ${coverage}"
+
+# Message user what R script will be called here and provide arguments for debugging:
+echo "Calling: Rscript $META_MODEL_ROOT/scripts/usgs/event_identification.R \"$COVERAGE_FLOW_FILE\" \"$DATECOL\" \"$FLOWCOL\" \"FALSE\" \"$EVENTS_FILE\""
+Rscript $META_MODEL_ROOT/scripts/usgs/event_identification.R "$COVERAGE_FLOW_FILE" "$DATECOL" "$FLOWCOL" "FALSE" "$EVENTS_FILE"
+```
+
+Formatting our code into workflows has numerous advantages:
+
+- Each step is legible and easy to decipher its purpose
+- When code breaks, we instantly know which step is failing
+- Documentation becomes much easier as the steps provide a backbone for us to fill out
+- Workflows are designed to be run in bulk so that we can, for instance, run the recession workflow for all USGS gages at once
+- The project is more digestible for DEQ leadership as the step-by-step approach is easy to explain
+- Testing is easy as we can create target output files that each step must create e.g. does the data frame from step `01` contain the correct columns? Does it has more or less rows than it did the last time we ran it?
+
+
+# R Package Development
+In the 2026 - 2027 HARP project, HARP analysts will work with DEQ to create an R package to host all functions created in this project. Each subsequent HARP project may create a similar package so that DEQ has an R package for each HARP project. Bundling our functions into an R project has two main advantages:
+1. R packages require robust function documentation in a rigorous formatting scheme. This ensures all HARP functions are documented in a consistent manner to make it easy for future developers to understand the purpose of the function and how to use it.
+2. Documentation is compiled into a vignette that integrates directly into RStudio to make it easy for DEQ to access it
+3. Packages must be routinely compiled to ensure test code is passed and documentation standards are met. 
+4. Package creation will fail if a test is failed or documentation standard is not met, ensuring analysts and DEQ are more comfortable pushing code actively into the package to keep it up-to-date.
+
+DEQ will work with HARP analysts to develop the package basics, so don't worry too much about the specific requirements just yet. But, for now, let's look at a function in one of DEQ's package `hydrotools::group1` with its `roxygen` documentation. There are required "tags" for each function designated with the `@` symbol. For each function, we need to provide `@name`, `@description`, `@param` for each input, and `@return` for whatever is returned from the function. Roxygen optionally allow `@details` and `@examples` tags to provide more technical information about the function and an example of how to use the function, respectively. DEQ requires these tags for all HARP functions to help ensure longevity.
+
+```{r}
+#'@title group1
+#'@name
+#'group1
+#'@description
+#'Magnitude of monthly water conditions
+#'@details
+#'Calculates the IHA parameter group 1: Magnitude of montly water conditions
+#'group1() applies an input function FUN to a 1-D zoo x, grouping by water
+#'month+water year or calendar month+calendar year depending on user input
+#'See IHA documentation:
+#'\url{http://www.nature.org/initiatives/freshwater/conservationtools/art17004.html}
+#'
+#'@param x A zoo timeseries object containing the flow series
+#'@param yearType The type of year factor to be used when determining statistcs,
+#'  \code{yr = 'water'} or \code{yr ='calendar'} for water years and calculated years respectively
+#'@param FUN the function to be applied to the monthly values.  Median is the
+#'  default here. This can be a character string of a function name but should
+#'  ideally be a closure
+#'@return A matrix with the monthly results of FUN over each year
+#'@author jason.e.law@@gmail.com (imported to Hydrotools by Connor Brogan,connor.brogan@@deq.virginia.gov)
+#'@references
+#'\url{http://www.nature.org/initiatives/freshwater/conservationtools/art17004.html}
+#' @examples 
+#'#Get data for NF Shenandoah Mount Jackson
+#'flows <- dataRetrieval::readNWISdv("01633000",parameterCd = "00060")
+#'flows <- dataRetrieval::renameNWISColumns(flows)
+#'#Convert flows to zoo
+#'flows_zoo <- zoo::as.zoo(x = flows$Flow)
+#'zoo::index(flows_zoo) <- flows$Date
+#'#Use group 1 to get the minimum monthly flows:
+#'group1(flows_zoo,"water",FUN = min)
+#'@importFrom zoo index coredata is.zoo
+#'@importFrom lubridate year month
+#'@export
+group1 <- function (
+    #A zoo timeseries
+  x,
+  #Whether statistics should be applied on a water or calendar year basis
+  yearType = c("water", "calendar"),
+  #The name of a function (character) OR a function (closure)
+  FUN = stats::median) {
+  #x must be a zoo:
+  stopifnot(is.zoo(x))
+  #Get the yearType argument of the function input (either water or calendar)
+  yearType <- match.arg(yearType)
+  if(!(yearType %in% c('water','calendar'))){
+    stop(paste0("'yearType' argument must be either 'water' or 'calendar'.
+    ",yearType," has not yet been implemented"))
+  }
+  #Get the dates associated with the zoo timeseries (stored in the index)
+  idx <- index(x)
+  #Set the month and year to be either water year or calendar year based using
+  #switch and the yearType input by user
+  yr <- switch(yearType, water = water.year(idx), calendar = year(idx))
+  mo <- switch(yearType, water = water.month(idx, label = TRUE,
+                                             abbr = FALSE),
+               calendar = month(idx, label = TRUE, abbr = FALSE))
+  #Apply the input function FUN to the unique combination of mo and yr. Since
+  #zoos are inherently ordered, no other ordering is needed to group by month
+  #and year
+  res <- tapply(zoo::coredata(x), list(mo, yr), FUN)
+  #Store the function as an attribute for reference by user before returning
+  #data back to the user
+  attr(res, "FUN") <- deparse(substitute(FUN))
+  return(t(res))
+}
+
+```
+
+
+# Team Architecture Exercise
+Architecture in coding is an art that is only appreciated after you've completed a project and need to review it years later. It becomes increasingly important the more people there are that are working on and with your project. Architecture is basically project planning and is best done before any coding begins! This exercise will be for the entire HARP team. The goal is to identify the drought status of all USGS gages in Virginia. If annual 30- or 90-day low flows have a temporal trend (are increasing or decreasing with time), the drought status threshold should be based only on the past 30 years of data. A stream is considered in drought status if the 7-day average streamflow falls below the 5%/10%/25% mean monthly flow. We want this analysis to be easily run and have several outputs. Which indicates it's a good candidate for a workflow. This workflow could have nine steps as follows:
+
+1. Reads all daily approved stream flow data and writes to file
+2. Stores year, month, and analysis year in a file
+3. Stores drainage area in a file
+4. Stores flow per drainage area in a file
+5. Calculates X-day flow where x is controlled by a config file e.g. a file that gets sources into R that just contains x = 7 or whatever the user wants to set it as. This allows us to run the workflow easily using different x flows without having to change our scripts.
+6. Creates a data frame that contains the 5%/10%/25% mean monthly flows and writes to file. (e.g. to get data for May, if there are 50 years of data, calculate the mean flow in each May on record. Then, store in the output the 5%/10%/25% quantiles of those mean flows)
+7. Flag gage if in drought status
+8. Runs a regression on low flows over time
+9. If significant, repeats only using last 30 years to check if statuses are non stationary.
+
+Planning will be the key here and is more important than actually finishing the workflow. Before writing any code, work together to draft a plan. What inputs and outputs will come in and be returned from each step? How will files get written out? What tests can be built to ensure inputs contain the data they should? How should step 9 be addressed?
+
+Although our workflows are typically in `bash`, this exercise can consist of either 9 R script files or simply 9 R functions that can be chained together. The intention of this tutorial is to start working early with gage data and trying to accomplish a task through the "one script, one purpose" mantra. If time permits, show how to compile and run the nine steps. 
+
+**Hint:** The `hydrotools::WaterGageBase` object from the "Hydrology in R" exercise contains several methods that may be of assistance here. Feel free to leverage it as much as you want! See `?hydrotools::WaterGageBase` for it's help menu.
+
+
+The following questions may help our next discussion:
+1. What were the challenges you encountered in creating the workflow?
+2. Would this work for all gages? Does this work for any time period instead of just the past 30-years?
+3. Can you effectively show us how to use the workflow that you have created so far (even if it is unfinished!)?
+4. What documentation can you provide to increase the longevity of the workflow?
+5. Do you find see any pros or cons of using the methods on `?hydrotools::WaterGageBase`? Should anything created in this workflow be incorporated as a method on that object?
+6. What is the advantage of creating this analysis in a DEQ style workflow?
+
+If you have a completed workflow:
+1. How many gages in Virginia are in drought?
+2. Are there any gages that were in drought prior to step nine but were then no longer considered in drought? What about the opposite?
+3. If we ultimately decide that we should base our drought status on a 3-day flow and that our drought statuses should be increased to 10%/15%/25%, what may need to change in your workflow? How could the config be used to control these?
