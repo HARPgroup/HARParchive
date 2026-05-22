@@ -8,8 +8,22 @@ date: "2026-05-22"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r include=FALSE}
+#Estimate total lines of code:
+allHarp <- list.files("../../",recursive = TRUE)
+
+allR <- allHarp[grepl("(\\.R$)|(\\.Rmd$)", allHarp)]
+allR <- paste0("../../", allR)
+
+R.utils::countLines(allR[1])[1]
+
+res <- lapply(allR, FUN = function(filIn){R.utils::countLines(filIn)[1]})
+total_code_lines <- sum(unlist(res))
+
+```
+
 # Introduction
-Over the years, HARP analysts have likely created more than 100,000 lines of code for the DEQ. As HARP continued and these code bases grew, it has become increasingly difficult for DEQ staff to maintain these projects. Typically, the HARP analysts themselves can run the code with no issues, but it can be challenging to preserve that knowledge 5 - 10 years later when DEQ staff need to rerun it and the analysts have graduated! DEQ has taken a few different approaches to try to ensure we protect new HARP code to the largest extent possible. Some best practices include: 
+Over the years, HARP analysts have likely created more than `r format(signif(total_code_lines,1),big.mark = ",")` lines of code for the DEQ. As HARP continued and these code bases grew, it has become increasingly difficult for DEQ staff to maintain these projects. Typically, the HARP analysts themselves can run the code with no issues, but it can be challenging to preserve that knowledge 5 - 10 years later when DEQ staff need to rerun it and the analysts have graduated! DEQ has taken a few different approaches to try to ensure we protect new HARP code to the largest extent possible. Some best practices include: 
 - gitHub documentation: Issues should be created for each new task of a project. The main body of the issue should be edited weekly with documentation, instructions, and remaining tasks. 
 - function documentation: Extensive inline code documentation should be included with each new function created in a project. A git issue should also be created to serve as a potential library for overall function documentation (inputs, outputs, examples)
 - Summary reports: An end-of-year report written by the analysts summarizing the overall project workflow
