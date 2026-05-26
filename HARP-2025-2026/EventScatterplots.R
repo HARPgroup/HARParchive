@@ -17,14 +17,14 @@ okabe_ito <- function(n) {
 }
 
 ##per-event summary##
-#agwr_estimator reduces AGWR within each event (median is robust by default)
+#agwr_estimator reduces calc_AGWR within each event (median is robust by default)
 build_combined_events <- function(analysis_data, agwr_estimator = median) {
-  stopifnot(all(c("GroupID", "Flow", "AGWR", "Season") %in% names(analysis_data)))
+  stopifnot(all(c("GroupID", "Flow", "calc_AGWR", "Season") %in% names(analysis_data)))
   out <- analysis_data %>%
     filter(!is.na(GroupID)) %>%
     group_by(GroupID) %>%
     summarise(
-      AGWR   = agwr_estimator(AGWR, na.rm = TRUE),
+      calc_AGWR   = agwr_estimator(calc_AGWR, na.rm = TRUE),
       Flow   = mean(Flow, na.rm = TRUE),
       Season = dplyr::last(Season),
       .groups = "drop"
@@ -37,9 +37,9 @@ build_combined_events <- function(analysis_data, agwr_estimator = median) {
 ##legend helper##
 make_shared_legend <- function(levels_vec, pal, title = "Study events") {
   if (length(levels_vec) == 0) return(NULL)
-  dummy <- data.frame(Flow = 0, AGWR = 0,
+  dummy <- data.frame(Flow = 0, calc_AGWR = 0,
                       GroupID = factor(levels_vec, levels = levels_vec))
-  p_legend <- ggplot(dummy, aes(Flow, AGWR, color = GroupID)) +
+  p_legend <- ggplot(dummy, aes(Flow, calc_AGWR, color = GroupID)) +
     geom_point() +
     scale_color_manual(name = title, values = pal, drop = FALSE) +
     theme_void() + theme(legend.position = "bottom")
@@ -79,20 +79,20 @@ bfd_cfq_all <- function(analysis_data,
   annot_layer <- NULL
   subtitle_layer <- NULL
   if (show_stats && nrow(df) > 1) {
-    fit <- lm(AGWR ~ Flow, data = df)
+    fit <- lm(calc_AGWR ~ Flow, data = df)
     slope <- unname(coef(fit)[2])
     r2    <- summary(fit)$r.squared
     n_ev  <- nrow(df)
     annot_text <- paste0("Slope = ", round(slope, 7), "  |  R² = ", round(r2, 2))
     xx <- if (stats_pos == "right") max(df$Flow, na.rm = TRUE) else min(df$Flow, na.rm = TRUE)
     hh <- if (stats_pos == "right") 1 else 0
-    yy <- max(df$AGWR, na.rm = TRUE)
+    yy <- max(df$calc_AGWR, na.rm = TRUE)
     annot_layer <- annotate("text", x = xx, y = yy, label = annot_text,
                             hjust = hh, vjust = 1.1, size = 3.2)
     subtitle_layer <- labs(subtitle = paste("Total events:", n_ev))
   }
   
-  ggplot(mapping = aes(x = Flow, y = AGWR)) +
+  ggplot(mapping = aes(x = Flow, y = calc_AGWR)) +
     geom_point(data = df_other, color = "grey70", size = 2, alpha = 0.6) +
     geom_point(data = df_study, aes(color = GroupID), size = 3.5) +
     { if (label_points && nrow(df_study) > 0 &&
@@ -105,9 +105,9 @@ bfd_cfq_all <- function(analysis_data,
     scale_color_manual(name = "Study events", values = pal, drop = FALSE) +
     theme_bw() +
     coord_cartesian(xlim = range(df$Flow,  na.rm = TRUE),
-                    ylim = range(df$AGWR, na.rm = TRUE)) +
+                    ylim = range(df$calc_AGWR, na.rm = TRUE)) +
     xlab("Mean Event Flow (cfs)") +
-    ylab("Estimated AGWR (per-event)") +
+    ylab("Estimated calc_AGWR (per-event)") +
     ggtitle(paste0(site_title(analysis_data), " – All Events")) +
     subtitle_layer +
     theme(plot.title = element_text(hjust = 0.5))
@@ -129,7 +129,7 @@ bfd_cfq_seasonal <- function(analysis_data,
   pal <- okabe_ito(length(present)); names(pal) <- as.character(present)
   
   xr <- range(df$Flow,  na.rm = TRUE)
-  yr <- range(df$AGWR, na.rm = TRUE)
+  yr <- range(df$calc_AGWR, na.rm = TRUE)
   
   make_panel <- function(season) {
     d_season <- df %>% filter(Season == season)
@@ -140,14 +140,14 @@ bfd_cfq_seasonal <- function(analysis_data,
     #per-season regression stats
     annot_layer <- NULL
     if (show_stats && nrow(d_season) > 1) {
-      fit <- lm(AGWR ~ Flow, data = d_season)
+      fit <- lm(calc_AGWR ~ Flow, data = d_season)
       slope <- unname(coef(fit)[2])
       r2    <- summary(fit)$r.squared
       txt   <- paste0("Slope=", round(slope, 3), "  |  R²=", round(r2, 2), "  |  n=", nrow(d_season))
       
       xx <- if (stats_pos == "right") max(d_season$Flow, na.rm = TRUE) else min(d_season$Flow, na.rm = TRUE)
       hh <- if (stats_pos == "right") 1 else 0
-      yy <- max(d_season$AGWR, na.rm = TRUE)
+      yy <- max(d_season$calc_AGWR, na.rm = TRUE)
       
       annot_layer <- annotate("text", x = xx, y = yy, label = txt,
                               hjust = hh, vjust = 1.1, size = 3)
@@ -159,7 +159,7 @@ bfd_cfq_seasonal <- function(analysis_data,
                               hjust = hh, vjust = 1.1, size = 3)
     }
     
-    ggplot(mapping = aes(x = Flow, y = AGWR)) +
+    ggplot(mapping = aes(x = Flow, y = calc_AGWR)) +
       geom_point(data = d_other, color = "grey70", size = 2, alpha = 0.6) +
       geom_point(data = d_study, aes(color = GroupID), size = 3.5, show.legend = FALSE) +
       { if (label_points && nrow(d_study) > 0 &&
@@ -173,7 +173,7 @@ bfd_cfq_seasonal <- function(analysis_data,
       theme_bw() +
       coord_cartesian(xlim = xr, ylim = yr) +
       xlab("Mean Event Flow (cfs)") +
-      ylab("Estimated AGWR (per-event)") +
+      ylab("Estimated calc_AGWR (per-event)") +
       ggtitle(paste0(season, " Events")) +
       theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
   }
@@ -205,47 +205,87 @@ per_event_summary <- function(analysis_data, agwr_estimator = median) {
       n         = n(),
       mean_flow = mean(Flow, na.rm = TRUE),
       sd_flow   = sd(Flow, na.rm = TRUE),
-      mean_agwr = mean(AGWR, na.rm = TRUE),
-      sd_agwr   = sd(AGWR, na.rm = TRUE)
+      mean_agwr = mean(calc_AGWR, na.rm = TRUE),
+      sd_agwr   = sd(calc_AGWR, na.rm = TRUE)
     )
 }
 
 ###EXAMPLE USE###
 #testing_func should already exist in environment with:
-#columns: GroupID (int), Flow (numeric), AGWR (numeric), Season (chr/fct), [site_no (optional)]
-#example guard:
-if (!exists("testing_func")) {
-  stop("Please provide `testing_func` with columns GroupID, Flow, AGWR, Season[, site_no].")
-}
+#columns: GroupID (int), Flow (numeric), calc_AGWR (numeric), Season (chr/fct), [site_no (optional)]
 
 #plots
 p_all <- bfd_cfq_all(
-  testing_func,
-  study_events = c(7,8,141,142,194,196,203,204),
-  label_points = TRUE,
+  analysis_data,
+  #study_events = c(7,8,141,142,194,196,203,204),
+  #label_points = TRUE,
   show_stats   = TRUE,      # slope/R² + n
-  stats_pos    = "right"    # or "left"
+  stats_pos    = "right",    # or "left"
 )
 p_sea <- bfd_cfq_seasonal(
-  testing_func,
-  study_events = c(7,8,141,142,194,196,203,204),
-  label_points = TRUE,
+  analysis_data,
+  #study_events = c(7,8,141,142,194,196,203,204),
+  #label_points = TRUE,
   show_stats   = TRUE,
   stats_pos    = "left"
 )
+
+p_all <- p_all + ggtitle("CS Trimmed Data") #change this when necessary
 
 print(p_all)
 print(p_sea)
 
 #summary table (per-event collapsed, not raw rows)
-summary_stats <- per_event_summary(testing_func)
+summary_stats <- per_event_summary(analysis_data)
 print(summary_stats)
 
 #caption with means on the all-events plot
 caption_text <- paste0(
   "Mean Flow = ", round(summary_stats$mean_flow, 1), " cfs; ",
-  "Mean AGWR = ", round(summary_stats$mean_agwr, 3),
+  "Mean calc_AGWR = ", round(summary_stats$mean_agwr, 3),
   " (n = ", summary_stats$n, ")"
 )
 p_all_with_caption <- p_all + labs(caption = caption_text)
 print(p_all_with_caption)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############
+# Helper: restrict axes *without* touching aspect ratio or dropping data
+axis_agwr_flow <- function(xlim = c(0, 500), ylim = c(0.85, 1.10)) {
+  list(
+    coord_cartesian(xlim = xlim, ylim = ylim, expand = FALSE),  # visual clip only
+    scale_x_continuous(breaks = seq(xlim[1], xlim[2], by = 500)),
+    scale_y_continuous(breaks = seq(ylim[1], ylim[2], by = 0.05))
+  )
+}
+
+axis_opts <- axis_agwr_flow(c(0, 500), c(0.85, 1.10))
+
+p_all <- bfd_cfq_all(
+  analysis_data,
+  show_stats = TRUE,
+  stats_pos  = "right"
+) + axis_opts   # <-- no coord_fixed anywhere
+
+p_sea <- bfd_cfq_seasonal(
+  analysis_data,
+  show_stats = TRUE,
+  stats_pos  = "left"
+) + axis_opts   # <-- safe for facets too
+
+print(p_all)
+print(p_sea)
+
+
