@@ -226,7 +226,7 @@ HM_u <- sum(1 / gageData_noZeros$Flow)
 HM <- ((N_d-n_z)/HM_u) * ((N_d-n_z) / N_d)
 ```
 
-The harmonic mean flow is about 67.5 cfs at this gage!
+The harmonic mean flow is about `r HM` cfs at this gage!
 
 ## Step 4: Adjust Streamflow to Our Facility Based on Site-Specific Data
 
