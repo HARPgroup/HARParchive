@@ -587,25 +587,30 @@ HARP team. The goal is to identify the drought status of all USGS gages
 in Virginia. If annual 30- or 90-day low flows have a temporal trend
 (are increasing or decreasing with time), the drought status threshold
 should be based only on the past 30 years of data. A stream is
-considered in drought status if the 7-day average streamflow falls below
-the 5%/10%/25% mean monthly flow. We want this analysis to be easily run
-and have several outputs. Which indicates it’s a good candidate for a
-workflow. This workflow could have nine steps as follows:</p>
+considered in drought status if <strong>the 7-day average
+streamflow</strong> falls below the 5%/10%/25% <strong>mean
+monthly</strong> flow. We want this analysis to be easily run and have
+several outputs. Which indicates it’s a good candidate for a workflow.
+This workflow could have nine steps as follows:</p>
 <ol style="list-style-type: decimal">
 <li>Reads all daily approved stream flow data and writes to file</li>
 <li>Stores year, month, and analysis year in a file</li>
 <li>Stores drainage area in a file</li>
 <li>Stores flow per drainage area in a file</li>
-<li>Calculates X-day flow where x is controlled by a config file e.g. a
-file that gets sources into R that just contains x = 7 or whatever the
-user wants to set it as. This allows us to run the workflow easily using
-different x flows without having to change our scripts.</li>
-<li>Creates a data frame that contains the 5%/10%/25% mean monthly flows
-and writes to file. (e.g. to get data for May, if there are 50 years of
-data, calculate the mean flow in each May on record. Then, store in the
-output the 5%/10%/25% quantiles of those mean flows)</li>
-<li>Flag gage if in drought status</li>
-<li>Runs a regression on low flows over time</li>
+<li>Calculates rolling X-day average flow every day where x is
+controlled by a config file e.g. a file that gets sources into R that
+just contains x = 7 or whatever the user wants to set it as. This allows
+us to run the workflow easily using different x flows without having to
+change our scripts.</li>
+<li>Creates a data frame that contains the 5%/10%/25% <strong>mean
+monthly flows</strong> and writes to file. (e.g. to get data for May, if
+there are 50 years of data, calculate the mean flow in each May on
+record. Then, store in the output the 5%/10%/25% quantiles of those
+<strong>mean</strong> flows)</li>
+<li>Flag gage if in drought status by comparing the rolling x-day flow
+from step 5 to the monthly mean flow percentiles in step 6</li>
+<li>Runs a linear regression on low flows over time, maybe by looking at
+the minimum x-day flow from each year</li>
 <li>If significant, repeats only using last 30 years to check if
 statuses are non stationary.</li>
 </ol>
@@ -620,10 +625,10 @@ that can be chained together. The intention of this tutorial is to start
 working early with gage data and trying to accomplish a task through the
 “one script, one purpose” mantra. If time permits, show how to compile
 and run the nine steps.</p>
-<p><strong>Hint:</strong> The <code>hydrotools::WaterGageBase</code>
+<p><strong>Hint:</strong> The <code>hydrotools::WaterGageDaily</code>
 object from the “Hydrology in R” exercise contains several methods that
 may be of assistance here. Feel free to leverage it as much as you want!
-See <code>?hydrotools::WaterGageBase</code> for it’s help menu.</p>
+See <code>?hydrotools::WaterGageDaily</code> for it’s help menu.</p>
 <p>The following questions may help our next discussion: 1. What were
 the challenges you encountered in creating the workflow? 2. Would this
 work for all gages? Does this work for any time period instead of just
@@ -631,8 +636,8 @@ the past 30-years? 3. Can you effectively show us how to use the
 workflow that you have created so far (even if it is unfinished!)? 4.
 What documentation can you provide to increase the longevity of the
 workflow? 5. Do you find see any pros or cons of using the methods on
-<code>?hydrotools::WaterGageBase</code>? Should anything created in this
-workflow be incorporated as a method on that object? 6. What is the
+<code>?hydrotools::WaterGageDaily</code>? Should anything created in
+this workflow be incorporated as a method on that object? 6. What is the
 advantage of creating this analysis in a DEQ style workflow?</p>
 <p>If you have a completed workflow: 1. How many gages in Virginia are
 in drought? 2. Are there any gages that were in drought prior to step
