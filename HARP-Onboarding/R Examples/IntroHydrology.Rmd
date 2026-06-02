@@ -71,17 +71,17 @@ library(sqldf)
 
 Claytor Lake is a great study area for us. There is are USGS gauges both upstream and downstream of the dam with over 20 years of daily flow data in them! We can access these using the dataRetrieval package. Let’s first examine upstream flow at the Allisonia gauge.
 
-We can see from the link that this gage is a few miles upstream of Claytor Lake. Now how do we get the data into R? We can employ any of three strategies. First, we can read in a csv file downloaded form the link above. This wouldn't be advisable because we would need to redownload that file every day. Second, we can use `dataRetrieval`. This package has many functions to get gage data into R including `dataRetrieval::readNWISdv()` and `dataRetrieval::read_waterdata_daily()` (the new and "improved" function). You can learn more about these via their help menu, e.g. `?dataRetrieval::read_waterdata_daily()` But, we are going to use `hydrotools`. DEQ has developed their own "object" that standardizes how we query, analyze, and examine USGS gage data. The object is a little complex, but contains all of the functions and data we need to get the data from the Allisonia gage. You can learn more about it `?hydrotools::WaterGageBase`, which includes an example at the bottom. Lets try to grab the last ten years of daily average streamflow data:
+We can see from the link that this gage is a few miles upstream of Claytor Lake. Now how do we get the data into R? We can employ any of three strategies. First, we can read in a csv file downloaded form the link above. This wouldn't be advisable because we would need to redownload that file every day. Second, we can use `dataRetrieval`. This package has many functions to get gage data into R including `dataRetrieval::readNWISdv()` and `dataRetrieval::read_waterdata_daily()` (the new and "improved" function). You can learn more about these via their help menu, e.g. `?dataRetrieval::read_waterdata_daily()` But, we are going to use `hydrotools`. DEQ has developed their own "object" that standardizes how we query, analyze, and examine USGS gage data. The object is a little complex, but contains all of the functions and data we need to get the data from the Allisonia gage. You can learn more about it `?hydrotools::WaterGageDaily`, which includes an example at the bottom. Lets try to grab the last ten years of daily average streamflow data:
 
 ```{r getAlis}
-alis_gage <- hydrotools::WaterGageBase$new(
+alis_gage <- hydrotools::WaterGageDaily$new(
   gage_id = "03168000",
   start_date = '2015-01-01',
   end_date = '2026-12-31'
 )
 ```
 
-Now, we have created an R6 object of class `WaterGageBase` that has a bunch of *fields* with data and *methods* to perform additional analysis. So, for instance, run:
+Now, we have created an R6 object of class `WaterGageDaily` that has a bunch of *fields* with data and *methods* to perform additional analysis. So, for instance, run:
 ```{r showData}
 head(alis_gage$gage_data)
 ```
@@ -210,7 +210,7 @@ Let's focus on the output of the gage object. There's a lot of information here!
 ## [USGS 03171000 NEW RIVER AT Radford, VA](https://waterdata.usgs.gov/monitoring-location/USGS-03171000/)
 So, let's download the gage data and create the table. Using our object, this is fairly easy:
 ```{r claytor}
-clay_gage <- hydrotools::WaterGageBase$new(
+clay_gage <- hydrotools::WaterGageDaily$new(
   gage_id = "03171000",
   start_date = '2015-01-01',
   end_date = '2026-12-31'
@@ -236,8 +236,8 @@ So we now see that impoundments can have a large impact on hydrology. We have le
 ## Gage Data
 Let's first get our gage data. We will look at two gages. Gage [01634000](https://waterdata.usgs.gov/monitoring-location/USGS-01634000/) is the NF Shenandoah River at Strasburg, VA, and [01631000](https://waterdata.usgs.gov/monitoring-location/USGS-01631000/) is the SF Shenandoah at Front Royal. Click the link to explore the USGS page for these gages. Now let's get some data in R. We will start by pulling the complete flow records for both gages and their drainage areas:
 ```{r shen_intro}
-NF_gage <- hydrotools::WaterGageBase$new(gage_id = "01634000")
-SF_gage <- hydrotools::WaterGageBase$new(gage_id = "01631000")
+NF_gage <- hydrotools::WaterGageDaily$new(gage_id = "01634000")
+SF_gage <- hydrotools::WaterGageDaily$new(gage_id = "01631000")
 
 #We can get the drainage area using dataRetrieval or using our object:
 NF_gage_info <- dataRetrieval::read_waterdata_monitoring_location("USGS-01634000")
@@ -370,8 +370,8 @@ My solution here is a little complicated. Note down any questions you have and d
 
 One issue with drought assessment (and hydrology in general) is the concept of non-stationarity. This is often a central premise for our HARP projects. Basically, non-stationarity implies that the mean and variance of our data set is changing with time. In other words, some hydrology systems change with time due to changes in land cover/runoff, precipitation patterns (climate change), human diversions, and much more. It makes it challenging to rely on long-term historic records if our metrics aren't flexible enough to account for potential non-stationarity. Let's run our analysis again, but this time let's only use the past 40 years to create our drought metrics:
 ```{r non_stationarity}
-NF_gage_short <- hydrotools::WaterGageBase$new(gage_id = "01634000",start_date = "1986-01-01")
-SF_gage_short <- hydrotools::WaterGageBase$new(gage_id = "01631000",start_date = "1986-01-01")
+NF_gage_short <- hydrotools::WaterGageDaily$new(gage_id = "01634000",start_date = "1986-01-01")
+SF_gage_short <- hydrotools::WaterGageDaily$new(gage_id = "01631000",start_date = "1986-01-01")
 
 NF_gage_data_short <- add_drought_status(gage_obj = NF_gage_short)
 SF_gage_data_short <- add_drought_status(gage_obj = SF_gage_short)
