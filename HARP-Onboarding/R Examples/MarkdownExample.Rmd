@@ -1,0 +1,64 @@
+---
+title: "Markdown Example"
+output: word_document
+date: "2026-07-16"
+params:
+  gageid: 01628500
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+See the R markdown [cheat sheet](https://rmarkdown.rstudio.com/lesson-15.HTML) for more examples. R markdown works by integrating code chunks like that below with user text and other inline code. For instance, we can see that the sqrt of 12132131 is `r round(sqrt(12132131),4)`
+
+
+```{r cars}
+library(dplyr)
+starwars |> 
+  filter(homeworld == "Tatooine",
+         species == "Droid")
+```
+
+By setting *params* in the YAML (yet another markdown language) at the top of the file, we can have inputs to this markdown. For instance, the default gage id is `r params$gageid`. We can programatically control these parameters when knitting the document via:
+
+```{r eval=FALSE}
+rmarkdown::render(
+  input = "PATH_TO_THIS_DOC",
+  output_file = "output.docx", 
+  params = list(
+    gageid = "01672000"
+  )
+)
+        
+```
+
+## Including Plots
+
+You can also embed plots or images, for example:
+
+```{r gageplot, echo=FALSE}
+boxplot(starwars$height ~ starwars$gender)
+points(x = 2,
+       y = starwars$height[starwars$name == "Darth Vader"],
+       pch = 15, col = "darkred")
+points(x = 2,
+       y = starwars$height[starwars$name == "Yoda"],
+       pch = 15, col = "darkgreen")
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. More paramters are described in the cheat sheet linked above. By cliking the "knit" button in Rstudio you can see the word document output
+
+These plots can come straight from hydrotools objects when needed:
+
+```{r}
+gage_obj <- hydrotools::WaterGageDaily$new(gage_id = params$gageid)
+gage_obj$plot_percentiles()
+
+```
+
+And remember, now we can use that data inline. Flow two weeks ago is `r gage_obj$gage_data[gage_obj$gage_data[,gage_obj$date_col] == (Sys.Date() - 14), gage_obj$flow_col]` cfs

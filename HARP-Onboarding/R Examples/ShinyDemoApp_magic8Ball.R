@@ -1,5 +1,4 @@
 library(shiny)
-library(raster)
 
 #Put the code to build the user interface here. Usually starts with a fluidPage,
 #then some columns and fluidRows populated by selectInput, numericInput,
@@ -33,9 +32,9 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  observeEvent(input$textIn,{
-    test <- raster::raster('https://water.noaa.gov/resources/downloads/precip/stageIV/2024/11/20/nws_precip_wytd_20241120_conus.tif')
-  })
+  # observeEvent(input$textIn,{
+  #   test <- raster::raster('https://water.noaa.gov/resources/downloads/precip/stageIV/2024/11/20/nws_precip_wytd_20241120_conus.tif')
+  # })
   
   output$test <- renderUI({
     if(input$textIn == "idk"){
